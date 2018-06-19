@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.function.Supplier;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.StreamingOutput;
 import jetbrains.buildServer.util.FileUtil;
@@ -72,7 +73,7 @@ public class ArchiveElement implements Element {
     return true;
   }
 
-  public StreamingOutput getStreamingOutput(@Nullable final Long startOffset, @Nullable final Long length) {
+  public StreamingOutput getStreamingOutput(@Nullable final Long startOffset, @Nullable final Long length, final Supplier<String> detailsForLog) {
     if (startOffset != null || length != null){
       throw new IllegalStateException("Partial streaming is not yet supported");
     }
@@ -81,6 +82,7 @@ public class ArchiveElement implements Element {
       public void write(final OutputStream out) throws WebApplicationException {
         final ZipArchiveOutputStream resultOutput = new ZipArchiveOutputStream(new BufferedOutputStream(out));
         resultOutput.setEncoding(null); // TW-12815
+        int errorsCount = 0;
         try {
           for (ArtifactTreeElement artifact : myArtifacts) { //todo: need to read-lock artifacts???
             if (!artifact.isLeaf()){
@@ -96,6 +98,7 @@ public class ArchiveElement implements Element {
                 resultOutput.putArchiveEntry(entry);
                 resultOutput.closeArchiveEntry();
               } catch (IOException e) {
+                errorsCount++;
                 LOG.warnAndDebugDetails("Error packing directory, ignoring. Directory: '" + artifact.getFullName() + "'", e);
               }
             }
@@ -118,10 +121,14 @@ public class ArchiveElement implements Element {
                 FileUtil.close(stream);
               }
             } catch (IOException e) {
+              errorsCount++;
               LOG.warnAndDebugDetails("Error packing artifact, ignoring. File: '" + artifact.getFullName() + "'", e);
             }
           }
         } finally {
+          if (errorsCount > 0) {
+            LOG.warn("Encountered " + errorsCount + " errors while processing " + detailsForLog.get());
+          }
           try {
             resultOutput.close();
           } catch (Exception e) {

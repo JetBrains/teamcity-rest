@@ -236,7 +236,8 @@ public class FilesSubResource {
       case "no":
         return false;
       case "attachment":
-        response.setHeader("Content-Disposition", element.getName());
+        response.setHeader("Content-Disposition", element.getName()); //related to TW-27206
+        //todo: consider using jetbrains.buildServer.web.util.WebUtil.getContentDispositionValue here
         return false;
     }
     throw new OperationException("Wrong value contentDisposition value: \"" + contentDisposition + "\"");
@@ -316,7 +317,7 @@ public class FilesSubResource {
       }
 
       public StreamingOutput getStreamingOutput(@Nullable final Long startOffset, @Nullable final Long length) {
-        return archiveElement.getStreamingOutput(startOffset, length);
+        return archiveElement.getStreamingOutput(startOffset, length, () -> "request " + WebUtil.getRequestDump(request));
       }
     });
     for (ArtifactTreeElement element : elements) {
