@@ -396,8 +396,8 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
     final Stopwatch start = new Stopwatch().start();
     check("password:pwd", user20);
     System.out.println("Elapsed ms: " + start.elapsedMillis());
-    assertTrue(start.elapsedMillis() > 2 * delay - 1);  //check the elapsed time is at least twice the period (once for multiple items search, once - for single items search)
-    assertTrue(start.elapsedMillis() < 3 * delay - 1);  //check the elapsed time is not more then twice the time wait
+    assertTrue(start.elapsedMillis() > 2 * delay - 100);  //check the elapsed time is at least twice the period (once for multiple items search, once - for single items search)
+    assertTrue(start.elapsedMillis() < 3 * delay);  //check the elapsed time is not more then twice the time wait
     setInternalProperty("rest.request.users.passwordCheckDelay.ms", "0"); //disable delay in tests
 
     final Stopwatch start2 = new Stopwatch().start();
