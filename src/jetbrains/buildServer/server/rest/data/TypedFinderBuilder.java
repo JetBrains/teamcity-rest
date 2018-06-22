@@ -984,9 +984,11 @@ public class TypedFinderBuilder<ITEM> {
 
     @NotNull
     protected ItemFilter<ITEM> getFilter(@NotNull final Locator locator, @NotNull DimensionObjects dimensionObjects) {
+      final Locator locatorCopy = new Locator(locator); //wrapping locator so that original locator is not marked as used on condition checking
+
       MultiCheckerFilter<ITEM> result = new MultiCheckerFilter<>();
       for (Map.Entry<DimensionCondition, ItemFilterFromDimensions<ITEM>> entry : myFiltersConditions.entrySet()) {
-        if (entry.getKey().complies(new Locator(locator))) { //wrapping locator so that it is not marked as used on condition checking
+        if (entry.getKey().complies(locatorCopy)) {
           final Set<String> alreadyUsedDimensions = new HashSet<>(dimensionObjects.getUsedDimensions());
           DimensionObjectsWrapper wrapper = new DimensionObjectsWrapper(dimensionObjects);
           ItemFilter<ITEM> checker = entry.getValue().get(wrapper);

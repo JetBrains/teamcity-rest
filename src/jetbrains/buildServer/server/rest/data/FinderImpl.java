@@ -355,8 +355,10 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     if (totalItemsProcessed >= TeamCityProperties.getLong("rest.finder.processedItemsLogLimit", 1)) {
       final String lookupLimitMessage =
         filter.isLookupLimitReached() ? " (lookupLimit of " + filter.getLookupLimit() + " reached). Last processed item: " + LogUtil.describe(filter.getLastProcessedItem()) : "";
-      LOG.debug("While processing locator '" + locator + "' by finder " + getName() + ", " + result.size() + " items were matched by the filter from " +
-                totalItemsProcessed + " processed in total" + lookupLimitMessage + ", took " + processingTimeMs + " ms");
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("While processing locator '" + locator + "' by finder " + getName() + ", " + result.size() + " items were matched by the filter from " +
+                  totalItemsProcessed + " processed in total" + lookupLimitMessage + ", took " + processingTimeMs + " ms");
+      }
     }
     if (totalItemsProcessed > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 10000) ||
         processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000)) {

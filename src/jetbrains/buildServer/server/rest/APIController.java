@@ -406,12 +406,14 @@ public class APIController extends BaseController implements ServletContextAware
     final Stopwatch requestStart = new Stopwatch().start();
     boolean shouldLogToDebug = shouldLogToDebug(request);
     boolean internalRequest = RestApiFacade.isInternal(request);
+    final String requestDump = internalRequest ? "" : WebUtil.getRequestDump(request);
+
     if (shouldLogToDebug && TeamCityProperties.getBoolean("rest.log.debug.requestStart") && LOG.isDebugEnabled()) {
-      LOG.debug("REST API" + (internalRequest ? " internal" : "") + " request received: " + WebUtil.getRequestDump(request));
+      LOG.debug("REST API" + (internalRequest ? " internal" : "") + " request received: " + requestDump);
     }
 
     try {
-      initJerseyWebComponent("during request " + WebUtil.getRequestDump(request));
+      initJerseyWebComponent("during request " + requestDump);
     } catch (Throwable throwable) {
       reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, "Error initializing REST API", Level.ERROR, request);
       return null;
@@ -454,12 +456,12 @@ public class APIController extends BaseController implements ServletContextAware
         if (notAuthorizedRequest) {
           response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
           response.getWriter().write("TeamCity core was unable to handle authentication (no current user).");
-          LOG.warn("TeamCity core was unable to handle authentication (no current user), replying with 401 status. Request details: " + WebUtil.getRequestDump(request));
+          LOG.warn("TeamCity core was unable to handle authentication (no current user), replying with 401 status. Request details: " + requestDump);
           return null;
         }
       }
 
-      String activityName = "Processing REST request" + (internalRequest ? " " + WebUtil.getRequestDump(request) : "");
+      String activityName = "Processing REST request" + (internalRequest ? " " + requestDump : "");
       NamedThreadFactory.executeWithNewThreadNameFuncThrow(activityName, () -> {
         // workaround for http://jetbrains.net/tracker/issue2/TW-7656
         doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
@@ -496,7 +498,7 @@ public class APIController extends BaseController implements ServletContextAware
       if (shouldLogToDebug && LOG.isDebugEnabled()) {
         LOG.debug("REST API" + (internalRequest ? " internal" : "") + " request processing finished in " +
                   TimePrinter.createMillisecondsFormatter().formatTime(requestStart.elapsedMillis()) +
-                  (errorEncountered ? " with errors, original " : ", ") + "status code: " + getStatus(response) + ", request: " + WebUtil.getRequestDump(request));
+                  (errorEncountered ? " with errors, original " : ", ") + "status code: " + getStatus(response) + ", request: " + requestDump);
       }
     }
     return null;
