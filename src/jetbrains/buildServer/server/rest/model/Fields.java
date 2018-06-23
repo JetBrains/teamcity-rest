@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model;
 
 import com.intellij.openapi.util.text.StringUtil;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -60,7 +61,7 @@ public class Fields {
 
   private Fields(@NotNull String actualFieldsSpec, @Nullable Map<String, Fields> restrictedFields, @Nullable Context context, boolean isInternal) {
     myFieldsSpec = actualFieldsSpec;
-    myRestrictedFields = restrictedFields != null ? new HashMap<String, Fields>(restrictedFields) : new HashMap<String, Fields>();
+    myRestrictedFields = restrictedFields != null ? new HashMap<String, Fields>(restrictedFields) : Collections.emptyMap();
     myContext = context;
   }
 
@@ -144,28 +145,32 @@ public class Fields {
 
   @Nullable
   @Contract("_, _, !null, !null -> !null")
-  public Boolean isIncluded(@NotNull final String fieldName, @Nullable final Boolean isCashed, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
-    return isIncludedFull(fieldName, () -> isCashed, defaultForShort, defaultForLong);
+  public Boolean isIncluded(@NotNull final String fieldName, @Nullable final Boolean isCached, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
+    return isIncludedFull(fieldName, () -> isCached, defaultForShort, defaultForLong);
   }
 
   @Nullable
   @Contract("_, _, !null, !null -> !null")
-  public Boolean isIncludedFull(@NotNull final String fieldName, @Nullable final Supplier<Boolean> isCashed, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
+  public Boolean isIncludedFull(@NotNull final String fieldName, @Nullable final Supplier<Boolean> isCached, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
     final String fieldSpec = getCustomDimension(fieldName);
     if (fieldSpec != null) {
+      if (StringUtil.isEmpty(fieldSpec)) return true;
+
       if (NONE_FIELDS_PATTERN.equals(fieldSpec)) {
         return false;
       }
+
       if (OPTIONAL_FIELDS_PATTERN.equals(fieldSpec) || new Fields(fieldSpec).getCustomDimension(OPTIONAL_FIELDS_PATTERN) != null) {
-        if (isCashed == null && TeamCityProperties.getBoolean("rest.beans.fields.optional.errorIfUsedForNotSupportedField")) {
+        if (isCached == null && TeamCityProperties.getBoolean("rest.beans.fields.optional.errorIfUsedForNotSupportedField")) {
           throw new  BadRequestException("Special fields pattern \"" + OPTIONAL_FIELDS_PATTERN + "\" is not supported for field \"" + fieldName + "\"");
         }
-        if (isCashed == null) {
+        if (isCached == null) {
           return false;
         }
-        Boolean result = isCashed.get();
+        Boolean result = isCached.get();
         return result != null && result;
       }
+
       return true;
     }
 
@@ -248,7 +253,7 @@ public class Fields {
   @Nullable
   public String getCustomDimension(@NotNull final String fieldName) {
     final Locator parsedCustomFields = getParsedCustomFields();
-    return parsedCustomFields == null ? null : parsedCustomFields.getSingleDimensionValue(fieldName);
+    return parsedCustomFields == null ? null : parsedCustomFields.lookupSingleDimensionValue(fieldName);
   }
 
   @Nullable
@@ -311,13 +316,12 @@ public class Fields {
   }
 
   @Nullable
-  Locator getParsedCustomFields() {
+  private Locator getParsedCustomFields() {
     if (myFieldsSpecLocator == null && !StringUtil.isEmpty(myFieldsSpec)) {
       try {
         myFieldsSpecLocator = new Locator(myFieldsSpec, true,
                                           NONE_FIELDS_PATTERN, DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE, DEFAULT_FIELDS_LONG_PATTERN, ALL_FIELDS_PATTERN, ALL_NESTED_FIELDS_PATTERN,
                                           LOCATOR_CUSTOM_NAME, OPTIONAL_FIELDS_PATTERN);
-        myFieldsSpecLocator.addHiddenDimensions(OPTIONAL_FIELDS_PATTERN);
       } catch (LocatorProcessException e) {
         throw new LocatorProcessException("Error parsing fields specification: " + e.getMessage(), e);
       }
