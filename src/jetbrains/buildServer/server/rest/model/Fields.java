@@ -160,7 +160,7 @@ public class Fields {
         return false;
       }
 
-      if (OPTIONAL_FIELDS_PATTERN.equals(fieldSpec) || new Fields(fieldSpec).getCustomDimension(OPTIONAL_FIELDS_PATTERN) != null) {
+      if (OPTIONAL_FIELDS_PATTERN.equals(fieldSpec) || (fieldSpec.contains(OPTIONAL_FIELDS_PATTERN) && new Fields(fieldSpec).getCustomDimension(OPTIONAL_FIELDS_PATTERN) != null)) {
         if (isCached == null && TeamCityProperties.getBoolean("rest.beans.fields.optional.errorIfUsedForNotSupportedField")) {
           throw new  BadRequestException("Special fields pattern \"" + OPTIONAL_FIELDS_PATTERN + "\" is not supported for field \"" + fieldName + "\"");
         }
@@ -345,7 +345,8 @@ public class Fields {
   }
 
   private static class Context {
-    @Nullable BuildPromotion buildPromotion;
+    @Nullable
+    private BuildPromotion buildPromotion;
 
     @NotNull
     public String process(@NotNull final String locator) {
