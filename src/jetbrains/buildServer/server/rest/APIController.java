@@ -463,16 +463,7 @@ public class APIController extends BaseController implements ServletContextAware
         }
       }
 
-      StringBuilder activityName = new StringBuilder();
-      activityName.append("Processing REST");
-      if (internalRequest){
-        activityName.append(" internal");
-      }
-      activityName.append(" request");
-      if (requestDump.isCached()) {
-        activityName.append(requestDump.get());
-      }
-      NamedThreadFactory.executeWithNewThreadNameFuncThrow(activityName.toString(), () -> {
+      patchThread(requestDump, internalRequest, () -> {
         // workaround for http://jetbrains.net/tracker/issue2/TW-7656
         doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
           public Void apply() throws Throwable {
@@ -512,6 +503,25 @@ public class APIController extends BaseController implements ServletContextAware
       }
     }
     return null;
+  }
+
+  private void patchThread(@NotNull final CachingValue<String> requestDump, final boolean internalRequest,
+                           @NotNull final FuncThrow<Void, Throwable> action) throws Throwable {
+    if (TeamCityProperties.getBooleanOrTrue("rest.debug.APIController.patchThread")) {
+      StringBuilder activityName = new StringBuilder();
+      activityName.append("Processing REST");
+      if (internalRequest) {
+        activityName.append(" internal");
+      }
+      activityName.append(" request");
+      if (requestDump.isCached()) {
+        activityName.append(requestDump.get());
+      }
+
+      NamedThreadFactory.executeWithNewThreadNameFuncThrow(activityName.toString(), () -> action.apply());
+    } else {
+      action.apply();
+    }
   }
 
   private boolean shouldLogToDebug(@NotNull final HttpServletRequest request) {
