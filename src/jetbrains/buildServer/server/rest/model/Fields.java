@@ -154,13 +154,13 @@ public class Fields {
   public Boolean isIncludedFull(@NotNull final String fieldName, @Nullable final Supplier<Boolean> isCached, @Nullable final Boolean defaultForShort, @Nullable final Boolean defaultForLong) {
     final String fieldSpec = getCustomDimension(fieldName);
     if (fieldSpec != null) {
-      if (StringUtil.isEmpty(fieldSpec)) return true;
+      if (DEFAULT_FIELDS_SHORT_PATTERN.equals(fieldSpec)) return true; //performance optimization for a frequently used value
 
       if (NONE_FIELDS_PATTERN.equals(fieldSpec)) {
         return false;
       }
 
-      if (OPTIONAL_FIELDS_PATTERN.equals(fieldSpec) || (fieldSpec.contains(OPTIONAL_FIELDS_PATTERN) && new Fields(fieldSpec).getCustomDimension(OPTIONAL_FIELDS_PATTERN) != null)) {
+      if (OPTIONAL_FIELDS_PATTERN.equals(fieldSpec) || getNestedField(fieldSpec, OPTIONAL_FIELDS_PATTERN) != null) {
         if (isCached == null && TeamCityProperties.getBoolean("rest.beans.fields.optional.errorIfUsedForNotSupportedField")) {
           throw new  BadRequestException("Special fields pattern \"" + OPTIONAL_FIELDS_PATTERN + "\" is not supported for field \"" + fieldName + "\"");
         }
@@ -195,6 +195,13 @@ public class Fields {
     }
 
     return false;
+  }
+
+  @Nullable
+  private static String getNestedField(@NotNull final String fieldSpec, @NotNull final String dimensionName) {
+    if (fieldSpec.contains(dimensionName)) return null; //performance optimization: first check if the string appears inside
+
+    return new Fields(fieldSpec).getCustomDimension(dimensionName);
   }
 
   @NotNull
@@ -253,7 +260,7 @@ public class Fields {
   @Nullable
   public String getCustomDimension(@NotNull final String fieldName) {
     final Locator parsedCustomFields = getParsedCustomFields();
-    return parsedCustomFields == null ? null : parsedCustomFields.lookupSingleDimensionValue(fieldName);
+    return parsedCustomFields == null ? null : parsedCustomFields.lookupSingleDimensionValue(fieldName); //should use getSingleDimensionValue here, but since locator check is not invoked so far, can improve performance a bit by using lookupSingleDimensionValue
   }
 
   @Nullable
@@ -322,6 +329,8 @@ public class Fields {
         myFieldsSpecLocator = new Locator(myFieldsSpec, true,
                                           NONE_FIELDS_PATTERN, DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE, DEFAULT_FIELDS_LONG_PATTERN, ALL_FIELDS_PATTERN, ALL_NESTED_FIELDS_PATTERN,
                                           LOCATOR_CUSTOM_NAME, OPTIONAL_FIELDS_PATTERN);
+        //should add to hidden dimension, but since the locator is not currently checked, save performance by not doing it so far
+        //myFieldsSpecLocator.addHiddenDimensions(OPTIONAL_FIELDS_PATTERN);
       } catch (LocatorProcessException e) {
         throw new LocatorProcessException("Error parsing fields specification: " + e.getMessage(), e);
       }
