@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ArtifactsConstants;
 import jetbrains.buildServer.artifacts.ArtifactDependency;
@@ -428,6 +429,46 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
     assertEquals(3, result.getBuildPromotion().getArtifactDependencies().size());
   }
+
+  /**
+   * This test documents current behaviour, i.e. if we do not provide default template steps
+   * in the custom steps, they still occur in the custom build settings.
+   */
+  @Test
+  public void testBuildTriggeringWithCustomStepReplacingStepsFromDefaultTemplate() {
+    BuildTypeImpl bt = registerBuildType("buildType1", "projectName");
+    ProjectEx project = bt.getProject();
+    BuildTypeTemplate tpl = project.createBuildTypeTemplate("tpl");
+
+    project.setDefaultTemplate(tpl);
+
+    tpl.addBuildRunner("t1", "runner1", Collections.emptyMap()).getId();
+    tpl.addBuildRunner("t2", "runner2", Collections.emptyMap()).getId();
+    bt.addBuildRunner("b1", "runner3", Collections.emptyMap()).getId();
+
+    project.setDefaultTemplate(tpl);
+    persist(project, tpl, bt);
+    assertEquals(Arrays.asList("t1", "t2", "b1"), bt.getBuildRunners().stream().map(r -> r.getName()).collect(Collectors.toList()));
+
+    final SUser user = getOrCreateUser("user");
+
+    final Build build = new Build();
+    final BuildType buildTypeEntity = new BuildType();
+    buildTypeEntity.setId(bt.getExternalId());
+    buildTypeEntity.getSettings();
+    PropEntitiesStep steps = new PropEntitiesStep();
+    PropEntityStep step = new PropEntityStep();
+    step.type = "runner2";
+    step.name = "custom";
+    step.properties = new Properties(createMap("x", "y"), null, Fields.ALL, getBeanContext(myFixture));
+    steps.propEntities = Arrays.asList(step);
+    buildTypeEntity.setSteps(steps);
+    build.setBuildType(buildTypeEntity);
+
+    SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+    assertEquals(Arrays.asList("t1", "t2", "custom"), ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildRunners().stream().map(r -> r.getName()).collect(Collectors.toList()));
+  }
+
 
   @Test
   public void testBuildTriggeringWithCustomSteps() {
