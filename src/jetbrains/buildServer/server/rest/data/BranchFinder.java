@@ -23,6 +23,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -40,6 +41,8 @@ public class BranchFinder extends AbstractFinder<BranchData> {
   public static final String BUILD = "build";
   protected static final String BUILD_TYPE = "buildType";
 
+  protected static final String BRANCH_GROUP = "group";
+
   protected static final String POLICY = "policy";
   protected static final String CHANGES_FROM_DEPENDENCIES = "changesFromDependencies";   //todo: revise naming
 
@@ -51,7 +54,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
 
   public BranchFinder(@NotNull final BuildTypeFinder buildTypeFinder, @NotNull final ServiceLocator serviceLocator) {
     super(NAME, DEFAULT, UNSPECIFIED, BUILD_TYPE, BUILD, POLICY, CHANGES_FROM_DEPENDENCIES, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME); //see also getBranchFilterDetails
-    setHiddenDimensions(BRANCHED, COMPUTE_TIMESTAMPS);
+    setHiddenDimensions(BRANCHED, COMPUTE_TIMESTAMPS, BRANCH_GROUP);
     myBuildTypeFinder = buildTypeFinder;
     myServiceLocator = serviceLocator;
   }
@@ -205,6 +208,37 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     }
     final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, buildTypeLocator);
 
+    final String groupDimension = locator.getSingleDimensionValue(BRANCH_GROUP);
+    if (groupDimension != null) {
+      UserFinder userFinder = myServiceLocator.getSingletonService(UserFinder.class);
+      BranchGroupsService branchGroupsService = myServiceLocator.getSingletonService(BranchGroupsService.class);
+      Locator branchGroupLocator = new Locator(groupDimension, "id", "user", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+      String userLocator = branchGroupLocator.getSingleDimensionValue("user");
+      SUser user = userLocator == null ? userFinder.getCurrentUser() : userFinder.getItem(userLocator);
+      if (user == null) {
+        throw new BadRequestException("Can only filter by branch group when the user is present");
+      } else {
+        userFinder.checkViewUserPermission(user);
+      }
+
+      String branchGroupId = branchGroupLocator.isSingleValue() ? branchGroupLocator.getSingleValue() : branchGroupLocator.getSingleDimensionValue("id");
+      if (branchGroupId == null) {
+        throw new BadRequestException(
+          "Dimension '" + BRANCH_GROUP + "' does not specify 'id' subdimension. Example: " + branchGroupsService.getAvailableBranchGroups(new BranchGroupsProvider.Context(
+            (BuildTypeEx)buildTypes.get(0), user)).stream().map(branchGroup -> branchGroup.getId()).collect(Collectors.joining(", ")));
+      }
+      branchGroupLocator.checkLocatorFullyProcessed();
+
+      return processor -> {
+        try {
+          buildTypes.forEach(buildType -> branchGroupsService.collectBranches(branchGroupId, new BranchGroupsProvider.Context((BuildTypeEx)buildType, user),
+                                                                              item -> processor.processItem(BranchData.fromBranchEx(item, myServiceLocator, null, true))));
+        } catch (IllegalStateException e) {
+          throw new BadRequestException("Error retrieving branch groups: " + e.getMessage());
+        }
+      };
+    }
+
     BranchSearchOptions searchOptions = getBranchSearchOptionsWithDefaults(locator);
 
     Accumulator result = new Accumulator();
@@ -319,6 +353,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
         !locator.isSingleValue() &&
         (locator.getSingleDimensionValue(POLICY) != null
          || locator.getSingleDimensionValue(CHANGES_FROM_DEPENDENCIES) != null
+         || locator.getSingleDimensionValue(BRANCH_GROUP) != null
         )
     ) {
       locator.setDimensionIfNotPresent(BUILD_TYPE, buildTypesLocator);
