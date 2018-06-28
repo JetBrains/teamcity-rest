@@ -37,6 +37,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "branch")
 @XmlType(name = "branch", propOrder = {"name", "internalName", "default", "unspecified", "active", "lastActivity",
+  "groupFlag", /*experimental, temporary*/
   "builds"})
 public class Branch {
   private BranchData myBranch;
@@ -84,6 +85,11 @@ public class Branch {
   @XmlAttribute(name = "lastActivity")
   public String getLastActivity() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("lastActivity", false), () -> Util.formatTime(myBranch.getActivityTimestamp()));
+  }
+
+  @XmlAttribute(name = "groupFlag")
+  public Boolean getGroupFlag() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("groupFlag", false, false), () -> myBranch.isGroup());
   }
 
   /**

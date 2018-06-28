@@ -96,6 +96,27 @@ public abstract class BranchData implements Branch {
     };
   }
 
+  public static BranchData fromBranchGroup(@NotNull final BranchGroupsProvider.BranchGroup branchGroup) {
+    return new BranchData(branchGroup.getId()) {
+      @NotNull
+      @Override
+      public String getDisplayName() {
+        return branchGroup.getName();
+      }
+
+      @Override
+      public boolean isDefaultBranch() {
+        return false;
+      }
+
+      @Override
+      public boolean isGroup() {
+        return true;
+      }
+    };
+  }
+
+
   public static BranchData mergeSameNamed(@NotNull final BranchData b1, @NotNull final BranchData b2) {
     if (b1 == b2) {
       return b1;
@@ -214,6 +235,10 @@ public abstract class BranchData implements Branch {
                                             @Nullable Boolean includeDependencyChanges) {
     //todo: implement in more places and use
     throw new OperationException("Should not be called");
+  }
+
+  public boolean isGroup() {
+    return false;
   }
 
   private static class MergingBranchData extends BranchData {

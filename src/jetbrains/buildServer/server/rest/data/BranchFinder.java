@@ -38,10 +38,11 @@ public class BranchFinder extends AbstractFinder<BranchData> {
   protected static final String DEFAULT = "default";
   protected static final String UNSPECIFIED = "unspecified";
   protected static final String BRANCHED = "branched";
-  public static final String BUILD = "build";
+  protected static final String BUILD = "build";
   protected static final String BUILD_TYPE = "buildType";
 
   protected static final String BRANCH_GROUP = "group";
+  protected static final String GROUP_INCLUDE = "includeGroups"; //this activates a temporary/experemental hack to include branch groups as fake branches in the result
 
   protected static final String POLICY = "policy";
   protected static final String CHANGES_FROM_DEPENDENCIES = "changesFromDependencies";   //todo: revise naming
@@ -54,7 +55,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
 
   public BranchFinder(@NotNull final BuildTypeFinder buildTypeFinder, @NotNull final ServiceLocator serviceLocator) {
     super(NAME, DEFAULT, UNSPECIFIED, BUILD_TYPE, BUILD, POLICY, CHANGES_FROM_DEPENDENCIES, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME); //see also getBranchFilterDetails
-    setHiddenDimensions(BRANCHED, COMPUTE_TIMESTAMPS, BRANCH_GROUP);
+    setHiddenDimensions(BRANCHED, COMPUTE_TIMESTAMPS, BRANCH_GROUP, GROUP_INCLUDE);
     myBuildTypeFinder = buildTypeFinder;
     myServiceLocator = serviceLocator;
   }
@@ -208,6 +209,17 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     }
     final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, buildTypeLocator);
 
+    AggregatingItemHolder<BranchData> result = new AggregatingItemHolder<>();
+
+    final String groupsInclude = locator.getSingleDimensionValue(GROUP_INCLUDE);
+    if (groupsInclude != null) {
+      SUser user = validateAndgetGroupIncludeUser(groupsInclude);
+      BranchGroupsService branchGroupsService = myServiceLocator.getSingletonService(BranchGroupsService.class);
+      result.add(FinderDataBinding.getItemHolder(buildTypes.stream().
+        flatMap(buildType -> branchGroupsService.getAvailableBranchGroups(new BranchGroupsProvider.Context((BuildTypeEx)buildType, user)).stream()).
+                                                             map(branchGroup -> BranchData.fromBranchGroup(branchGroup))));
+    }
+
     final String groupDimension = locator.getSingleDimensionValue(BRANCH_GROUP);
     if (groupDimension != null) {
       UserFinder userFinder = myServiceLocator.getSingletonService(UserFinder.class);
@@ -229,25 +241,43 @@ public class BranchFinder extends AbstractFinder<BranchData> {
       }
       branchGroupLocator.checkLocatorFullyProcessed();
 
-      return processor -> {
+      result.add(processor -> {
         try {
           buildTypes.forEach(buildType -> branchGroupsService.collectBranches(branchGroupId, new BranchGroupsProvider.Context((BuildTypeEx)buildType, user),
                                                                               item -> processor.processItem(BranchData.fromBranchEx(item, myServiceLocator, null, true))));
         } catch (IllegalStateException e) {
           throw new BadRequestException("Error retrieving branch groups: " + e.getMessage());
         }
-      };
+      });
+      return result;
     }
 
     BranchSearchOptions searchOptions = getBranchSearchOptionsWithDefaults(locator);
 
-    Accumulator result = new Accumulator();
+    Accumulator resultAccumulator = new Accumulator();
     for (SBuildType buildType : buildTypes) {
       Boolean locatorComputeTimestamps = locator.getSingleDimensionValueAsBoolean(COMPUTE_TIMESTAMPS);
-      result.addAll(getBranches(buildType, searchOptions, locatorComputeTimestamps != null ? locatorComputeTimestamps : TeamCityProperties.getBoolean("rest.beans.branch.defaultComputeTimestamp")));
+      resultAccumulator.addAll(getBranches(buildType, searchOptions, locatorComputeTimestamps != null ? locatorComputeTimestamps : TeamCityProperties.getBoolean("rest.beans.branch.defaultComputeTimestamp")));
     }
 
-    return getItemHolder(result.get());
+    result.add(getItemHolder(resultAccumulator.get()));
+    return result;
+  }
+
+  @NotNull
+  private SUser validateAndgetGroupIncludeUser(@NotNull final String groupsInclude) {
+    Locator groupsIncludeLocator = new Locator(groupsInclude, "user", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    String groupsIncludeUserLocator = groupsIncludeLocator.getSingleDimensionValue("user");
+    UserFinder userFinder = myServiceLocator.getSingletonService(UserFinder.class);
+    final SUser user = groupsIncludeUserLocator == null ? userFinder.getCurrentUser() : userFinder.getItem(groupsIncludeUserLocator);
+    if (user == null) throw new BadRequestException("Can only include branch groups when the user is present");
+    if (groupsIncludeLocator.getSingleValue() != null) {
+      if (!"true".equals(groupsIncludeLocator.getSingleValue())) {
+        throw new BadRequestException("Only \"true\" locator is supported for \"" + GROUP_INCLUDE + "\" dimension");
+      }
+    }
+    groupsIncludeLocator.checkLocatorFullyProcessed();
+    return user;
   }
 
   private class BranchSearchOptions {
@@ -354,6 +384,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
         (locator.getSingleDimensionValue(POLICY) != null
          || locator.getSingleDimensionValue(CHANGES_FROM_DEPENDENCIES) != null
          || locator.getSingleDimensionValue(BRANCH_GROUP) != null
+         || locator.getSingleDimensionValue(GROUP_INCLUDE) != null
         )
     ) {
       locator.setDimensionIfNotPresent(BUILD_TYPE, buildTypesLocator);
