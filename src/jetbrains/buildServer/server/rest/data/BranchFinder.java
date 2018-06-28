@@ -33,13 +33,12 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 22/01/2016
  */
 public class BranchFinder extends AbstractFinder<BranchData> {
-  protected static final String BUILD_TYPE = "buildType";
-
   protected static final String NAME = "name";
   protected static final String DEFAULT = "default";
   protected static final String UNSPECIFIED = "unspecified";
   protected static final String BRANCHED = "branched";
   public static final String BUILD = "build";
+  protected static final String BUILD_TYPE = "buildType";
 
   protected static final String POLICY = "policy";
   protected static final String CHANGES_FROM_DEPENDENCIES = "changesFromDependencies";   //todo: revise naming
@@ -313,18 +312,18 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     return getItems(Locator.setDimensionIfNotPresent(baseLocator, BUILD_TYPE, myBuildTypeFinder.getCanonicalLocator(new BuildTypeOrTemplate(buildType))));
   }
 
-  @Nullable
+  @NotNull
   public PagedSearchResult<BranchData> getItemsIfValidBranchListLocator(@Nullable String buildTypesLocator, @Nullable final String locatorText) {
-    final Locator locator = new Locator(locatorText);
-    if (buildTypesLocator != null && (locator.getSingleDimensionValue(POLICY) != null || locator.getSingleDimensionValue(CHANGES_FROM_DEPENDENCIES) != null)){
+    final Locator locator = createLocator(locatorText, null); //using createLocator here to make sure due error on wrong locator will be generated
+    if (buildTypesLocator != null &&
+        !locator.isSingleValue() &&
+        (locator.getSingleDimensionValue(POLICY) != null
+         || locator.getSingleDimensionValue(CHANGES_FROM_DEPENDENCIES) != null
+        )
+    ) {
       locator.setDimensionIfNotPresent(BUILD_TYPE, buildTypesLocator);
     }
-    try {
-      return getItems(locator.getStringRepresentation());
-    } catch (BadRequestException e) {
-      // not a valid branches listing locator
-      return null;
-    }
+    return getItems(locator.getStringRepresentation());
   }
 
   @NotNull

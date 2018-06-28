@@ -403,7 +403,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
     if (branchLocatorValue != null) {
-      final PagedSearchResult<? extends Branch> branches = myBranchFinder.getItemsIfValidBranchListLocator(locator.getSingleDimensionValue(BUILD_TYPE), branchLocatorValue);
+      PagedSearchResult<? extends Branch> branches = null;
+      BadRequestException exceptinoOnFullSearch = null;
+      try {
+        branches = myBranchFinder.getItemsIfValidBranchListLocator(locator.getSingleDimensionValue(BUILD_TYPE), branchLocatorValue);
+      } catch (BadRequestException e) {
+        // not a valid branches listing locator
+        exceptinoOnFullSearch = e;
+      }
       if (branches != null) {
         //branches found - use them
         Set<String> branchNames = getBranchNamesSet(branches.myEntries);
@@ -420,7 +427,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         try {
           branchFilterDetails = myBranchFinder.getBranchFilterDetails(branchLocatorValue);
         } catch (LocatorProcessException locatorException) {
-          throw new BadRequestException("Invalid sub-locator '" + BRANCH + "': " + locatorException.getMessage(), locatorException);
+          throw new BadRequestException("Invalid sub-locator '" + BRANCH + "': Cannot" +
+                                        (exceptinoOnFullSearch != null ? " find branches: " + exceptinoOnFullSearch.getMessage() +"; and cannot " : "") +
+                                        " create filter: " + locatorException.getMessage(), locatorException);
         }
         if (!branchFilterDetails.isAnyBranch()) {
           result.add(new FilterConditionChecker<BuildPromotion>() {
