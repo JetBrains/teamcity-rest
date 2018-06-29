@@ -216,7 +216,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
       SUser user = validateAndgetGroupIncludeUser(groupsInclude);
       BranchGroupsService branchGroupsService = myServiceLocator.getSingletonService(BranchGroupsService.class);
       result.add(FinderDataBinding.getItemHolder(buildTypes.stream().
-        flatMap(buildType -> branchGroupsService.getAvailableBranchGroups(new BranchGroupsProvider.Context((BuildTypeEx)buildType, user)).stream()).
+        flatMap(buildType -> branchGroupsService.getAvailableBranchGroups(new BranchGroupsProvider.Context((BuildTypeEx)buildType, user)).stream()).distinct().
                                                              map(branchGroup -> BranchData.fromBranchGroup(branchGroup))));
     }
 
