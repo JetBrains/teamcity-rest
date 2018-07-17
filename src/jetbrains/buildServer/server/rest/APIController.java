@@ -38,6 +38,7 @@ import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.interceptors.PathSet;
 import jetbrains.buildServer.controllers.interceptors.auth.HttpAuthenticationManager;
 import jetbrains.buildServer.controllers.interceptors.auth.HttpAuthenticationResult;
+import jetbrains.buildServer.controllers.interceptors.auth.util.UnauthorizedResponseHelper;
 import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
@@ -531,6 +532,10 @@ public class APIController extends BaseController implements ServletContextAware
   private static boolean processRequestAuthentication(@NotNull final HttpServletRequest request,
                                                    @NotNull final HttpServletResponse response,
                                                    @NotNull final HttpAuthenticationManager authManager) throws IOException {
+    if (WebUtil.isAjaxRequest(request)) { // do not try to authenticate ajax requests, see TW-56019, TW-35022
+      new UnauthorizedResponseHelper(response, false).send(request, null);
+      return true;
+    }
       boolean canRedirect = UserAgentUtil.isBrowser(request) && !WebUtil.isAjaxRequest(request) && !WebUtil.isWebSocketUpgradeRequest(request); //see jetbrains.buildServer.controllers.interceptors.AuthorizationInterceptorImpl.preHandle()
       final HttpAuthenticationResult authResult = authManager.processAuthenticationRequest(request, response, canRedirect);
       if (canRedirect) {
