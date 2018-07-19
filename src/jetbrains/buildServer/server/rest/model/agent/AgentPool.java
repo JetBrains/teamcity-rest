@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -32,6 +33,8 @@ import jetbrains.buildServer.server.rest.request.AgentRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.agentPools.*;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -59,11 +62,8 @@ public class AgentPool {
   }
 
   public AgentPool(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
-
     id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), agentPool.getAgentPoolId());
     name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), agentPool.getName());
-    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(agentPool));
-    maxAgents = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("maxAgents", false), getMaxAgents(agentPool));
 
     final AgentPoolFinder agentPoolFinder = beanContext.getSingletonService(AgentPoolFinder.class);
 
@@ -82,6 +82,13 @@ public class AgentPool {
         return new Agents(locator, new PagerData(AgentRequest.getItemsHref(locator)), nestedFields, beanContext);
       }
     });
+
+    final AuthorityHolder authorityHolder = beanContext.getSingletonService(PermissionChecker.class).getCurrent();
+
+    if(AuthUtil.hasPermissionToViewAgentDetailsInPool(authorityHolder, agentPool) || AuthUtil.hasPermissionToManageAgentPoolsWithProjects(authorityHolder, agentPool.getProjectIds())){
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(agentPool));
+      maxAgents = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("maxAgents", false), getMaxAgents(agentPool));
+    }
   }
 
   @NotNull
