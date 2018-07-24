@@ -31,6 +31,7 @@ import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.log.Loggers;
+import jetbrains.buildServer.maintenance.CurrentNodeInfo;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -283,7 +284,11 @@ public class ServerRequest {
       @Override
       @NotNull
       public String getArchiveName(@NotNull final String path) {
-        return "server_" + areaId + (StringUtil.isEmpty(path) ? "" : "-" + path.replaceAll("[^a-zA-Z0-9-#.]+", "_"));
+        String nodeIdPart = "";
+        if (!CurrentNodeInfo.ServerMode.MAIN_SERVER.equals(CurrentNodeInfo.getMode())) { //assuming there is only single main server and it does not need node id in the file name
+          nodeIdPart = "_" + CurrentNodeInfo.getNodeId().toLowerCase();
+        }
+        return "server_" + nodeIdPart + areaId + (StringUtil.isEmpty(path) ? "" : "-" + path.replaceAll("[^a-zA-Z0-9-#.]+", "_"));
       }
 
       @NotNull
