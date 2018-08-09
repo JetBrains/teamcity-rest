@@ -230,6 +230,29 @@ public class AgentRequest {
     return new Agent(agent, myAgentPoolFinder, fieldsDefinition, myBeanContext).incompatibleBuildTypes;
   }
 
+  @GET
+  @Path("/{agentLocator}/allowedBuildTypes")
+  @Produces({"application/xml", "application/json"})
+  public AllowedBuildTypes getAllowedRunConfigurations(@PathParam("agentLocator") String agentLocator) {
+    final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
+    if (!AuthUtil.canViewAgentDetails(myBeanContext.getServiceLocator().getSingletonService(SecurityContext.class).getAuthorityHolder(), agent)) {
+      throw new AuthorizationFailedException("No permission to view agent details");
+    }
+    return new AllowedBuildTypes(myServiceLocator, agent);
+  }
+
+  @PUT
+  @Path("/{agentLocator}/allowedBuildTypes")
+  @Produces({"application/xml", "application/json"})
+  public AllowedBuildTypes setAllowedRunConfigurations(@PathParam("agentLocator") String agentLocator, AllowedBuildTypes payload) {
+    final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
+    if (!AuthUtil.canAdministerAgent(myBeanContext.getServiceLocator().getSingletonService(SecurityContext.class).getAuthorityHolder(), agent)) {
+      throw new AuthorizationFailedException("No permission to edit agent details");
+    }
+    payload.apply(myServiceLocator, agent);
+    return new AllowedBuildTypes(myServiceLocator, agent);
+  }
+
   @PUT
   @Path("/{agentLocator}/{field}")
   @Consumes("text/plain")
