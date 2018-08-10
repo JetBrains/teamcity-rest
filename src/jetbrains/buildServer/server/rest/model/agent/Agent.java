@@ -292,10 +292,6 @@ public class Agent {
     } else if ("protocol".equals(name)) {
       return getAgentProtocol(agent);
     }
-    if ("allowedRunConfigurationsPolicy".equals(name)) {
-      final BuildAgentManager.RunConfigurationPolicy policy = serviceLocator.getSingletonService(BuildAgentManager.class).getRunConfigurationPolicy(agent);
-      return (policy == BuildAgentManager.RunConfigurationPolicy.ALL_COMPATIBLE_CONFIGURATIONS) ? "ALL" : "SELECTED";
-    }
     throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, connected, enabled, authorized, ip");
   }
 
@@ -320,18 +316,6 @@ public class Agent {
       return;
     } else if ("authorizedInfoCommentText".equals(name)) {
       agent.setAuthorized(agent.isAuthorized(), currentUser, value);
-      return;
-    } else if ("allowedRunConfigurationsPolicy".equals(name)) {
-      final BuildAgentManager.RunConfigurationPolicy policy;
-      final String valueUp = value.trim().toUpperCase();
-      if ("ALL".equals(valueUp)) {
-        policy = BuildAgentManager.RunConfigurationPolicy.ALL_COMPATIBLE_CONFIGURATIONS;
-      } else if ("SELECTED".equals(valueUp)) {
-        policy = BuildAgentManager.RunConfigurationPolicy.SELECTED_COMPATIBLE_CONFIGURATIONS;
-      } else {
-        throw new BadRequestException("Unsupported value '" + value + "', expected 'ALL' or 'SELECTED'");
-      }
-      serviceLocator.getSingletonService(BuildAgentManager.class).setRunConfigurationPolicy(agent, policy);
       return;
     }
     throw new BadRequestException("Changing field '" + name + "' is not supported. Supported fields are: enabled, authorized");

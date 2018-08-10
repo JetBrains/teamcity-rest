@@ -17,14 +17,22 @@
 package jetbrains.buildServer.server.rest.model.agent;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.buildType.BuildType;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
+import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeManager;
 import org.jetbrains.annotations.NotNull;
 
@@ -34,22 +42,30 @@ public class AllowedBuildTypes {
   @XmlAttribute
   public String policy;
 
-  @XmlElement(name = "configuration")
-  public List<String> configurations;
+  @XmlElement(name = "buildType")
+  public List<BuildType> buildTypes;
 
   public AllowedBuildTypes() {
   }
 
-  public AllowedBuildTypes(@NotNull final ServiceLocator serviceLocator, @NotNull final SBuildAgent agent) {
+  public AllowedBuildTypes(@NotNull final ServiceLocator serviceLocator, @NotNull final SBuildAgent agent, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     final BuildAgentManager.RunConfigurationPolicy policy = serviceLocator.getSingletonService(BuildAgentManager.class).getRunConfigurationPolicy(agent);
     if (policy == BuildAgentManager.RunConfigurationPolicy.ALL_COMPATIBLE_CONFIGURATIONS) {
-      this.policy = "ALL";
-      configurations = null;
+      this.policy = "all";
+      buildTypes = null;
     } else if (policy == BuildAgentManager.RunConfigurationPolicy.SELECTED_COMPATIBLE_CONFIGURATIONS) {
-      this.policy = "SELECTED";
-      configurations = new ArrayList<>(serviceLocator.getSingletonService(AgentTypeManager.class).getCanRunConfigurations(agent.getAgentTypeId()));
+      this.policy = "selected";
+      final Set<String> ids = serviceLocator.getSingletonService(AgentTypeManager.class).getCanRunConfigurations(agent.getAgentTypeId());
+
+      if (fields.isIncluded("buildType", false, true)) {
+        final Collection<SBuildType> buildTypes = serviceLocator.getSingletonService(ProjectManager.class).findBuildTypes(ids);
+        this.buildTypes = new ArrayList<>(buildTypes.size());
+        for (SBuildType buildType : buildTypes) {
+          this.buildTypes.add(new BuildType(new BuildTypeOrTemplate(buildType), fields.getNestedField("buildType"), beanContext));
+        }
+      }
     } else {
-      throw new IllegalStateException("Unsupported policy " + policy);
+      throw new IllegalStateException("Unsupported policy '" + policy + "', expected 'all' or 'selected'");
     }
   }
 
@@ -57,18 +73,18 @@ public class AllowedBuildTypes {
     final AgentTypeManager agentTypeManager = serviceLocator.getSingletonService(AgentTypeManager.class);
     final int agentTypeId = agent.getAgentTypeId();
 
-    final String valueUp = policy.trim().toUpperCase();
-    if ("ALL".equals(valueUp)) {
+    final String valueUp = policy.trim().toLowerCase();
+    if ("all".equals(valueUp)) {
       agentTypeManager.setRunConfigurationPolicy(agentTypeId, BuildAgentManager.RunConfigurationPolicy.ALL_COMPATIBLE_CONFIGURATIONS);
-    } else if ("SELECTED".equals(valueUp)) {
-      if (configurations == null) {
-        configurations = new ArrayList<>();
+    } else if ("selected".equals(valueUp)) {
+      if (buildTypes == null) {
+        buildTypes = new ArrayList<>();
       }
       agentTypeManager.setRunConfigurationPolicy(agentTypeId, BuildAgentManager.RunConfigurationPolicy.SELECTED_COMPATIBLE_CONFIGURATIONS);
       agentTypeManager.excludeRunConfigurationsFromAllowed(agentTypeId, agentTypeManager.getCanRunConfigurations(agentTypeId).toArray(new String[0]));
-      agentTypeManager.includeRunConfigurationsToAllowed(agentTypeId, configurations.toArray(new String[0]));
+      agentTypeManager.includeRunConfigurationsToAllowed(agentTypeId, buildTypes.stream().map(BuildType::getId).toArray(String[]::new));
     } else {
-      throw new BadRequestException("Unexpected policy '" + policy + "', expected 'ALL' or 'SELECTED'");
+      throw new BadRequestException("Unexpected policy '" + policy + "', expected 'all' or 'selected'");
     }
   }
 }
