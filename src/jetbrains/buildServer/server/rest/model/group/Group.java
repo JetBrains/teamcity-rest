@@ -47,7 +47,6 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
-import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
@@ -127,7 +126,7 @@ public class Group {
                                      final boolean revertOnError,
                                      @NotNull final ServiceLocator serviceLocator) {
     //workaround for TW-52253
-    ServerAuthUtil.checkCanEditUserGroup(serviceLocator.getSingletonService(PermissionChecker.class).getCurrent(), group);
+    serviceLocator.getSingletonService(PermissionChecker.class).getServerActionChecker().checkCanEditUserGroup(group);
 
     Set<SUserGroup> currentParents = group.getParentGroups().stream().map(userGroup -> (SUserGroup)userGroup).collect(Collectors.toSet());
     currentParents.stream().filter(userGroup -> !newParents.contains(userGroup)).forEach(userGroup -> userGroup.removeSubgroup(group));

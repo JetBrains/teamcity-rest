@@ -342,7 +342,7 @@ public class UserRequest {
   public PermissionAssignments getPermissions(@PathParam("userLocator") String userLocator, @QueryParam("locator") String permissionLocator, @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
     PermissionChecker permissionChecker = myBeanContext.getSingletonService(PermissionChecker.class);
-    ServerAuthUtil.checkCanViewUserProfile(permissionChecker.getCurrent(), user);
+    permissionChecker.getServerActionChecker().checkCanViewUserProfile(user);
     return new PermissionAssignments(user, permissionLocator, new Fields(fields), myBeanContext);
   }
 

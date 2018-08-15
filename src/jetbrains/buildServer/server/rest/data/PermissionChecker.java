@@ -116,6 +116,11 @@ public class PermissionChecker {
   }
 
   @NotNull
+  public AccessChecker getServerActionChecker() {
+    return mySecurityContext.getAccessChecker();
+  }
+
+  @NotNull
   public String getCurrentUserDescription() {
     return describe(getCurrent());
   }
