@@ -19,6 +19,8 @@ package jetbrains.buildServer.server.rest.model.change;
 import com.intellij.openapi.util.text.StringUtil;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -175,7 +177,11 @@ public class VcsRootInstance {
   @XmlElement
   public Properties getProperties() {
     return check(ValueWithDefault.decideDefault(myFields.isIncluded("properties", false),
-                                                new Properties(myRoot.getProperties(), null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myBeanContext)));
+                                                () -> {
+                                                  Map<String, String> properties = new LinkedHashMap<>(myRoot.getProperties());
+                                                  properties.remove("teamcity:branchSpec"); //TW-56449
+                                                  return new Properties(properties, null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myBeanContext);
+                                                }));
   }
 
   @XmlElement
