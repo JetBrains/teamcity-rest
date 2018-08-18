@@ -16,18 +16,16 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jersey.api.ParamException;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
+import org.jetbrains.annotations.NotNull;
 
 @Provider
-public class JerseyParamExceptionExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<ParamException> {
-  protected static final Logger LOG = Logger.getInstance(JerseyParamExceptionExceptionMapper.class.getName());
-
-  public Response toResponse(com.sun.jersey.api.ParamException exception) {
-    return reportError(Response.Status.BAD_REQUEST, exception, "Error processing request parameter '" + exception.getParameterName() + "'. Check supported formats.");
+public class JerseyParamExceptionExceptionMapper extends ExceptionMapperBase<ParamException> {
+  @Override
+  public ResponseData getResponseData(@NotNull final com.sun.jersey.api.ParamException e) {
+    return new ResponseData(Response.Status.BAD_REQUEST, "Error processing request parameter '" + e.getParameterName() + "'. Check supported formats.");
   }
 }

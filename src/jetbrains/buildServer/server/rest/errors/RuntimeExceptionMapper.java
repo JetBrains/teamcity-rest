@@ -16,35 +16,33 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.intellij.openapi.diagnostic.Logger;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
  * Date: 30.03.2009
  */
 @Provider
-public class RuntimeExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<RuntimeException> {
-  protected static final Logger LOG = Logger.getInstance(RuntimeExceptionMapper.class.getName());
-
-  public Response toResponse(RuntimeException exception) {
+public class RuntimeExceptionMapper extends ExceptionMapperBase<RuntimeException> {
+  @Override
+  public ResponseData getResponseData(@NotNull final RuntimeException e) {
     // process known errors
-    if (exception instanceof DuplicateProjectNameException ||
-        exception instanceof InvalidIdentifierException ||
-        exception instanceof DuplicateBuildTypeIdException ||
-        exception instanceof DuplicateBuildTypeNameException ||
-        exception instanceof DuplicateExternalIdException ||
-        exception instanceof DuplicateIdException ||
-        exception instanceof DuplicateTemplateNameException ||
-        exception instanceof InvalidNameException){
-      return reportError(Response.Status.BAD_REQUEST.getStatusCode(), exception, "Error occurred while processing this request.", false);
+    if (e instanceof DuplicateProjectNameException ||
+        e instanceof InvalidIdentifierException ||
+        e instanceof DuplicateBuildTypeIdException ||
+        e instanceof DuplicateBuildTypeNameException ||
+        e instanceof DuplicateExternalIdException ||
+        e instanceof DuplicateIdException ||
+        e instanceof DuplicateTemplateNameException ||
+        e instanceof InvalidNameException) {
+      return new ResponseData(Response.Status.BAD_REQUEST, "Error occurred while processing this request.");
     }
 
-    return reportError(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), exception, "Error occurred while processing this request.", true);
+    return new ResponseData(Response.Status.INTERNAL_SERVER_ERROR, "Error occurred while processing this request.");
   }
 }

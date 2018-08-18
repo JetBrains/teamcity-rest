@@ -24,6 +24,7 @@ import java.util.Collection;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.util.ClassUtils;
@@ -41,6 +42,7 @@ public class JerseyWebComponent extends SpringServlet {
   private Logger LOG = Logger.getInstance(JerseyWebComponent.class.getName());
   private final ExtensionHolder myExtensionHolder;
   private Collection<ConfigurableApplicationContext> myContexts;
+  private WebApplication myWebApplication;
 
   public JerseyWebComponent(final PluginInfo descriptor, final ExtensionHolder extensionHolder) {
     myPluginName = descriptor.getPluginName();
@@ -50,6 +52,7 @@ public class JerseyWebComponent extends SpringServlet {
 
   @Override
   protected void initiate(ResourceConfig rc, WebApplication wa) {
+    myWebApplication = wa;
     try {
       for (ConfigurableApplicationContext context : myContexts) {
         registerResourceProviders(rc, context);
@@ -59,6 +62,11 @@ public class JerseyWebComponent extends SpringServlet {
       LOG.error("Exception occurred during REST API initialization", e);
       throw e;
     }
+  }
+
+  @Nullable
+  public WebApplication getWebApplication() {
+    return myWebApplication;
   }
 
   /**

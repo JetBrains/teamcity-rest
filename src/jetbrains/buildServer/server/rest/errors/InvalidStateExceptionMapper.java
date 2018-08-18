@@ -16,21 +16,19 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.intellij.openapi.diagnostic.Logger;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
  * Date: 30.03.2009
  */
 @Provider
-public class InvalidStateExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<InvalidStateException> {
-  protected static final Logger LOG = Logger.getInstance(InvalidStateExceptionMapper.class.getName());
-
-  public Response toResponse(InvalidStateException exception) {
-    return reportError(Response.Status.CONFLICT, exception, "Cannot process this request at this time. Repeat later.");
+public class InvalidStateExceptionMapper extends ExceptionMapperBase<InvalidStateException> {
+  @Override
+  public ResponseData getResponseData(@NotNull final InvalidStateException e) {
+    return new ResponseData(Response.Status.CONFLICT, "Cannot process this request at this time. Repeat later.");
   }
 }

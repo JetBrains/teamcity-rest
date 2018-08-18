@@ -16,14 +16,13 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -32,16 +31,15 @@ import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
  * This will hopefully report Jersey-originated errors with more details
  */
 @Provider
-public class WebApplicationExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<WebApplicationException> {
-  protected static final Logger LOG = Logger.getInstance(WebApplicationExceptionMapper.class.getName());
-
-  public Response toResponse(WebApplicationException exception) {
-    final Response exceptionResponse = exception.getResponse();
+public class WebApplicationExceptionMapper extends ExceptionMapperBase<WebApplicationException> {
+    @Override
+   public ResponseData getResponseData(@NotNull final WebApplicationException e) {
+    final Response exceptionResponse = e.getResponse();
     final MultivaluedMap<String, Object> metadata = exceptionResponse.getMetadata();
     String metadataDetails = "";
     if (metadata != null && metadata.size() != 0) {
       metadataDetails = " Metadata: " + StringUtil.join(metadata.entrySet(), entry -> entry.getKey() + ":" + entry.getValue(), ", ");
     }
-    return reportError(exceptionResponse.getStatus(), exception, "Not supported request. Check that URL, HTTP method and transferred data are correct." + metadataDetails, true);
+    return new ResponseData(exceptionResponse.getStatus(), "Not supported request. Check that URL, HTTP method and transferred data are correct." + metadataDetails);
   }
 }

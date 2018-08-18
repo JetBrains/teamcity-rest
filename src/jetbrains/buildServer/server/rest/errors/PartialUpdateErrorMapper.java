@@ -16,21 +16,19 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.intellij.openapi.diagnostic.Logger;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
- *         Date: 02.12.13
+ * Date: 02.12.13
  */
 @Provider
-public class PartialUpdateErrorMapper extends ExceptionMapperUtil implements ExceptionMapper<PartialUpdateError> {
-  protected static final Logger LOG = Logger.getInstance(PartialUpdateError.class.getName());
-
-  public Response toResponse(PartialUpdateError exception) {
-    return reportError(Response.Status.BAD_REQUEST, exception, "There was an error processing the request, but the data could be updated partially. Please ensure consistent data state.");
+public class PartialUpdateErrorMapper extends ExceptionMapperBase<PartialUpdateError> {
+  @Override
+  public ResponseData getResponseData(@NotNull final PartialUpdateError e) {
+    return new ResponseData(Response.Status.BAD_REQUEST,"There was an error processing the request, but the data could be updated partially. Please ensure consistent data state.");
   }
 }

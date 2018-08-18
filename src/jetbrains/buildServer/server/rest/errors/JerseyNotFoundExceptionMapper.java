@@ -16,11 +16,10 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.intellij.openapi.diagnostic.Logger;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
+import com.sun.jersey.api.NotFoundException;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -29,10 +28,9 @@ import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
  * This will hopefully report Jersey-originated errors with more details
  */
 @Provider
-public class JerseyNotFoundExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<com.sun.jersey.api.NotFoundException> {
-  protected static final Logger LOG = Logger.getInstance(JerseyNotFoundExceptionMapper.class.getName());
-
-  public Response toResponse(com.sun.jersey.api.NotFoundException exception) {
-    return reportError(exception.getResponse().getStatus(), exception, "Please check URL is correct.", false);
+public class JerseyNotFoundExceptionMapper extends ExceptionMapperBase<NotFoundException> {
+  @Override
+  public ResponseData getResponseData(@NotNull final com.sun.jersey.api.NotFoundException e) {
+    return new ResponseData(e.getResponse().getStatus(), "Please check URL is correct.");
   }
 }

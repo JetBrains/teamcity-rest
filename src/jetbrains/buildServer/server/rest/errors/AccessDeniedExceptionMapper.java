@@ -16,12 +16,11 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.intellij.openapi.diagnostic.Logger;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
@@ -30,10 +29,9 @@ import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
  * This will hopefully report Jersey-originated errors with more details
  */
 @Provider
-public class AccessDeniedExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<AccessDeniedException> {
-  protected static final Logger LOG = Logger.getInstance(AccessDeniedExceptionMapper.class.getName());
-
-  public Response toResponse(AccessDeniedException exception) {
-    return reportError(Response.Status.FORBIDDEN, exception, "Access denied. Check the user has enough permissions to perform the operation.");
+public class AccessDeniedExceptionMapper extends ExceptionMapperBase<AccessDeniedException> {
+  @Override
+  public ResponseData getResponseData(@NotNull final AccessDeniedException e) {
+    return new ResponseData(Response.Status.FORBIDDEN, "Access denied. Check the user has enough permissions to perform the operation.");
   }
 }

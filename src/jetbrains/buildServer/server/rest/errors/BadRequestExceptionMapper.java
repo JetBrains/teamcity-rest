@@ -16,21 +16,19 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.intellij.openapi.diagnostic.Logger;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
  * Date: 30.03.2009
  */
 @Provider
-public class BadRequestExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<BadRequestException> {
-  protected static final Logger LOG = Logger.getInstance(BadRequestExceptionMapper.class.getName());
-
-  public Response toResponse(BadRequestException exception) {
-    return reportError(Response.Status.BAD_REQUEST, exception, "Invalid request. Please check the request URL and data are correct.");
+public class BadRequestExceptionMapper extends ExceptionMapperBase<BadRequestException> {
+  @Override
+  public ResponseData getResponseData(@NotNull final BadRequestException e) {
+    return new ResponseData(Response.Status.BAD_REQUEST, "Invalid request. Please check the request URL and data are correct.");
   }
 }

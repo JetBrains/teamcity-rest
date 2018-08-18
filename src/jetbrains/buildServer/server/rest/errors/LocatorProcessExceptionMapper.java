@@ -16,21 +16,19 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.intellij.openapi.diagnostic.Logger;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
  * Date: 30.03.2009
  */
 @Provider
-public class LocatorProcessExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<LocatorProcessException> {
-  protected static final Logger LOG = Logger.getInstance(LocatorProcessExceptionMapper.class.getName());
-
-  public Response toResponse(LocatorProcessException exception) {
-    return reportError(Response.Status.BAD_REQUEST, exception, "Invalid request. Check locator is specified correctly.");
+public class LocatorProcessExceptionMapper extends ExceptionMapperBase<LocatorProcessException> {
+  @Override
+  public ResponseData getResponseData(@NotNull final LocatorProcessException e) {
+    return new ResponseData(Response.Status.BAD_REQUEST, "Invalid request. Check locator is specified correctly.");
   }
 }

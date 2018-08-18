@@ -21,6 +21,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.core.util.FeaturesAndProperties;
+import com.sun.jersey.spi.container.WebApplication;
 import com.sun.jersey.spi.container.servlet.WebComponent;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -33,6 +34,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.ext.ExceptionMapper;
 import jetbrains.buildServer.controllers.AuthorizationInterceptor;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.interceptors.PathSet;
@@ -43,7 +45,7 @@ import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.data.RestContext;
-import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig;
 import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
 import jetbrains.buildServer.server.rest.jersey.WadlGenerator;
@@ -232,7 +234,7 @@ public class APIController extends BaseController implements ServletContextAware
 
             myWebComponentInitialized.set(true);
           } catch (Throwable e) {
-            LOG.error("Error initializing REST API " + contextDetails.get() + ": " + e.toString() + ExceptionMapperUtil.addKnownExceptionsData(e, ""), e);
+            LOG.error("Error initializing REST API " + contextDetails.get() + ": " + e.toString() + ExceptionMapperBase.addKnownExceptionsData(e, ""), e);
             ExceptionUtil.rethrowAsRuntimeException(e);
           }
         }
@@ -492,10 +494,7 @@ public class APIController extends BaseController implements ServletContextAware
       });
     } catch (Throwable throwable) {
       errorEncountered = true;
-      // Sometimes Jersey throws IllegalArgumentException and probably other without utilizing ExceptionMappers
-      // forcing plain text error reporting
-      reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, Level.WARN, request);
-      //todo: process exception mappers here to use correct error presentation in the log
+      processException(request, response, throwable);
     } finally{
       if (shouldLogToDebug && LOG.isDebugEnabled()) {
         LOG.debug("REST API" + (internalRequest ? " internal" : "") + " request processing finished in " +
@@ -504,6 +503,33 @@ public class APIController extends BaseController implements ServletContextAware
       }
     }
     return null;
+  }
+
+  private void processException(@NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response, @NotNull final Throwable throwable) {
+    // Sometimes Jersey throws IllegalArgumentException and probably other without utilizing ExceptionMappers
+    // also exceptions during serialization seem to not pass through the mappers (too late already?) - see TW-56461
+    // forcing plain text error reporting
+
+    // see ContainerResponse.mapException
+    WebApplication wa = myWebComponent.getWebApplication();
+    if (wa!= null) {
+      ExceptionMapper em = wa.getExceptionMapperContext().find(throwable.getClass());
+      if (em != null && em instanceof ExceptionMapperBase) {
+        ExceptionMapperBase mapper = (ExceptionMapperBase)em;
+        ExceptionMapperBase.ResponseData responseData;
+        try {
+          //noinspection unchecked
+          responseData = mapper.getResponseData(throwable);
+        } catch (Exception e) {
+          LOG.warnAndDebugDetails("Error while trying to retrieve mapped exception message", e);
+          reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, Level.WARN, request);
+          return;
+        }
+        reportRestErrorResponse(response, responseData.getResponseStatus(), throwable, responseData.getMessage(), Level.WARN, request);
+        return;
+      }
+    }
+    reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, Level.WARN, request);
   }
 
   private void patchThread(@NotNull final CachingValue<String> requestDump, final boolean internalRequest,
@@ -653,15 +679,15 @@ public class APIController extends BaseController implements ServletContextAware
                                              final Level level,
                                              @NotNull final HttpServletRequest request) {
     final String responseText =
-      ExceptionMapperUtil.getResponseTextAndLogRestErrorErrorMessage(statusCode, e, message, statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR, level, request);
-    response.setStatus(statusCode);
-    response.setContentType("text/plain");
+      ExceptionMapperBase.getResponseTextAndLogRestErrorErrorMessage(statusCode, e, message, statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR, level, request);
 
     try {
+      response.setStatus(statusCode);
+      response.setContentType("text/plain");
       response.getWriter().print(responseText);
     } catch (Throwable nestedException) {
       final String message1 = "Error while adding error description into response: " + nestedException.toString();
-      if (!ExceptionMapperUtil.isCommonExternalError(nestedException)) {
+      if (!ExceptionMapperBase.isCommonExternalError(nestedException)) {
         LOG.warn(message1);
       }
       LOG.debug(message1, nestedException);

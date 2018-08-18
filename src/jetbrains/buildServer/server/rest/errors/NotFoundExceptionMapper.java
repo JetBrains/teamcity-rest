@@ -17,18 +17,19 @@
 package jetbrains.buildServer.server.rest.errors;
 
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.server.rest.jersey.ExceptionMapperUtil;
+import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * User: Yegor Yarko
  * Date: 30.03.2009
  */
 @Provider
-public class NotFoundExceptionMapper extends ExceptionMapperUtil implements ExceptionMapper<NotFoundException> {
+public class NotFoundExceptionMapper extends ExceptionMapperBase<NotFoundException> {
 
-  public Response toResponse(NotFoundException exception) {
-    return reportError(Response.Status.NOT_FOUND, exception, "Could not find the entity requested. Check the reference is correct and the user has permissions to access the entity.");
+  @Override
+  public ResponseData getResponseData(@NotNull final NotFoundException e) {
+    return new ResponseData(Response.Status.NOT_FOUND, "Could not find the entity requested. Check the reference is correct and the user has permissions to access the entity.");
   }
 }

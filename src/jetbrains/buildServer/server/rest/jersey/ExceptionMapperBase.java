@@ -27,6 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.ext.ExceptionMapper;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.log4j.Level;
@@ -37,21 +38,40 @@ import org.jetbrains.annotations.Nullable;
  * User: Yegor Yarko
  * Date: 30.03.2009
  */
-public class ExceptionMapperUtil {
-  protected static final Logger LOG = Logger.getInstance(ExceptionMapperUtil.class.getName());
+public abstract class ExceptionMapperBase<E extends Throwable> implements ExceptionMapper<E> {
+  protected static final Logger LOG = Logger.getInstance(ExceptionMapperBase.class.getName());
   public static final String REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY = "rest.response.debug.includeExceptionStacktrace";
   public static final String REST_INCLUDE_REQUEST_DETAILS_INTO_ERRORS = "rest.log.includeRequestDetails";
   protected static final String INCLUDE_STACKTRACE_REQUST_PARAMETER = "includeStacktrace";
 
   @Context private UriInfo myUriInfo;
-  @Context private HttpServletRequest myRequest;
+  @Context private HttpServletRequest myRequest; //todo: this seems to be a bug: it is a bean but the field is request-specific
 
-  protected Response reportError(@NotNull final Response.Status responseStatus, @NotNull final Exception e, @Nullable final String message) {
-    return reportError(responseStatus.getStatusCode(), e, message, false);
+  @Override
+  public Response toResponse(E exception) {
+    ResponseData data = getResponseData(exception);
+    final int statusCode = data.getResponseStatus();
+    return processRestErrorResponse(statusCode, exception, data.getMessage(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode() == statusCode, myRequest);
   }
 
-  protected Response reportError(final int statusCode, @NotNull final Exception e, @Nullable final String message, final boolean isInternalError) {
-    return processRestErrorResponse(statusCode, e, message, isInternalError, myRequest);
+  public abstract ResponseData getResponseData(@NotNull final E e);
+
+  public static class ResponseData {
+    @NotNull private final int responseStatusCode;
+    @Nullable private final String message;
+
+    public ResponseData(@NotNull final Response.Status responseStatus, @Nullable final String message) {
+      this.responseStatusCode = responseStatus.getStatusCode();
+      this.message = message;
+    }
+
+    public ResponseData(final int responseStatusCode, @Nullable final String message) {
+      this.responseStatusCode = responseStatusCode;
+      this.message = message;
+    }
+
+    @NotNull public int getResponseStatus() { return responseStatusCode;}
+    @Nullable public String getMessage() { return message;}
   }
 
   public static Response processRestErrorResponse(final int statusCode,
@@ -116,18 +136,21 @@ public class ExceptionMapperUtil {
       LOG.debug(logMessage, e);
     }
 
-    final String includeStacktrace = TeamCityProperties.getProperty(REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY, "false");
-    if (e != null && !"false".equals(includeStacktrace)) {
-      if ( "true".equals(request.getParameter(INCLUDE_STACKTRACE_REQUST_PARAMETER)) ||
-          (!StringUtil.isEmpty(includeStacktrace) &&
-           ("true".equals(includeStacktrace) || "any".equals(includeStacktrace) || String.valueOf(statusCode).startsWith(includeStacktrace)))) {
-        StringWriter sw = new StringWriter();
-        sw.write("\n\n");
-        e.printStackTrace(new PrintWriter(sw));
-        sw.write("\nThe stacktrace is included as '" + REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY + "' internal property or " +
-                 "'" + INCLUDE_STACKTRACE_REQUST_PARAMETER + "' request parameter is set.");
-        result += sw.toString();
+    try {
+      final String includeStacktrace = TeamCityProperties.getProperty(REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY, "false");
+      if (e != null && !"false".equals(includeStacktrace)) {
+        if ( "true".equals(request.getParameter(INCLUDE_STACKTRACE_REQUST_PARAMETER)) ||
+            (!StringUtil.isEmpty(includeStacktrace) &&
+             ("true".equals(includeStacktrace) || "any".equals(includeStacktrace) || String.valueOf(statusCode).startsWith(includeStacktrace)))) {
+          StringWriter sw = new StringWriter();
+          sw.write("\n\n");
+          e.printStackTrace(new PrintWriter(sw));
+          sw.write("\nThe stacktrace is included as '" + REST_INCLUDE_EXCEPTION_STACKTRACE_PROPERTY + "' internal property or " +
+                   "'" + INCLUDE_STACKTRACE_REQUST_PARAMETER + "' request parameter is set.");
+          result += sw.toString();
+        }
       }
+    } catch (Exception ignore) {
     }
     return result;
   }
