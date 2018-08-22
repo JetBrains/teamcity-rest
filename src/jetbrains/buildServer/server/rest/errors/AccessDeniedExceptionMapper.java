@@ -19,7 +19,9 @@ package jetbrains.buildServer.server.rest.errors;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
+import jetbrains.buildServer.serverSide.MissingServerResponsibilityException;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.web.readOnly.MissingResponsibilityExceptionResolver;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -32,6 +34,11 @@ import org.jetbrains.annotations.NotNull;
 public class AccessDeniedExceptionMapper extends ExceptionMapperBase<AccessDeniedException> {
   @Override
   public ResponseData getResponseData(@NotNull final AccessDeniedException e) {
+    if (e instanceof MissingServerResponsibilityException) {
+      int statusCode = MissingResponsibilityExceptionResolver.getMissingResponsibilityStatusCode();
+      return new ResponseData(Response.Status.fromStatusCode(statusCode), null);
+    }
+
     return new ResponseData(Response.Status.FORBIDDEN, "Access denied. Check the user has enough permissions to perform the operation.");
   }
 }
