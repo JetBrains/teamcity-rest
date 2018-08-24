@@ -34,6 +34,7 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
+import jetbrains.buildServer.serverSide.auth.AccessChecker;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
@@ -281,6 +282,9 @@ public class Agent {
       return String.valueOf(agent.isEnabled());
     } else if ("authorized".equals(name)) {
       return String.valueOf(agent.isAuthorized());
+    } else if ("authToken".equals(name)) {
+      serviceLocator.getSingletonService(AccessChecker.class).checkHasPermissionForPool(agent.getAgentPool(), Permission.AUTHORIZE_AGENT, Permission.AUTHORIZE_AGENT_FOR_PROJECT);
+      return String.valueOf(agent.getAuthorizationToken());
     }
 
     if ("enabledInfoCommentText".equals(name)) {
@@ -292,7 +296,7 @@ public class Agent {
     } else if ("protocol".equals(name)) {
       return getAgentProtocol(agent);
     }
-    throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, connected, enabled, authorized, ip");
+    throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, connected, enabled, authorized, ip, authToken");
   }
 
   public static void setFieldValue(@NotNull final SBuildAgent agent,
