@@ -23,7 +23,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.RootUrlHolder;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.maintenance.CurrentNodeInfo;
 import jetbrains.buildServer.maintenance.StartupContext;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataProvider;

@@ -31,7 +31,6 @@ import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.log.Loggers;
-import jetbrains.buildServer.maintenance.CurrentNodeInfo;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
