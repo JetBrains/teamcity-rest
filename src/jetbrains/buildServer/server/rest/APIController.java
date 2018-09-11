@@ -284,7 +284,7 @@ public class APIController extends BaseController implements ServletContextAware
     return result;
   }
 
-  private String getPluginIdentifyingText() {
+  public String getPluginIdentifyingText() {
     return "plugin '" + myPluginDescriptor.getPluginName() + "'";
   }
 

@@ -27,6 +27,7 @@ import java.lang.annotation.Annotation;
 import java.util.*;
 import javax.ws.rs.Path;
 import javax.ws.rs.ext.Provider;
+import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.RESTControllerExtension;
@@ -79,7 +80,20 @@ public class ExtensionsAwareResourceConfig extends DefaultResourceConfig impleme
     for (Pair<String[], ClassLoader> pair : getScanningInfo()) {
       final AnnotationScannerListener asl = new PathProviderScannerListener(pair.second);
       final PackageNamesScanner scanner = new PackageNamesScanner(pair.second, pair.first);
-      scanner.scan(asl);
+      try {
+        scanner.scan(asl);
+      } catch (Throwable e) {
+        String message = "Error initializing REST component while scanning for resources for " + myController.getPluginIdentifyingText() +
+                         " for packages " + Arrays.toString(pair.first) + " via classloader '" + pair.second.toString() + "'.";
+        if (Arrays.stream(pair.first).anyMatch(s -> s.startsWith("jetbrains.buildServer.server.rest"))) {
+          // treat this as core plugin initialization error, so do not let anything to initialize and report errors on following requests instead of ignoring the extensions
+          // (replying with 500 response and erorr detials instead of 404)
+          throw new RuntimeException(message, e);
+        }
+        message += " Jersey resources located in the packages are ignored. Error: " + e.toString() + ExceptionMapperBase.addKnownExceptionsData(e, "");
+        LOG.error(message, e);
+        Loggers.SERVER.error(message);
+      }
       classes.addAll(asl.getAnnotatedClasses());
     }
 
