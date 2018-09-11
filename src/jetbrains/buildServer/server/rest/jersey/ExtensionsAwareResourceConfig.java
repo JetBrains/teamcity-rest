@@ -85,7 +85,7 @@ public class ExtensionsAwareResourceConfig extends DefaultResourceConfig impleme
       } catch (Throwable e) {
         String message = "Error initializing REST component while scanning for resources for " + myController.getPluginIdentifyingText() +
                          " for packages " + Arrays.toString(pair.first) + " via classloader '" + pair.second.toString() + "'.";
-        if (Arrays.stream(pair.first).anyMatch(s -> s.startsWith("jetbrains.buildServer.server.rest"))) {
+        if (Arrays.stream(pair.first).anyMatch(s -> s.startsWith("jetbrains.buildServer.server.rest."))) {
           // treat this as core plugin initialization error, so do not let anything to initialize and report errors on following requests instead of ignoring the extensions
           // (replying with 500 response and erorr detials instead of 404)
           throw new RuntimeException(message, e);
