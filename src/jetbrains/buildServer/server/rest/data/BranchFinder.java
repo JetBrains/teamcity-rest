@@ -37,7 +37,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
   protected static final String NAME = "name";
   protected static final String DEFAULT = "default";
   protected static final String UNSPECIFIED = "unspecified";
-  protected static final String BRANCHED = "branched";
+  protected static final String BRANCHED = "branched"; //rather use "branched" dimension in build locator
   protected static final String BUILD = "build";
   protected static final String BUILD_TYPE = "buildType";
 

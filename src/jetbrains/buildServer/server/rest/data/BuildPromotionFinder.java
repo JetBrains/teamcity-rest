@@ -74,6 +74,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String PERSONAL = "personal";
   public static final String USER = "user";
   protected static final String BRANCH = "branch";
+  protected static final String BRANCHED = "branched"; //experimental
   protected static final String PROPERTY = "property";
   protected static final String STATISTIC_VALUE = "statisticValue";
 
@@ -173,7 +174,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                         STATISTIC_VALUE, TEST_OCCURRENCE, TEST,  //experimental
                         SINCE_BUILD_ID_LOOK_AHEAD_COUNT,  //experimental
                         ORDERED,  //experimental
-                        STROB  //experimental
+                        STROB,  //experimental
+                        BRANCHED  //experimental
     );
 
     myPermissionChecker = permissionChecker;
@@ -415,10 +417,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         //branches found - use them
         Set<String> branchNames = getBranchNamesSet(branches.myEntries);
         Set<String> branchDisplayNames = getBranchDisplayNamesSet(branches.myEntries);
+        boolean defaultBranchIncluded = branches.myEntries.stream().anyMatch(Branch::isDefaultBranch);
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
             final Branch buildBranch = BranchData.fromBuild(item);
-            return branchNames.contains(buildBranch.getName()) || branchDisplayNames.contains(buildBranch.getDisplayName());
+            return (defaultBranchIncluded && buildBranch.isDefaultBranch()) || branchNames.contains(buildBranch.getName()) || branchDisplayNames.contains(buildBranch.getDisplayName());
           }
         });
       } else {
@@ -439,6 +442,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           });
         }
       }
+    }
+
+    final Boolean branched = locator.getSingleDimensionValueAsBoolean(BRANCHED);
+    if (branched != null) {
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(branched, item.getBranch() != null));
     }
 
     if (locator.isUnused(AGENT)) {
