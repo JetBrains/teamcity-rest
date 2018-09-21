@@ -23,16 +23,14 @@ import java.io.*;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.*;
 import jetbrains.buildServer.agent.ServerProvidedProperties;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.controllers.HttpDownloadProcessor;
@@ -45,10 +43,8 @@ import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.*;
-import jetbrains.buildServer.server.rest.model.Comment;
-import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.*;
+import jetbrains.buildServer.server.rest.model.agent.BooleanStatus;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.change.BuildChanges;
@@ -590,6 +586,7 @@ public class BuildRequest {
   /**
    * Fetches current build pinned status.
    *
+   * @deprecated use getPinData
    * @param buildLocator build locator
    * @return "true" is the build is pinned, "false" otherwise
    */
@@ -603,7 +600,7 @@ public class BuildRequest {
 
   /**
    * Pins a build
-   *
+   * @deprecated use setBuildPinData
    * @param buildLocator build locator
    */
   @PUT
@@ -624,7 +621,7 @@ public class BuildRequest {
 
   /**
    * Unpins a build
-   *
+   * @deprecated use setBuildPinData
    * @param buildLocator build locator
    */
   @DELETE
@@ -788,6 +785,120 @@ public class BuildRequest {
       }
       DataProvider.deleteBuild(finishedBuild, myBeanContext.getSingletonService(BuildHistory.class));
     }
+  }
+
+  /**
+   * Experimental alias for .../app/rest/builds?locator={buildLocator}
+   */
+  @GET
+  @Path("/multiple/{buildLocator}")
+  @Produces({"application/xml", "application/json"})
+  public Builds getMultiple(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+    final PagedSearchResult<BuildPromotion> pagedResult = myBuildPromotionFinder.getItems(buildLocator);
+    UriBuilder uriBuilder = uriInfo.getRequestUriBuilder();
+    UriBuilder mainRequestUriBuilder = uriBuilder.replacePath(uriBuilder.build().getPath().replace("/multiple/" + buildLocator, "")).queryParam("locator", buildLocator);
+    final PagerData pagerData = new PagerData(mainRequestUriBuilder, request.getContextPath(), pagedResult, buildLocator, "locator");
+    return Builds.createFromBuildPromotions(pagedResult.myEntries, pagerData, new Fields(fields), myBeanContext);
+  }
+
+  /**
+   * Experimental.
+   * @return List of error messages with associated entities, if any
+   */
+  @DELETE
+  @Path("/multiple/{buildLocator}")
+  @Produces({"application/xml", "application/json"})
+  public MultipleOperationResult deleteMultiple(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
+    return processMultiple(buildLocator, (build) -> deleteBuild(build, SessionUser.getUser(request)), new Fields(fields));
+  }
+
+  /**
+   * Experimental.
+   * Pins multiple builds
+   * @return List of error messages with associated entities, if any
+   */
+  @PUT
+  @Path("/multiple/{buildLocator}/pinInfo/")
+  @Consumes({"application/xml", "application/json"})
+  public MultipleOperationResult pinMultiple(@PathParam("buildLocator") String buildLocator, BooleanStatus pinStatus, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
+    Boolean newStatus = pinStatus.getStatusFromPosted();
+    if (newStatus == null) throw new BadRequestException("Pin status should be specified in the payload");
+    String commentText = pinStatus.getCommentTextFromPosted();
+    SUser user = SessionUser.getUser(request);
+    return processMultiple(buildLocator, (build) -> pinBuild(build, user, commentText, newStatus), new Fields(fields));
+  }
+
+  /**
+   * Experimental.
+   * Adds a set of tags to multiple builds
+   * @return List of error messages with associated entities, if any
+   */
+  @POST
+  @Path("/multiple/{buildLocator}/tags/")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public MultipleOperationResult addTagsMultiple(@PathParam("buildLocator") String buildLocator, Tags tags, @QueryParam("fields") String fields) {
+    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
+    final List<TagData> tagsPosted = tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class));
+    return processMultiple(buildLocator, (build) -> tagsManager.addTagDatas(build, tagsPosted), new Fields(fields));
+  }
+
+  /**
+   * Experimental.
+   * Deletes a set of tags from multiple builds
+   * @return List of error messages with associated entities, if any
+   */
+  @DELETE
+  @Path("/multiple/{buildLocator}/tags/")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public MultipleOperationResult removeTagsMultiple(@PathParam("buildLocator") String buildLocator, Tags tags, @QueryParam("fields") String fields) {
+    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
+    final List<TagData> tagsPosted = tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class));
+    return processMultiple(buildLocator, (build) -> tagsManager.removeTagDatas(build, tagsPosted), new Fields(fields));
+  }
+
+  /**
+   * Experimental.
+   * Adds comments to multiple builds
+   * @return List of error messages with associated entities, if any
+   */
+  @PUT
+  @Path("/multiple/{buildLocator}/comment")
+  @Consumes({"text/plain"})
+  public MultipleOperationResult replaceCommentMultiple(@PathParam("buildLocator") String buildLocator, String text, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
+    final SUser user = SessionUser.getUser(request);
+    return processMultiple(buildLocator, (build) -> setBuildComment(build, text, user), new Fields(fields));
+  }
+
+  /**
+   * Experimental.
+   * Removes comment from multiple builds
+   * @return List of error messages with associated entities, if any
+   */
+  @DELETE
+  @Path("/multiple/{buildLocator}/comment")
+  public MultipleOperationResult deleteCommentMultiple(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
+    final SUser user = SessionUser.getUser(request);
+    return processMultiple(buildLocator, (build) -> setBuildComment(build, null, user), new Fields(fields));
+  }
+
+  /**
+   * Experimental.
+   * Cancels multiple builds
+   * @return List of error messages with associated entities, if any
+   */
+  @POST
+  @Path("/multiple/{buildLocator}")
+  @Consumes({"application/xml", "application/json"})
+  public MultipleOperationResult cancelMultiple(@PathParam("buildLocator") String buildLocator, BuildCancelRequest cancelRequest, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
+    final SUser user = SessionUser.getUser(request);
+    return processMultiple(buildLocator, (build) -> cancelBuild(build, cancelRequest, user), new Fields(fields));
+  }
+
+  @NotNull
+  private MultipleOperationResult processMultiple(@Nullable final String buildLocator, @NotNull Consumer<BuildPromotion> action, @NotNull final Fields fields) {
+    return new MultipleOperationResult(MultipleOperationResult.Data.process(buildLocator, myBuildPromotionFinder, action), fields, myBeanContext);
   }
 
   // Note: authentication for this request is disabled in APIController configuration
