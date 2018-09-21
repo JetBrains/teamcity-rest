@@ -447,13 +447,6 @@ public class BuildRequest {
   }
 
   @GET
-  @Path("/{buildLocator}/{field}")
-  @Produces("text/plain")
-  public String serveBuildFieldByBuildOnly(@PathParam("buildLocator") String buildLocator, @PathParam("field") String field) {
-    return Build.getFieldValue(myBuildFinder.getBuildPromotion(null, buildLocator), field, myBeanContext);
-  }
-
-  @GET
   @Path("/{buildLocator}" + STATISTICS + "/")
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildStatisticValues(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
@@ -957,6 +950,13 @@ public class BuildRequest {
       }
 
     }, urlPrefix, myBeanContext, true);
+  }
+
+  @GET
+  @Path("/{buildLocator}/{field}")
+  @Produces("text/plain")
+  public String serveBuildFieldByBuildOnly(@PathParam("buildLocator") String buildLocator, @PathParam("field") String field) {
+    return Build.getFieldValue(myBuildFinder.getBuildPromotion(null, buildLocator), field, myBeanContext);
   }
 
   @NotNull
