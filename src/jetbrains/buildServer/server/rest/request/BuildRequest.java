@@ -205,7 +205,7 @@ public class BuildRequest {
                                     " The limit is set via '" + REST_BUILD_REQUEST_DELETE_LIMIT + "' internal property on the server.");
     }
     for (BuildPromotion build : builds) {
-      deleteBuild(request, build);
+      deleteBuild(build, SessionUser.getUser(request));
     }
   }
 
@@ -587,11 +587,15 @@ public class BuildRequest {
   @Consumes({"text/plain"})
   public void pinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
+    pinBuild(build.getBuildPromotion(), SessionUser.getUser(request), comment, true);
+  }
+
+  private void pinBuild(@NotNull final BuildPromotion buildPromotion, @Nullable final SUser user, @Nullable final String comment, final boolean newPinState) {
+    SBuild build = buildPromotion.getAssociatedBuild();
     if (!(build instanceof SFinishedBuild)) {
-      throw new BadRequestException("Cannot pin build that is not finished.");
+      throw new BadRequestException("Cannot " + (newPinState ? "pin" : "unpin") + " build that is not finished.");
     }
-    SFinishedBuild finishedBuild = (SFinishedBuild) build;
-    finishedBuild.setPinned(true, SessionUser.getUser(request), comment);
+    ((SFinishedBuild)build).setPinned(newPinState, user, comment);
   }
 
   /**
@@ -604,11 +608,7 @@ public class BuildRequest {
   @Consumes({"text/plain"})
   public void unpinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    if (!(build instanceof SFinishedBuild)) {
-      throw new BadRequestException("Cannot unpin build that is not finished.");
-    }
-    SFinishedBuild finishedBuild = (SFinishedBuild) build;
-    finishedBuild.setPinned(false, SessionUser.getUser(request), comment);
+    pinBuild(build.getBuildPromotion(), SessionUser.getUser(request), comment, false);
   }
 
   @PUT
@@ -617,10 +617,7 @@ public class BuildRequest {
   public void replaceComment(@PathParam("buildLocator") String buildLocator, String text, @Context HttpServletRequest request) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     final SUser user = SessionUser.getUser(request);
-    if (user == null){ //TeamCity API issue: SBuild and BuildPromotion has different behavior here
-      throw new BadRequestException("Cannot add comment when there is no current user");
-    }
-    build.setBuildComment(user, text);
+    setBuildComment(build, text, user);
   }
 
   @DELETE
@@ -628,10 +625,14 @@ public class BuildRequest {
   public void deleteComment(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     final SUser user = SessionUser.getUser(request);
-    if (user == null){
-      throw new BadRequestException("Cannot add comment when there is no current user");
+    setBuildComment(build, null, user);
+  }
+
+  private void setBuildComment(@NotNull final BuildPromotion build, @Nullable final String text, @Nullable final SUser user) {
+    if (user == null) { //TeamCity API issue: SBuild and BuildPromotion has different behavior here
+      throw new BadRequestException("Cannot change comment when there is no current user");
     }
-    build.setBuildComment(user, null);
+    build.setBuildComment(user, text);
   }
 
   @GET
@@ -697,24 +698,28 @@ public class BuildRequest {
                            BuildCancelRequest cancelRequest,
                            @QueryParam("fields") String fields,
                            @Context HttpServletRequest request) {
-    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
-    final SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
-    if (runningBuild == null){
-      throw new BadRequestException("Cannot cancel not running build.");
-    }
     final SUser currentUser = SessionUser.getUser(request);
-    runningBuild.stop(currentUser, cancelRequest.comment);
-    if (cancelRequest.readdIntoQueue){
-      if (currentUser == null){
-        throw new BadRequestException("Cannot readd build into queue when no current user is present. Please make sure the operation is performed uinder a regular user.");
-      }
-      restoreInQueue(runningBuild, currentUser);
-    }
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
+    cancelBuild(build, cancelRequest, currentUser);
     final SBuild associatedBuild = build.getAssociatedBuild();
-    if (associatedBuild == null){
+    if (associatedBuild == null) {
       return null;
     }
-    return new Build(associatedBuild,  new Fields(fields), myBeanContext);
+    return new Build(associatedBuild, new Fields(fields), myBeanContext);
+  }
+
+  private void cancelBuild(@NotNull final BuildPromotion build, @NotNull final BuildCancelRequest cancelRequest, @Nullable final SUser user) {
+    final SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
+    if (runningBuild == null) {
+      throw new BadRequestException("Cannot cancel not running build.");
+    }
+    runningBuild.stop(user, cancelRequest.comment);
+    if (cancelRequest.readdIntoQueue) {
+      if (user == null) {
+        throw new BadRequestException("Cannot readd build into queue when no current user is present. Please make sure the operation is performed under a regular user.");
+      }
+      restoreInQueue(runningBuild, user);
+    }
   }
 
   private void restoreInQueue(final SRunningBuild runningBuild, final User user) {
@@ -735,15 +740,14 @@ public class BuildRequest {
   @DELETE
   @Path("/{buildLocator}")
   public void deleteBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
-    deleteBuild(request, myBuildFinder.getBuildPromotion(null, buildLocator));
+    deleteBuild(myBuildFinder.getBuildPromotion(null, buildLocator), SessionUser.getUser(request));
   }
 
-  private void deleteBuild(@NotNull final HttpServletRequest request, @NotNull final BuildPromotion build) {
+  private void deleteBuild(@NotNull final BuildPromotion build, @Nullable final SUser user) {
     final SQueuedBuild queuedBuild = build.getQueuedBuild();
-    final SUser currentUser = SessionUser.getUser(request);
     if (queuedBuild != null){
       final jetbrains.buildServer.serverSide.BuildQueue buildQueue = myBeanContext.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class);
-      buildQueue.removeItems(Collections.singleton(queuedBuild.getItemId()), currentUser, null);
+      buildQueue.removeItems(Collections.singleton(queuedBuild.getItemId()), user, null);
     }
 
     SBuild finishedBuild = build.getAssociatedBuild();
@@ -751,7 +755,7 @@ public class BuildRequest {
       if (!finishedBuild.isFinished()) {
         final SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
         if (runningBuild != null) {
-          runningBuild.stop(currentUser, null);
+          runningBuild.stop(user, null);
           finishedBuild = build.getAssociatedBuild();
           if (finishedBuild == null) {
             throw new OperationException("Cannot find associated build for promotion '" + runningBuild.getBuildPromotion().getId() + "'.");
