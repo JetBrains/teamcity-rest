@@ -480,19 +480,27 @@ public class Build {
 
   @XmlElement(name = "pinInfo")
   public Comment getPinInfo() {
-    if (myBuild == null || !myBuild.isPinned() || !(myBuild instanceof SFinishedBuild)) {
+    if (myBuild == null || !myBuild.isPinned()) {
       return null;
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("pinInfo", false), new ValueWithDefault.Value<Comment>() {
       public Comment get() {
-        SFinishedBuild finishedBuild = (SFinishedBuild)myBuild;  //TeamCity API: getPinComment() is only available for finished build, while isPinned is available for running
-        final jetbrains.buildServer.serverSide.comments.Comment pinComment = finishedBuild.getPinComment();
-        if (pinComment == null) {
-          return null;
-        }
+        final jetbrains.buildServer.serverSide.comments.Comment pinComment = getPinComment(myBuild);
+        if (pinComment == null) return null;
         return new Comment(pinComment, myFields.getNestedField("pinInfo", Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
+  }
+
+  @Nullable
+  public static jetbrains.buildServer.serverSide.comments.Comment getPinComment(@Nullable final SBuild build) {
+    if (build == null || !(build instanceof SFinishedBuild)) return null;
+    SFinishedBuild finishedBuild = (SFinishedBuild)build;  //TeamCity API: getPinComment() is only available for finished build, while isPinned is available for running
+    final jetbrains.buildServer.serverSide.comments.Comment pinComment = finishedBuild.getPinComment();
+    if (pinComment == null) {
+      return null;
+    }
+    return pinComment;
   }
 
   @XmlElement

@@ -49,10 +49,7 @@ import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.server.rest.model.build.Build;
-import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
-import jetbrains.buildServer.server.rest.model.build.Builds;
-import jetbrains.buildServer.server.rest.model.build.Tags;
+import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.change.BuildChanges;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
@@ -61,6 +58,7 @@ import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.util.AggregatedBuildArtifactsElementBuilder;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.TriggeredBy;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.LoginConfiguration;
@@ -560,9 +558,35 @@ public class BuildRequest {
     tagsManager.addTagDatas(build, Collections.singleton(TagData.createPublicTag(tagName)));
     return tagName;
   }
-//todo: add GET (true/false) and DELETE, amy be PUT (true/false) for a single tag
+//to improve: add GET (true/false) and DELETE, may be PUT (true/false) for a single tag
 
-//todo: rework .../pin to have consistent GET/PUT, see also agents/.../enabled
+  /**
+   * Gets build's current pin data
+   */
+  @GET
+  @Path("/{buildLocator}/pinInfo/")
+  @Produces({"application/xml", "application/json"})
+  public PinInfo getPinData(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
+    SBuild build = myBuildPromotionFinder.getItem(buildLocator).getAssociatedBuild();
+    return new PinInfo(build != null && build.isPinned(), Build.getPinComment(build), new Fields(fields), myBeanContext);
+  }
+
+  /**
+   * Sets build pin status
+   * @param buildLocator build locator
+   */
+  @PUT
+  @Path("/{buildLocator}/pinInfo/")
+  @Consumes({"application/xml", "application/json"})
+  public PinInfo setBuildPinData(@PathParam("buildLocator") String buildLocator, PinInfo pinStatus, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
+    Boolean newStatus = pinStatus.getStatusFromPosted();
+    if (newStatus == null) throw new BadRequestException("Pin status should be specified in the payload");
+    BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(buildLocator);
+    pinBuild(buildPromotion, SessionUser.getUser(request), pinStatus.getCommentTextFromPosted(), newStatus);
+    SBuild build = buildPromotion.getAssociatedBuild();
+    return new PinInfo(build != null && build.isPinned(), Build.getPinComment(build), new Fields(fields), myBeanContext);
+  }
+
   /**
    * Fetches current build pinned status.
    *
