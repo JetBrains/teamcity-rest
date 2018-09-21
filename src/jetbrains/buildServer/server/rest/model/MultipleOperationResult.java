@@ -60,8 +60,13 @@ public class MultipleOperationResult {
     }
 
     public static class Data {
-      private final Collection<OperationResult.Data> myData = new ArrayList<>();
-      private int myErrorCount = 0;
+      private final Collection<OperationResult.Data> myData;
+      private int myErrorCount;
+
+      public Data(@NotNull List<OperationResult.Data> data, final int errorCount) {
+        myData = data;
+        myErrorCount = errorCount;
+      }
 
       @NotNull
       public static <T> Data process(@Nullable final String locator, @NotNull final Finder<T> finder, @NotNull Consumer<T> action) {
@@ -69,7 +74,7 @@ public class MultipleOperationResult {
           throw new BadRequestException("Empty locator specified.");
         }
         List<T> items = finder.getItems(locator).myEntries;
-        Data result = new Data();
+        Data result = new Data(new ArrayList<>(), 0);
         items.forEach(item -> {
           try {
             action.accept(item);

@@ -20,9 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import java.io.*;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -44,6 +42,7 @@ import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEn
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.*;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.agent.BooleanStatus;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
@@ -186,6 +185,9 @@ public class BuildRequest {
     );
   }
 
+  /**
+   * @deprecated Use DELETE request to .../app/rest/builds/multiple/{locator}
+   */
   @DELETE
   @Produces({"application/xml", "application/json"})
   public void deleteBuilds(@QueryParam("locator") String locator, @Context HttpServletRequest request) {
@@ -198,8 +200,10 @@ public class BuildRequest {
       throw new BadRequestException("Refusing to delete more than " + deleteLimit + " builds as a precaution measure." +
                                     " The limit is set via '" + REST_BUILD_REQUEST_DELETE_LIMIT + "' internal property on the server.");
     }
-    for (BuildPromotion build : builds) {
-      deleteBuild(build, SessionUser.getUser(request));
+    SUser user = SessionUser.getUser(request);
+    Map<Long, RuntimeException> errors = deleteBuilds(builds, user, null);
+    if (!errors.isEmpty()) {
+      throw errors.values().iterator().next();
     }
   }
 
@@ -754,30 +758,64 @@ public class BuildRequest {
   @DELETE
   @Path("/{buildLocator}")
   public void deleteBuild(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
-    deleteBuild(myBuildFinder.getBuildPromotion(null, buildLocator), SessionUser.getUser(request));
+    BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
+    Map<Long, RuntimeException> errors = deleteBuilds(Collections.singletonList(build), SessionUser.getUser(request), null);
+    if (!errors.isEmpty()) {
+      throw errors.get(build.getId());
+    }
   }
 
-  private void deleteBuild(@NotNull final BuildPromotion build, @Nullable final SUser user) {
-    final SQueuedBuild queuedBuild = build.getQueuedBuild();
-    if (queuedBuild != null){
-      final jetbrains.buildServer.serverSide.BuildQueue buildQueue = myBeanContext.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class);
-      buildQueue.removeItems(Collections.singleton(queuedBuild.getItemId()), user, null);
-    }
+  /**
+   * @return map of errors for each build promotion id which encountered an error
+   */
+  private Map<Long, RuntimeException> deleteBuilds(@NotNull final List<BuildPromotion> builds, @Nullable final SUser user, @Nullable final String comment) {
+    final jetbrains.buildServer.serverSide.BuildQueue buildQueue = myBeanContext.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class);
+    BuildHistoryEx buildHistory = (BuildHistoryEx)myBeanContext.getSingletonService(BuildHistory.class);
 
-    SBuild finishedBuild = build.getAssociatedBuild();
-    if (finishedBuild != null) {
-      if (!finishedBuild.isFinished()) {
-        final SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
-        if (runningBuild != null) {
-          runningBuild.stop(user, null);
-          finishedBuild = build.getAssociatedBuild();
-          if (finishedBuild == null) {
-            throw new OperationException("Cannot find associated build for promotion '" + runningBuild.getBuildPromotion().getId() + "'.");
-          }
+    LinkedHashMap<Long, RuntimeException> errors = new LinkedHashMap<>();
+
+    //cancel queued
+    List<String> queuedBuilds = builds.stream().map(b -> b.getQueuedBuild()).filter(Objects::nonNull).map(b -> b.getItemId()).collect(Collectors.toList());
+    buildQueue.removeItems(queuedBuilds, user, comment);
+
+    //cancel running
+    for (BuildPromotion build : builds) {
+      SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
+      if (runningBuild != null) {
+        try {
+          runningBuild.stop(user, comment);
+        } catch (RuntimeException e) {
+          errors.putIfAbsent(build.getId(), e);
         }
       }
-      DataProvider.deleteBuild(finishedBuild, myBeanContext.getSingletonService(BuildHistory.class));
     }
+
+    //delete finished (and those canceled earlier)
+    for (BuildPromotion build : builds) {
+      SBuild associatedBuild = build.getAssociatedBuild();
+      if (associatedBuild != null) {
+        if (associatedBuild.isFinished()) {
+          try {
+            if (associatedBuild instanceof SFinishedBuild) {
+              buildHistory.removeEntry((SFinishedBuild)associatedBuild, comment);
+            } else {
+              buildHistory.removeEntry(associatedBuild.getBuildId(), comment);
+            }
+          } catch (RuntimeException e) {
+            if (build.getAssociatedBuild() != null) {
+              errors.putIfAbsent(build.getId(), e);
+            }
+          }
+        } else {
+          errors.putIfAbsent(build.getId(), new OperationException("Failed to delete running build"));
+        }
+      } else {
+        if (build.getQueuedBuild() != null) {
+          errors.putIfAbsent(build.getId(),  new OperationException("Failed to delete queued build"));
+        }
+      }
+    }
+    return errors;
   }
 
   /**
@@ -802,7 +840,21 @@ public class BuildRequest {
   @Path("/multiple/{buildLocator}")
   @Produces({"application/xml", "application/json"})
   public MultipleOperationResult deleteMultiple(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
-    return processMultiple(buildLocator, (build) -> deleteBuild(build, SessionUser.getUser(request)), new Fields(fields));
+    if (buildLocator == null) {
+      throw new BadRequestException("Empty locator specified.");
+    }
+    List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).myEntries;
+    Map<Long, RuntimeException> errors = deleteBuilds(builds, SessionUser.getUser(request), null);
+    int[] errorsCount = {0};
+    return new MultipleOperationResult(new MultipleOperationResult.Data(builds.stream().map(build -> {
+      RuntimeException exception = errors.get(build.getId());
+      if (exception == null) {
+        return OperationResult.Data.createSuccess(new RelatedEntity.Entity(build));
+      } else {
+        errorsCount[0]++;
+        return OperationResult.Data.createError(exception.getMessage(), new RelatedEntity.Entity(build));
+      }
+    }).collect(Collectors.toList()), errorsCount[0]), new Fields(fields), myBeanContext);
   }
 
   /**
