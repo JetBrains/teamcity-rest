@@ -851,10 +851,15 @@ public class Build {
         final String finalLocator = Locator.merge(locator, Locator.getStringLocator(PagerData.COUNT, String.valueOf(FinderImpl.NO_COUNT)));
         CachingValue<List<SVcsModification>> data;
         ChangeFinder changeFinder = myBeanContext.getSingletonService(ChangeFinder.class);
-        if (changeFinder.isCheap(myBuildPromotion, finalLocator)) {
-          data = CachingValue.simple(changeFinder.getItems(finalLocator).myEntries);
-        } else {
-          data = CachingValue.simple(() -> changeFinder.getItems(finalLocator).myEntries);
+        try {
+          if (changeFinder.isCheap(myBuildPromotion, finalLocator)) {
+            data = CachingValue.simple(changeFinder.getItems(finalLocator).myEntries);
+          } else {
+            data = CachingValue.simple(() -> changeFinder.getItems(finalLocator).myEntries);
+          }
+        } catch (Exception e) {
+          LOG.warnAndDebugDetails("Failed to get changes (including empty changes) for " + LogUtil.describe(myBuildPromotion), e);
+          data = CachingValue.simple(() -> Collections.emptyList());
         }
         return new Changes(new PagerData(href), changesFields, myBeanContext, data);
       }
