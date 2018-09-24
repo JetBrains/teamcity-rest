@@ -54,10 +54,7 @@ import jetbrains.buildServer.server.rest.util.AggregatedBuildArtifactsElementBui
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.TriggeredBy;
-import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
-import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
-import jetbrains.buildServer.serverSide.auth.LoginConfiguration;
-import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -718,26 +715,15 @@ public class BuildRequest {
                            @Context HttpServletRequest request) {
     final SUser currentUser = SessionUser.getUser(request);
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
-    cancelBuild(build, cancelRequest, currentUser);
+    LinkedHashMap<Long, RuntimeException> errors = cancelBuilds(Collections.singletonList(build), cancelRequest, currentUser);
+    if (!errors.isEmpty()) {
+      throw errors.entrySet().iterator().next().getValue();
+    }
     final SBuild associatedBuild = build.getAssociatedBuild();
     if (associatedBuild == null) {
       return null;
     }
     return new Build(associatedBuild, new Fields(fields), myBeanContext);
-  }
-
-  private void cancelBuild(@NotNull final BuildPromotion build, @NotNull final BuildCancelRequest cancelRequest, @Nullable final SUser user) {
-    final SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
-    if (runningBuild == null) {
-      throw new BadRequestException("Cannot cancel not running build.");
-    }
-    runningBuild.stop(user, cancelRequest.comment);
-    if (cancelRequest.readdIntoQueue) {
-      if (user == null) {
-        throw new BadRequestException("Cannot readd build into queue when no current user is present. Please make sure the operation is performed under a regular user.");
-      }
-      restoreInQueue(runningBuild, user);
-    }
   }
 
   private void restoreInQueue(final SRunningBuild runningBuild, final User user) {
@@ -769,32 +755,20 @@ public class BuildRequest {
    * @return map of errors for each build promotion id which encountered an error
    */
   private Map<Long, RuntimeException> deleteBuilds(@NotNull final List<BuildPromotion> builds, @Nullable final SUser user, @Nullable final String comment) {
-    final jetbrains.buildServer.serverSide.BuildQueue buildQueue = myBeanContext.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class);
     BuildHistoryEx buildHistory = (BuildHistoryEx)myBeanContext.getSingletonService(BuildHistory.class);
 
     LinkedHashMap<Long, RuntimeException> errors = new LinkedHashMap<>();
-
-    //cancel queued
-    List<String> queuedBuilds = builds.stream().map(b -> b.getQueuedBuild()).filter(Objects::nonNull).map(b -> b.getItemId()).collect(Collectors.toList());
-    buildQueue.removeItems(queuedBuilds, user, comment);
-
-    //cancel running
-    for (BuildPromotion build : builds) {
-      SRunningBuild runningBuild = Build.getRunningBuild(build, myBeanContext.getServiceLocator());
-      if (runningBuild != null) {
-        try {
-          runningBuild.stop(user, comment);
-        } catch (RuntimeException e) {
-          errors.putIfAbsent(build.getId(), e);
-        }
-      }
-    }
+    errors.putAll(cancelBuilds(builds.stream().filter(buildPromotion -> {
+      SBuild build = buildPromotion.getAssociatedBuild();
+      return build == null || !build.isFinished();
+    }).collect(Collectors.toList()), new BuildCancelRequest(comment, false), user));
 
     //delete finished (and those canceled earlier)
     for (BuildPromotion build : builds) {
       SBuild associatedBuild = build.getAssociatedBuild();
       if (associatedBuild != null) {
         if (associatedBuild.isFinished()) {
+          errors.remove(build.getId()); //clear any cancel errors, if any
           try {
             if (associatedBuild instanceof SFinishedBuild) {
               buildHistory.removeEntry((SFinishedBuild)associatedBuild, comment);
@@ -811,9 +785,75 @@ public class BuildRequest {
         }
       } else {
         if (build.getQueuedBuild() != null) {
-          errors.putIfAbsent(build.getId(),  new OperationException("Failed to delete queued build"));
+          errors.putIfAbsent(build.getId(),  new AuthorizationFailedException("Failed to delete queued build. Probably not sufficient permissions."));
         }
       }
+    }
+    return errors;
+  }
+
+  @NotNull
+  private LinkedHashMap<Long, RuntimeException> cancelBuilds(@NotNull final List<BuildPromotion> builds, @NotNull final BuildCancelRequest cancelRequest, @Nullable final SUser currentUser) {
+    LinkedHashMap<Long, RuntimeException> errors = new LinkedHashMap<>();
+
+    if (cancelRequest.readdIntoQueue) {
+      if (currentUser == null) {
+        throw new BadRequestException("Cannot re-add build into queue when no current user is present. Please make sure the operation is performed under a regular user.");
+      }
+    }
+
+    final jetbrains.buildServer.serverSide.BuildQueueEx buildQueue = (BuildQueueEx)myBeanContext.getSingletonService(BuildQueue.class);
+    Set<String> queuedBuildIds = builds.stream().map(b -> b.getQueuedBuild()).filter(Objects::nonNull).map(b -> b.getItemId()).collect(Collectors.toSet());
+    if (!queuedBuildIds.isEmpty()) {
+      buildQueue.removeItems(queuedBuildIds, currentUser, cancelRequest.comment);
+    }
+
+    List<SRunningBuild> stoppedBuilds = new ArrayList<>();
+    RunningBuildsManager runningBuildsManager = myBeanContext.getSingletonService(RunningBuildsManager.class);
+    for (BuildPromotion build : builds) {
+      final SBuild sBuild = build.getAssociatedBuild();
+      if (sBuild == null) {
+        if (build.getQueuedBuild() != null) {
+          if (currentUser != null && !AuthUtil.hasPermissionToStopBuild(currentUser, build)) {
+            errors.put(build.getId(), new AuthorizationFailedException("You do not have enough permissions to cancel the build"));
+          } else {
+            errors.putIfAbsent(build.getId(), new OperationException("Failed to cancel queued build"));
+          }
+        }
+        continue;
+      }
+      if (sBuild.isFinished()) {
+        if (sBuild.getCanceledInfo() == null) {
+          errors.put(build.getId(), new BadRequestException("Cannot cancel finished build"));
+        }
+        continue;
+      }
+      
+      SRunningBuild runningBuild = runningBuildsManager.findRunningBuildById(sBuild.getBuildId());
+      if (runningBuild == null) {
+        errors.put(build.getId(), new BadRequestException("Cannot cancel not running build"));
+        continue;
+      }
+
+      try {
+        if (cancelRequest.readdIntoQueue) {
+          stoppedBuilds.add(runningBuild);
+        }
+        runningBuild.stop(currentUser, cancelRequest.comment);
+      } catch (RuntimeException e) {
+        errors.putIfAbsent(build.getId(), e);
+      }
+    }
+
+
+    if (cancelRequest.readdIntoQueue && !stoppedBuilds.isEmpty()) {
+        stoppedBuilds.forEach(build -> {
+          try {
+            restoreInQueue(build, currentUser);
+          } catch (RuntimeException e) {
+            errors.putIfAbsent(build.getBuildPromotion().getId(), e);
+          }
+        });
     }
     return errors;
   }
@@ -844,17 +884,24 @@ public class BuildRequest {
       throw new BadRequestException("Empty locator specified.");
     }
     List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).myEntries;
-    Map<Long, RuntimeException> errors = deleteBuilds(builds, SessionUser.getUser(request), null);
+    return new MultipleOperationResult(getResultData(builds, deleteBuilds(builds, SessionUser.getUser(request), null)), new Fields(fields), myBeanContext);
+  }
+
+  /**
+   * Creates result data for the set of builds and errors passed
+   */
+  @NotNull
+  private MultipleOperationResult.Data getResultData(@NotNull final List<BuildPromotion> allBuilds, @NotNull final Map<Long, RuntimeException> reportedErrors) {
     int[] errorsCount = {0};
-    return new MultipleOperationResult(new MultipleOperationResult.Data(builds.stream().map(build -> {
-      RuntimeException exception = errors.get(build.getId());
+    return new MultipleOperationResult.Data(allBuilds.stream().map(build -> {
+      RuntimeException exception = reportedErrors.get(build.getId());
       if (exception == null) {
         return OperationResult.Data.createSuccess(new RelatedEntity.Entity(build));
       } else {
         errorsCount[0]++;
         return OperationResult.Data.createError(exception.getMessage(), new RelatedEntity.Entity(build));
       }
-    }).collect(Collectors.toList()), errorsCount[0]), new Fields(fields), myBeanContext);
+    }).collect(Collectors.toList()), errorsCount[0]);
   }
 
   /**
@@ -937,8 +984,11 @@ public class BuildRequest {
   @Path("/multiple/{buildLocator}")
   @Consumes({"application/xml", "application/json"})
   public MultipleOperationResult cancelMultiple(@PathParam("buildLocator") String buildLocator, BuildCancelRequest cancelRequest, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
-    final SUser user = SessionUser.getUser(request);
-    return processMultiple(buildLocator, (build) -> cancelBuild(build, cancelRequest, user), new Fields(fields));
+    if (buildLocator == null) {
+      throw new BadRequestException("Empty locator specified.");
+    }
+    List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).myEntries;
+    return new MultipleOperationResult(getResultData(builds, cancelBuilds(builds, cancelRequest, SessionUser.getUser(request))), new Fields(fields), myBeanContext);
   }
 
   @NotNull
