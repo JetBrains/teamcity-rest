@@ -345,7 +345,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
                 LOG.infoAndDebugDetails("Non-number build promotion id " + build_state_id + " retrieved from the database for problemId: " + problemId + ", ignoring.", e);
               }
             }
-          }, "getBuildProblem", "select build_state_id from build_problem where problem_id = " + problemId);
+          }, "getBuildProblem", "select build_state_id from build_problem where problem_id = " + problemId + " order by build_state_id desc");
         }
       });
 
