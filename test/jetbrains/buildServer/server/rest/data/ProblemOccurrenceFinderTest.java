@@ -66,13 +66,21 @@ public class ProblemOccurrenceFinderTest extends BaseFinderTest<BuildProblem> {
                                                               .withProblem(BuildProblemData.createBuildProblem("id1", "type2", "descr")).finish().getBuildPromotion();
     final BuildPromotionEx build40 = (BuildPromotionEx)build().in(buildType).withProblem(BuildProblemData.createBuildProblem("id1", "type2", "descr")).finish().getBuildPromotion();
 
-    checkProblem("problem:(id:1)", pd(1, "id1", "type1", build10.getId()), pd(1, "id1", "type1", build20.getId()));
-    checkProblem("problem:(currentlyFailing:true)", pd(2, "id1", "type2", build10.getId()), pd(2, "id1", "type2", build30.getId()), pd(2, "id1", "type2", build40.getId()));
-    checkProblem("problem:(build:(count:1))", pd(2, "id1", "type2", build10.getId()), pd(2, "id1", "type2", build30.getId()), pd(2, "id1", "type2", build40.getId()));
-    checkProblem("problem:(build:(count:2))",
-                 pd(2, "id1", "type2", build10.getId()),
-                 pd(2, "id1", "type2", build30.getId()),
+    checkProblem("problem:(id:1)",
+                 pd(1, "id1", "type1", build20.getId()),
+                 pd(1, "id1", "type1", build10.getId()));
+    checkProblem("problem:(currentlyFailing:true)",
                  pd(2, "id1", "type2", build40.getId()),
+                 pd(2, "id1", "type2", build30.getId()),
+                 pd(2, "id1", "type2", build10.getId()));
+    checkProblem("problem:(build:(count:1))",
+                 pd(2, "id1", "type2", build40.getId()),
+                 pd(2, "id1", "type2", build30.getId()),
+                 pd(2, "id1", "type2", build10.getId()));
+    checkProblem("problem:(build:(count:2))",
+                 pd(2, "id1", "type2", build40.getId()),
+                 pd(2, "id1", "type2", build30.getId()),
+                 pd(2, "id1", "type2", build10.getId()),
                  pd(4, "id2", "type1", build30.getId()));
   }
 
