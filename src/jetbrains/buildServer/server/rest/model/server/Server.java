@@ -114,7 +114,7 @@ public class Server {
   public String getRole() {
     TeamCityNode currentNode = myBeanContext.getSingletonService(TeamCityNodes.class).getOnlineNodes().get(0); //current is always the first one
     CurrentNodeInfo.ServerMode mode = currentNode.getMode();
-    if (!CurrentNodeInfo.ServerMode.MAIN_SERVER.equals(mode)) {
+    if (!mode.isMainNode()) {
       return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("role"), mode.name().toLowerCase());
     }
     return ValueWithDefault.decide(myFields.isIncluded("role"), mode.name().toLowerCase(), null, false);

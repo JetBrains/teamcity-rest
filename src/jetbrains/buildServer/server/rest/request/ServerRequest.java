@@ -284,7 +284,7 @@ public class ServerRequest {
       @NotNull
       public String getArchiveName(@NotNull final String path) {
         String nodeIdPart = "";
-        if (!CurrentNodeInfo.ServerMode.MAIN_SERVER.equals(CurrentNodeInfo.getMode())) { //assuming there is only single main server and it does not need node id in the file name
+        if (!CurrentNodeInfo.getMode().isMainNode()) { //assuming there is only single main server and it does not need node id in the file name
           nodeIdPart = "_" + CurrentNodeInfo.getNodeId().toLowerCase();
         }
         return "server_" + nodeIdPart + areaId + (StringUtil.isEmpty(path) ? "" : "-" + path.replaceAll("[^a-zA-Z0-9-#.]+", "_"));
