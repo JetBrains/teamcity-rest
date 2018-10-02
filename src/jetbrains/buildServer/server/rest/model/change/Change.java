@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Items;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -46,7 +47,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "change")
 @XmlType(name = "change", propOrder = {"id", "version", "internalVersion", "username", "date", "registrationDate", "personal", "href", "webUrl",
-  "comment", "user", "fileChanges", "vcsRootInstance", "parentChanges", "parentRevisions"})
+  "comment", "user", "fileChanges", "vcsRootInstance", "parentChanges", "parentRevisions", "attributes"})
 public class Change {
   protected SVcsModification myModification;
   @NotNull private Fields myFields;
@@ -176,6 +177,15 @@ public class Change {
         return new Items(myModification.getParentRevisions());
       }
     });
+  }
+
+  /**
+   * experimental use only
+   */
+  @XmlElement(name = "attributes")
+  public Properties getAttributes() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("attributes", false, false),
+                                          () -> new Properties(myModification.getAttributes(), null, myFields.getNestedField("attributes"), myBeanContext));
   }
 
   /**
