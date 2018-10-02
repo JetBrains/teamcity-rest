@@ -5,7 +5,7 @@
     <name>rest-api</name>
     <display-name>REST API</display-name>
     <version>@Plugin_Version@</version>
-    <description>Exposes TeamCity API via REST-like protocol</description>
+    <description>Exposes TeamCity API via REST-like protocol. The plugin is essential for TeamCity Web UI.</description>
 
     <vendor>
       <name>JetBrains, s.r.o.</name>
