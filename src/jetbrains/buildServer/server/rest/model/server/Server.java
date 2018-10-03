@@ -111,14 +111,24 @@ public class Server {
     return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("internalId"), myServerSettings.getServerUUID());
   }
 
+
   @XmlAttribute
   public String getRole() {
-    TeamCityNode currentNode = myBeanContext.getSingletonService(TeamCityNodes.class).getOnlineNodes().get(0); //current is always the first one
-    CurrentNodeInfo.ServerMode mode = currentNode.getMode();
-    if (!CurrentNodeInfo.ServerMode.MAIN_SERVER.equals(mode)) {
-      return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("role"), mode.name().toLowerCase());
+    TeamCityNode currentNode = myBeanContext.getSingletonService(TeamCityNodes.class).getCurrentNode();
+    if (!currentNode.isMainNode()) {
+      return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("role"), serverRole(currentNode));
+ 
     }
-    return ValueWithDefault.decide(myFields.isIncluded("role"), mode.name().toLowerCase(), null, false);
+    return ValueWithDefault.decide(myFields.isIncluded("role"), serverRole(currentNode), null, false);
+  }
+ 
+  @NotNull
+  private static String serverRole(@NotNull TeamCityNode node) {
+    if (!node.isMainNode()) {
+      return "main_server";
+    }
+ 
+    return "secondary_node";
   }
 
   @XmlAttribute
@@ -200,7 +210,7 @@ public class Server {
       serviceLocator.getSingletonService(DataProvider.class).checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
       return serviceLocator.getSingletonService(DataProvider.class).getBean(ServerPaths.class).getDataDirectory().getAbsolutePath();
     } else if ("role".equals(field)) {
-      return serviceLocator.getSingletonService(TeamCityNodes.class).getOnlineNodes().get(0).getMode().name().toLowerCase();
+      return serverRole(serviceLocator.getSingletonService(TeamCityNodes.class).getCurrentNode());
     } else if ("webUrl".equals(field) || "url".equals(field)) {
       return serviceLocator.getSingletonService(RootUrlHolder.class).getRootUrl();
     }
