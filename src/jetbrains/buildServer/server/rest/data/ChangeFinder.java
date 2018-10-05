@@ -462,6 +462,11 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       return getItemHolder(myServiceLocator.getSingletonService(UserChangesFacade.class).getAllVcsModifications(user));
     }
 
+    Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
+    if (personal != null && personal) {
+      throw new BadRequestException("Filtering personal changes is supported only when '" + DIMENSION_ID + "', '" + USER + "' or '" + BUILD + "' dimensions are specified");
+    }
+
     Long sinceChangeId = null;
     final String sinceChangeLocator = locator.getSingleDimensionValue(SINCE_CHANGE);
     if (sinceChangeLocator != null) {
@@ -635,6 +640,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   private Stream<SVcsModification> getBuildChanges(@NotNull final BuildPromotion buildPromotion, @Nullable final Locator locator) {
+    //todo: use fillDetectedChanges instead
     return ((BuildPromotionEx)buildPromotion).getDetectedChanges(getBuildChangesPolicy(), getBuildChangesIncludeDependencies(), getBuildChangesProcessor(getBuildChangesLimit(locator)))
                                              .stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
   }
