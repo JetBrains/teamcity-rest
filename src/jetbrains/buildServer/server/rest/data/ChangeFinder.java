@@ -281,6 +281,14 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       }
     }
 
+    if (locator.isUnused(BUILD_TYPE)) {
+      final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE); //todo: support multiple buildTypes here
+      if (buildTypeLocator != null) {
+        SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
+        result.add(item -> item.getRelatedConfigurations().contains(buildType));
+      }
+    }
+
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     if (projectLocator != null) {
       final SProject project = myProjectFinder.getItem(projectLocator);
@@ -411,29 +419,13 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     //todo: implement effective search by VCSRootInstance and internalVersion
 
-    SBuildType buildType = null;
-    final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE); //todo: support multiple buildTypes here
-    if (buildTypeLocator != null) {
-      buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
-    }
+    Boolean personal = locator.lookupSingleDimensionValueAsBoolean(PERSONAL);
+    if (personal != null && personal) {
 
-    @Nullable List<BranchData> filterBranches = getFilterBranches(locator, buildType);
-
-    Boolean pending = locator.getSingleDimensionValueAsBoolean(PENDING);
-    if (pending != null) {
-      if (pending) {
-        return getItemHolder(getPendingChanges(buildType, filterBranches));
-      } else {
-        locator.markUnused(PENDING);
+      if (locator.lookupSingleDimensionValue(BUILD) == null && locator.lookupSingleDimensionValue(USER) == null) {
+        throw new BadRequestException("Filtering personal changes is supported only when '" + DIMENSION_ID + "', '" + USER + "' or '" + BUILD + "' dimensions are specified");
       }
     }
-
-    if (filterBranches != null) {
-      return getItemHolder(getBranchChanges(buildType, filterBranches, SelectPrevBuildPolicy.SINCE_FIRST_BUILD));
-    }
-
-    locator.markUnused(BUILD_TYPE); //not used this time
-
 
     final String buildLocator = locator.getSingleDimensionValue(BUILD);
     if (buildLocator != null) {
@@ -454,48 +446,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       //noinspection ConstantConditions
       return FinderDataBinding.getItemHolder(getBuildChanges(BuildFinder.getBuildPromotion(promotionLocator, myServiceLocator.findSingletonService(BuildPromotionManager.class)),
                                                              locator));
-    }
-
-    final String userLocator = locator.getSingleDimensionValue(USER);
-    if (userLocator != null) {
-      final SUser user = myUserFinder.getItem(userLocator);
-      return getItemHolder(myServiceLocator.getSingletonService(UserChangesFacade.class).getAllVcsModifications(user));
-    }
-
-    Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
-    if (personal != null && personal) {
-      throw new BadRequestException("Filtering personal changes is supported only when '" + DIMENSION_ID + "', '" + USER + "' or '" + BUILD + "' dimensions are specified");
-    }
-
-    Long sinceChangeId = null;
-    final String sinceChangeLocator = locator.getSingleDimensionValue(SINCE_CHANGE);
-    if (sinceChangeLocator != null) {
-      sinceChangeId = getChangeIdBySinceChangeLocator(sinceChangeLocator);
-    }
-
-    final String vcsRootInstanceLocator = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE);
-    if (vcsRootInstanceLocator != null) {
-      final VcsRootInstance vcsRootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
-      if (sinceChangeId != null) {
-        return getItemHolder(myVcsModificationHistory.getModificationsInRange(vcsRootInstance, sinceChangeId, null)); //todo: use lookupLimit here or otherwise limit processing
-      } else {
-        //todo: highly inefficient!
-        return getItemHolder(myVcsModificationHistory.getAllModifications(vcsRootInstance));
-      }
-    }
-
-    if (buildType != null) {
-      locator.getSingleDimensionValue(BUILD_TYPE); //marking as used
-      return getItemHolder(getBuildTypeChanges(buildType));
-    }
-
-    final String projectLocator = locator.getSingleDimensionValue(PROJECT);
-    if (projectLocator != null) {
-      return getItemHolder(getProjectChanges(myVcsModificationHistory, myProjectFinder.getItem(projectLocator), sinceChangeId));
-    }
-
-    if (sinceChangeId != null) {
-      return getItemHolder(myVcsModificationHistory.getModificationsInRange(null, sinceChangeId, null));  //todo: use lookupLimit here or otherwise limit processing
     }
 
     final String parentChangeLocator = locator.getSingleDimensionValue(CHILD_CHANGE);
@@ -540,6 +490,63 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       });
       graphFinder.setDefaultLookupLimit(1000L);
       return getItemHolder(graphFinder.getItems(graphLocator).myEntries);
+    }
+
+    final String userLocator = locator.getSingleDimensionValue(USER);
+    if (userLocator != null) {
+      final SUser user = myUserFinder.getItem(userLocator);
+      return getItemHolder(myServiceLocator.getSingletonService(UserChangesFacade.class).getAllVcsModifications(user));
+    }
+
+    Long sinceChangeId = null;
+    final String sinceChangeLocator = locator.getSingleDimensionValue(SINCE_CHANGE);
+    if (sinceChangeLocator != null) {
+      sinceChangeId = getChangeIdBySinceChangeLocator(sinceChangeLocator);
+    }
+
+    final String vcsRootInstanceLocator = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE);
+    if (vcsRootInstanceLocator != null) {
+      final VcsRootInstance vcsRootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
+      if (sinceChangeId != null) {
+        return getItemHolder(myVcsModificationHistory.getModificationsInRange(vcsRootInstance, sinceChangeId, null)); //todo: use lookupLimit here or otherwise limit processing
+      } else {
+        //todo: highly inefficient!
+        return getItemHolder(myVcsModificationHistory.getAllModifications(vcsRootInstance));
+      }
+    }
+
+    SBuildType buildType = null;
+    final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE); //todo: support multiple buildTypes here
+    if (buildTypeLocator != null) {
+      buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
+    }
+
+    @Nullable List<BranchData> filterBranches = getFilterBranches(locator, buildType);
+
+    Boolean pending = locator.getSingleDimensionValueAsBoolean(PENDING);
+    if (pending != null) {
+      if (pending) {
+        return getItemHolder(getPendingChanges(buildType, filterBranches));
+      } else {
+        locator.markUnused(PENDING);
+      }
+    }
+
+    if (filterBranches != null) {
+      return getItemHolder(getBranchChanges(buildType, filterBranches, SelectPrevBuildPolicy.SINCE_FIRST_BUILD));
+    }
+
+    if (buildType != null) {
+      return getItemHolder(getBuildTypeChanges(buildType));
+    }
+
+    final String projectLocator = locator.getSingleDimensionValue(PROJECT);
+    if (projectLocator != null) {
+      return getItemHolder(getProjectChanges(myVcsModificationHistory, myProjectFinder.getItem(projectLocator), sinceChangeId));
+    }
+
+    if (sinceChangeId != null) {
+      return getItemHolder(myVcsModificationHistory.getModificationsInRange(null, sinceChangeId, null));  //todo: use lookupLimit here or otherwise limit processing
     }
 
     return new ItemHolder<SVcsModification>() {
