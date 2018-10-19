@@ -642,13 +642,18 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("finishDate:(build:(id:" + build20.getBuildId() + ")),state:any", getBuildPromotions(build70, build60, build40, build23));
     checkExceptionOnBuildsSearch(BadRequestException.class, "finishDate:(build:(id:" + queuedBuild110.getItemId() + "))");
 
-    checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
-    checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(build70, build60, build40, build30, build23, build20));
-    checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(build70, build60, build40));
+    checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(build70, build60, build40, build23, build20, build10));
+    checkBuilds("finishDate:(date:" + getTimeWithMs(build10.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
+    checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(build70, build60, build40, build30, build23, build20, build10));
+    checkBuilds("finishDate:(date:" + getTimeWithMs(build10.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(build70, build60, build40, build30, build23, build20));
+    checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
+    checkBuilds("finishDate:(date:" + getTimeWithMs(build20.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(build70, build60, build40, build23));
     checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + ",condition:after,includeInitial:true),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
     checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + ",condition:before),state:any", getBuildPromotions(build10));
-    checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + ",condition:equals),state:any", getBuildPromotions(build23, build20));
-    checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + "),state:any", getBuildPromotions(build70, build60, build40));
+    checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + ",condition:equals),state:any", getBuildPromotions());
+    checkBuilds("finishDate:(date:" + getTimeWithMs(build20.getFinishDate()) + ",condition:equals),state:any", getBuildPromotions(build20));
+    checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + "),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
+    checkBuilds("finishDate:(date:" + getTimeWithMs(build20.getFinishDate()) + "),state:any", getBuildPromotions(build70, build60, build40, build23));
 
     checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSSZ", Locale.ENGLISH)).format(build20.getFinishDate()) + "),state:any",
                 getBuildPromotions(build70, build60, build40, build23));
@@ -664,8 +669,10 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("startDate:(build:(id:" + build10.getBuildId() + "),condition:after),state:any", getBuildPromotions(build80, build70, build60, build40, build23, build20));
 
     checkBuilds("startDate:(build:(id:" + build10.getBuildId() + "))", getBuildPromotions(build70, build60, build40, build23, build20));
-    checkBuilds("startDate:(date:" + Util.formatTime(build10.getStartDate()) + ")", getBuildPromotions(build70, build60, build40, build23, build20));
-    checkBuilds("startDate:(" + Util.formatTime(build10.getStartDate()) + ")", getBuildPromotions(build70, build60, build40, build23, build20));
+    checkBuilds("startDate:(date:" + Util.formatTime(build10.getStartDate()) + ")", getBuildPromotions(build70, build60, build40, build23, build20, build10));
+    checkBuilds("startDate:(date:" + getTimeWithMs(build10.getStartDate()) + ")", getBuildPromotions(build70, build60, build40, build23, build20));
+    checkBuilds("startDate:(" + Util.formatTime(build10.getStartDate()) + ")", getBuildPromotions(build70, build60, build40, build23, build20, build10));
+    checkBuilds("startDate:(" + getTimeWithMs(build10.getStartDate()) + ")", getBuildPromotions(build70, build60, build40, build23, build20));
 
     checkBuilds("queuedDate:(build:(id:" + build10.getBuildId() + "),condition:after)", getBuildPromotions(build70, build60, build40, build23, build20));
     checkBuilds("queuedDate:(build:(id:" + build10.getBuildId() + "),condition:after),state:any",
@@ -728,7 +735,15 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("finishDate:(date:20160224T164803.050+0100)", getBuildPromotions(build40, build35));
     checkBuilds("finishDate:(date:20160224T164803.049+0100)", getBuildPromotions(build40, build35, build30));
     checkBuilds("finishDate:(date:20160224T154803.049Z)", getBuildPromotions(build40, build35, build30));
+    checkBuilds("finishDate:(date:20160224T154803Z)", getBuildPromotions(build40, build35, build30));
+    checkBuilds("finishDate:(date:20160224T154803.0Z)", getBuildPromotions(build40, build35, build30));
+    checkBuilds("finishDate:(date:20160224T154803.999Z)", getBuildPromotions(build40));
+    checkBuilds("finishDate:(date:20160224T154804Z)", getBuildPromotions(build40));
+
+    setInternalProperty("rest.timeMatching.roundEntityTimeToSeconds", "true");
     checkBuilds("finishDate:(date:20160224T154803Z)", getBuildPromotions(build40)); //this uses compatibility approach comparing the build time to be strongly > by seconds
+    removeInternalProperty("rest.timeMatching.roundEntityTimeToSeconds");
+
     checkBuilds("finishDate:(date:2016-02-24T16:48:03.049+0100)", getBuildPromotions(build40, build35, build30));
     checkBuilds("finishDate:(date:2016-02-24T16:48:03+0100)", getBuildPromotions(build40, build35, build30));
     checkBuilds("finishDate:(date:2016-02-24T16:48:03.049Z)", getBuildPromotions(build40));
@@ -821,14 +836,23 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("startDate:(build:(id:" + finishedBuild10.getBuildId() + "),condition:after)", 3, getBuildPromotions(finishedBuild30));
     checkBuilds("startDate:(build:(id:" + finishedBuild20.getBuildId() + "),condition:after)", 4, getBuildPromotions(finishedBuild30, finishedBuild10));
 
-    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild10.getStartDate()) + ",condition:after),state:any", 5, getBuildPromotions(runningBuild50, finishedBuild30));
+    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild10.getStartDate()) + ",condition:after),state:any", 5, getBuildPromotions(runningBuild50, finishedBuild30, finishedBuild10));
+    checkBuilds("startDate:(date:" + getTimeWithMs(finishedBuild10.getStartDate()) + ",condition:after),state:any", 5, getBuildPromotions(runningBuild50, finishedBuild30));
+    checkBuilds("startDate:(date:" + getTimeWithMs(new Date(finishedBuild10.getStartDate().getTime() - 1)) + ",condition:after),state:any", 5, getBuildPromotions(runningBuild50, finishedBuild30, finishedBuild10));
+    checkBuilds("startDate:(date:" + getTimeWithMs(new Date(finishedBuild10.getStartDate().getTime() + 1)) + ",condition:after),state:any", 5, getBuildPromotions(runningBuild50, finishedBuild30));
     checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild10.getStartDate()) + ",condition:before),state:any", 7, getBuildPromotions(finishedBuild20, finishedBuild05, finishedBuild03));
+
     checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild20.getStartDate()) + ",condition:after),state:any", 6,
-                getBuildPromotions(runningBuild50, finishedBuild30, finishedBuild10));
-    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild30.getStartDate()) + ",condition:after),state:any", 4, getBuildPromotions(runningBuild50));
-    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild30.getStartDate()) + ",condition:after)", 2, new BuildPromotion[]{});
-    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild10.getStartDate()) + ",condition:after)", 3, getBuildPromotions(finishedBuild30));
-    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild20.getStartDate()) + ",condition:after)", 4, getBuildPromotions(finishedBuild30, finishedBuild10));
+                getBuildPromotions(runningBuild50, finishedBuild30, finishedBuild10, finishedBuild20));
+    checkBuilds("startDate:(date:" + getTimeWithMs(new Date(finishedBuild20.getStartDate().getTime())) + ",condition:after),state:any", 6, getBuildPromotions(runningBuild50, finishedBuild30, finishedBuild10));
+    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild30.getStartDate()) + ",condition:after),state:any", 4, getBuildPromotions(runningBuild50, finishedBuild30));
+    checkBuilds("startDate:(date:" + getTimeWithMs(finishedBuild30.getStartDate()) + ",condition:after),state:any", 4, getBuildPromotions(runningBuild50));
+    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild30.getStartDate()) + ",condition:after)", 2, getBuildPromotions(finishedBuild30));
+    checkBuilds("startDate:(date:" + getTimeWithMs(finishedBuild30.getStartDate()) + ",condition:after)", 2, new BuildPromotion[]{});
+    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild10.getStartDate()) + ",condition:after)", 3, getBuildPromotions(finishedBuild30, finishedBuild10));
+    checkBuilds("startDate:(date:" + getTimeWithMs(finishedBuild10.getStartDate()) + ",condition:after)", 3, getBuildPromotions(finishedBuild30));
+    checkBuilds("startDate:(date:" + Util.formatTime(finishedBuild20.getStartDate()) + ",condition:after)", 4, getBuildPromotions(finishedBuild30, finishedBuild10, finishedBuild20));
+    checkBuilds("startDate:(date:" + getTimeWithMs(finishedBuild20.getStartDate()) + ",condition:after)", 4, getBuildPromotions(finishedBuild30, finishedBuild10));
 
     checkBuilds(
       "startDate:(build:(id:" + finishedBuild20.getBuildId() + "),condition:after),startDate:(build:(id:" + finishedBuild30.getBuildId() + "),condition:before),state:any", 6,
@@ -836,6 +860,11 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds(
       "startDate:(build:(id:" + finishedBuild05.getBuildId() + "),condition:after),finishDate:(build:(id:" + finishedBuild30.getBuildId() + "),condition:before),state:any", 7,
       getBuildPromotions(finishedBuild10));
+  }
+
+  @NotNull
+  private String getTimeWithMs(@NotNull final Date time) {
+    return (new SimpleDateFormat(TeamCityProperties.getProperty("rest.defaultDateFormat", "yyyyMMdd'T'HHmmss.SSSZ"), Locale.ENGLISH)).format(time);
   }
 
   @Test

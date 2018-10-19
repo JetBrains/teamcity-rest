@@ -64,10 +64,11 @@ public class TimeWithPrecision {
     if (timeString.contains(" ")) {
       throw new BadRequestException("Invalid date/time string '" + timeString + "'. Note that '+' should be escaped in URL as '%2B'.");
     }
+    boolean useSecondsPrecision = TeamCityProperties.getBoolean("rest.timeMatching.roundEntityTimeToSeconds"); //compatibility switch to mimic pre-2018.2 behavior
     if (timeString.startsWith("-")) {
-      return new TimeWithPrecision(new Date(timeService.now() - TimeWithPrecision.getMsFromRelativeTime(timeString.substring("-".length()))), true);
+      return new TimeWithPrecision(new Date(timeService.now() - TimeWithPrecision.getMsFromRelativeTime(timeString.substring("-".length()))), useSecondsPrecision);
     } else if (timeString.startsWith("+")) {
-      return new TimeWithPrecision(new Date(timeService.now() + TimeWithPrecision.getMsFromRelativeTime(timeString.substring("+".length()))), true);
+      return new TimeWithPrecision(new Date(timeService.now() + TimeWithPrecision.getMsFromRelativeTime(timeString.substring("+".length()))), useSecondsPrecision);
     }
 
     // try different parsers
@@ -84,7 +85,7 @@ public class TimeWithPrecision {
       }
     } else {
       try {
-        return new TimeWithPrecision(DateTimeFormat.forPattern(Constants.TIME_FORMAT).withLocale(Locale.ENGLISH).parseDateTime(timeString).toDate(), true);
+        return new TimeWithPrecision(DateTimeFormat.forPattern(Constants.TIME_FORMAT).withLocale(Locale.ENGLISH).parseDateTime(timeString).toDate(), useSecondsPrecision);
       } catch (Exception e) {
         firstError = new BadRequestException("Was not able to parse date '" + timeString + "' using format '" + Constants.TIME_FORMAT + "' and others." +
                                              " Supported format example: '" +
