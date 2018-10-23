@@ -16,22 +16,26 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Set;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
+import jetbrains.buildServer.server.rest.model.Entries;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.MultiTestRun;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.STest;
-import jetbrains.buildServer.serverSide.STestRun;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
+import jetbrains.buildServer.serverSide.stat.TestRunMetadata;
 import org.jetbrains.annotations.NotNull;
 
 import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_NO_DETAILS;
@@ -39,10 +43,10 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
 /**
  * @author Yegor.Yarko
  */
-@SuppressWarnings("PublicField")
+@SuppressWarnings({"PublicField", "WeakerAccess"})
 @XmlRootElement(name = "testOccurrence")
 @XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "duration", "runOrder"/*experimental*/, "muted", "currentlyMuted", "currentlyInvestigated", "href",
-  "ignoreDetails", "details", "test", "mute", "build", "firstFailed", "nextFixed", "invocations"})
+  "ignoreDetails", "details", "test", "mute", "build", "firstFailed", "nextFixed", "invocations", "metadata"})
 public class TestOccurrence {
   @XmlAttribute public String id;
   @XmlAttribute public String name;
@@ -75,6 +79,10 @@ public class TestOccurrence {
   @XmlElement public TestOccurrence firstFailed;
   @XmlElement public TestOccurrence nextFixed;
   @XmlElement public TestOccurrences invocations;
+  /**
+   * Experimental! Exposes test run metadata
+   */
+  @XmlElement public Entries metadata;
 
   public TestOccurrence() {
   }
@@ -163,6 +171,18 @@ public class TestOccurrence {
         return new TestOccurrences(testOccurrenceFinder.getItems(invocationsLocator).myEntries, testRun.getInvocationCount(), null, testRun.getFailedInvocationCount(),
                                    null, null, null, null, null, nestedField, beanContext);
       }
+    });
+
+    metadata = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("metadata", false, false), () -> {
+      HashMap<String, String> result = new HashMap<>();
+
+      TestRunMetadata metadata = ((TestRunEx)testRun).getMetadata();
+      Set<String> keys = metadata.getKeys();
+      for (String key : keys) {
+        String value = metadata.getValue(key);
+        result.put(key, value != null ? value : new DecimalFormat("#.######", new DecimalFormatSymbols(Locale.US)).format(metadata.getNumValue(key)));
+      }
+      return new Entries(result, fields.getNestedField("metadata"));
     });
   }
 
