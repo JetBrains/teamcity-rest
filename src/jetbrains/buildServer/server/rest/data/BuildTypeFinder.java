@@ -974,6 +974,9 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       case SELECTED:
         throw new BadRequestException("Value \"" + ProjectFinder.SelectedByUserMode.SELECTED.name().toLowerCase() + "\" in \"" + DIMENSION_SELECTED +
                                       "/mode\" is not supported for build types");
+      case SELECTED_WITH_ORDER:
+        throw new BadRequestException("Value \"" + ProjectFinder.SelectedByUserMode.SELECTED_WITH_ORDER.name().toLowerCase() + "\" in \"" + DIMENSION_SELECTED +
+                                      "/mode\" is not supported for build types");
       case SELECTED_AND_UNKNOWN: //this is pre-2017.1 behavior
       default:
         final List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();

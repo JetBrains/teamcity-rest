@@ -372,7 +372,8 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
 
   public static enum SelectedByUserMode {
-    SELECTED, //those which are selected on Overview, in Overview-configured order
+    SELECTED, //those which are selected on Overview, in the order these were configured on Overview (this order can be different from the current hierarchy order)
+    SELECTED_WITH_ORDER, //experimental! those which are selected on Overview, in hierarchy-defined order and selected order for siblings within hierarchy
     SELECTED_AND_UNKNOWN, //as in SELECTED plus those which has mo mark on selection or hiding, in Overview-configured order
     ALL_WITH_ORDER; //all the projects which user can see in the order defined on Overview, but abiding the hierarchy depth-first traversing (i.e. as should be shown in projects pop-up)
   }
@@ -388,6 +389,10 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       case SELECTED:
         //TeamCity API issue: cast
         return myProjectManager.findProjects(((UserEx)user).getProjectVisibilityHolder().getKnownVisibleProjects());
+      case SELECTED_WITH_ORDER:
+        ArrayList<SProject> result = new ArrayList<>(myProjectManager.findProjects(((UserEx)user).getProjectVisibilityHolder().getKnownVisibleProjects()));
+        Collections.sort(result, new ProjectComparator());
+        return result;
       case ALL_WITH_ORDER:
         return ((UserEx)user).getProjectVisibilityHolder().getAllProjectsOrdered();
       default:
