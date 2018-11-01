@@ -152,8 +152,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     branches = buildTypeRequest.serveBranches("id:testBT", null, null);
     ProjectRequestTest.assertBranchesEquals(branches.branches, "<default>", true, null); // why default before checking for changes???
 
-    bt.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(bt.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     branches = buildTypeRequest.serveBranches("id:testBT", null, null);
     ProjectRequestTest.assertBranchesEquals(branches.branches, "master", true, null);
@@ -184,8 +183,8 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     final VcsRootInstance vcsRootInstance2 = bt.getVcsRootInstances().get(1);
     collectChangesPolicy.setCurrentState(vcsRootInstance2, createVersionState("master2", map("master2", "1", "branch1", "2", "branch2", "3")));
     setBranchSpec(vcsRootInstance2, "+:*");
-    bt.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+    myFixture.getVcsModificationChecker().checkForModifications(bt.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     branches = buildTypeRequest.serveBranches("id:testBT", "policy:ALL_BRANCHES", Fields.ALL_NESTED.getFieldsSpec());
     ProjectRequestTest.assertBranchesEquals(branches.branches,
@@ -229,8 +228,8 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     final VcsRootInstance vcsRootInstance = bt.getVcsRootInstances().get(0);
     collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState("master", map("master", "1", "aaa", "2", "bbb", "2", "Aaa", "3")));
     setBranchSpec(vcsRootInstance, "+:*");
-    bt.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+    myFixture.getVcsModificationChecker().checkForModifications(bt.getVcsRootInstances(), OperationRequestor.UNKNOWN);
     
     Branches branches = buildTypeRequest.serveBranches("id:testBT", "policy:ALL_BRANCHES", Fields.ALL_NESTED.getFieldsSpec());
     assertEquals("<default>", branches.branches.get(0).getInternalName());

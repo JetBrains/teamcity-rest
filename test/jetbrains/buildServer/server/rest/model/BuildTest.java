@@ -1352,8 +1352,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
   }
 
   private void ensureChangesDetected() {
-    myBuildType.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(myBuildType.getVcsRootInstances(), OperationRequestor.UNKNOWN);
   }
 
   @NotNull

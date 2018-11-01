@@ -225,8 +225,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     final VcsRootInstance vcsRootInstance2 = bt13.getVcsRootInstances().get(1);
     collectChangesPolicy.setCurrentState(vcsRootInstance2, createVersionState("master3", map("branch10", "2", "master3", "2", "branch2", "3")));
     setBranchSpec(vcsRootInstance2, "+:*");
-    bt13.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(bt13.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     branches = request.getBranches("id:" + prjId, "policy:ALL_BRANCHES", null);
     assertBranchesEquals(branches.branches,
@@ -326,8 +325,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     final VcsRootInstance vcsRootInstance = bt.getVcsRootInstances().get(0);
     collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState(defaultBranchName, state));
     setBranchSpec(vcsRootInstance, "+:*");
-    bt.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(bt.getVcsRootInstances(), OperationRequestor.UNKNOWN);
   }
 
   private static final DescriptionProvider<Branch> BRANCH_DESCRIPTION_PROVIDER =
