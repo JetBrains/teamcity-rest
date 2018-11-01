@@ -82,8 +82,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
                                                                                                    "prefix/aaa", "70",
                                                                                                    "branch10", "100")));
 
-    buildConf.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     check(null, m70, m60, m50, m40, m30, m20);
     String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
@@ -136,8 +135,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
                                                                                                    "prefix/aaa", "70",
                                                                                                    "branch10", "100")));
 
-    buildConf.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     check(null,  m90, m80, m70, m60, m50, m40, m30, m20);
     check(btLocator + ",branch:(name:master)", m80, m30, m20);
@@ -206,8 +204,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     SVcsModification m60 = myFixture.addModification(modification().in(root1).version("60").parentVersions("15"));
     SVcsModification m70 = myFixture.addModification(modification().in(root1).version("70").parentVersions("10"));
 
-    buildConf.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     check(null, m70, m60, m50, m40, m30, m20);
     checkCounts("count:3", 3, 4);

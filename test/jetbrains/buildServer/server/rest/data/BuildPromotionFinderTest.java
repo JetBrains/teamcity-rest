@@ -22,6 +22,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import jetbrains.buildServer.MockTimeService;
@@ -40,6 +41,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TestFor;
+import jetbrains.buildServer.vcs.OperationRequestor;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.SVcsRootEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -1120,7 +1122,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
-  public void testBranchDimension() {
+  public void testBranchDimension() throws ExecutionException, InterruptedException {
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
 
     final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
@@ -1136,8 +1138,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final VcsRootInstance vcsRootInstance = buildConf1.getVcsRootInstances().get(0);
     collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState("master", map("master", "1", "branch1", "2", "branch2", "3")));
     setBranchSpec(vcsRootInstance, "+:*");
-    buildConf1.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf1.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     final BuildPromotion build30 = build().in(buildConf1).finish().getBuildPromotion();
     final BuildPromotion build40 = build().in(buildConf1).withDefaultBranch().finish().getBuildPromotion();
@@ -1320,7 +1321,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
-  public void testBranchDimensionWithSeveralRoots() {
+  public void testBranchDimensionWithSeveralRoots() throws ExecutionException, InterruptedException {
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
 
     MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
@@ -1345,11 +1346,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
                                                                                                         "refs/heads/branch2", "b3")));
     setBranchSpec(vcsRootInstance10, "+:refs/heads/(*)");
     setBranchSpec(vcsRootInstance20, "+:refs/heads/(*)");
-    buildConf2.forceCheckingForChanges();
 
-
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
-
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf2.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     final BuildPromotion build30 = build().in(buildConf2).finish().getBuildPromotion();
     final BuildPromotion build40 = build().in(buildConf2).withDefaultBranch().finish().getBuildPromotion();
@@ -1388,9 +1386,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
                                                                                                          "refs/heads/branch2", "b3"))); //different default branch
     setBranchSpec(vcsRootInstance30, "+:refs/heads/(*)");
     setBranchSpec(vcsRootInstance40, "+:refs/heads/(*)");
-    buildConf3.forceCheckingForChanges();
 
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf3.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     final BuildPromotion build230 = build().in(buildConf3).finish().getBuildPromotion();
     final BuildPromotion build240 = build().in(buildConf3).withDefaultBranch().finish().getBuildPromotion();
@@ -1556,7 +1553,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
-  public void testStrobBranchedDimension() {
+  public void testStrobBranchedDimension() throws ExecutionException, InterruptedException {
     final SProject project = createProject("prj", "project");
     final BuildTypeEx buildConf1 = (BuildTypeEx)project.createBuildType("buildConf1", "buildConf1");
     final BuildTypeEx buildConf2 = (BuildTypeEx)project.createBuildType("buildConf2", "buildConf2");
@@ -1571,8 +1568,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final VcsRootInstance vcsRootInstance = buildConf1.getVcsRootInstances().get(0);
     collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState("master", map("master", "1", "branch1", "2", "branch2", "3")));
     setBranchSpec(vcsRootInstance, "+:*");
-    buildConf1.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf1.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
     final BuildPromotion build15 = build().in(buildConf1).withDefaultBranch().finish().getBuildPromotion();

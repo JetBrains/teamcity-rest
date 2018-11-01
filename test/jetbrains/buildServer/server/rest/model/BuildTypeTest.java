@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.RootUrlHolder;
 import jetbrains.buildServer.artifacts.RevisionRules;
@@ -46,6 +47,7 @@ import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.CheckoutRules;
+import jetbrains.buildServer.vcs.OperationRequestor;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
@@ -124,7 +126,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   @Test
-  public void testBranches() {
+  public void testBranches() throws ExecutionException, InterruptedException {
     final BuildTypeEx bt = getRootProject().createProject("Project1", "Project test 1").createBuildType("testBT", "My test build type");
 
     final BuildTypeRequest buildTypeRequest = new BuildTypeRequest();
@@ -152,8 +154,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     branches = buildTypeRequest.serveBranches("id:testBT", null, null);
     ProjectRequestTest.assertBranchesEquals(branches.branches, "<default>", true, null); // why default before checking for changes???
 
-    bt.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(bt.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     branches = buildTypeRequest.serveBranches("id:testBT", null, null);
     ProjectRequestTest.assertBranchesEquals(branches.branches, "master", true, null);
@@ -184,8 +185,8 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     final VcsRootInstance vcsRootInstance2 = bt.getVcsRootInstances().get(1);
     collectChangesPolicy.setCurrentState(vcsRootInstance2, createVersionState("master2", map("master2", "1", "branch1", "2", "branch2", "3")));
     setBranchSpec(vcsRootInstance2, "+:*");
-    bt.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+
+    myFixture.getVcsModificationChecker().checkForModifications(bt.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     branches = buildTypeRequest.serveBranches("id:testBT", "policy:ALL_BRANCHES", Fields.ALL_NESTED.getFieldsSpec());
     ProjectRequestTest.assertBranchesEquals(branches.branches,
@@ -212,7 +213,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   @Test //TW-49294
-  public void testBranchesCaseDiff() {
+  public void testBranchesCaseDiff() throws ExecutionException, InterruptedException {
     final BuildTypeEx bt = getRootProject().createProject("Project1", "Project test 1").createBuildType("testBT", "My test build type");
 
     final BuildTypeRequest buildTypeRequest = new BuildTypeRequest();
@@ -229,9 +230,9 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     final VcsRootInstance vcsRootInstance = bt.getVcsRootInstances().get(0);
     collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState("master", map("master", "1", "aaa", "2", "bbb", "2", "Aaa", "3")));
     setBranchSpec(vcsRootInstance, "+:*");
-    bt.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
-    
+
+    myFixture.getVcsModificationChecker().checkForModifications(bt.getVcsRootInstances(), OperationRequestor.UNKNOWN);
+
     Branches branches = buildTypeRequest.serveBranches("id:testBT", "policy:ALL_BRANCHES", Fields.ALL_NESTED.getFieldsSpec());
     assertEquals("<default>", branches.branches.get(0).getInternalName());
     assertEquals("Aaa", branches.branches.get(1).getInternalName());

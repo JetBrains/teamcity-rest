@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ArtifactsConstants;
@@ -59,10 +60,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TestFor;
-import jetbrains.buildServer.vcs.RepositoryStateData;
-import jetbrains.buildServer.vcs.SVcsModification;
-import jetbrains.buildServer.vcs.SVcsRootEx;
-import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -1276,7 +1274,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
   }
 
   @Test
-  public void testChanges() throws IOException {
+  public void testChanges() throws IOException, ExecutionException, InterruptedException {
     MockVcsSupport vcs = new MockVcsSupport("vcs");
 //    vcs.setDAGBased(true); //see jetbrains.buildServer.server.rest.data.ChangeFinderTest.testBranches1() for branches setup  example
     myFixture.getVcsManager().registerVcsSupport(vcs);
@@ -1341,7 +1339,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
   }
 
   @Test
-  public void testChangesOptional() throws IOException {
+  public void testChangesOptional() throws IOException, ExecutionException, InterruptedException {
     MockVcsSupport vcs = new MockVcsSupport("vcs");
     myFixture.getVcsManager().registerVcsSupport(vcs);
     SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", myBuildType);
@@ -1430,8 +1428,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
   }
 
   private void ensureChangesDetected() {
-    myBuildType.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(myBuildType.getVcsRootInstances(), OperationRequestor.UNKNOWN);
   }
 
   @NotNull
