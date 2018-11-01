@@ -1036,8 +1036,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final VcsRootInstance vcsRootInstance = buildConf1.getVcsRootInstances().get(0);
     collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState("master", map("master", "1", "branch1", "2", "branch2", "3")));
     setBranchSpec(vcsRootInstance, "+:*");
-    buildConf1.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf1.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     final BuildPromotion build30 = build().in(buildConf1).finish().getBuildPromotion();
     final BuildPromotion build40 = build().in(buildConf1).withDefaultBranch().finish().getBuildPromotion();
@@ -1129,10 +1128,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
                                                                                                         "refs/heads/branch2", "b3")));
     setBranchSpec(vcsRootInstance10, "+:refs/heads/(*)");
     setBranchSpec(vcsRootInstance20, "+:refs/heads/(*)");
-    buildConf2.forceCheckingForChanges();
-
-
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf2.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
 
     final BuildPromotion build30 = build().in(buildConf2).finish().getBuildPromotion();
@@ -1172,9 +1168,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
                                                                                                          "refs/heads/branch2", "b3"))); //different default branch
     setBranchSpec(vcsRootInstance30, "+:refs/heads/(*)");
     setBranchSpec(vcsRootInstance40, "+:refs/heads/(*)");
-    buildConf3.forceCheckingForChanges();
-
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf3.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     final BuildPromotion build230 = build().in(buildConf3).finish().getBuildPromotion();
     final BuildPromotion build240 = build().in(buildConf3).withDefaultBranch().finish().getBuildPromotion();
@@ -1355,8 +1349,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final VcsRootInstance vcsRootInstance = buildConf1.getVcsRootInstances().get(0);
     collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState("master", map("master", "1", "branch1", "2", "branch2", "3")));
     setBranchSpec(vcsRootInstance, "+:*");
-    buildConf1.forceCheckingForChanges();
-    myFixture.getVcsModificationChecker().ensureModificationChecksComplete();
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf1.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
     final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
     final BuildPromotion build15 = build().in(buildConf1).withDefaultBranch().finish().getBuildPromotion();
