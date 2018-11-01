@@ -36,6 +36,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Option;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.OperationRequestor;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
