@@ -62,6 +62,7 @@ import jetbrains.buildServer.vcs.RepositoryStateData;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SVcsRootEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.OperationRequestor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
