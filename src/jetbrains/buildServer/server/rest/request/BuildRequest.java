@@ -43,7 +43,6 @@ import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
-import jetbrains.buildServer.server.rest.model.agent.BooleanStatus;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.change.BuildChanges;
@@ -912,7 +911,7 @@ public class BuildRequest {
   @PUT
   @Path("/multiple/{buildLocator}/pinInfo/")
   @Consumes({"application/xml", "application/json"})
-  public MultipleOperationResult pinMultiple(@PathParam("buildLocator") String buildLocator, BooleanStatus pinStatus, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
+  public MultipleOperationResult pinMultiple(@PathParam("buildLocator") String buildLocator, PinInfo pinStatus, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
     Boolean newStatus = pinStatus.getStatusFromPosted();
     if (newStatus == null) throw new BadRequestException("Pin status should be specified in the payload");
     String commentText = pinStatus.getCommentTextFromPosted();
