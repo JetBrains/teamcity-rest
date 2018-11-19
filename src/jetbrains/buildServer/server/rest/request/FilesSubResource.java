@@ -29,10 +29,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
+import javax.ws.rs.core.*;
 import jetbrains.buildServer.controllers.HttpDownloadProcessor;
 import jetbrains.buildServer.server.rest.data.ArchiveElement;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
@@ -169,6 +166,7 @@ public class FilesSubResource {
       //pre-2017.1 way of downloading files
       final Response.ResponseBuilder builder = getContent(initialElement, request);
       myProvider.fileContentServed(preprocessedPath, request);
+      setCacheControl(request, response);
       return builder.build();
     } else if ("core".equals(contentResponseBuilder)) {
       processCoreDownload(initialElement, request, response);
@@ -189,7 +187,29 @@ public class FilesSubResource {
     return null;
   }
 
+  private void setCacheControl(@NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response) {
+    //response typically already has "Cache-Control" header set to "no-store" in BaseController constructor, so we need to override the header
+
+    // see jetbrains.buildServer.web.util.WebUtil.addCacheHeadersForIE and http://youtrack.jetbrains.com/issue/TW-9821 for details)
+    if (WebUtil.isIE(request)) {
+      response.setHeader(HttpHeaders.CACHE_CONTROL, "private,must-revalidate");
+      response.setHeader(HttpHeaders.PRAGMA, "private");
+    } else {
+      String cacheControlValue;
+      String cacheControlValueOverride = TeamCityProperties.getPropertyOrNull("rest.build.artifacts.header.CacheControl.value");
+      if (cacheControlValueOverride != null) {
+        cacheControlValue = cacheControlValueOverride;
+      } else {
+        CacheControl cacheControl = new CacheControl();
+        cacheControl.setMaxAge(3600);
+        cacheControlValue = cacheControl.toString();
+      }
+      response.setHeader(HttpHeaders.CACHE_CONTROL, cacheControlValue);
+    }
+  }
+
   private void processCoreDownload(@NotNull final Element element, @NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response) {
+    setCacheControl(request, response);
     boolean setContentDisposition = getSetContentDisposition(element, request, response);
     try {
       myBeanContext.getSingletonService(HttpDownloadProcessor.class).processDownload(new HttpDownloadProcessor.FileInfo() {
@@ -324,6 +344,12 @@ public class FilesSubResource {
       if (!myProvider.fileContentServed(Util.concatenatePath(actualBasePath, element.getFullName()), request)) break;
     }
 
+    // see jetbrains.buildServer.web.util.WebUtil.addCacheHeadersForIE and http://youtrack.jetbrains.com/issue/TW-9821 for details)
+    if (WebUtil.isIE(request)) {
+      builder.header("Cache-Control", "private,must-revalidate");
+      builder.header("Pragma", "private");
+    } //setCacheControl(request, response); //should we allow to cache this?
+
     return builder.build();
   }
 
@@ -450,11 +476,6 @@ public class FilesSubResource {
       }
     }
 
-    // see jetbrains.buildServer.web.util.WebUtil.addCacheHeadersForIE and http://youtrack.jetbrains.com/issue/TW-9821 for details)
-    if (WebUtil.isIE(request)) {
-      builder.header("Cache-Control", "private,must-revalidate");
-      builder.header("Pragma", "private");
-    }
     return builder;
   }
 
