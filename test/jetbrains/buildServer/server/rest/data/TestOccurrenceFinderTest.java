@@ -40,6 +40,8 @@ import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static org.assertj.core.api.BDDAssertions.then;
+
 /**
  * @author Yegor.Yarko
  *         Date: 16/12/2015
@@ -263,8 +265,8 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     TestOccurrence testOccurrence = new TestOccurrence(testRun, getBeanContext(myServer), new Fields("metadata"));
     assertEquals(Integer.valueOf(2), testOccurrence.metadata.count);
     assertEquals(testOccurrence.metadata.items.size(), 2);
-    assertEquals(testOccurrence.metadata.items.get(0), new MetadataEntry("some key", "link", "value"));
-    assertEquals(testOccurrence.metadata.items.get(1), new MetadataEntry("some key3", "number", String.valueOf(44f)));
+    then(testOccurrence.metadata.items).containsOnly(new MetadataEntry("some key", "link", "value"),
+                                                     new MetadataEntry("some key3", "number", String.valueOf(44f)));
   }
 
   private static final Matcher<TestRunData, STestRun> TEST_MATCHER = new Matcher<TestRunData, STestRun>() {
