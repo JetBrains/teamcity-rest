@@ -19,12 +19,15 @@ package jetbrains.buildServer.server.rest.data;
 import com.google.common.base.Objects;
 import java.util.Date;
 import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.messages.TestMetadata;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityFacade;
 import jetbrains.buildServer.responsibility.impl.TestNameResponsibilityEntryImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.problem.MetadataEntry;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
+import jetbrains.buildServer.serverSide.RunningBuildEx;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.TestName2Index;
@@ -245,6 +248,23 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
       assertEquals(1, testOccurrence.invocations.items.size());
       assertEquals("FAILURE", testOccurrence.invocations.items.get(0).status);
     }
+  }
+
+  @Test
+  public void testTestOccurrenceEntity_Metadata() throws Exception {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final RunningBuildEx build = startBuild(buildType);
+    myFixture.doTestPassed(build, "testName");
+    myFixture.doTestMetadata(build,new TestMetadata("testName", "some key", "link", "value"));
+    myFixture.doTestMetadata(build,new TestMetadata("testName", "some key3", "number", 44f));
+
+    STestRun testRun = finishBuild().getFullStatistics().getAllTests().get(0);
+
+    TestOccurrence testOccurrence = new TestOccurrence(testRun, getBeanContext(myServer), new Fields("metadata"));
+    assertEquals(Integer.valueOf(2), testOccurrence.metadata.count);
+    assertEquals(testOccurrence.metadata.items.size(), 2);
+    assertEquals(testOccurrence.metadata.items.get(0), new MetadataEntry("some key", "link", "value"));
+    assertEquals(testOccurrence.metadata.items.get(1), new MetadataEntry("some key3", "number", String.valueOf(44f)));
   }
 
   private static final Matcher<TestRunData, STestRun> TEST_MATCHER = new Matcher<TestRunData, STestRun>() {

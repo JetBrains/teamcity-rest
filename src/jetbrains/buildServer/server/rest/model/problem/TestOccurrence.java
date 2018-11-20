@@ -16,10 +16,8 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.util.HashMap;
-import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -27,7 +25,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
-import jetbrains.buildServer.server.rest.model.Entries;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
@@ -82,7 +79,7 @@ public class TestOccurrence {
   /**
    * Experimental! Exposes test run metadata
    */
-  @XmlElement public Entries metadata;
+  @XmlElement public Metadata metadata;
 
   public TestOccurrence() {
   }
@@ -174,15 +171,23 @@ public class TestOccurrence {
     });
 
     metadata = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("metadata", false, false), () -> {
-      HashMap<String, String> result = new HashMap<>();
+      List<MetadataEntry> result = new ArrayList<>();
 
       TestRunMetadata metadata = ((TestRunEx)testRun).getMetadata();
       Set<String> keys = metadata.getKeys();
       for (String key : keys) {
         String value = metadata.getValue(key);
-        result.put(key, value != null ? value : new DecimalFormat("#.######", new DecimalFormatSymbols(Locale.US)).format(metadata.getNumValue(key)));
+        final Float numValue = metadata.getNumValue(key);
+        final String type = metadata.getType(key);
+        if (numValue != null) {
+          result.add(new MetadataEntry(key, type, String.valueOf(numValue)));
+        }
+        else {
+          assert value != null;
+          result.add(new MetadataEntry(key, type, value));
+        }
       }
-      return new Entries(result, fields.getNestedField("metadata"));
+      return new Metadata(result, fields.getNestedField("metadata"));
     });
   }
 
