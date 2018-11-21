@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.base.Objects;
 import java.util.Date;
+import jetbrains.buildServer.TeamCityAsserts;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.messages.TestMetadata;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
@@ -40,7 +41,6 @@ import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import static org.assertj.core.api.BDDAssertions.then;
 
 /**
  * @author Yegor.Yarko
@@ -265,8 +265,8 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     TestOccurrence testOccurrence = new TestOccurrence(testRun, getBeanContext(myServer), new Fields("metadata"));
     assertEquals(Integer.valueOf(2), testOccurrence.metadata.count);
     assertEquals(testOccurrence.metadata.items.size(), 2);
-    then(testOccurrence.metadata.items).containsOnly(new MetadataEntry("some key", "link", "value"),
-                                                     new MetadataEntry("some key3", "number", String.valueOf(44f)));
+    assertTrue(testOccurrence.metadata.items.contains(new MetadataEntry("some key", "link", "value")));
+    assertTrue(testOccurrence.metadata.items.contains(new MetadataEntry("some key3", "number", String.valueOf(44f))));
   }
 
   private static final Matcher<TestRunData, STestRun> TEST_MATCHER = new Matcher<TestRunData, STestRun>() {
