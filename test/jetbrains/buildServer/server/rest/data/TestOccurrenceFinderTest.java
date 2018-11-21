@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.base.Objects;
 import java.util.Date;
+import java.util.List;
 import jetbrains.buildServer.TeamCityAsserts;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.messages.TestMetadata;
@@ -36,6 +37,7 @@ import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -264,9 +266,11 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     TestOccurrence testOccurrence = new TestOccurrence(testRun, getBeanContext(myServer), new Fields("metadata"));
     assertEquals(Integer.valueOf(2), testOccurrence.metadata.count);
-    assertEquals(testOccurrence.metadata.items.size(), 2);
-    assertTrue(testOccurrence.metadata.items.contains(new MetadataEntry("some key", "link", "value")));
-    assertTrue(testOccurrence.metadata.items.contains(new MetadataEntry("some key3", "number", String.valueOf(44f))));
+    final List<MetadataEntry> items = testOccurrence.metadata.items;
+    assertEquals(items.size(), 2);
+    System.out.println("items = " + StringUtil.join("\n", items));
+    assertTrue(items.contains(new MetadataEntry("some key", "link", "value")));
+    assertTrue(items.contains(new MetadataEntry("some key3", "number", String.valueOf(44f))));
   }
 
   private static final Matcher<TestRunData, STestRun> TEST_MATCHER = new Matcher<TestRunData, STestRun>() {
