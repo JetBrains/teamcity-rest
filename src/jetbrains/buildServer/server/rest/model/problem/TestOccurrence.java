@@ -177,7 +177,7 @@ public class TestOccurrence {
       Set<String> keys = metadata.getKeys();
       for (String key : keys) {
         String value = metadata.getValue(key);
-        final Float numValue = metadata.getNumValue(key);
+        final Number numValue = metadata.getNumValue(key);
         final String type = metadata.getType(key);
         if (numValue != null) {
           result.add(new MetadataEntry(key, type, String.valueOf(numValue)));
