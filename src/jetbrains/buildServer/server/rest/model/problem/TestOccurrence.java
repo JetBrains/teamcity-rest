@@ -174,17 +174,16 @@ public class TestOccurrence {
       List<MetadataEntry> result = new ArrayList<>();
 
       TestRunMetadata metadata = ((TestRunEx)testRun).getMetadata();
-      Set<String> keys = metadata.getKeys();
-      for (String key : keys) {
-        String value = metadata.getValue(key);
-        final Number numValue = metadata.getNumValue(key);
-        final String type = metadata.getType(key);
+      for (String name : metadata.getNames()) {
+        String value = metadata.getValue(name);
+        final Number numValue = metadata.getNumValue(name);
+        final String type = metadata.getType(name);
         if (numValue != null) {
-          result.add(new MetadataEntry(key, type, String.valueOf(numValue)));
+          result.add(new MetadataEntry(name, type, String.valueOf(numValue)));
         }
         else {
           assert value != null;
-          result.add(new MetadataEntry(key, type, value));
+          result.add(new MetadataEntry(name, type, value));
         }
       }
       return new Metadata(result, fields.getNestedField("metadata"));
