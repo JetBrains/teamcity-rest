@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.data;
 import com.google.common.base.Objects;
 import java.util.Date;
 import java.util.List;
-import jetbrains.buildServer.TeamCityAsserts;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.messages.TestMetadata;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
@@ -27,8 +26,8 @@ import jetbrains.buildServer.responsibility.TestNameResponsibilityFacade;
 import jetbrains.buildServer.responsibility.impl.TestNameResponsibilityEntryImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.problem.MetadataEntry;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
+import jetbrains.buildServer.server.rest.model.problem.TypedValue;
 import jetbrains.buildServer.serverSide.RunningBuildEx;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.STestRun;
@@ -266,11 +265,11 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     TestOccurrence testOccurrence = new TestOccurrence(testRun, getBeanContext(myServer), new Fields("metadata"));
     assertEquals(Integer.valueOf(2), testOccurrence.metadata.count);
-    final List<MetadataEntry> items = testOccurrence.metadata.items;
+    final List<TypedValue> items = testOccurrence.metadata.typedValues;
     assertEquals(items.size(), 2);
     System.out.println("items = " + StringUtil.join("\n", items));
-    assertTrue(items.contains(new MetadataEntry("some key", "link", "value")));
-    assertTrue(items.contains(new MetadataEntry("some key3", "number", String.valueOf(44f))));
+    assertTrue(items.contains(new TypedValue("some key", "link", "value", Fields.LONG)));
+    assertTrue(items.contains(new TypedValue("some key3", "number", String.valueOf(44f), Fields.LONG)));
   }
 
   private static final Matcher<TestRunData, STestRun> TEST_MATCHER = new Matcher<TestRunData, STestRun>() {

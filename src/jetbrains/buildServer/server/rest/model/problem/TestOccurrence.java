@@ -16,9 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -32,7 +29,6 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
-import jetbrains.buildServer.serverSide.stat.TestRunMetadata;
 import org.jetbrains.annotations.NotNull;
 
 import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_NO_DETAILS;
@@ -79,7 +75,7 @@ public class TestOccurrence {
   /**
    * Experimental! Exposes test run metadata
    */
-  @XmlElement public Metadata metadata;
+  @XmlElement public TestRunMetadata metadata;
 
   public TestOccurrence() {
   }
@@ -170,24 +166,8 @@ public class TestOccurrence {
       }
     });
 
-    metadata = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("metadata", false, false), () -> {
-      List<MetadataEntry> result = new ArrayList<>();
-
-      TestRunMetadata metadata = ((TestRunEx)testRun).getMetadata();
-      for (String name : metadata.getNames()) {
-        String value = metadata.getValue(name);
-        final Number numValue = metadata.getNumValue(name);
-        final String type = metadata.getType(name);
-        if (numValue != null) {
-          result.add(new MetadataEntry(name, type, String.valueOf(numValue)));
-        }
-        else {
-          assert value != null;
-          result.add(new MetadataEntry(name, type, value));
-        }
-      }
-      return new Metadata(result, fields.getNestedField("metadata"));
-    });
+    metadata = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("metadata", false, false),
+                                                                  () -> new TestRunMetadata(((TestRunEx)testRun).getMetadata(), fields.getNestedField("metadata", Fields.SHORT, Fields.LONG)));
   }
 
   @NotNull
