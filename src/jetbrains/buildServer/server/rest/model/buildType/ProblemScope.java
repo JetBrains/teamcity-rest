@@ -168,13 +168,11 @@ public class ProblemScope {
     if (buildTypes == null) {
       throw new BadRequestException("Invalid 'scope' entity: 'buildTypes' should be specified");
     }
-    List<BuildTypeOrTemplate> buildTypeOrTemplates = buildTypes.getFromPosted(serviceLocator.getSingletonService(BuildTypeFinder.class));
-    return buildTypeOrTemplates.stream().map(buildTypeOrTemplate -> {
-      if (buildTypeOrTemplate.isTemplate()) {
-        throw new BadRequestException("Invalid 'scope' entity: 'buildTypes' cannot reference template, problematic id: '" + buildTypeOrTemplate.getId() + "'");
-      }
-      return buildTypeOrTemplate.getBuildType();
-     }
-    ).collect(Collectors.toList());
+    try {
+      return buildTypes.getBuildTypesFromPosted(serviceLocator);
+    } catch (BadRequestException e) {
+      throw new BadRequestException("Invalid 'scope' entity: " + e.getMessage(), e);
+    }
   }
+
 }

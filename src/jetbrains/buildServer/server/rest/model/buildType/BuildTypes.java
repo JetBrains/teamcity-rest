@@ -20,11 +20,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -80,6 +83,18 @@ public class BuildTypes {
         .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
     }
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), items.size());
+  }
+
+  @NotNull
+  public List<jetbrains.buildServer.BuildType> getBuildTypesFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    List<BuildTypeOrTemplate> buildTypeOrTemplates = getFromPosted(serviceLocator.getSingletonService(BuildTypeFinder.class));
+    return buildTypeOrTemplates.stream().map(buildTypeOrTemplate -> {
+      if (buildTypeOrTemplate.isTemplate()) {
+        throw new BadRequestException("Expecting only build types, but encountered a template, problematic id: '" + buildTypeOrTemplate.getId() + "'");
+      }
+      return buildTypeOrTemplate.getBuildType();
+     }
+    ).collect(Collectors.toList());
   }
 
   @NotNull
