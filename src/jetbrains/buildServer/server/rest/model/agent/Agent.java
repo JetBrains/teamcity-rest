@@ -79,9 +79,11 @@ public class Agent {
    */
   @XmlElement public Environment environment;
   @XmlElement public AgentPool pool;
+  @XmlElement public CompatibilityPolicy compatibilityPolicy;
   @XmlElement public BuildTypes compatibleBuildTypes;
   @XmlElement public Compatibilities incompatibleBuildTypes;
 
+  public static final String COMPATIBILITY_POLICY = "compatibilityPolicy";
   public static final String COMPATIBLE_BUILD_TYPES = "compatibleBuildTypes";
   public static final String INCOMPATIBLE_BUILD_TYPES = "incompatibleBuildTypes";
   /**
@@ -204,6 +206,9 @@ public class Agent {
               return new Properties(agent.getAvailableParameters(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG), beanContext);
             }
           });
+
+          compatibilityPolicy = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded(COMPATIBILITY_POLICY, false, false),
+                                           () -> CompatibilityPolicy.getCompatibilityPolicy(agent, fields.getNestedField(COMPATIBILITY_POLICY), beanContext));
 
           compatibleBuildTypes =
             ValueWithDefault.decideDefault(fields.isIncluded(COMPATIBLE_BUILD_TYPES, false, false), new ValueWithDefault.Value<BuildTypes>() {

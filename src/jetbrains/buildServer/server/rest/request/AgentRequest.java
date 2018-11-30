@@ -234,29 +234,23 @@ public class AgentRequest {
    * Experimental use only
    */
   @GET
-  @Path("/{agentLocator}/allowedBuildTypes")
+  @Path("/{agentLocator}/compatibilityPolicy")
   @Produces({"application/xml", "application/json"})
-  public AllowedBuildTypes getAllowedRunConfigurations(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+  public CompatibilityPolicy getAllowedRunConfigurations(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    if (!AuthUtil.canViewAgentDetails(myBeanContext.getServiceLocator().getSingletonService(SecurityContext.class).getAuthorityHolder(), agent)) {
-      throw new AuthorizationFailedException("No permission to view agent details");
-    }
-    return new AllowedBuildTypes(myServiceLocator, agent, new Fields(fields), myBeanContext);
+    return CompatibilityPolicy.getCompatibilityPolicy(agent, new Fields(fields), myBeanContext);
   }
 
   /**
    * Experimental use only
    */
   @PUT
-  @Path("/{agentLocator}/allowedBuildTypes")
+  @Path("/{agentLocator}/compatibilityPolicy")
   @Produces({"application/xml", "application/json"})
-  public AllowedBuildTypes setAllowedRunConfigurations(@PathParam("agentLocator") String agentLocator, AllowedBuildTypes payload, @QueryParam("fields") String fields) {
+  public CompatibilityPolicy setAllowedRunConfigurations(@PathParam("agentLocator") String agentLocator, CompatibilityPolicy payload, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    if (!AuthUtil.canAdministerAgent(myBeanContext.getServiceLocator().getSingletonService(SecurityContext.class).getAuthorityHolder(), agent)) {
-      throw new AuthorizationFailedException("No permission to edit agent details");
-    }
-    payload.apply(myServiceLocator, agent);
-    return new AllowedBuildTypes(myServiceLocator, agent, new Fields(fields), myBeanContext);
+    payload.applyTo(agent, myServiceLocator);
+    return CompatibilityPolicy.getCompatibilityPolicy(agent, new Fields(fields), myBeanContext);
   }
 
   @PUT
