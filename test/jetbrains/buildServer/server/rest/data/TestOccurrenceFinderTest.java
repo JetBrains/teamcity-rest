@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.base.Objects;
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.messages.Status;
@@ -259,7 +260,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     final RunningBuildEx build = startBuild(buildType);
     myFixture.doTestPassed(build, "testName");
     myFixture.doTestMetadata(build,new TestMetadata("testName", "some key", "link", "value"));
-    myFixture.doTestMetadata(build,new TestMetadata("testName", "some key3", "number", 44f));
+    myFixture.doTestMetadata(build,new TestMetadata("testName", "some key3", "number", new BigDecimal("44")));
 
     STestRun testRun = finishBuild().getFullStatistics().getAllTests().get(0);
 
