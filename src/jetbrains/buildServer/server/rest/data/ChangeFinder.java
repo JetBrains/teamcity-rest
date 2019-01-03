@@ -594,10 +594,11 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (buildType == null) {
       throw new BadRequestException("Getting pending changes is only supported when buildType is specified.");
     }
+    SelectPrevBuildPolicy buildChangesPolicy = getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_LAST_BUILD);
     if (filterBranches != null) {
-      return getBranchChanges(buildType, filterBranches, getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_LAST_BUILD));
+      return getBranchChanges(buildType, filterBranches, buildChangesPolicy);
     }
-    return buildType.getPendingChanges();
+    return ((BuildTypeEx)buildType).getDetectedChanges(buildChangesPolicy).stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull).collect(Collectors.toList());
   }
 
   @NotNull
