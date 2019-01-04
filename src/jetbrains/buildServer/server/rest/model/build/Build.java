@@ -44,8 +44,8 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
@@ -65,8 +65,8 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
@@ -96,6 +96,7 @@ import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SelectPrevBuildPolicy;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
+import jetbrains.buildServer.vcs.impl.RevisionsNotFoundException;
 import org.apache.commons.codec.binary.Hex;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -1587,6 +1588,8 @@ public class Build {
     } catch (IllegalStateException e) {
       //IllegalStateException is thrown e.g. when we try to create a personal build in a build type which does not allow this
       throw new BadRequestException("Cannot trigger build: " + e.getMessage());
+    } catch (RevisionsNotFoundException e) {
+      throw new BadRequestException("Cannot trigger build, if the changes are specified, they should be visible on the build configuration Change Log under the requested branch. Original error: " + e.getMessage());
     }
     BuildTypeEx modifiedBuildType = getCustomizedSubmittedBuildType(serviceLocator);
     if (modifiedBuildType!= null) {
