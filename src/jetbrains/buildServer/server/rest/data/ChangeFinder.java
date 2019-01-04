@@ -534,7 +534,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     }
 
     if (filterBranches != null) {
-      return getItemHolder(getBranchChanges(buildType, filterBranches, getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_FIRST_BUILD)));
+      return getItemHolder(getBranchChanges(buildType, filterBranches, getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_NULL_BUILD)));
     }
 
     if (buildType != null) {
@@ -742,8 +742,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES)) {
       return myVcsModificationHistory.getAllModifications(buildType); // this can be more efficient than buildType.getDetectedChanges below, but returns all branches
     }
-    final List<ChangeDescriptor> changes = ((BuildTypeEx)buildType).getDetectedChanges(getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_FIRST_BUILD));
-
+    final List<ChangeDescriptor> changes = ((BuildTypeEx)buildType).getDetectedChanges(getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_NULL_BUILD));
     return convertChanges(changes);
   }
 
