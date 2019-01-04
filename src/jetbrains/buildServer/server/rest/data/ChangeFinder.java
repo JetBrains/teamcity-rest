@@ -640,8 +640,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @NotNull
   private List<SVcsModification> getBranchChanges(@Nullable final SBuildType buildType, @NotNull final List<BranchData> filterBranches, @NotNull final SelectPrevBuildPolicy policy) {
     //todo: 2 - allow to set the option in request
-    final boolean includeDependencyChanges = !(TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) ||
-                                             (buildType != null && !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES)));
+    final Boolean includeDependencyChanges = TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) ? false : null;
     final List<ChangeDescriptor> changes = new ArrayList<>();
     for (BranchData branch : filterBranches) {
       changes.addAll(branch.getChanges(policy, includeDependencyChanges));
