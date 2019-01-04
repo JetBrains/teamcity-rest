@@ -45,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 12.05.13
  */
 public class ChangeFinder extends AbstractFinder<SVcsModification> {
-  public static final String IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION = "rest.ignoreChangesFromDependenciesOption";  //todo: allow specify in locator
+  public static final String IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION = "rest.ignoreChangesFromDependenciesOption";
 
   public static final String PERSONAL = "personal";
   public static final String PROJECT = "project";
@@ -67,6 +67,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   public static final String PARENT_CHANGE = "parentChange";
   public static final String DAG_TRAVERSE = "dag";
   public static final String PREV_BUILD_POLICY = "policy";
+  public static final String CHANGES_FROM_DEPS = "changesFromDependencies";
 
   @NotNull private final PermissionChecker myPermissionChecker;
   @NotNull private final ProjectFinder myProjectFinder;
@@ -94,7 +95,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
                       @NotNull final ServiceLocator serviceLocator, @NotNull final PermissionChecker permissionChecker) {
     super(DIMENSION_ID, PROJECT, BUILD_TYPE, BUILD, VCS_ROOT, VCS_ROOT_INSTANCE, USERNAME, USER, VERSION, INTERNAL_VERSION, COMMENT, FILE, PENDING,
           SINCE_CHANGE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    setHiddenDimensions(BRANCH, PERSONAL, CHILD_CHANGE, PARENT_CHANGE, DAG_TRAVERSE, PROMOTION, PREV_BUILD_POLICY, //hide these for now
+    setHiddenDimensions(BRANCH, PERSONAL, CHILD_CHANGE, PARENT_CHANGE, DAG_TRAVERSE, PROMOTION, PREV_BUILD_POLICY, CHANGES_FROM_DEPS, //hide these for now
                         DIMENSION_LOOKUP_LIMIT //not supported in fact
     );
     myPermissionChecker = permissionChecker;
@@ -534,7 +535,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     }
 
     if (filterBranches != null) {
-      return getItemHolder(getBranchChanges(buildType, filterBranches, getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_NULL_BUILD)));
+      return getItemHolder(getBranchChanges(buildType, filterBranches, SelectPrevBuildPolicy.SINCE_NULL_BUILD, locator));
     }
 
     if (buildType != null) {
@@ -594,11 +595,11 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (buildType == null) {
       throw new BadRequestException("Getting pending changes is only supported when buildType is specified.");
     }
-    SelectPrevBuildPolicy buildChangesPolicy = getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_LAST_BUILD);
     if (filterBranches != null) {
-      return getBranchChanges(buildType, filterBranches, buildChangesPolicy);
+      return getBranchChanges(buildType, filterBranches, SelectPrevBuildPolicy.SINCE_LAST_BUILD, locator);
     }
-    return ((BuildTypeEx)buildType).getDetectedChanges(buildChangesPolicy).stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull).collect(Collectors.toList());
+    return ((BuildTypeEx)buildType).getDetectedChanges(getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_LAST_BUILD), getIncludeDependencyChanges(locator))
+                                   .stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull).collect(Collectors.toList());
   }
 
   @NotNull
@@ -638,9 +639,9 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
 
   @NotNull
-  private List<SVcsModification> getBranchChanges(@Nullable final SBuildType buildType, @NotNull final List<BranchData> filterBranches, @NotNull final SelectPrevBuildPolicy policy) {
-    //todo: 2 - allow to set the option in request
-    final Boolean includeDependencyChanges = TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) ? false : null;
+  private List<SVcsModification> getBranchChanges(@Nullable final SBuildType buildType, @NotNull final List<BranchData> filterBranches, @NotNull final SelectPrevBuildPolicy defaultPolicy, @NotNull final Locator locator) {
+    final Boolean includeDependencyChanges = getIncludeDependencyChanges(locator);
+    SelectPrevBuildPolicy policy = getBuildChangesPolicy(locator, defaultPolicy);
     final List<ChangeDescriptor> changes = new ArrayList<>();
     for (BranchData branch : filterBranches) {
       changes.addAll(branch.getChanges(policy, includeDependencyChanges));
@@ -650,7 +651,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
   private Stream<SVcsModification> getBuildChanges(@NotNull final BuildPromotion buildPromotion, @Nullable final Locator locator) {
     //todo: use fillDetectedChanges instead
-    return ((BuildPromotionEx)buildPromotion).getDetectedChanges(getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_LAST_BUILD), getBuildChangesIncludeDependencies(),
+    return ((BuildPromotionEx)buildPromotion).getDetectedChanges(getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_LAST_BUILD), getIncludeDependencyChanges(locator),
                                                                  getBuildChangesProcessor(getBuildChangesLimit(locator)))
                                              .stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
   }
@@ -672,12 +673,16 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   @Nullable
-  private static Boolean getBuildChangesIncludeDependencies() {
-    Boolean includeDependencyChanges = null;
-    if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION)) {
-      includeDependencyChanges = true;
+  private Boolean getIncludeDependencyChanges(@Nullable final Locator locator) {
+    if (locator != null && locator.getSingleDimensionValue(CHANGES_FROM_DEPS) != null) {
+      return locator.getSingleDimensionValueAsStrictBoolean(CHANGES_FROM_DEPS, false); //default value is guaranteed to be ignored
     }
-    return includeDependencyChanges;
+
+    if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION)) {
+      return false;
+    }
+
+    return null;
   }
 
   @NotNull
@@ -737,10 +742,12 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   }
 
   private List<SVcsModification> getBuildTypeChanges(@NotNull final SBuildType buildType, @NotNull final Locator locator) {
-    if (TeamCityProperties.getBoolean(IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION) || !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES)) {
+    //todo: This method has a bug: if includeDependencyChanges==true changes from all branches are returned, if includeDependencyChanges==false - only from the default branch
+    Boolean includeDependencyChanges = getIncludeDependencyChanges(locator);
+    if ((includeDependencyChanges!= null && !includeDependencyChanges) || (includeDependencyChanges == null && !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES))) {
       return myVcsModificationHistory.getAllModifications(buildType); // this can be more efficient than buildType.getDetectedChanges below, but returns all branches
     }
-    final List<ChangeDescriptor> changes = ((BuildTypeEx)buildType).getDetectedChanges(getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_NULL_BUILD));
+    final List<ChangeDescriptor> changes = ((BuildTypeEx)buildType).getDetectedChanges(getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_NULL_BUILD), includeDependencyChanges);
     return convertChanges(changes);
   }
 
