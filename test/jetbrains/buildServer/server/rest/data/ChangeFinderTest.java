@@ -228,6 +228,17 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(btLocator1 + ",pending:true,branch:(name:branch1)");
     check(btLocator1 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m120);
 
+    check(btLocator2, m250);
+    check(btLocator2 + ",branch:(default:true)", m250);
+    check(btLocator2 + ",branch:(name:master)", m250);
+    check(btLocator2 + ",branch:(name:branch1)");
+
+    check(btLocator2 + ",pending:true", m250); //documenting current behavior (only default branch changes are returned)
+    check(btLocator2 + ",pending:true,branch:(default:true)", m250);
+    check(btLocator2 + ",pending:true,branch:(default:any)", m250);
+    check(btLocator2 + ",pending:true,branch:(name:branch1)");
+    check(btLocator2 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m250);
+
 
     build().in(buildConf1).onModifications(m120).finish();
     SFinishedBuild build20 = build().in(buildConf2).onModifications(m250).finish();
@@ -258,13 +269,27 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(btLocator1 + ",pending:true,branch:(default:true)", m130);
     check(btLocator1 + ",pending:true,branch:(name:branch1)", m150, m140);
 
+    check(btLocator2, m270, m260, m250);
+    check(btLocator2 + ",branch:(default:true)", m260, m250);
+    check(btLocator2 + ",branch:(name:master)", m260, m250);
+    check(btLocator2 + ",branch:(name:branch1)", m270);
+
     check(btLocator2 + ",pending:true", m260); //documenting current behavior (only default branch changes are returned)
+    check(btLocator2 + ",pending:true,branch:(default:true)", m260);
+    check(btLocator2 + ",pending:true,branch:(name:branch1)", m270);
+
 
     buildConf2.setOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES, true);
 
     //check(btLocator2, m270, m260, m150, m140, m130, m250, m120);
     check(btLocator2, m260, m130, m250, m120);  //this is a bug, documenting current behavior (only default branch changes are returned)
+    check(btLocator2 + ",branch:(default:true)", m260, m130, m250, m120);
+    check(btLocator2 + ",branch:(name:master)", m260, m130, m250, m120);
+    check(btLocator2 + ",branch:(name:branch1)", m270, m150, m140);
+
     check(btLocator2 + ",pending:true", m260, m130); //documenting current behavior (only default branch changes are returned)
+    check(btLocator2 + ",pending:true,branch:(default:true)", m260, m130);
+    check(btLocator2 + ",pending:true,branch:(name:branch1)", m270, m150, m140);
   }
 
   @Test
