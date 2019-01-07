@@ -646,7 +646,9 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     for (BranchData branch : filterBranches) {
       changes.addAll(branch.getChanges(policy, includeDependencyChanges));
     }
-    return convertChanges(changes);
+    ArrayList<SVcsModification> result = convertChanges(changes);
+    Collections.sort(result); //can improve performance here by combining sorted lists into the single sorted list
+    return result;
   }
 
   private Stream<SVcsModification> getBuildChanges(@NotNull final BuildPromotion buildPromotion, @Nullable final Locator locator) {
