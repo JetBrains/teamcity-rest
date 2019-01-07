@@ -262,12 +262,14 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     check(btLocator1, m150, m140, m130, m120);
     check(btLocator1 + ",branch:(default:true)", m130, m120);
+    check(btLocator1 + ",branch:(default:any)", m150, m140, m130, m120);
     check(btLocator1 + ",branch:(name:master)", m130, m120);
     check(btLocator1 + ",branch:(name:branch1)", m150, m140);
 
     check(btLocator1 + ",pending:true", m130); //documenting current behavior (only default branch changes are returned)
     check(btLocator1 + ",pending:true,branch:(default:true)", m130);
     check(btLocator1 + ",pending:true,branch:(name:branch1)", m150, m140);
+    check(btLocator1 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m150, m140, m130);
 
     check(btLocator2, m270, m260, m250);
     check(btLocator2 + ",branch:(default:true)", m260, m250);
@@ -277,7 +279,9 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(btLocator2 + ",pending:true", m260); //documenting current behavior (only default branch changes are returned)
     check(btLocator2 + ",pending:true,branch:(default:true)", m260);
     check(btLocator2 + ",pending:true,branch:(name:branch1)", m270);
+    check(btLocator2 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m270, m260);
 
+    check("build:(" + build20.getBuildId()+ ")", m250);
 
     buildConf2.setOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES, true);
 
@@ -290,6 +294,9 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(btLocator2 + ",pending:true", m260, m130); //documenting current behavior (only default branch changes are returned)
     check(btLocator2 + ",pending:true,branch:(default:true)", m260, m130);
     check(btLocator2 + ",pending:true,branch:(name:branch1)", m270, m150, m140);
+    check(btLocator2 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m270, m260, m150, m140, m130);
+
+    check("build:(" + build20.getBuildId()+ ")", m250, m120);
   }
 
   @Test
