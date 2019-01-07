@@ -109,9 +109,9 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(btLocator + ",branch:(name:branch1)", m40);
 
     check(btLocator + ",branch:(default:true)", m30, m20);
-    check(btLocator + ",branch:(default:false)", m70, m40, m50, m40, m60);
+    check(btLocator + ",branch:(default:false)", m70, m60, m50, m40, m40);
 
-    check(btLocator + ",branch:(default:false),unique:true", m70, m40, m50, m60);
+    check(btLocator + ",branch:(default:false),unique:true", m70, m60, m50, m40);
 
     //test pending
 
