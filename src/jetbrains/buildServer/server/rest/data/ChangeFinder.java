@@ -565,10 +565,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
         throw new BadRequestException("Filtering changes by branch is only supported when buildType is specified.");
       }
       try {
-        //optimize if all branches are matched
-        if (myBranchFinder.isAnyBranch(branchDimension)) {
-          return null;
-        }
+        //return branches even if myBranchFinder.isAnyBranch(branchDimension)) as the only proper way for now to get changes is to iterate the branches
         return myBranchFinder.getItems(buildType, branchDimension).myEntries;
       } catch (LocatorProcessException e) {
         throw new BadRequestException("Error in branch locator '" + branchDimension + "': " + e.getMessage(), e);
