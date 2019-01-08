@@ -632,16 +632,22 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     final Boolean includeDependencyChanges = getIncludeDependencyChanges(locator);
     SelectPrevBuildPolicy policy = getBuildChangesPolicy(locator, defaultPolicy);
     List<BranchData> filterBranches = getFilterBranches(locator, buildType);
-    if (filterBranches != null) {
-      return filterBranches.stream().flatMap(branchData -> branchData.getChanges(policy, includeDependencyChanges).stream())
-                           .map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull).sorted().distinct().collect(Collectors.toList());
-    } else {
-      if (policy == SelectPrevBuildPolicy.SINCE_NULL_BUILD) {
+
+    //legacy behavior emulation
+    if (TeamCityProperties.getBooleanOrTrue("rest.request.changes.legacyChangesInAllBranches")) {
+      boolean anyBranch = filterBranches == null || myBranchFinder.isAnyBranch(locator.lookupSingleDimensionValue(BRANCH));
+      if (anyBranch && policy == SelectPrevBuildPolicy.SINCE_NULL_BUILD) {
         //todo: This approach has a bug: if includeDependencyChanges==true changes from all branches are returned, if includeDependencyChanges==false - only from the default branch
         if ((includeDependencyChanges != null && !includeDependencyChanges) || (includeDependencyChanges == null && !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES))) {
           return myVcsModificationHistory.getAllModifications(buildType); // this can be more efficient than buildType.getDetectedChanges below, but returns all branches
         }
       }
+    }
+
+    if (filterBranches != null) {
+      return filterBranches.stream().flatMap(branchData -> branchData.getChanges(policy, includeDependencyChanges).stream())
+                           .map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull).sorted().distinct().collect(Collectors.toList());
+    } else {
       return ((BuildTypeEx)buildType).getDetectedChanges(policy, includeDependencyChanges)
                                      .stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull).collect(Collectors.toList());
     }

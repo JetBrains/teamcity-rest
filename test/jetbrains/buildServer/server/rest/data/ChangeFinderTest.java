@@ -88,7 +88,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     check(null, m70, m60, m50, m40, m30, m20);
     String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
-    check(btLocator, m70, m60, m50, m40, m30, m20);
+    check(btLocator, m70, m60, m50, m40, m30, m20); //documenting current behavior, should be check(btLocator, m30, m20);
     check(btLocator + ",branch:<any>", m70, m60, m50, m40, m30, m20);
     check(btLocator + ",branch:(default:any)", m70, m60, m50, m40, m30, m20);
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(aaa:bbb)");
@@ -189,7 +189,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(null, m60, m45, m40, m30, m20);
     String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
 
-    check(btLocator, m60, m45, m40, m30, m20); //documenting current behavior
+    check(btLocator, m60, m45, m40, m30, m20); //documenting current behavior, should be check(btLocator, m60, m20);
     check(btLocator + ",branch:(default:any)", m60, m45, m40, m30, m20);
 
     check(btLocator + ",pending:true", m60);
@@ -234,7 +234,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
 
     check(null, m60, m50, m45, m40, m30, m20);
-    check(btLocator, m60, m50, m45, m40, m30, m20); //documenting current behavior
+    check(btLocator, m60, m50, m45, m40, m30, m20); //documenting current behavior should be check(btLocator, m30, m20);
     check(btLocator + ",branch:(default:any)", m60, m50, m45, m40, m30, m20);
 
     check(btLocator + ",pending:true", m30);
@@ -262,11 +262,10 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     check(null, m210, m200, m60, m50, m45, m40, m30, m20);
 
-//    check(btLocator, m210, m40, m30, m20); //should be m210, m20 - documenting current behavior which is actually a bug: changes from branches appear in default branch
     check(btLocator, m210, m200, m40, m30, m20); //documenting current behavior
     check(btLocator + ",branch:(default:any)", m210, m200, m40, m30, m20); //documenting current behavior
 
-    check(btLocator + ",pending:true", m210, m40, m30); //documenting current behavior
+    check(btLocator + ",pending:true", m210, m40, m30); //documenting current behavior, m40, m30 should not be here
     check(btLocator + ",pending:true,branch:branch1", m200);
     check(btLocator + ",pending:true,branch:(default:true)", m210, m40, m30); //documenting current behavior, m40, m30 should not be here
     check(btLocator + ",pending:true,branch:(default:false)", m200);
@@ -342,7 +341,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(btLocator1 + ",branch:(name:master)", m120);
     check(btLocator1 + ",branch:(name:branch1)");
 
-    check(btLocator1 + ",pending:true", m120); //documenting current behavior (only default branch changes are returned)
+    check(btLocator1 + ",pending:true", m120);
     check(btLocator1 + ",pending:true,branch:(default:true)", m120);
     check(btLocator1 + ",pending:true,branch:(default:any)", m120);
     check(btLocator1 + ",pending:true,branch:(name:branch1)");
@@ -353,7 +352,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(btLocator2 + ",branch:(name:master)", m250);
     check(btLocator2 + ",branch:(name:branch1)");
 
-    check(btLocator2 + ",pending:true", m250); //documenting current behavior (only default branch changes are returned)
+    check(btLocator2 + ",pending:true", m250);
     check(btLocator2 + ",pending:true,branch:(default:true)", m250);
     check(btLocator2 + ",pending:true,branch:(default:any)", m250);
     check(btLocator2 + ",pending:true,branch:(name:branch1)");
@@ -380,24 +379,24 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     check(null, m270, m260, m150, m140, m130, m250, m120);
 
-    check(btLocator1, m150, m140, m130, m120);
+    check(btLocator1, m150, m140, m130, m120); //documenting current behavior, should be check(btLocator1, m130, m120);
     check(btLocator1 + ",branch:(default:true)", m130, m120);
     check(btLocator1 + ",branch:(default:any)", m150, m140, m130, m120);
     check(btLocator1 + ",branch:(name:master)", m130, m120);
     check(btLocator1 + ",branch:(name:branch1)", m150, m140);
 
-    check(btLocator1 + ",pending:true", m130); //documenting current behavior (only default branch changes are returned)
+    check(btLocator1 + ",pending:true", m130);
     check(btLocator1 + ",pending:true,branch:(default:true)", m130);
     check(btLocator1 + ",pending:true,branch:(default:any)", m150, m140, m130);
     check(btLocator1 + ",pending:true,branch:(name:branch1)", m150, m140);
     check(btLocator1 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m150, m140, m130);
 
-    check(btLocator2, m270, m260, m250);
+    check(btLocator2, m270, m260, m250); //documenting current behavior should be check(btLocator2, m260, m250);
     check(btLocator2 + ",branch:(default:true)", m260, m250);
     check(btLocator2 + ",branch:(name:master)", m260, m250);
     check(btLocator2 + ",branch:(name:branch1)", m270);
 
-    check(btLocator2 + ",pending:true", m260); //documenting current behavior (only default branch changes are returned)
+    check(btLocator2 + ",pending:true", m260);
     check(btLocator2 + ",pending:true,branch:(default:true)", m260);
     check(btLocator2 + ",pending:true,branch:(default:any)", m270, m260);
     check(btLocator2 + ",pending:true,branch:(name:branch1)", m270);
@@ -407,13 +406,12 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     buildConf2.setOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES, true);
 
-    //check(btLocator2, m270, m260, m150, m140, m130, m250, m120);
-    check(btLocator2, m260, m130, m250, m120);  //this is a bug, documenting current behavior (only default branch changes are returned)
+    check(btLocator2, m260, m130, m250, m120);
     check(btLocator2 + ",branch:(default:true)", m260, m130, m250, m120);
     check(btLocator2 + ",branch:(name:master)", m260, m130, m250, m120);
     check(btLocator2 + ",branch:(name:branch1)", m270, m150, m140);
 
-    check(btLocator2 + ",pending:true", m260, m130); //documenting current behavior (only default branch changes are returned)
+    check(btLocator2 + ",pending:true", m260, m130);
     check(btLocator2 + ",pending:true,branch:(default:true)", m260, m130);
     check(btLocator2 + ",pending:true,branch:(default:any)", m270, m260, m150, m140, m130);
     check(btLocator2 + ",pending:true,branch:(name:branch1)", m270, m150, m140);
