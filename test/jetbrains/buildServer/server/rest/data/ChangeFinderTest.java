@@ -195,7 +195,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(btLocator + ",pending:true", m60);
     check(btLocator + ",pending:true,branch:branch1", m40, m30);
     check(btLocator + ",pending:true,branch:(default:false)", m45, m40, m30);
-    check(btLocator + ",pending:true,branch:(default:any)", m60); //documenting current behavior
+    check(btLocator + ",pending:true,branch:(default:any)", m60, m45, m40, m30);
   }
 
   @Test
@@ -240,7 +240,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(btLocator + ",pending:true", m30);
     check(btLocator + ",pending:true,branch:branch1", m45);
     check(btLocator + ",pending:true,branch:(default:false)", m60, m50, m45);
-    check(btLocator + ",pending:true,branch:(default:any)", m30);  //documenting current behavior
+    check(btLocator + ",pending:true,branch:(default:any)", m60, m50, m45, m30);
 
     buildConf.removeVcsRoot(parentRoot1);
     waitForAssert(() -> {
@@ -268,8 +268,9 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     check(btLocator + ",pending:true", m210, m40, m30); //documenting current behavior
     check(btLocator + ",pending:true,branch:branch1", m200);
+    check(btLocator + ",pending:true,branch:(default:true)", m210, m40, m30); //documenting current behavior, m40, m30 should not be here
     check(btLocator + ",pending:true,branch:(default:false)", m200);
-    check(btLocator + ",pending:true,branch:(default:any)", m210, m40, m30); //documenting current behavior
+    check(btLocator + ",pending:true,branch:(default:any)", m210, m200, m40, m30); //documenting current behavior, m40, m30 should not be here
   }
 
   @Test
@@ -387,7 +388,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     check(btLocator1 + ",pending:true", m130); //documenting current behavior (only default branch changes are returned)
     check(btLocator1 + ",pending:true,branch:(default:true)", m130);
-    check(btLocator1 + ",pending:true,branch:(default:any)", m130);  //documenting current behavior
+    check(btLocator1 + ",pending:true,branch:(default:any)", m150, m140, m130);
     check(btLocator1 + ",pending:true,branch:(name:branch1)", m150, m140);
     check(btLocator1 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m150, m140, m130);
 
@@ -398,7 +399,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     check(btLocator2 + ",pending:true", m260); //documenting current behavior (only default branch changes are returned)
     check(btLocator2 + ",pending:true,branch:(default:true)", m260);
-    check(btLocator2 + ",pending:true,branch:(default:any)", m260); //documenting current behavior
+    check(btLocator2 + ",pending:true,branch:(default:any)", m270, m260);
     check(btLocator2 + ",pending:true,branch:(name:branch1)", m270);
     check(btLocator2 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m270, m260);
 
@@ -414,7 +415,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     check(btLocator2 + ",pending:true", m260, m130); //documenting current behavior (only default branch changes are returned)
     check(btLocator2 + ",pending:true,branch:(default:true)", m260, m130);
-    check(btLocator2 + ",pending:true,branch:(default:any)", m260, m130); //documenting current behavior
+    check(btLocator2 + ",pending:true,branch:(default:any)", m270, m260, m150, m140, m130);
     check(btLocator2 + ",pending:true,branch:(name:branch1)", m270, m150, m140);
     check(btLocator2 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m270, m260, m150, m140, m130);
 
