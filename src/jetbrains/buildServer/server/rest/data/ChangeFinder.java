@@ -636,13 +636,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     SelectPrevBuildPolicy policy = getBuildChangesPolicy(locator, defaultPolicy);
     List<BranchData> filterBranches = getFilterBranches(locator, buildType);
     if (filterBranches != null) {
-      final List<ChangeDescriptor> changes = new ArrayList<>();
-      for (BranchData branch : filterBranches) {
-        changes.addAll(branch.getChanges(policy, includeDependencyChanges));
-      }
-      ArrayList<SVcsModification> result = convertChanges(changes);
-      Collections.sort(result); //can improve performance here by combining sorted lists into the single sorted list
-      return result;
+      return filterBranches.stream().flatMap(branchData -> branchData.getChanges(policy, includeDependencyChanges).stream())
+                           .map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull).sorted().collect(Collectors.toList());
     } else {
       if (policy == SelectPrevBuildPolicy.SINCE_NULL_BUILD) {
         //todo: This approach has a bug: if includeDependencyChanges==true changes from all branches are returned, if includeDependencyChanges==false - only from the default branch
@@ -744,16 +739,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       }
     }
     Collections.sort(result);
-    return result;
-  }
-
-  @NotNull
-  private static ArrayList<SVcsModification> convertChanges(final List<ChangeDescriptor> changes) {
-    final ArrayList<SVcsModification> result = new ArrayList<SVcsModification>();
-    for (ChangeDescriptor change : changes) {
-      SVcsModification mod = change.getRelatedVcsChange();
-      if (mod != null) result.add(mod);
-    }
     return result;
   }
 }
