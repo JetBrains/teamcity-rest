@@ -89,6 +89,8 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(null, m70, m60, m50, m40, m30, m20);
     String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
     check(btLocator, m70, m60, m50, m40, m30, m20);
+    check(btLocator + ",branch:<any>", m70, m60, m50, m40, m30, m20);
+    check(btLocator + ",branch:(default:any)", m70, m60, m50, m40, m30, m20);
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(aaa:bbb)");
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(default:true)"); //no buildType is not supported
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(name:branch1)");
@@ -154,7 +156,121 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
   }
 
   @Test
-  public void testChangedFromDependenciesNoDAG() {
+  public void testBranchFromBranch() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    vcs.setDAGBased(true);
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    setBranchSpec(root1,"+:*");
+
+    final BuildFinderTestBase.MockCollectRepositoryChangesPolicy changesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(changesPolicy);
+
+    SVcsModification m20 = myFixture.addModification(modification().in(root1).version("20").parentVersions("10"));
+
+    build().in(buildConf).onModifications(m20).finish();
+
+    SVcsModification m30 = myFixture.addModification(modification().in(root1).version("30").parentVersions("20"));
+    SVcsModification m40 = myFixture.addModification(modification().in(root1).version("40").parentVersions("30"));
+    SVcsModification m45 = myFixture.addModification(modification().in(root1).version("45").parentVersions("30"));
+    SVcsModification m60 = myFixture.addModification(modification().in(root1).version("60").parentVersions("20"));
+
+    changesPolicy.setCurrentState(root1, RepositoryStateData.createVersionState("master", Util.map("master", "60",
+                                                                                                   "branch1", "40",
+                                                                                                   "branch2", "45")));
+
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf.getVcsRootInstances(), OperationRequestor.UNKNOWN);
+
+    check(null, m60, m45, m40, m30, m20);
+    String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
+
+    check(btLocator, m60, m45, m40, m30, m20); //documenting current behavior
+    check(btLocator + ",branch:(default:any)", m60, m45, m40, m30, m20);
+
+    check(btLocator + ",pending:true", m60);
+    check(btLocator + ",pending:true,branch:branch1", m40, m30);
+    check(btLocator + ",pending:true,branch:(default:false)", m45, m40, m30, m30); //documenting current behavior
+    check(btLocator + ",pending:true,branch:(default:any)", m60); //documenting current behavior
+  }
+
+  @Test
+  public void testChangedVcsRootAndDAG() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    vcs.setDAGBased(true);
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    setBranchSpec(root1,"+:*");
+
+    final BuildFinderTestBase.MockCollectRepositoryChangesPolicy changesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(changesPolicy);
+
+    SVcsModification m20 = myFixture.addModification(modification().in(root1).version("20").parentVersions("10"));
+
+    SVcsModification m30 = myFixture.addModification(modification().in(root1).version("30").parentVersions("20"));
+    SVcsModification m40 = myFixture.addModification(modification().in(root1).version("40").parentVersions("10"));
+    SVcsModification m45 = myFixture.addModification(modification().in(root1).version("45").parentVersions("40"));
+    SVcsModification m50 = myFixture.addModification(modification().in(root1).version("50").parentVersions("10"));
+    SVcsModification m60 = myFixture.addModification(modification().in(root1).version("60").parentVersions("20"));
+
+    changesPolicy.setCurrentState(root1, RepositoryStateData.createVersionState("master", Util.map("master", "30",
+                                                                                                   "branch1", "45",
+                                                                                                   "branch2", "50",
+                                                                                                   "branch3", "60")));
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf.getVcsRootInstances(), OperationRequestor.UNKNOWN);
+
+    build().in(buildConf).onModifications(m20).finish();
+    build().in(buildConf).withBranch("branch1").onModifications(m40).finish();
+
+    String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
+
+    check(null, m60, m50, m45, m40, m30, m20);
+    check(btLocator, m60, m50, m45, m40, m30, m20); //documenting current behavior
+    check(btLocator + ",branch:(default:any)", m60, m50, m45, m40, m30, m20);
+
+    check(btLocator + ",pending:true", m30);
+    check(btLocator + ",pending:true,branch:branch1", m45);
+    check(btLocator + ",pending:true,branch:(default:false)", m60, m50, m45);
+    check(btLocator + ",pending:true,branch:(default:any)", m30);  //documenting current behavior
+
+    buildConf.removeVcsRoot(parentRoot1);
+    SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root2 = buildConf.getVcsRootInstanceForParent(parentRoot2);
+    assert root2 != null;
+
+    setBranchSpec(root2,"+:*");
+
+    SVcsModification m200 = myFixture.addModification(modification().in(root2).version("200").parentVersions("199"));
+    SVcsModification m210 = myFixture.addModification(modification().in(root2).version("210").parentVersions("199"));
+
+    changesPolicy.setCurrentState(root2, RepositoryStateData.createVersionState("master", Util.map("master", "210",
+                                                                                                   "branch1", "200")));
+    myFixture.getVcsModificationChecker().checkForModifications(buildConf.getVcsRootInstances(), OperationRequestor.UNKNOWN);
+
+
+    check(null, m210, m200, m60, m50, m45, m40, m30, m20);
+
+//    check(btLocator, m210, m40, m30, m20); //should be m210, m20 - documenting current behavior which is actually a bug: changes from branches appear in default branch
+    check(btLocator, m210, m200, m40, m30, m20); //documenting current behavior
+    check(btLocator + ",branch:(default:any)", m210, m200, m40, m30, m20); //documenting current behavior
+
+    check(btLocator + ",pending:true", m210, m40, m30); //documenting current behavior
+    check(btLocator + ",pending:true,branch:branch1", m200);
+    check(btLocator + ",pending:true,branch:(default:false)", m200);
+    check(btLocator + ",pending:true,branch:(default:any)", m210, m40, m30); //documenting current behavior
+  }
+
+  @Test
+  public void testChangesFromDependenciesNoDAG() {
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
     createDependencyChain(buildConf2, buildConf1);
@@ -184,7 +300,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
   }
 
   @Test
-  public void testChangedFromDependenciesDAG() {
+  public void testChangesFromDependenciesDAG() {
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
     createDependencyChain(buildConf2, buildConf1);
@@ -268,6 +384,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     check(btLocator1 + ",pending:true", m130); //documenting current behavior (only default branch changes are returned)
     check(btLocator1 + ",pending:true,branch:(default:true)", m130);
+    check(btLocator1 + ",pending:true,branch:(default:any)", m130);  //documenting current behavior
     check(btLocator1 + ",pending:true,branch:(name:branch1)", m150, m140);
     check(btLocator1 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m150, m140, m130);
 
@@ -278,6 +395,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     check(btLocator2 + ",pending:true", m260); //documenting current behavior (only default branch changes are returned)
     check(btLocator2 + ",pending:true,branch:(default:true)", m260);
+    check(btLocator2 + ",pending:true,branch:(default:any)", m260); //documenting current behavior
     check(btLocator2 + ",pending:true,branch:(name:branch1)", m270);
     check(btLocator2 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m270, m260);
 
@@ -293,6 +411,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     check(btLocator2 + ",pending:true", m260, m130); //documenting current behavior (only default branch changes are returned)
     check(btLocator2 + ",pending:true,branch:(default:true)", m260, m130);
+    check(btLocator2 + ",pending:true,branch:(default:any)", m260, m130); //documenting current behavior
     check(btLocator2 + ",pending:true,branch:(name:branch1)", m270, m150, m140);
     check(btLocator2 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m270, m260, m150, m140, m130);
 
