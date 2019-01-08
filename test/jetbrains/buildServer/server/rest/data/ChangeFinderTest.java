@@ -243,6 +243,9 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(btLocator + ",pending:true,branch:(default:any)", m30);  //documenting current behavior
 
     buildConf.removeVcsRoot(parentRoot1);
+    waitForAssert(() -> {
+      return !m60.getRelatedConfigurations().contains(buildConf);
+    });
     SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
     VcsRootInstance root2 = buildConf.getVcsRootInstanceForParent(parentRoot2);
     assert root2 != null;
