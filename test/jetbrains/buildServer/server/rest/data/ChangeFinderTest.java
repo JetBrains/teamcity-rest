@@ -111,7 +111,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(btLocator + ",branch:(name:branch1)", m40);
 
     check(btLocator + ",branch:(default:true)", m30, m20);
-    check(btLocator + ",branch:(default:false)", m70, m60, m50, m40, m40);
+    check(btLocator + ",branch:(default:false)", m70, m60, m50, m40);
 
     check(btLocator + ",branch:(default:false),unique:true", m70, m60, m50, m40);
 
@@ -194,7 +194,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
     check(btLocator + ",pending:true", m60);
     check(btLocator + ",pending:true,branch:branch1", m40, m30);
-    check(btLocator + ",pending:true,branch:(default:false)", m45, m40, m30, m30); //documenting current behavior
+    check(btLocator + ",pending:true,branch:(default:false)", m45, m40, m30);
     check(btLocator + ",pending:true,branch:(default:any)", m60); //documenting current behavior
   }
 
@@ -286,7 +286,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
 
     check(null, m20, m10);
-    
+
     String btLocator1 = "buildType:(id:" + buildConf1.getExternalId() + ")";
     String btLocator2 = "buildType:(id:" + buildConf2.getExternalId() + ")";
 
