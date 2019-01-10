@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
@@ -252,7 +253,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
       return result;
     }
 
-    BranchSearchOptions searchOptions = getBranchSearchOptionsWithDefaults(locator);
+    BranchSearchOptions searchOptions = getBranchSearchOptions(locator);
 
     Accumulator resultAccumulator = new Accumulator();
     for (SBuildType buildType : buildTypes) {
@@ -282,9 +283,9 @@ public class BranchFinder extends AbstractFinder<BranchData> {
 
   private class BranchSearchOptions {
     @NotNull private final BranchesPolicy branchesPolicy;
-    private final boolean includeBranchesFromDependencies;
+    @Nullable private final Boolean includeBranchesFromDependencies;
 
-    public BranchSearchOptions(@NotNull final BranchesPolicy branchesPolicy, final boolean includeBranchesFromDependencies) {
+    public BranchSearchOptions(@NotNull final BranchesPolicy branchesPolicy, @Nullable final Boolean includeBranchesFromDependencies) {
       this.branchesPolicy = branchesPolicy;
       this.includeBranchesFromDependencies = includeBranchesFromDependencies;
     }
@@ -294,22 +295,13 @@ public class BranchFinder extends AbstractFinder<BranchData> {
       return branchesPolicy;
     }
 
-    public boolean isIncludeBranchesFromDependencies() {
+    public Boolean isIncludeBranchesFromDependencies() {
       return includeBranchesFromDependencies;
     }
   }
 
   @NotNull
-  private BranchSearchOptions getBranchSearchOptionsWithDefaults(final @NotNull Locator locator) {
-    final BranchSearchOptions result = getBranchSearchOptionsIfDefined(locator);
-    if (result != null) {
-      return result;
-    }
-    return new BranchSearchOptions(BranchesPolicy.ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES, false);
-  }
-
-  @Nullable
-  private BranchSearchOptions getBranchSearchOptionsIfDefined(final @NotNull Locator locator) {
+  private BranchSearchOptions getBranchSearchOptions(final @NotNull Locator locator) {
     BranchesPolicy branchesPolicy = BranchesPolicy.ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES;
     final String policyDimension = locator.getSingleDimensionValue(POLICY);
     if (policyDimension != null) {
@@ -320,12 +312,13 @@ public class BranchFinder extends AbstractFinder<BranchData> {
       }
     }
 
-    final Boolean changesFromDependenciesDimension = locator.getSingleDimensionValueAsBoolean(CHANGES_FROM_DEPENDENCIES, false);
-    if (changesFromDependenciesDimension == null) {
-      throw new BadRequestException("Dimension '" + CHANGES_FROM_DEPENDENCIES + "' supports only true/false values");
+    Boolean changesFromDependencies;
+    try {
+      changesFromDependencies = locator.getSingleDimensionValueAsStrictBoolean(CHANGES_FROM_DEPENDENCIES, null);
+    } catch (LocatorProcessException e) {
+      throw new LocatorProcessException("Invalid '" + CHANGES_FROM_DEPENDENCIES + "' dimension", e);
     }
-
-    return new BranchSearchOptions(branchesPolicy, changesFromDependenciesDimension);
+    return new BranchSearchOptions(branchesPolicy, changesFromDependencies);
   }
 
   private List<BranchData> getBranches(final @NotNull SBuildType buildType, @NotNull final BranchSearchOptions branchSearchOptions, final boolean computeTimestamps) {

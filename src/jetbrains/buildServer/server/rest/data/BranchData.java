@@ -222,6 +222,11 @@ public abstract class BranchData implements Branch {
   }
 
 
+  @Override
+  public String toString() {
+    return myBranchName;
+  }
+
   /**
    * @return null if the operation is not supported for the branch
    */
