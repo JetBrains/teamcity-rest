@@ -29,6 +29,7 @@ import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.BuildFinderTestBase;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
@@ -196,7 +197,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals("<default>", branches.branches.get(0).getInternalName());
 
 
-    checkException(BadRequestException.class, new Runnable() {
+    checkException(LocatorProcessException.class, new Runnable() {
       public void run() {
         buildTypeRequest.serveBranches("id:testBT", "changesFromDependencies:any", null);
       }

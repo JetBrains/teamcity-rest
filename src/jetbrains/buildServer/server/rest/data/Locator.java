@@ -717,14 +717,16 @@ public class Locator {
     return getSingleDimensionValueAsBoolean(dimensionName);
   }
 
-  public boolean getSingleDimensionValueAsStrictBoolean(@NotNull final String dimensionName, boolean defaultValue) {
+  @Nullable
+  @Contract("_, !null -> !null")
+  public Boolean getSingleDimensionValueAsStrictBoolean(@NotNull final String dimensionName, @Nullable Boolean defaultValue) {
     final String value = getSingleDimensionValue(dimensionName);
     if (value == null) {
       return defaultValue;
     }
     final Boolean result = getStrictBoolean(value);
     if (result != null) return result;
-    throw new LocatorProcessException("Invalid strict boolean value '" + value + "'. Should be 'true' or 'false'.");
+    throw new LocatorProcessException("Invalid strict boolean value '" + value + "'. Should be 'true' or 'false' when specified.");
   }
 
   /**
