@@ -61,6 +61,10 @@ public class TestOccurrence {
    * Experimental! "true" is the test is muted at the moment of request, not present otherwise
    */
   @XmlAttribute public Boolean currentlyMuted;
+  /**
+   * Experimental
+   */
+  @XmlAttribute public String logAnchor;
 
   @XmlElement public String ignoreDetails;
   @XmlElement public String details; //todo: consider using CDATA output here
@@ -111,6 +115,8 @@ public class TestOccurrence {
         return testOccurrenceFinder.isCurrentlyMuted(testRun);
       }
     });
+
+    logAnchor = ValueWithDefault.decideDefault(fields.isIncluded("logAnchor", false, false), () -> String.valueOf(testRun.getTestRunId()));
 
     details = ValueWithDefault.decideDefault(fields.isIncluded("details", false), new ValueWithDefault.Value<String>() {
       public String get() {
