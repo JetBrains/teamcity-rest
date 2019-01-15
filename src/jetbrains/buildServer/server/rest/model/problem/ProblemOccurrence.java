@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.BuildProblemDataEx;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -56,7 +57,10 @@ public class ProblemOccurrence {
    * Experimental! "true" is the test is muted at the moment of request, not present otherwise
    */
   @XmlAttribute public Boolean currentlyMuted;
-
+  /**
+   * Experimental
+   */
+  @XmlAttribute public String logAnchor;
 
   @XmlElement public String details;
   @XmlElement public String additionalData;
@@ -97,6 +101,15 @@ public class ProblemOccurrence {
 
     details = ValueWithDefault.decideDefault(fields.isIncluded("details", false), problemP.getBuildProblemData().getDescription());
     additionalData = ValueWithDefault.decideDefault(fields.isIncluded("additionalData", false), problemP.getBuildProblemData().getAdditionalData());
+    logAnchor = ValueWithDefault.decideDefault(fields.isIncluded("logAnchor", false, false), () -> {
+      try {
+        BuildProblemDataEx buildProblemData = (BuildProblemDataEx)problemP.getBuildProblemData();
+        Integer buildLogAnchor = buildProblemData.getBuildLogAnchor();
+        return buildLogAnchor == null ? null : buildLogAnchor.toString();
+      } catch (ClassCastException e) {
+        return null;
+      }
+    });
 
     problem = ValueWithDefault.decideDefault(fields.isIncluded("problem", false), new ValueWithDefault.Value<Problem>() {
       public Problem get() {
