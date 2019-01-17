@@ -191,7 +191,7 @@ public class FilesSubResource {
     //response typically already has "Cache-Control" header set to "no-store" in BaseController constructor, so we need to override the header
 
     // see jetbrains.buildServer.web.util.WebUtil.addCacheHeadersForIE and http://youtrack.jetbrains.com/issue/TW-9821 for details)
-    if (WebUtil.isIE(request)) {
+    if (WebUtil.isIE10OrLower(request)) {
       response.setHeader(HttpHeaders.CACHE_CONTROL, "private,must-revalidate");
       response.setHeader(HttpHeaders.PRAGMA, "private");
     } else {
@@ -345,7 +345,7 @@ public class FilesSubResource {
     }
 
     // see jetbrains.buildServer.web.util.WebUtil.addCacheHeadersForIE and http://youtrack.jetbrains.com/issue/TW-9821 for details)
-    if (WebUtil.isIE(request)) {
+    if (WebUtil.isIE10OrLower(request)) {
       builder.header("Cache-Control", "private,must-revalidate");
       builder.header("Pragma", "private");
     } //setCacheControl(request, response); //should we allow to cache this?

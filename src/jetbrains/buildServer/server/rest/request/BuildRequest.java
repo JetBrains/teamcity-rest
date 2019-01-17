@@ -1144,7 +1144,7 @@ public class BuildRequest {
     //see also setting no caching headers in jetbrains.buildServer.server.rest.request.FilesSubResource.getContentByStream()
     response.header("ETag", "W/\"" + EncryptUtil.md5(String.valueOf(stateName)) + "\"");  //mark ETag as "weak"
     // see jetbrains.buildServer.web.util.WebUtil.addCacheHeadersForIE and http://youtrack.jetbrains.com/issue/TW-9821 for details)
-    if (WebUtil.isIE(request)) {
+    if (WebUtil.isIE10OrLower(request)) {
       response.header("Cache-Control", "private,must-revalidate");
       response.header("Pragma", "private");
     }
