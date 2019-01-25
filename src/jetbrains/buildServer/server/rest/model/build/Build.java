@@ -1767,6 +1767,8 @@ public class Build {
       return build.getNumber();
     } else if ("status".equals(field)) {
       return build.getStatus();
+    } else if ("statusText".equals(field)) {
+      return build.getStatusText();
     } else if ("id".equals(field)) {
       return String.valueOf(build.getId());
     } else if ("state".equals(field)) {
@@ -1815,6 +1817,9 @@ public class Build {
       return String.valueOf(((BuildPromotionEx)buildPromotion).isChangesCollectingInProgress());
     } else if ("changeCollectingNeeded".equals(field)) { //Experimental support only
       return String.valueOf(((BuildPromotionEx)buildPromotion).isChangeCollectingNeeded());
+    } else if ("revision".equals(field)) { //Experimental support only
+      final List<BuildRevision> revisions = buildPromotion.getRevisions();
+      return revisions.size() != 1 ? String.valueOf(revisions.get(0).getRevision()) : null;
     } else if ("settingsHash".equals(field)) { //Experimental support only to get settings digest
       return new String(Hex.encodeHex(((BuildPromotionEx)buildPromotion).getSettingsDigest(false)));
     } else if ("currentSettingsHash".equals(field)) { //Experimental support only to get settings digest
@@ -1844,7 +1849,7 @@ public class Build {
       return null;
     }
 
-    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: number, status, id, startDate, finishDate, buildTypeId, branchName.");
+    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: number, status, statusText, id, startDate, finishDate, buildTypeId, branchName.");
   }
 
   @Nullable
