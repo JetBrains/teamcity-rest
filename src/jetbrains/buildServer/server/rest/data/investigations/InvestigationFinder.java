@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
+import jetbrains.buildServer.server.rest.model.problem.Resolution;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
@@ -53,6 +54,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   private static final String ASSIGNEE = "assignee";
   private static final String SINCE_DATE = "sinceDate";
   private static final String STATE = "state";
+  private static final String RESOLUTION = "resolution";
   private static final String TYPE = "type";
   private static final String REPORTER = "reporter";
   private static final String BUILD_TYPE = "buildType";
@@ -76,7 +78,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
                              final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
                              final TestNameResponsibilityFacade testNameResponsibilityFacade,
                              final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
-    super(new String[]{ASSIGNEE, REPORTER, TYPE, STATE, SINCE_DATE, ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION});
+    super(ASSIGNEE, REPORTER, TYPE, STATE, RESOLUTION, SINCE_DATE, ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION);
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProblemFinder = problemFinder;
@@ -205,6 +207,12 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
           return stateDimension.equalsIgnoreCase(item.getState().name());
         }
       });
+    }
+
+    final String resolutionDimension = locator.getSingleDimensionValue(RESOLUTION);
+    if (resolutionDimension != null) {
+      ResponsibilityEntry.RemoveMethod removeMethod = Resolution.getRemoveMethodForInvestigation(resolutionDimension);
+      result.add(item -> removeMethod.equals(item.getRemoveMethod()));
     }
 
     final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
