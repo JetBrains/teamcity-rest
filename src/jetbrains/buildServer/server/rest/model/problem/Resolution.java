@@ -86,11 +86,20 @@ public class Resolution {
     if (type == null) {
       throw new BadRequestException("Invalid 'resolution' entity: 'type' should be specified");
     }
-    switch (type) {
+    try {
+      return getRemoveMethodForInvestigation(type);
+    } catch (BadRequestException e) {
+      throw new BadRequestException("Invalid 'resolution' entity for investigation: " + e.getMessage(), e);
+    }
+  }
+
+  @NotNull
+  public static ResponsibilityEntry.RemoveMethod getRemoveMethodForInvestigation(@NotNull final String resolutionTextValue) {
+    switch (resolutionTextValue) {
       case MANUALLY: return ResponsibilityEntry.RemoveMethod.MANUALLY;
       case WHEN_FIXED: return ResponsibilityEntry.RemoveMethod.WHEN_FIXED;
     }
-    throw new BadRequestException("Invalid 'resolution' entity for investigation: unknown 'type' value '" + type + "', supported are: " + MANUALLY + ", " + WHEN_FIXED);
+    throw new BadRequestException("Unknown resolution type '" + resolutionTextValue + "', supported are: " + MANUALLY + ", " + WHEN_FIXED);
   }
 
   @NotNull
