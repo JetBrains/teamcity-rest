@@ -346,7 +346,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
       default:
         activeBranchesPolicy = BranchesPolicy.ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES;
     }
-    Set<String> activeBranches = computeActive ? buildTypeImpl.getBranches(activeBranchesPolicy, false, false)
+    Set<String> activeBranches = computeActive ? buildTypeImpl.getBranches(activeBranchesPolicy, branchSearchOptions.isIncludeBranchesFromDependencies(), false)
                                                               .stream().map(b -> b.getName()).collect(Collectors.toSet())
                                                : null;
     return branches.stream().map(b -> BranchData.fromBranchEx(b, myServiceLocator, computeActive ? activeBranches.contains(b.getName()) : null, disableActive))
