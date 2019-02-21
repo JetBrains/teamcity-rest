@@ -157,14 +157,14 @@ public class Project {
     }
     name = ValueWithDefault.decideDefault(fields.isIncluded("name"), project.getName());
 
-    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(project));
-    webUrl = ValueWithDefault.decideDefault(fields.isIncluded("webUrl"), beanContext.getSingletonService(WebLinks.class).getProjectPageUrl(project.getExternalId()));
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), () -> beanContext.getApiUrlBuilder().getHref(project));
+    webUrl = ValueWithDefault.decideDefault(fields.isIncluded("webUrl"), () -> beanContext.getSingletonService(WebLinks.class).getProjectPageUrl(project.getExternalId()));
 
     links = getLinks(project, fields, beanContext);
 
     final String descriptionText = project.getDescription();
     description = ValueWithDefault.decideDefault(fields.isIncluded("description"), StringUtil.isEmpty(descriptionText) ? null : descriptionText);
-    archived = ValueWithDefault.decideDefault(fields.isIncluded("archived"), project.isArchived());
+    archived = ValueWithDefault.decideDefault(fields.isIncluded("archived"), () -> project.isArchived());
     readOnlyUI = StateField.create(project.isReadOnly(), ((ProjectEx)project).isCustomSettingsFormatUsed() ? false : null, fields.getNestedField("readOnlyUI"));
 
     final BuildTypeFinder buildTypeFinder = beanContext.getSingletonService(BuildTypeFinder.class);

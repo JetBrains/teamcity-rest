@@ -47,8 +47,8 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
-import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.*;
 import jetbrains.vcs.api.VcsSettings;
 import jetbrains.vcs.api.services.tc.MappingGeneratorService;
 import jetbrains.vcs.api.services.tc.VcsMappingElement;
@@ -142,22 +142,22 @@ public class VcsRoot {
 
     name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), root.getName());
 
-    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(root));
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), () -> beanContext.getApiUrlBuilder().getHref(root));
 
     vcsName = ValueWithDefault.decideDefault(fields.isIncluded("vcsName", false), root.getVcsName());
     final String ownerProjectId = root.getScope().getOwnerProjectId();
     final SProject projectById = beanContext.getSingletonService(ProjectManager.class).findProjectById(ownerProjectId);
     if (projectById != null) {
-      project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), new Project(projectById, fields.getNestedField("project"), beanContext));
+      project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), () -> new Project(projectById, fields.getNestedField("project"), beanContext));
     } else {
-      project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), new Project(null, ownerProjectId, fields.getNestedField("project"), beanContext));
+      project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), () -> new Project(null, ownerProjectId, fields.getNestedField("project"), beanContext));
     }
 
     if (!shouldRestrictSettingsViewing(root, permissionChecker)) {
       properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", false),
-                                                  new Properties(root.getProperties(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG), beanContext));
+                                                  () -> new Properties(root.getProperties(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG), beanContext));
       modificationCheckInterval = ValueWithDefault.decideDefault(fields.isIncluded("modificationCheckInterval", false),
-                                                                 root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval());
+                                                                 () -> root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval());
       vcsRootInstances = ValueWithDefault.decideDefault(fields.isIncluded("vcsRootInstances", false), new ValueWithDefault.Value<VcsRootInstances>() {
         @Nullable
         public VcsRootInstances get() {
