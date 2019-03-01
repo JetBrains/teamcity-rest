@@ -39,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 06/06/2016
  */
 public class FinderImpl<ITEM> implements Finder<ITEM> {
-  private static final Logger LOG = Logger.getInstance(AbstractFinder.class.getName());
+  private static final Logger LOG = Logger.getInstance(FinderImpl.class.getName());
 
   public static final String DIMENSION_ID = "id";
   public static final String DIMENSION_LOOKUP_LIMIT = "lookupLimit";
@@ -360,8 +360,10 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
                   totalItemsProcessed + " processed in total" + lookupLimitMessage + ", took " + processingTimeMs + " ms");
       }
     }
-    if (totalItemsProcessed > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 10000) ||
-        processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000)) {
+    if (processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000)
+        || (processingTimeMs > TeamCityProperties.getLong("rest.finder.minimumTimeWarnLimit", 1000)
+            && ((totalItemsProcessed - result.size()) > TeamCityProperties.getLong("rest.finder.processedAndFilteredItemsWarnLimit", 10000)
+                || totalItemsProcessed > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 100000)))) {
       LOG.info("Server performance can be affected by REST request with locator '" + locator + "': " +
                totalItemsProcessed + " items were processed and " + result.size() + " items were returned, took " + processingTimeMs + " ms");
     }
@@ -407,8 +409,6 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   /**
-   * @param locator
-   * @param dataBinding
    * @return null, if no logic ops are found within locator and it should be processed as usual, otherwise, result items which require no additional processing.
    */
   @NotNull
