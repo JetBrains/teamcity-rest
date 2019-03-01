@@ -264,8 +264,8 @@ public class Project {
         final PermissionChecker permissionChecker = beanContext.getSingletonService(PermissionChecker.class);
         if (permissionChecker.isPermissionGranted(Permission.EDIT_PROJECT, project.getProjectId())) {
           builder.add(Link.WEB_EDIT_TYPE, webLinks.getEditProjectPageUrl(project.getExternalId()), relativeWebLinks.getEditProjectPageUrl(project.getExternalId()));
-        } else if (AuthUtil.adminSpaceAvailable(permissionChecker.getCurrent()) &&
-                   permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId())) {
+        } else if (permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId())
+                   && AuthUtil.adminSpaceAvailable(permissionChecker.getCurrent())) {
           builder.add(Link.WEB_VIEW_SETTINGS_TYPE, webLinks.getEditProjectPageUrl(project.getExternalId()), relativeWebLinks.getEditProjectPageUrl(project.getExternalId()));
         }
         return builder.build(fields.getNestedField("links"));
