@@ -206,6 +206,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
 
   @NotNull
   private PagedSearchResult<ITEM> getItemsByLocator(@Nullable final Locator originalLocator, final boolean multipleItemsQuery) {
+    long startTime = System.nanoTime();
     Locator locator;
     if (originalLocator == null) {
       //go on with empty locator
@@ -302,7 +303,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     }
     locator.checkLocatorFullyProcessed();
     final FinderDataBinding.ItemHolder<ITEM> finalUnfilteredItems = unfilteredItems;
-    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Filtering items", () -> getItems(pagingFilter, finalUnfilteredItems, locator));
+    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Filtering items", () -> getItems(pagingFilter, finalUnfilteredItems, locator, startTime));
   }
 
   @Nullable
@@ -344,8 +345,8 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   @NotNull
   private PagedSearchResult<ITEM> getItems(final @NotNull PagingItemFilter<ITEM> filter,
                                            final @NotNull FinderDataBinding.ItemHolder<ITEM> unfilteredItems,
-                                           @NotNull final Locator locator) {
-    final long startTime = System.nanoTime();
+                                           @NotNull final Locator locator, final long startTime) {
+    final long filteringStartTime = System.nanoTime();
     final FilterItemProcessor<ITEM> filterItemProcessor = new FilterItemProcessor<ITEM>(filter);
     unfilteredItems.process(filterItemProcessor);
     final ArrayList<ITEM> result = filterItemProcessor.getResult();
@@ -357,14 +358,15 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         filter.isLookupLimitReached() ? " (lookupLimit of " + filter.getLookupLimit() + " reached). Last processed item: " + LogUtil.describe(filter.getLastProcessedItem()) : "";
       if (LOG.isDebugEnabled()) {
         LOG.debug("While processing locator '" + locator + "' by finder " + getName() + ", " + result.size() + " items were matched by the filter from " +
-                  totalItemsProcessed + " processed in total" + lookupLimitMessage + ", took " + processingTimeMs + " ms");
+                  totalItemsProcessed + " processed in total" + lookupLimitMessage + ", took " + processingTimeMs + " ms (filtering " +
+                  TimeUnit.MILLISECONDS.convert(finishTime - filteringStartTime, TimeUnit.NANOSECONDS) + " ms)");
       }
     }
     if (processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000)
         || (processingTimeMs > TeamCityProperties.getLong("rest.finder.minimumTimeWarnLimit", 1000)
             && ((totalItemsProcessed - result.size()) > TeamCityProperties.getLong("rest.finder.processedAndFilteredItemsWarnLimit", 10000)
                 || totalItemsProcessed > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 100000)))) {
-      LOG.info("Server performance can be affected by REST request with locator '" + locator + "': " +
+      LOG.info("Server performance can be affected by REST request and finder " + getName() + " with locator '" + locator + "': " +
                totalItemsProcessed + " items were processed and " + result.size() + " items were returned, took " + processingTimeMs + " ms");
     }
     if (result.isEmpty() && isReportErrorOnNothingFound(locator)){
