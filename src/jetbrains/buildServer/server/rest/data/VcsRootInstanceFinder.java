@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
+import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -376,6 +377,8 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
         projects = null;
       }
 
+      filterOutUnrelatedWithoutParameterResolution(locator, vcsRoots);
+
       for (SVcsRoot vcsRoot : vcsRoots) {
         if (versionedSettingsUsagesOnly == null || !versionedSettingsUsagesOnly) {
           vcsRoot.getUsagesInConfigurations().stream().filter(filter).collect(Collectors.toList()).stream().map(buildType -> buildType.getVcsRootInstanceForParent(vcsRoot)).filter(Objects::nonNull)
@@ -417,6 +420,56 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       result.addAll(getSettingsRootInstances(myProjectManager.getProjects()));
     }
     return getItemHolder(result);
+  }
+
+  private static class CannedException extends RuntimeException {
+    static final CannedException INSTANCE = new CannedException();
+    private CannedException(){ super();}
+  }
+
+  private void filterOutUnrelatedWithoutParameterResolution(@NotNull final Locator locator, @NotNull final List<SVcsRoot> vcsRoots) {
+    final List<String> properties = locator.lookupDimensionValue(PROPERTY);
+    if (properties.isEmpty()) return;
+
+    final Matcher<ParametersProvider> parameterCondition = ParameterCondition.create(properties);
+
+    for (Iterator<SVcsRoot> iterator = vcsRoots.iterator(); iterator.hasNext(); ) {
+      SVcsRoot vcsRoot = iterator.next();
+
+      Map<String, String> propertiesMap = vcsRoot.getProperties();
+      try {
+        //this assumes something about matcher: e.g. that it's logic does not change while processing items
+        boolean matches = parameterCondition.matches(new ParametersProvider() {
+          @Override
+          public String get(@NotNull final String key) {
+            String value = propertiesMap.get(key);
+            if (ReferencesResolverUtil.containsReference(value)) {
+              throw CannedException.INSTANCE;
+            }
+            return value;
+          }
+
+          @Override
+          public int size() {
+            return propertiesMap.size();
+          }
+
+          @Override
+          public Map<String, String> getAll() {
+            if (propertiesMap.entrySet().stream().anyMatch(e -> ReferencesResolverUtil.containsReference(e.getValue()))) {
+              throw CannedException.INSTANCE;
+            }
+            return propertiesMap;
+          }
+        });
+
+        //while filtering, no reference was encountered: remove from the collection if id does not match the condition
+        if (!matches) iterator.remove();
+
+      } catch (CannedException ignore) {
+        //encountered a reference: preserve in the collection
+      }
+    }
   }
 
   @NotNull
