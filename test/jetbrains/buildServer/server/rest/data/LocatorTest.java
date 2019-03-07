@@ -543,6 +543,32 @@ public class LocatorTest {
   }
 
   @Test
+  public void testCreatelLocator() {
+    {
+      Locator locator = Locator.createLocator("x:a,y:b", new Locator("x:AA,z:c"), new String[]{"v", "y"});
+      assertEquals("x:a,y:b,z:c", locator.getStringRepresentation());
+      assertTrue(locator.getLocatorDescription(false).contains("Supported dimensions are: [v, y]"));
+    }
+    {
+      Locator locator = Locator.createLocator("x:a1,x:a2,y:b", new Locator("x:AA,z:c"), null);
+      assertEquals("x:a1,x:a2,y:b,z:c", locator.getStringRepresentation());
+      assertTrue(!locator.getLocatorDescription(false).contains("Supported dimensions"));
+    }
+    {
+      Locator locator = Locator.createLocator("x:a1,x:a2,y:b", new Locator("x:AA,y:b1,y:b2,z:c1,z:c2"), null);
+      assertEquals("x:a1,x:a2,y:b,z:c1,z:c2", locator.getStringRepresentation());
+      assertTrue(!locator.getLocatorDescription(false).contains("Supported dimensions"));
+    }
+  }
+
+  @Test
+  public void testMergelLocator() {
+    assertEquals("x:a,y:b,z:c", Locator.merge("x:a,y:b", "x:AA,z:c"));
+    assertEquals("x:a1,x:a2,y:b,z:c", Locator.merge("x:a1,x:a2,y:b", "x:AA,z:c"));
+    assertEquals("x:a1,x:a2,y:b,z:c1,z:c2", Locator.merge("x:a1,x:a2,y:b", "x:AA,y:b1,y:b2,z:c1,z:c2"));
+  }
+
+  @Test
   public void testStringRepresentation() {
     assertEquals("aaa:bbb", Locator.getStringLocator("aaa", "bbb"));
     assertEquals("a:b,c:d", Locator.getStringLocator("a", "b", "c", "d"));
