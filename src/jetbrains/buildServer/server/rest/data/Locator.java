@@ -244,9 +244,9 @@ public class Locator {
 
     if (defaults != null && !result.isSingleValue()) {
       for (String dimensionName : defaults.myDimensions.keySet()) {
-        final String value = defaults.getSingleDimensionValue(dimensionName);
-        if (value != null) {
-          result.setDimensionIfNotPresent(dimensionName, value);
+        List<String> values = defaults.getDimensionValue(dimensionName);
+        if (!values.isEmpty()) {
+          result.setDimensionIfNotPresent(dimensionName, values);
           if (defaults.myHiddenSupportedDimensions.contains(dimensionName)){
             result.myHiddenSupportedDimensions.add(dimensionName);
           }
@@ -261,7 +261,7 @@ public class Locator {
   }
 
   /**
-   * The resultant locator will have all the dimensions and values of "mainLocator" and those from "defaultsLocator" which are note defined in "mainLocator"
+   * The resultant locator will have all the dimensions and values of "mainLocator" and those from "defaultsLocator" which are not defined in "mainLocator"
    * If "mainLocator" text is empty, "defaultsLocator" locator will be used
    *
    * @see #createLocator(String, Locator, String[])
