@@ -184,6 +184,49 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
     check("repositoryIdString:svn://000000-0000-1111-000000000001|trunk/path");
   }
 
+  @Test
+  public void testPropertyFilteringWithReferences() throws Exception {
+    myFixture.registerVcsSupport("custom");
+
+    final ProjectEx project10 = getRootProject().createProject("project10", "Project name 10");
+
+    final SVcsRoot vcsRoot10 = getRootProject().createVcsRoot("custom", "id10", "VCS root 10 name");
+    vcsRoot10.setProperties(CollectionsUtil.asMap("url", "https://acme.com/repo"));
+    final SBuildType bt10 = project10.createBuildType("id10", "name 10");
+    bt10.addVcsRoot(vcsRoot10);
+    VcsRootInstance vInstance10 = bt10.getVcsRootInstanceForParent(vcsRoot10);
+    
+    final SVcsRoot vcsRoot20 = getRootProject().createVcsRoot("custom", "id20", "VCS root 20 name");
+    vcsRoot20.setProperties(CollectionsUtil.asMap("url", "%ref%"));
+    final SBuildType bt20 = project10.createBuildType("id20", "name 20");
+    bt20.addVcsRoot(vcsRoot20);
+    bt20.addParameter(new SimpleParameter("ref", "https://acme.com/repo"));
+    VcsRootInstance vInstance20 = bt20.getVcsRootInstanceForParent(vcsRoot20);
+
+    final SVcsRoot vcsRoot30 = getRootProject().createVcsRoot("custom", "id30", "VCS root 30 name");
+    vcsRoot30.setProperties(CollectionsUtil.asMap("url", "https://acme2.com/repo"));
+    final SBuildType bt30 = project10.createBuildType("id30", "name 30");
+    bt30.addVcsRoot(vcsRoot30);
+    VcsRootInstance vInstance30 = bt30.getVcsRootInstanceForParent(vcsRoot30);
+
+    final SVcsRoot vcsRoot40 = getRootProject().createVcsRoot("custom", "id40", "VCS root 40 name");
+    vcsRoot40.setProperties(CollectionsUtil.asMap("url", "%ref%"));
+    final SBuildType bt40 = project10.createBuildType("id40", "name 40");
+    bt40.addVcsRoot(vcsRoot40);
+    bt40.addParameter(new SimpleParameter("ref", "https://acme2.com/repo"));
+    VcsRootInstance vInstance40 = bt40.getVcsRootInstanceForParent(vcsRoot40);
+
+
+    check(null, vInstance10, vInstance20, vInstance30, vInstance40);
+
+    check("vcsRoot:(property:(name:url,value:acme.com,matchType:contains,ignoreCase:true))", vInstance10);
+    check("property:(name:url,value:acme.com,matchType:contains,ignoreCase:true)", vInstance10, vInstance20);
+    check("vcsRoot:(type:custom)", vInstance10, vInstance20, vInstance30, vInstance40);
+    check("vcsRoot:(type:custom),property:(name:url,value:acme.com,matchType:contains,ignoreCase:true)", vInstance10, vInstance20);
+    check("vcsRoot:(type:custom),property:(name:(value:u,matchType:starts-with),value:acme.com,matchType:contains,ignoreCase:true)", vInstance10, vInstance20);
+    check("vcsRoot:(type:custom),property:(name:url,value:acme3.com,matchType:contains,ignoreCase:true)");
+  }
+
   @SuppressWarnings("ConstantConditions")
   @Test
   public void testCount() throws Exception {
