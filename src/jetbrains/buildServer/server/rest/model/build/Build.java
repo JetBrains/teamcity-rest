@@ -1538,6 +1538,9 @@ public class Build {
       if (submittedTriggeringOptions.rebuildAllDependencies != null) {
         customizer.setRebuildDependencies(submittedTriggeringOptions.rebuildAllDependencies);
       }
+      if (submittedTriggeringOptions.rebuildFailedOrIncompleteDependencies != null && submittedTriggeringOptions.rebuildFailedOrIncompleteDependencies) {
+        ((BuildCustomizerEx)customizer).setRebuildDependencies(BuildCustomizerEx.RebuildDependenciesMode.FAILED_OR_INCOMPLETE);
+      }
       if (submittedTriggeringOptions.rebuildDependencies != null) {
         customizer.setRebuildDependencies(CollectionsUtil.convertCollection(
           submittedTriggeringOptions.rebuildDependencies.getFromPosted(serviceLocator.getSingletonService(BuildTypeFinder.class)), new Converter<String, BuildTypeOrTemplate>() {
