@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
@@ -68,6 +69,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   public static final String DAG_TRAVERSE = "dag";
   public static final String PREV_BUILD_POLICY = "policy";
   public static final String CHANGES_FROM_DEPS = "changesFromDependencies";
+  public static final String SETTINGS_CHANGES = "versionedSettings"; //experimental
 
   @NotNull private final PermissionChecker myPermissionChecker;
   @NotNull private final ProjectFinder myProjectFinder;
@@ -95,7 +97,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
                       @NotNull final ServiceLocator serviceLocator, @NotNull final PermissionChecker permissionChecker) {
     super(DIMENSION_ID, PROJECT, BUILD_TYPE, BUILD, VCS_ROOT, VCS_ROOT_INSTANCE, USERNAME, USER, VERSION, INTERNAL_VERSION, COMMENT, FILE, PENDING,
           SINCE_CHANGE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    setHiddenDimensions(BRANCH, PERSONAL, CHILD_CHANGE, PARENT_CHANGE, DAG_TRAVERSE, PROMOTION, PREV_BUILD_POLICY, CHANGES_FROM_DEPS, //hide these for now
+    setHiddenDimensions(BRANCH, PERSONAL, CHILD_CHANGE, PARENT_CHANGE, DAG_TRAVERSE, PROMOTION, PREV_BUILD_POLICY, CHANGES_FROM_DEPS, SETTINGS_CHANGES, //hide these for now
                         DIMENSION_LOOKUP_LIMIT //not supported in fact
     );
     myPermissionChecker = permissionChecker;
@@ -636,7 +638,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     //legacy behavior emulation
     if (TeamCityProperties.getBooleanOrTrue("rest.request.changes.legacyChangesInAllBranches")) {
       boolean anyBranch = filterBranches == null || myBranchFinder.isAnyBranch(locator.lookupSingleDimensionValue(BRANCH));
-      if (anyBranch && policy == SelectPrevBuildPolicy.SINCE_NULL_BUILD) {
+      if (anyBranch && policy == SelectPrevBuildPolicy.SINCE_NULL_BUILD && locator.lookupSingleDimensionValueAsBoolean(SETTINGS_CHANGES) == null) {
         //todo: This approach has a bug: if includeDependencyChanges==true changes from all branches are returned, if includeDependencyChanges==false - only from the default branch
         if ((includeDependencyChanges != null && !includeDependencyChanges) || (includeDependencyChanges == null && !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES))) {
           return myVcsModificationHistory.getAllModifications(buildType).stream(); // this can be more efficient than buildType.getDetectedChanges below, but returns all branches
@@ -646,19 +648,26 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     if (filterBranches != null) {
       return filterBranches.stream()
-                           .flatMap(branchData -> branchData.getChanges(policy, includeDependencyChanges).stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull))
-                           .sorted().distinct();
+                           .flatMap(branchData -> branchData.getChanges(policy, includeDependencyChanges).stream().filter(getChangeDescriptorFilter(locator))
+                                                            .map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull)).sorted().distinct();
     } else {
       return ((BuildTypeEx)buildType).getDetectedChanges(policy, includeDependencyChanges)
-                                     .stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
+                                     .stream().filter(getChangeDescriptorFilter(locator)).map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
     }
+  }
+
+  @NotNull
+  private Predicate<ChangeDescriptor> getChangeDescriptorFilter(@Nullable final Locator locator) {
+    Boolean changesFromSettings = locator != null ? locator.getSingleDimensionValueAsBoolean(SETTINGS_CHANGES) : null;
+    if (changesFromSettings == null) return cd -> true;
+    return cd -> FilterUtil.isIncludedByBooleanFilter(changesFromSettings, "true".equals(cd.getAssociatedData().get(ChangeDescriptorConstants.SETTINGS_ROOT_CHANGE)));
   }
 
   private Stream<SVcsModification> getBuildChanges(@NotNull final BuildPromotion buildPromotion, @Nullable final Locator locator) {
     //todo: use fillDetectedChanges instead
     return ((BuildPromotionEx)buildPromotion).getDetectedChanges(getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_LAST_BUILD), getIncludeDependencyChanges(locator),
                                                                  getBuildChangesProcessor(getBuildChangesLimit(locator)))
-                                             .stream().map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
+                                             .stream().filter(getChangeDescriptorFilter(locator)).map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
   }
 
   public boolean isCheap(@NotNull final BuildPromotion buildPromotion, @Nullable final String locatorText) {
