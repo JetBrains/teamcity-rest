@@ -34,7 +34,6 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
-import jetbrains.buildServer.serverSide.impl.BuildServerImpl;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 
@@ -165,7 +164,7 @@ public class TriggeredBy {
       return;
     }
 
-    if (triggeredByParams.get(BuildServerImpl.UNEXPECTED_FINISH) != null ||
+    if (triggeredByParams.get("unexpectedFinish") != null ||
         triggeredByParams.get(TriggeredByBuilder.RE_ADDED_AFTER_STOP_NAME) != null) {
       if (typeInParams == null || "unexpectedFinish".equals(typeInParams)) {
         //compatibility with "type" value prior to 2017.1
