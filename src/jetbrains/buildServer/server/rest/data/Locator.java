@@ -702,6 +702,12 @@ public class Locator {
     return null;
   }
 
+  public static boolean getStrictBooleanOrReportError(@NotNull final String value) {
+    final Boolean result = getStrictBoolean(value);
+    if (result != null) return result;
+    throw new LocatorProcessException("Invalid strict boolean value '" + value + "'. Should be 'true' or 'false'.");
+  }
+
   /**
    * @param dimensionName name of the dimension
    * @param defaultValue  default value to use if no dimension with the name is found
@@ -724,9 +730,7 @@ public class Locator {
     if (value == null) {
       return defaultValue;
     }
-    final Boolean result = getStrictBoolean(value);
-    if (result != null) return result;
-    throw new LocatorProcessException("Invalid strict boolean value '" + value + "'. Should be 'true' or 'false' when specified.");
+    return getStrictBooleanOrReportError(value);
   }
 
   /**

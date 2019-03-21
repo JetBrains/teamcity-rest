@@ -255,13 +255,9 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       });
     }
 
-    final Boolean commitHookMode = locator.getSingleDimensionValueAsBoolean("commitHookMode");
+    final Boolean commitHookMode = locator.getSingleDimensionValueAsBoolean(COMMIT_HOOK_MODE);
     if (commitHookMode != null){
-      result.add(new FilterConditionChecker<VcsRootInstance>() {
-        public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return FilterUtil.isIncludedByBooleanFilter(commitHookMode, !((VcsRootInstanceEx)item).isPollingMode());
-        }
-      });
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(commitHookMode, !((VcsRootInstanceEx)item).isPollingMode()));
     }
 
     TimeCondition.FilterAndLimitingDate<VcsRootInstance> finishFiltering =
