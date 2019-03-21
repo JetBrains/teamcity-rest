@@ -192,7 +192,7 @@ public class VcsRootRequest {
                                @PathParam("field") String fieldName, String newValue) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     myVcsRootInstanceFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
-    VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myDataProvider);
+    VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myBeanContext);
     rootInstance.getParent().persist();
     return VcsRootInstance.getFieldValue(rootInstance, fieldName, myDataProvider);
   }

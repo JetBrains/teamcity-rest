@@ -25,6 +25,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -120,7 +121,7 @@ public class VcsRootInstanceRequest {
                                @PathParam("field") String fieldName, String newValue) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     myVcsRootInstanceFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
-    VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myDataProvider);
+    VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myBeanContext);
     rootInstance.getParent().persist();
     return VcsRootInstance.getFieldValue(rootInstance, fieldName, myDataProvider);
   }
@@ -131,7 +132,7 @@ public class VcsRootInstanceRequest {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     myVcsRootInstanceFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
     if (VcsRootInstance.LAST_VERSION_INTERNAL.equals(fieldName) || VcsRootInstance.LAST_VERSION.equals(fieldName)) {
-      VcsRootInstance.setFieldValue(rootInstance, fieldName, "", myDataProvider);
+      VcsRootInstance.setFieldValue(rootInstance, fieldName, "", myBeanContext);
     } else {
       throw new BadRequestException("Only \"" + VcsRootInstance.LAST_VERSION_INTERNAL + "\" field is supported for deletion.");
     }
@@ -152,6 +153,7 @@ public class VcsRootInstanceRequest {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     myVcsRootInstanceFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
     myDataProvider.getBean(RepositoryStateManager.class).setRepositoryState(rootInstance, new SingleVersionRepositoryStateAdapter((String)null));
+    Loggers.VCS.info("Repository state is reset via REST API call for " + rootInstance.describe(false) + " by " + myBeanContext.getSingletonService(PermissionChecker.class).getCurrentUserDescription());
   }
 
   @GET
@@ -172,6 +174,7 @@ public class VcsRootInstanceRequest {
     myVcsRootInstanceFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
     final RepositoryStateManager repositoryStateManager = myDataProvider.getBean(RepositoryStateManager.class);
     repositoryStateManager.setRepositoryState(rootInstance, RepositoryStateFactory.createRepositoryState(branchesState.getMap()));
+    Loggers.VCS.info("Repository state is set to \"" + StringUtil.propertiesToString(branchesState.getMap(), StringUtil.STD_ESCAPER2) + "\" via REST API call for " + rootInstance.describe(false) + " by " + myBeanContext.getSingletonService(PermissionChecker.class).getCurrentUserDescription());
     final RepositoryState repositoryState = repositoryStateManager.getRepositoryState(rootInstance);
     return new Entries(repositoryState.getBranchRevisions(), new Fields(fields));
   }

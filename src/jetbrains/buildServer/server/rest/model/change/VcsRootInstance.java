@@ -25,6 +25,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.Locator;
@@ -63,6 +64,7 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
 public class VcsRootInstance {
   public static final String LAST_VERSION_INTERNAL = "lastVersionInternal";
   public static final String LAST_VERSION = "lastVersion";
+  public static final String COMMIT_HOOK_MODE = "commitHookMode";
   private jetbrains.buildServer.vcs.VcsRootInstance myRoot;
   private Fields myFields;
   private BeanContext myBeanContext;
@@ -129,7 +131,7 @@ public class VcsRootInstance {
 
     vcsName = ValueWithDefault.decideDefault(fields.isIncluded("vcsName", false), root.getVcsName());
     modificationCheckInterval = ValueWithDefault.decideDefault(fields.isIncluded("modificationCheckInterval", false), (int)root.getEffectiveModificationCheckInterval());
-    commitHookMode = ValueWithDefault.decideDefault(fields.isIncluded("commitHookMode", false, false), !((VcsRootInstanceEx)root).isPollingMode());
+    commitHookMode = ValueWithDefault.decideDefault(fields.isIncluded(COMMIT_HOOK_MODE, false, false), !((VcsRootInstanceEx)root).isPollingMode());
   }
 
   @XmlAttribute
@@ -245,7 +247,7 @@ public class VcsRootInstance {
       } catch (VcsException e) {
         throw new InvalidStateException("Error while getting current revision: ", e);
       }
-    } else if ("commitHookMode".equals(field)) {
+    } else if (COMMIT_HOOK_MODE.equals(field)) {
       return String.valueOf(!((VcsRootInstanceEx)rootInstance).isPollingMode());
     }
     throw new NotFoundException(
@@ -255,19 +257,23 @@ public class VcsRootInstance {
   public static void setFieldValue(final jetbrains.buildServer.vcs.VcsRootInstance rootInstance,
                                    final String field,
                                    final String newValue,
-                                   final DataProvider dataProvider) {
+                                   @NotNull final BeanContext beanContext) {
     if (LAST_VERSION_INTERNAL.equals(field) || (LAST_VERSION.equals(field) && StringUtil.isEmpty(newValue))) {
       if (!StringUtil.isEmpty(newValue)) {
-        dataProvider.getBean(RepositoryStateManager.class).setRepositoryState(rootInstance, new SingleVersionRepositoryStateAdapter(newValue));
+        beanContext.getSingletonService(RepositoryStateManager.class).setRepositoryState(rootInstance, new SingleVersionRepositoryStateAdapter(newValue));
+        Loggers.VCS.info("Repository state is set to \"" + newValue+ "\" via REST API call for " + rootInstance.describe(false) + " by " + beanContext.getSingletonService(PermissionChecker.class).getCurrentUserDescription());
       } else {
-        dataProvider.getBean(RepositoryStateManager.class).setRepositoryState(rootInstance, new SingleVersionRepositoryStateAdapter((String)null));
+        beanContext.getSingletonService(RepositoryStateManager.class).setRepositoryState(rootInstance, new SingleVersionRepositoryStateAdapter((String)null));
+        Loggers.VCS.info("Repository state is reset via REST API call for " + rootInstance.describe(false) + " by " + beanContext.getSingletonService(PermissionChecker.class).getCurrentUserDescription());
       }
       return;
-    } else if ("commitHookMode".equals(field)) {
-      ((VcsRootInstanceEx)rootInstance).setPollingMode(!Locator.getStrictBooleanOrReportError(newValue));
+    } else if (COMMIT_HOOK_MODE.equals(field)) {
+      boolean pollingMode = !Locator.getStrictBooleanOrReportError(newValue);
+      ((VcsRootInstanceEx)rootInstance).setPollingMode(pollingMode);
+      Loggers.VCS.info("Poling mode is set to \"" + pollingMode + "\" via REST API call for " + rootInstance.describe(false) + " by " + beanContext.getSingletonService(PermissionChecker.class).getCurrentUserDescription());
       return;
     }
-    throw new NotFoundException("Setting of field '" + field + "' is not supported. Supported are: " + LAST_VERSION_INTERNAL + ", " + "commitHookMode");
+    throw new NotFoundException("Setting of field '" + field + "' is not supported. Supported are: " + LAST_VERSION_INTERNAL + ", " + COMMIT_HOOK_MODE);
   }
 
   @Nullable
