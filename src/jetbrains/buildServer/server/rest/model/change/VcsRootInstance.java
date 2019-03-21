@@ -27,6 +27,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -262,8 +263,11 @@ public class VcsRootInstance {
         dataProvider.getBean(RepositoryStateManager.class).setRepositoryState(rootInstance, new SingleVersionRepositoryStateAdapter((String)null));
       }
       return;
+    } else if ("commitHookMode".equals(field)) {
+      ((VcsRootInstanceEx)rootInstance).setPollingMode(!Locator.getStrictBooleanOrReportError(newValue));
+      return;
     }
-    throw new NotFoundException("Setting of field '" + field + "' is not supported. Supported is: " + LAST_VERSION_INTERNAL);
+    throw new NotFoundException("Setting of field '" + field + "' is not supported. Supported are: " + LAST_VERSION_INTERNAL + ", " + "commitHookMode");
   }
 
   @Nullable
