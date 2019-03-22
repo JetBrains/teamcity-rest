@@ -21,7 +21,8 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.agent.BooleanStatus;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.comments.Comment;
+import jetbrains.buildServer.serverSide.SBuild;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -33,8 +34,8 @@ public class PinInfo extends BooleanStatus {
   public PinInfo() {
   }
 
-  public PinInfo(final boolean pinned, final Comment statusComment, final Fields fields, final BeanContext beanContext) {
-    super(pinned, statusComment, fields, beanContext);
+  public PinInfo(@NotNull SBuild build, final Fields fields, final BeanContext beanContext) {
+    super(build != null && build.isPinned(), () -> Build.getPinComment(build), fields, beanContext);
   }
 }
 

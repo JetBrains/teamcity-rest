@@ -45,7 +45,7 @@ public class AgentEnabledInfo extends BooleanStatus {
   }
 
   public AgentEnabledInfo(@NotNull final SBuildAgent agent, final Fields fields, final BeanContext beanContext) {
-    super(agent.isEnabled(), agent.getStatusComment(), fields, beanContext);
+    super(agent.isEnabled(), () -> agent.getStatusComment(), fields, beanContext);
     Boolean restoreEnabled = agent.getAgentStatusToRestore();
     if (restoreEnabled != null && (restoreEnabled ^ agent.isEnabled())) {
       statusSwitchTime = ValueWithDefault.decideDefault(fields.isIncluded("statusSwitchTime"), Util.formatTime(agent.getAgentStatusRestoringTimestamp()));

@@ -175,7 +175,7 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public AgentAuthorizedInfo getAuthorizedInfo(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    return new AgentAuthorizedInfo(agent.isAuthorized(), agent.getAuthorizeComment(), new Fields(fields), myBeanContext);
+    return new AgentAuthorizedInfo(agent, new Fields(fields), myBeanContext);
   }
 
   @PUT
@@ -190,7 +190,7 @@ public class AgentRequest {
     if (value == null && commentText == null) throw new BadRequestException("Neither value nor comment are provided, nothing to change");
     agent.setAuthorized(value != null ? value : agent.isAuthorized(), myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser(), Agent.getActualActionComment(commentText));
 
-    return new AgentAuthorizedInfo(agent.isAuthorized(), agent.getAuthorizeComment(), new Fields(fields), myBeanContext);
+    return new AgentAuthorizedInfo(agent, new Fields(fields), myBeanContext);
   }
 
   @GET

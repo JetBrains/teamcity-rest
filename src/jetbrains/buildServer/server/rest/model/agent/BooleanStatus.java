@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Comment;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
@@ -43,16 +44,13 @@ public class BooleanStatus {
   }
 
   public BooleanStatus(final boolean statusP,
-                       @Nullable final jetbrains.buildServer.serverSide.comments.Comment lastCommentP,
+                       @Nullable final ValueWithDefault.Value<jetbrains.buildServer.serverSide.comments.Comment> lastCommentP,
                        @NotNull final Fields fields,
                        @NotNull final BeanContext beanContext) {
     status = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("status"), statusP);
-    comment = lastCommentP == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("comment", false), new ValueWithDefault.Value<Comment>() {
-      @Nullable
-      public Comment get() {
-        return new Comment(lastCommentP, fields.getNestedField("comment", Fields.NONE, Fields.LONG), beanContext);
-      }
-    });
+    comment = lastCommentP == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("comment", false),
+                                                                                    () -> Util.resolveNull(lastCommentP.get(), v -> new Comment(v,
+                                                                                                           fields.getNestedField("comment", Fields.NONE, Fields.LONG), beanContext)));
   }
 
   @Nullable

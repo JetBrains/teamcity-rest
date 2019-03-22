@@ -195,7 +195,7 @@ public class Agent {
           authorizedInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorizedInfo", false), new ValueWithDefault.Value<AgentAuthorizedInfo>() {
             @Nullable
             public AgentAuthorizedInfo get() {
-              return new AgentAuthorizedInfo(agent.isAuthorized(), agent.getAuthorizeComment(), fields.getNestedField("authorizedInfo", Fields.NONE, Fields.LONG), beanContext);
+              return new AgentAuthorizedInfo(agent, fields.getNestedField("authorizedInfo", Fields.NONE, Fields.LONG), beanContext);
             }
           });
 

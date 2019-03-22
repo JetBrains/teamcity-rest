@@ -20,7 +20,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.comments.Comment;
+import jetbrains.buildServer.serverSide.SBuildAgent;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
@@ -32,7 +33,7 @@ public class AgentAuthorizedInfo extends BooleanStatus {
   public AgentAuthorizedInfo() {
   }
 
-  public AgentAuthorizedInfo(final boolean enabled, final Comment statusComment, final Fields fields, final BeanContext beanContext) {
-    super(enabled, statusComment, fields, beanContext);
+  public AgentAuthorizedInfo(@NotNull final SBuildAgent agent, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    super(agent.isAuthorized(), () -> agent.getAuthorizeComment(), fields, beanContext);
   }
 }

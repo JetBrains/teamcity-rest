@@ -41,8 +41,8 @@ import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.*;
-import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.change.BuildChanges;
@@ -51,8 +51,8 @@ import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.util.AggregatedBuildArtifactsElementBuilder;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.TriggeredBy;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.impl.BaseBuild;
@@ -557,7 +557,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public PinInfo getPinData(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
     SBuild build = myBuildPromotionFinder.getItem(buildLocator).getAssociatedBuild();
-    return new PinInfo(build != null && build.isPinned(), Build.getPinComment(build), new Fields(fields), myBeanContext);
+    return new PinInfo(build, new Fields(fields), myBeanContext);
   }
 
   /**
@@ -573,7 +573,7 @@ public class BuildRequest {
     BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(buildLocator);
     pinBuild(buildPromotion, SessionUser.getUser(request), pinStatus.getCommentTextFromPosted(), newStatus);
     SBuild build = buildPromotion.getAssociatedBuild();
-    return new PinInfo(build != null && build.isPinned(), Build.getPinComment(build), new Fields(fields), myBeanContext);
+    return new PinInfo(build, new Fields(fields), myBeanContext);
   }
 
   /**
