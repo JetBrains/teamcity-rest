@@ -37,6 +37,7 @@
       <class name="jetbrains.buildServer.server.rest.request.InvestigationRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.MuteRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.ProjectRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.TestOccurrenceRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.UserRequestTest"/>
     </classes>
   </test>

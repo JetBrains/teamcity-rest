@@ -30,7 +30,6 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestRun;
@@ -46,7 +45,7 @@ public class TestOccurrenceRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private TestOccurrenceFinder myTestOccurrenceFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
-  @Context @NotNull private BeanFactory myBeanFactory;
+  @Context @NotNull public BeanContext myBeanContext;
 
   public static final String API_SUB_URL = Constants.API_URL + "/testOccurrences";
 
@@ -83,10 +82,10 @@ public class TestOccurrenceRequest {
     final PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locatorText);
 
     return new TestOccurrences(result.myEntries,
-                               uriInfo.getRequestUri().toString(),
-                               new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
+                               uriInfo == null ? null : uriInfo.getRequestUri().toString(),
+                               uriInfo == null ? null : new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
                                new Fields(fields),
-                               new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder)
+                               myBeanContext
     );
   }
 
@@ -94,7 +93,14 @@ public class TestOccurrenceRequest {
   @Path("/{testLocator}")
   @Produces({"application/xml", "application/json"})
   public TestOccurrence serveInstance(@PathParam("testLocator") String locatorText, @QueryParam("fields") String fields) {
-    return new TestOccurrence(myTestOccurrenceFinder.getItem(locatorText), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder),
+    return new TestOccurrence(myTestOccurrenceFinder.getItem(locatorText), myBeanContext,
                                new Fields(fields));
+  }
+
+  void initForTests(@NotNull final BeanContext beanContext) {
+    myServiceLocator = beanContext.getSingletonService(ServiceLocator.class);
+    myTestOccurrenceFinder = beanContext.getSingletonService(TestOccurrenceFinder.class);
+    myApiUrlBuilder = beanContext.getApiUrlBuilder();
+    myBeanContext = beanContext;
   }
 }

@@ -20,6 +20,7 @@ import com.google.common.base.Objects;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.messages.TestMetadata;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
@@ -221,6 +222,40 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
   }
 
   @Test
+  public void testTestStatus() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build10 = build().in(buildType)
+                                          .withTest(BuildBuilder.TestData.test("aaa"))
+                                          .withTest(BuildBuilder.TestData.test("bbb").failed())
+                                          .withTest(BuildBuilder.TestData.test("ccc").ignored("Ignore reason"))
+                                          .finish();
+
+    long bId = build10.getBuildId();
+    TestRunDataWithBuild aaa = t("aaa", Status.NORMAL, 1, bId);
+    TestRunDataWithBuild bbb = t("bbb", Status.FAILURE, 2, bId);
+    TestRunDataWithBuild ccc = t("ccc", Status.UNKNOWN, 3, bId);
+
+    check("build:(id:" + bId + ")", TEST_WITH_BUILD_MATCHER,
+          aaa,
+          bbb,
+          ccc);
+
+    check("build:(id:" + bId + "),status:SUCCESS", TEST_WITH_BUILD_MATCHER,
+          aaa);
+    check("build:(id:" + bId + "),status:FAILURE", TEST_WITH_BUILD_MATCHER,
+          bbb);
+    check("build:(id:" + bId + "),status:failure", TEST_WITH_BUILD_MATCHER,
+          bbb);
+    check("build:(id:" + bId + "),status:unknown", TEST_WITH_BUILD_MATCHER,
+          ccc);
+    check("build:(id:" + bId + "),ignored:true", TEST_WITH_BUILD_MATCHER,
+          ccc);
+    check("build:(id:" + bId + "),ignored:false", TEST_WITH_BUILD_MATCHER,
+          aaa,
+          bbb);
+  }
+
+  @Test
   public void testTestOccurrenceEntityInvocations() throws Exception {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
     final SFinishedBuild build10 = build().in(buildType)
@@ -278,7 +313,8 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     public boolean matches(@NotNull final TestRunData data, @NotNull final STestRun sTestRun) {
       return data.testName.equals(sTestRun.getTest().getName().getAsString()) &&
              data.status.equals(sTestRun.getStatus()) &&
-             data.orderId == sTestRun.getOrderId();
+             data.orderId == sTestRun.getOrderId() &&
+             (Status.UNKNOWN.equals(data.status) == sTestRun.isIgnored());
     }
   };
 
