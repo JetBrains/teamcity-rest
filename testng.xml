@@ -33,9 +33,11 @@
       <class name="jetbrains.buildServer.server.rest.model.PropertiesTest"/>
 
       <class name="jetbrains.buildServer.server.rest.request.BuildTypeRequestTest"/>
-      <class name="jetbrains.buildServer.server.rest.request.UserRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.GroupRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.InvestigationRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.MuteRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.ProjectRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.UserRequestTest"/>
     </classes>
   </test>
 </suite>

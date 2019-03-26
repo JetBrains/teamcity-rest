@@ -28,6 +28,7 @@ import jetbrains.buildServer.responsibility.ResponsibilityFacadeEx;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
+import jetbrains.buildServer.server.rest.data.mutes.MuteFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
@@ -43,6 +44,8 @@ import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.mute.LowLevelProblemMutingService;
+import jetbrains.buildServer.serverSide.mute.LowLevelProblemMutingServiceImpl;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
 import jetbrains.buildServer.serverSide.versionedSettings.VersionedSettingsManager;
@@ -74,6 +77,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected ProblemOccurrenceFinder myProblemOccurrenceFinder;
   protected TestOccurrenceFinder myTestOccurrenceFinder;
   protected InvestigationFinder myInvestigationFinder;
+  protected MuteFinder myMuteFinder;
   protected AgentPoolFinder myAgentPoolFinder;
   protected QueuedBuildFinder myQueuedBuildFinder;
   protected BranchFinder myBranchFinder;
@@ -168,6 +172,10 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myInvestigationFinder = new InvestigationFinder(myProjectFinder, myBuildTypeFinder, myProblemFinder, myTestFinder, myUserFinder,
                                                     responsibilityFacade, responsibilityFacade, responsibilityFacade);
     myFixture.addService(myInvestigationFinder);
+
+    myMuteFinder = new MuteFinder(myProjectFinder, myTimeCondition, myPermissionChecker, problemMutingService,
+                                  (LowLevelProblemMutingServiceImpl)myFixture.getSingletonService(LowLevelProblemMutingService.class), myFixture);
+    myFixture.addService(myMuteFinder);
 
     myQueuedBuildFinder =
       new QueuedBuildFinder(myServer.getQueue(), myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myFixture.getBuildPromotionManager(), myServer);
