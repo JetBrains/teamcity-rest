@@ -20,8 +20,10 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
@@ -183,5 +185,14 @@ public class TestOccurrence {
       throw new IllegalArgumentException("Cannot find test with name " + sampleTestRun.getFullText() + " in build " + build);
     }
     return testRun;
+  }
+
+  @NotNull
+  public static Status getStatusFromPosted(@NotNull String statusText) {
+    Status result = Status.getStatus(statusText.toUpperCase());
+    if (result == null) {
+      throw new BadRequestException("Unsupported value '" + statusText + "'. Supported values are: " + Status.NORMAL.getText().toLowerCase() + ", " + Status.FAILURE.getText().toLowerCase());
+    }
+    return result;
   }
 }

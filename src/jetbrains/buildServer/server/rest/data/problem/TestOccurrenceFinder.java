@@ -18,10 +18,12 @@ package jetbrains.buildServer.server.rest.data.problem;
 
 import com.google.common.collect.ComparisonChain;
 import java.util.*;
+import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
@@ -381,11 +383,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     final String statusDimension = locator.getSingleDimensionValue(STATUS);
     if (statusDimension != null) {
-      result.add(new FilterConditionChecker<STestRun>() {
-        public boolean isIncluded(@NotNull final STestRun item) {
-          return statusDimension.equals(item.getStatus().getText()); //todo: support $help here
-        }
-      });
+      Status status = TestOccurrence.getStatusFromPosted(statusDimension);
+      result.add(item -> status.equals(item.getStatus()));
     }
 
     final Boolean ignoredDimension = locator.getSingleDimensionValueAsBoolean(IGNORED);

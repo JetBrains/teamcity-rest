@@ -248,11 +248,18 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
           bbb);
     check("build:(id:" + bId + "),status:unknown", TEST_WITH_BUILD_MATCHER,
           ccc);
+    checkExceptionOnItemsSearch(BadRequestException.class, "build:(id:" + bId + "),status:AAA");
+
     check("build:(id:" + bId + "),ignored:true", TEST_WITH_BUILD_MATCHER,
           ccc);
     check("build:(id:" + bId + "),ignored:false", TEST_WITH_BUILD_MATCHER,
           aaa,
           bbb);
+
+    check("build:(id:" + bId + "),ignored:any", TEST_WITH_BUILD_MATCHER,
+          aaa,
+          bbb,
+          ccc);
   }
 
   @Test
