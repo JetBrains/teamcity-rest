@@ -186,6 +186,7 @@ public class APIController extends BaseController implements ServletContextAware
     List<String> bindPaths = new ArrayList<String>(originalBindPaths);
     bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.HTTP_AUTH_PREFIX)));
     bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.GUEST_AUTH_PREFIX)));
+    bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.TOKEN_AUTH_PREFIX)));
 
     Map<String, String> transformBindPaths = new HashMap<String, String>();
     addEntries(transformBindPaths, bindPaths, Constants.API_URL);
