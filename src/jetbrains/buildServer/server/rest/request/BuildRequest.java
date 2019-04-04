@@ -727,7 +727,7 @@ public class BuildRequest {
   public TestOccurrences getTests(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     //todo: investigate test repeat counts support
-    return new TestOccurrences(TestOccurrenceFinder.getBuildStatistics(build).getAllTests(), TestOccurrenceRequest.getHref(build), null, new Fields(fields), myBeanContext);
+    return new TestOccurrences(TestOccurrenceFinder.getBuildStatistics(build, null).getAllTests(), TestOccurrenceRequest.getHref(build), null, new Fields(fields), myBeanContext);
   }
 
   /**

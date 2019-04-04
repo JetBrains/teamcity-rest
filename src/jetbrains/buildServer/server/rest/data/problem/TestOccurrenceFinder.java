@@ -23,6 +23,7 @@ import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
@@ -187,7 +188,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         for (BuildPromotion build : builds) {
           SBuild associatedBuild = build.getAssociatedBuild();
           if (associatedBuild != null) {
-            result.add(getPossibleExpandedTestsHolder(getBuildStatistics(associatedBuild).getAllTests(), locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS)));
+            result.add(getPossibleExpandedTestsHolder(getBuildStatistics(associatedBuild, locator).getAllTests(), locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS)));
           }
         }
         return result;
@@ -381,9 +382,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       }
     }
 
-    final String statusDimension = locator.getSingleDimensionValue(STATUS);
-    if (statusDimension != null) {
-      Status status = TestOccurrence.getStatusFromPosted(statusDimension);
+    Status status = Util.resolveNull(locator.getSingleDimensionValue(STATUS), TestOccurrence::getStatusFromPosted);
+    if (status != null) {
       result.add(item -> status.equals(item.getStatus()));
     }
 
@@ -536,26 +536,33 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  public static BuildStatistics getBuildStatistics(@NotNull final SBuild build) {
+  public static BuildStatistics getBuildStatistics(@NotNull final SBuild build, @Nullable final Locator locator) {
     //  This is different from build.getFullStatistics() in the following ways:
     //  - stacktrace are not pre-loaded (loads all them into memory), but will be retrieved in a lazy fashion
     //  - compilation errors are not loaded (not necessary)
 
     //ideally, need to check what will be used in the response and request only those details
-    BuildStatisticsOptions options = new BuildStatisticsOptions(
-      BuildStatisticsOptions.PASSED_TESTS
-      | BuildStatisticsOptions.IGNORED_TESTS
-      | BuildStatisticsOptions.FIRST_FAILED_IN_BUILD
-      | BuildStatisticsOptions.FIXED_IN_BUILD
-      , 0);
-    return build.getBuildStatistics(options);
+    int optionsMask = BuildStatisticsOptions.FIRST_FAILED_IN_BUILD |
+                      BuildStatisticsOptions.FIXED_IN_BUILD;
+    boolean loadAllTests = TeamCityProperties.getBooleanOrTrue("rest.request.testOccurrences.loadAllTestsForBuild");
+    if (locator == null || loadAllTests || FilterUtil.isIncludingBooleanFilter(locator.lookupSingleDimensionValueAsBoolean(IGNORED))) {
+      optionsMask |= BuildStatisticsOptions.IGNORED_TESTS;
+    }
+
+    if (locator == null || loadAllTests || Util.resolveNull(locator.lookupSingleDimensionValue(STATUS), TestOccurrence::getStatusFromPosted) != Status.FAILURE) {
+      optionsMask |= BuildStatisticsOptions.PASSED_TESTS;
+    }
+
+    return build.getBuildStatistics(new BuildStatisticsOptions(optionsMask, 0));
   }
 
+  //todo: use getBuildStatistics
   @Nullable
   private STestRun findTest(final @NotNull Long testNameId, final @NotNull SBuild build) {
     return build.getBuildStatistics(ALL_TESTS_NO_DETAILS).findTestByTestNameId(testNameId);
   }
 
+  //todo: use getBuildStatistics
   @Nullable
   private STestRun findTestByTestRunId(@NotNull final Long testRunId, @NotNull final SBuild build) {
     //todo: TeamCity API (MP) how to implement this without build?

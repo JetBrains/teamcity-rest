@@ -26,4 +26,12 @@ public class FilterUtil {
   public static boolean isIncludedByBooleanFilter(@Nullable final Boolean filterValue, @Nullable final Boolean actualValue) {
     return filterValue == null || actualValue == null || (!(filterValue ^ actualValue));
   }
+
+  public static boolean isIncludingBooleanFilter(@Nullable final Boolean value) {
+    return value == null || value;
+  }
+
+  public static boolean isTrue(@Nullable final Boolean value) {
+    return value != null && value;
+  }
 }
