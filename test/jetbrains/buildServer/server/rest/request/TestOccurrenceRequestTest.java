@@ -55,13 +55,13 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
       assertEquals(Integer.valueOf(1), testOccurrences.count);
       assertEquals(1, testOccurrences.items.size());
       TestOccurrence testOccurrence = testOccurrences.items.get(0);
-      assertEquals("bbb", testOccurrence.name);
-      assertEquals("2", testOccurrence.runOrder);
-      assertEquals(Integer.valueOf(67), testOccurrence.duration);
-      assertEquals("FAILURE", testOccurrence.status);
-      assertEquals(Boolean.valueOf(false), testOccurrence.ignored);
-      assertNull(testOccurrence.ignoreDetails);
-      assertEquals("error message\nstacktrace\nline 1\r\nline2\n------- Stdout: -------\nstd out\n------- Stderr: -------\nstr err", testOccurrence.details);
+      assertEquals("bbb", testOccurrence.getName());
+      assertEquals("2", testOccurrence.getRunOrder());
+      assertEquals(Integer.valueOf(67), testOccurrence.getDuration());
+      assertEquals("FAILURE", testOccurrence.getStatus());
+      assertEquals(Boolean.valueOf(false), testOccurrence.getIgnored());
+      assertNull(testOccurrence.getIgnoreDetails());
+      assertEquals("error message\nstacktrace\nline 1\r\nline2\n------- Stdout: -------\nstd out\n------- Stderr: -------\nstr err", testOccurrence.getDetails());
     }
 
 
@@ -76,13 +76,13 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
       assertEquals(Integer.valueOf(1), testOccurrences.count);
       assertEquals(1, testOccurrences.items.size());
       TestOccurrence testOccurrence = testOccurrences.items.get(0);
-      assertEquals("ccc", testOccurrence.name);
-      assertEquals("3", testOccurrence.runOrder);
-      assertEquals(Integer.valueOf(0), testOccurrence.duration);
-      assertEquals("UNKNOWN", testOccurrence.status);
-      assertEquals(Boolean.valueOf(true), testOccurrence.ignored);
-      assertEquals("Ignore reason", testOccurrence.ignoreDetails);
-      assertNull(testOccurrence.details);
+      assertEquals("ccc", testOccurrence.getName());
+      assertEquals("3", testOccurrence.getRunOrder());
+      assertEquals(Integer.valueOf(0), testOccurrence.getDuration());
+      assertEquals("UNKNOWN", testOccurrence.getStatus());
+      assertEquals(Boolean.valueOf(true), testOccurrence.getIgnored());
+      assertEquals("Ignore reason", testOccurrence.getIgnoreDetails());
+      assertNull(testOccurrence.getDetails());
     }
 
     //checking how ignored and failed test looks like. Just asserting current behavior
@@ -97,13 +97,13 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
       assertEquals(Integer.valueOf(1), testOccurrences.count);
       assertEquals(1, testOccurrences.items.size());
       TestOccurrence testOccurrence = testOccurrences.items.get(0);
-      assertEquals("ccc", testOccurrence.name);
-      assertEquals("3", testOccurrence.runOrder);
-      assertEquals(Integer.valueOf(0), testOccurrence.duration);
-      assertEquals("FAILURE", testOccurrence.status);
-      assertEquals(Boolean.valueOf(false), testOccurrence.ignored);
-      assertEquals(null, testOccurrence.ignoreDetails);
-      assertEquals("error message\nstacktrace\nline 1\nline2", testOccurrence.details);
+      assertEquals("ccc", testOccurrence.getName());
+      assertEquals("3", testOccurrence.getRunOrder());
+      assertEquals(Integer.valueOf(0), testOccurrence.getDuration());
+      assertEquals("FAILURE", testOccurrence.getStatus());
+      assertEquals(Boolean.valueOf(false), testOccurrence.getIgnored());
+      assertEquals(null, testOccurrence.getIgnoreDetails());
+      assertEquals("error message\nstacktrace\nline 1\nline2", testOccurrence.getDetails());
     }
   }
 }

@@ -25,12 +25,15 @@ import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.mute.MuteInfo;
+import jetbrains.buildServer.serverSide.MultiTestRun;
+import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.STestRun;
+import jetbrains.buildServer.serverSide.TestRunEx;
 import org.jetbrains.annotations.NotNull;
 
 import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_NO_DETAILS;
@@ -38,144 +41,159 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
 /**
  * @author Yegor.Yarko
  */
-@SuppressWarnings({"PublicField", "WeakerAccess"})
+@SuppressWarnings({"WeakerAccess"})
 @XmlRootElement(name = "testOccurrence")
-@XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "duration", "runOrder"/*experimental*/, "muted", "currentlyMuted", "currentlyInvestigated", "href",
+@XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "duration", "runOrder"/*experimental*/, "muted", "currentlyMuted", "currentlyInvestigated",
+  "href",
   "ignoreDetails", "details", "test", "mute", "build", "firstFailed", "nextFixed", "invocations", "metadata"})
 public class TestOccurrence {
-  @XmlAttribute public String id;
-  @XmlAttribute public String name;
-  @XmlAttribute public String runOrder; /*experimental*/
-  @XmlAttribute public String status;
-  @XmlAttribute public Boolean ignored;
-  @XmlAttribute public String href;
-  @XmlAttribute public Integer duration;//test run duration in milliseconds
-
-  /**
-   * Experimental! "true" is the test occurrence was muted, not present otherwise
-   */
-  @XmlAttribute public Boolean muted;
-  /**
-   * Experimental! "true" is the test has investigation at the moment of request, not present otherwise
-   */
-  @XmlAttribute public Boolean currentlyInvestigated;
-  /**
-   * Experimental! "true" is the test is muted at the moment of request, not present otherwise
-   */
-  @XmlAttribute public Boolean currentlyMuted;
-  /**
-   * Experimental
-   */
-  @XmlAttribute public String logAnchor;
-
-  @XmlElement public String ignoreDetails;
-  @XmlElement public String details; //todo: consider using CDATA output here
-
-  @XmlElement public Test test;
-  @XmlElement public Mute mute;
-
-  @XmlElement public Build build;
-  @XmlElement public TestOccurrence firstFailed;
-  @XmlElement public TestOccurrence nextFixed;
-  @XmlElement public TestOccurrences invocations;
-  /**
-   * Experimental! Exposes test run metadata
-   */
-  @XmlElement public TestRunMetadata metadata;
+  @NotNull private BeanContext myBeanContext;
+  @NotNull private Fields myFields;
+  @NotNull private STestRun myTestRun;
+  private TestOccurrenceFinder myTestOccurrenceFinder;
 
   public TestOccurrence() {
   }
 
   public TestOccurrence(final @NotNull STestRun testRun, final @NotNull BeanContext beanContext, @NotNull final Fields fields) {
-    final STest sTest = testRun.getTest();
+    myTestRun = testRun;
+    myBeanContext = beanContext;
+    myFields = fields;
+
+    myTestOccurrenceFinder = myBeanContext.getSingletonService(TestOccurrenceFinder.class);
+  }
+
+  @XmlAttribute
+  public String getId() {
     //STestRun.getTestRunId() can be the same between different builds
-    id = ValueWithDefault.decideDefault(fields.isIncluded("id"), TestOccurrenceFinder.getTestRunLocator(testRun));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("id"), TestOccurrenceFinder.getTestRunLocator(myTestRun));
+  }
 
-    name = ValueWithDefault.decideDefault(fields.isIncluded("name"), sTest.getName().getAsString());
+  @XmlAttribute
+  public String getName() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("name"), myTestRun.getTest().getName().getAsString());
+  }
 
-    status = ValueWithDefault.decideDefault(fields.isIncluded("status"), testRun.getStatus().getText());
+  @XmlAttribute
+  public String getRunOrder() /*experimental*/ {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("runOrder", false, false), String.valueOf(myTestRun.getOrderId()));
+  }
 
-    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(TestOccurrenceRequest.getHref(testRun)));
+  @XmlAttribute
+  public String getStatus() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("status"), myTestRun.getStatus().getText());
+  }
 
-    duration = ValueWithDefault.decideDefault(fields.isIncluded("duration"), testRun.getDuration());
+  @XmlAttribute
+  public Boolean getIgnored() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("ignored"), myTestRun.isIgnored());
+  }
 
-    runOrder = ValueWithDefault.decideDefault(fields.isIncluded("runOrder", false, false), String.valueOf(testRun.getOrderId()));
+  @XmlAttribute
+  public String getHref() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("href"), myBeanContext.getApiUrlBuilder().transformRelativePath(TestOccurrenceRequest.getHref(myTestRun)));
+  }
 
-    ignored = ValueWithDefault.decideDefault(fields.isIncluded("ignored"), testRun.isIgnored());
+  @XmlAttribute
+  public Integer getDuration() { //test run duration in milliseconds
+    return ValueWithDefault.decideDefault(myFields.isIncluded("duration"), myTestRun.getDuration());
+  }
 
-    final MuteInfo muteInfo = testRun.getMuteInfo();
-    muted = ValueWithDefault.decideDefault(fields.isIncluded("muted"), muteInfo != null);
 
-    final TestOccurrenceFinder testOccurrenceFinder = beanContext.getSingletonService(TestOccurrenceFinder.class);
-    currentlyInvestigated = ValueWithDefault.decideDefault(fields.isIncluded("currentlyInvestigated"), new ValueWithDefault.Value<Boolean>() {
-      public Boolean get() {
-        return testOccurrenceFinder.isCurrentlyInvestigated(testRun);
-      }
-    });
-    currentlyMuted = ValueWithDefault.decideDefault(fields.isIncluded("currentlyMuted"), new ValueWithDefault.Value<Boolean>() {
-      public Boolean get() {
-        return testOccurrenceFinder.isCurrentlyMuted(testRun);
-      }
-    });
+  /**
+   * Experimental! "true" is the test occurrence was muted, not present otherwise
+   */
+  @XmlAttribute
+  public Boolean getMuted() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("muted"), myTestRun.getMuteInfo() != null);
+  }
 
-    logAnchor = ValueWithDefault.decideDefault(fields.isIncluded("logAnchor", false, false), () -> String.valueOf(testRun.getTestRunId()));
+  /**
+   * Experimental! "true" is the test has investigation at the moment of request, not present otherwise
+   */
+  @XmlAttribute
+  public Boolean getCurrentlyInvestigated() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("currentlyInvestigated"), () -> myTestOccurrenceFinder.isCurrentlyInvestigated(myTestRun));
+  }
 
-    details = ValueWithDefault.decideDefault(fields.isIncluded("details", false), new ValueWithDefault.Value<String>() {
-      public String get() {
-        return testRun.getFullText();
-      }
-    });
+  /**
+   * Experimental! "true" is the test is muted at the moment of request, not present otherwise
+   */
+  @XmlAttribute
+  public Boolean getCurrentlyMuted() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("currentlyMuted"), () -> myTestOccurrenceFinder.isCurrentlyMuted(myTestRun));
+  }
+
+  /**
+   * Experimental
+   */
+  @XmlAttribute
+  public String getLogAnchor() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("logAnchor", false, false), () -> String.valueOf(myTestRun.getTestRunId()));
+  }
+
+  @XmlElement
+  public String getIgnoreDetails() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("ignoreDetails", false), () -> myTestRun.getIgnoreComment());
+  }
+
+  @XmlElement
+  public String getDetails() { //todo: consider using CDATA output her
     //consider providing separate stacktrace, stdout and stderr, see implementation of jetbrains.buildServer.serverSide.stat.TestFullTextBuilderImpl.getFullText()
-    ignoreDetails = ValueWithDefault.decideDefault(fields.isIncluded("ignoreDetails", false), new ValueWithDefault.Value<String>() {
-      public String get() {
-        return testRun.getIgnoreComment();
-      }
-    });
+    return ValueWithDefault.decideDefault(myFields.isIncluded("details", false), () -> myTestRun.getFullText());
+  }
 
-    test = ValueWithDefault.decideDefault(fields.isIncluded("test", false), new ValueWithDefault.Value<Test>() {
-      public Test get() {
-        return new Test(sTest, beanContext, fields.getNestedField("test"));
-      }
-    });
+  @XmlElement
+  public Test getTest() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("test", false), () -> new Test(myTestRun.getTest(), myBeanContext, myFields.getNestedField("test")));
+  }
 
-    mute = muteInfo == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("mute", false), new ValueWithDefault.Value<Mute>() {
-      public Mute get() {
-        return new Mute(muteInfo, fields.getNestedField("mute", Fields.NONE, Fields.LONG), beanContext);
-      }
-    });
+  @XmlElement
+  public Mute getMute() {
+    return Util.resolveNull(myTestRun.getMuteInfo(),
+                            (mi) -> ValueWithDefault.decideDefault(myFields.isIncluded("mute", false),
+                                                                   () -> new Mute(mi, myFields.getNestedField("mute", Fields.NONE, Fields.LONG), myBeanContext)));
+  }
 
-    build = ValueWithDefault.decideDefault(fields.isIncluded("build", false), new ValueWithDefault.Value<Build>() {
-      public Build get() {
-        return new Build(testRun.getBuild(), fields.getNestedField("build"), beanContext);
-      }
-    });
+  @XmlElement
+  public Build getBuild() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("build", false), () -> new Build(myTestRun.getBuild(), myFields.getNestedField("build"), myBeanContext));
+  }
 
-    firstFailed = ValueWithDefault.decideDefault(fields.isIncluded("firstFailed", false), new ValueWithDefault.Value<TestOccurrence>() {
-      public TestOccurrence get() {
-        final SBuild firstFailedInBuild = testRun.getFirstFailed();
-        return firstFailedInBuild == null ? null : new TestOccurrence(getTestRun(firstFailedInBuild, testRun), beanContext, fields.getNestedField("firstFailed"));
-      }
-    });
+  @XmlElement
+  public TestOccurrence getFirstFailed() {
+    //todo: use FirstFailedInFixedInCalculator#calculateFFIData instead???
+    return ValueWithDefault.decideDefault(myFields.isIncluded("firstFailed", false),
+                                          () -> Util.resolveNull(myTestRun.getFirstFailed(),
+                                                                 (ff) -> new TestOccurrence(getTestRun(ff, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
+  }
 
-    nextFixed = ValueWithDefault.decideDefault(fields.isIncluded("nextFixed", false), new ValueWithDefault.Value<TestOccurrence>() {
-      public TestOccurrence get() {
-        final SBuild fixedInBuild = testRun.getFixedIn();
-        return fixedInBuild == null ? null : new TestOccurrence(getTestRun(fixedInBuild, testRun), beanContext, fields.getNestedField("firstFailed"));
-      }
-    });
+  @XmlElement
+  public TestOccurrence getNextFixed() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("nextFixed", false),
+                                          () -> Util.resolveNull(myTestRun.getFixedIn(),
+                                                                 (fi) -> new TestOccurrence(getTestRun(fi, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
+  }
 
-    invocations = ValueWithDefault.decideDefault(fields.isIncluded("invocations", false, false), new ValueWithDefault.Value<TestOccurrences>() {
-      public TestOccurrences get() {
-        if (!(testRun instanceof MultiTestRun)) return null;
-        Fields nestedField = fields.getNestedField("invocations");
-        String invocationsLocator = Locator.merge(TestOccurrenceFinder.getTestInvocationsLocator(testRun), nestedField.getLocator());
-        return new TestOccurrences(testOccurrenceFinder.getItems(invocationsLocator).myEntries, testRun.getInvocationCount(), null, testRun.getFailedInvocationCount(),
-                                   null, null, null, null, null, nestedField, beanContext);
-      }
+  @XmlElement
+  public TestOccurrences getInvocations() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("invocations", false, false), () -> {
+      if (!(myTestRun instanceof MultiTestRun)) return null;
+      Fields nestedField = myFields.getNestedField("invocations");
+      String invocationsLocator = Locator.merge(TestOccurrenceFinder.getTestInvocationsLocator(myTestRun), nestedField.getLocator());
+      return new TestOccurrences(myTestOccurrenceFinder.getItems(invocationsLocator).myEntries, myTestRun.getInvocationCount(), null, myTestRun.getFailedInvocationCount(), null,
+                                 null, null, null, null, nestedField, myBeanContext);
     });
+  }
 
-    metadata = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("metadata", false, false),
-                                                                  () -> new TestRunMetadata(((TestRunEx)testRun).getMetadata(), fields.getNestedField("metadata", Fields.SHORT, Fields.LONG)));
+  /**
+   * Experimental! Exposes test run metadata
+   */
+  @XmlElement
+  public TestRunMetadata getMetadata() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("metadata", false, false),
+                                                              () -> new TestRunMetadata(((TestRunEx)myTestRun).getMetadata(),
+                                                                                        myFields.getNestedField("metadata", Fields.SHORT, Fields.LONG)));
   }
 
   @NotNull

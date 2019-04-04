@@ -280,19 +280,19 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     {
       TestOccurrence testOccurrence = new TestOccurrence(testRunAAA, getBeanContext(myServer), new Fields("invocations($long)"));
-      assertEquals(Integer.valueOf(4), testOccurrence.invocations.count);
-      assertEquals(Integer.valueOf(1), testOccurrence.invocations.failed);
-      assertNotNull(testOccurrence.invocations.items);
-      assertEquals(4, testOccurrence.invocations.items.size());
-      assertEquals("SUCCESS", testOccurrence.invocations.items.get(0).status);
-      assertEquals("FAILURE", testOccurrence.invocations.items.get(2).status);
+      assertEquals(Integer.valueOf(4), testOccurrence.getInvocations().count);
+      assertEquals(Integer.valueOf(1), testOccurrence.getInvocations().failed);
+      assertNotNull(testOccurrence.getInvocations().items);
+      assertEquals(4, testOccurrence.getInvocations().items.size());
+      assertEquals("SUCCESS", testOccurrence.getInvocations().items.get(0).getStatus());
+      assertEquals("FAILURE", testOccurrence.getInvocations().items.get(2).getStatus());
     }
     {
       TestOccurrence testOccurrence = new TestOccurrence(testRunAAA, getBeanContext(myServer), new Fields("invocations($long,$locator(status:FAILURE))"));
-      assertEquals(Integer.valueOf(1), testOccurrence.invocations.count);
-      assertNotNull(testOccurrence.invocations.items);
-      assertEquals(1, testOccurrence.invocations.items.size());
-      assertEquals("FAILURE", testOccurrence.invocations.items.get(0).status);
+      assertEquals(Integer.valueOf(1), testOccurrence.getInvocations().count);
+      assertNotNull(testOccurrence.getInvocations().items);
+      assertEquals(1, testOccurrence.getInvocations().items.size());
+      assertEquals("FAILURE", testOccurrence.getInvocations().items.get(0).getStatus());
     }
   }
 
@@ -307,8 +307,8 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     STestRun testRun = finishBuild().getFullStatistics().getAllTests().get(0);
 
     TestOccurrence testOccurrence = new TestOccurrence(testRun, getBeanContext(myServer), new Fields("metadata"));
-    assertEquals(Integer.valueOf(2), testOccurrence.metadata.count);
-    final List<TypedValue> items = testOccurrence.metadata.typedValues;
+    assertEquals(Integer.valueOf(2), testOccurrence.getMetadata().count);
+    final List<TypedValue> items = testOccurrence.getMetadata().typedValues;
     assertEquals(items.size(), 2);
     System.out.println("items = " + StringUtil.join("\n", items));
     assertTrue(items.contains(new TypedValue("some key", "link", "value", Fields.LONG)));
