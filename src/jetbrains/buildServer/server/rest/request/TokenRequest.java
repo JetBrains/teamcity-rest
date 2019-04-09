@@ -16,14 +16,17 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import java.util.List;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.auth.TokenAuthenticationModel;
+import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.impl.DebugLogUtils;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,8 +36,9 @@ import org.jetbrains.annotations.NotNull;
 @Path(TokenRequest.API_TOKENS_URL)
 @Api("Token")
 public class TokenRequest {
+  private static final Logger LOG = Loggers.SERVER;
   private static final String TOKENS_ROOT_REQUEST_PATH = "/tokens";
-  public static final String API_TOKENS_URL = Constants.API_URL + TOKENS_ROOT_REQUEST_PATH;
+  static final String API_TOKENS_URL = Constants.API_URL + TOKENS_ROOT_REQUEST_PATH;
   @Context
   private ServiceLocator myServiceLocator;
   @Context
@@ -47,6 +51,7 @@ public class TokenRequest {
                             @Context @NotNull final BeanContext beanContext) {
     final TokenAuthenticationModel tokenAuthenticationModel = myServiceLocator.getSingletonService(TokenAuthenticationModel.class);
     final SUser currentUser = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
+    DebugLogUtils.debug(LOG, "Creating token with name '", name, "' for user '", currentUser.getId(), "'");
     return tokenAuthenticationModel.createToken(currentUser.getId(), name);
   }
 
@@ -56,6 +61,7 @@ public class TokenRequest {
   public List<String> listUserTokens(@Context @NotNull final BeanContext beanContext) {
     final TokenAuthenticationModel tokenAuthenticationModel = myServiceLocator.getSingletonService(TokenAuthenticationModel.class);
     final SUser currentUser = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
+    DebugLogUtils.debug(LOG, "Listing tokens for user '", currentUser.getId(), "'");
     return tokenAuthenticationModel.getUserTokenNames(currentUser.getId());
   }
 
@@ -66,6 +72,7 @@ public class TokenRequest {
                           @Context @NotNull final BeanContext beanContext) {
     final TokenAuthenticationModel tokenAuthenticationModel = myServiceLocator.getSingletonService(TokenAuthenticationModel.class);
     final SUser currentUser = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
+    DebugLogUtils.debug(LOG, "Deleting token with name '", name, "' for user '", currentUser.getId(), "'");
     tokenAuthenticationModel.deleteToken(currentUser.getId(), name);
   }
 }
