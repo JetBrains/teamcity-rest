@@ -74,8 +74,11 @@ public class TestOccurrence {
     return ValueWithDefault.decideDefault(myFields.isIncluded("name"), myTestRun.getTest().getName().getAsString());
   }
 
+  /**
+   * Experimental and to be dropped as the number is not stable: it actually depends on the set of queried tests
+   */
   @XmlAttribute
-  public String getRunOrder() /*experimental*/ {
+  public String getRunOrder() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("runOrder", false, false), String.valueOf(myTestRun.getOrderId()));
   }
 

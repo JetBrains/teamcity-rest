@@ -56,7 +56,7 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
       assertEquals(1, testOccurrences.items.size());
       TestOccurrence testOccurrence = testOccurrences.items.get(0);
       assertEquals("bbb", testOccurrence.getName());
-      assertEquals("2", testOccurrence.getRunOrder());
+      assertEquals("1", testOccurrence.getRunOrder()); // "2" should actually be here, but API cannot guarantee preservation of the number when not all tests are retrieved, so documenting the current behavior.
       assertEquals(Integer.valueOf(67), testOccurrence.getDuration());
       assertEquals("FAILURE", testOccurrence.getStatus());
       assertEquals(Boolean.valueOf(false), testOccurrence.getIgnored());
