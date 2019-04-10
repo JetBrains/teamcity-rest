@@ -89,7 +89,8 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
     final SFinishedBuild build30 = build().in(buildType)
                                           .withTest(BuildBuilder.TestData.test("aaa").duration(76))
                                           .withTest(BuildBuilder.TestData.test("bbb").failed("error message", "stacktrace\nline 1\nline2").duration(67))
-                                          .withTest(BuildBuilder.TestData.test("ccc").ignored("Ignore reason").failed("error message", "stacktrace\nline 1\nline2").duration(67))
+                                          .withTest(BuildBuilder.TestData.test("ccc").failed("error message", "stacktrace\nline 1\nline2").duration(67))
+                                          .withTest(BuildBuilder.TestData.test("ccc").ignored("Ignore reason"))
                                           .finish();
     {
       TestOccurrences testOccurrences = myRequest.getTestOccurrences("build:(id:" + build30.getBuildId() + "),test:(name:ccc)", "**", null, null);
@@ -99,10 +100,9 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
       TestOccurrence testOccurrence = testOccurrences.items.get(0);
       assertEquals("ccc", testOccurrence.getName());
       assertEquals("3", testOccurrence.getRunOrder());
-      assertEquals(Integer.valueOf(0), testOccurrence.getDuration());
+      assertEquals(Integer.valueOf(67), testOccurrence.getDuration());
       assertEquals("FAILURE", testOccurrence.getStatus());
       assertEquals(Boolean.valueOf(false), testOccurrence.getIgnored());
-      assertEquals(null, testOccurrence.getIgnoreDetails());
       assertEquals("error message\nstacktrace\nline 1\nline2", testOccurrence.getDetails());
     }
   }
