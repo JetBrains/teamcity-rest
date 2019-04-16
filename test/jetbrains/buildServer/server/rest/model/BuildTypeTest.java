@@ -227,7 +227,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     collectChangesPolicy.setCurrentState(vcsRootInstance, createVersionState("master", map("master", "1", "aaa", "2", "bbb", "2", "Aaa", "3")));
     setBranchSpec(vcsRootInstance, "+:*");
     myFixture.getVcsModificationChecker().checkForModifications(bt.getVcsRootInstances(), OperationRequestor.UNKNOWN);
-    
+
     Branches branches = buildTypeRequest.serveBranches("id:testBT", "policy:ALL_BRANCHES", Fields.ALL_NESTED.getFieldsSpec());
     assertEquals("<default>", branches.branches.get(0).getInternalName());
     assertEquals("Aaa", branches.branches.get(1).getInternalName());
@@ -521,7 +521,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     {
       BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long,settings($long,$locator(defaults:any))"), myBeanContext);
 
-      assertEquals(20, buildType.getSettings().properties.size());
+      assertEquals(21, buildType.getSettings().properties.size());
       parameterEquals(find(buildType.getSettings().properties, "buildNumberCounter"), "buildNumberCounter", "1", null);
       parameterEquals(find(buildType.getSettings().properties, "buildNumberPattern"), "buildNumberPattern", "aaa", null);
     }
