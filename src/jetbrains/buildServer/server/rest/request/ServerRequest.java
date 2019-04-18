@@ -321,10 +321,11 @@ public class ServerRequest {
       rootPath = new File(myDataProvider.getBean(ServerPaths.class).getBackupDir());
     } else if ("dataDirectory".equals(areaId)) {
       rootPath = myDataProvider.getBean(ServerPaths.class).getDataDirectory();
-    }/*else if (!StringUtil.isEmpty(areaId) && areaId.startsWith("custom.")) {
+    } else if (Boolean.getBoolean("teamcity.unrestrictedOsAccess.enabled") //only if defined via -D so that it is not possible to turn on via internal properties
+               && !StringUtil.isEmpty(areaId) && areaId.startsWith("custom.")) {
       final String customAreaId = areaId.substring("custom.".length());
       rootPath = new File(TeamCityProperties.getProperty("rest.request.server.files.customArea." + customAreaId));
-    }*/ else {
+    } else {
       throw new BadRequestException("Unknown area id '" + areaId + "'. Known are: " + "logs, backups, dataDirectory");
     }
     return rootPath;
