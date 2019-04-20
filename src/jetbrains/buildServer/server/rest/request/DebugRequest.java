@@ -28,8 +28,8 @@ import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.*;
 import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -51,9 +51,9 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
@@ -839,6 +839,28 @@ public class DebugRequest {
     props.put("invocationCount", String.valueOf(NamedThreadUtil.PerfStat.getTotalCount()));
     props.put("time", TimePrinter.createMillisecondsFormatter().formatTime(timeMs));
     return new Properties(Properties.createEntity(props, null), false, null, null, new Fields(fields), myBeanContext);
+  }
+
+  /**
+   * experimental use only.
+   */
+  @POST
+  @Path("/jvm/gc")
+  public void requestGc(@Context HttpServletRequest request) {
+    myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
+    Loggers.SERVER.info("JVM GC is requested by user " + myPermissionChecker.getCurrentUserDescription() + " via REST request " + WebUtil.getRequestDump(request));
+    System.gc();
+  }
+
+  /**
+   * experimental use only.
+   */
+  @POST
+  @Path("/jvm/finalization")
+  public void requestFinalization(@Context HttpServletRequest request) {
+    myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
+    Loggers.SERVER.info("JVM finalization is requested by user " + myPermissionChecker.getCurrentUserDescription() + " via REST request " + WebUtil.getRequestDump(request));
+    System.runFinalization();
   }
 
   /**
