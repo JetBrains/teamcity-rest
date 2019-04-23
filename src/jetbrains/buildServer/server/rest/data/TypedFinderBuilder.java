@@ -635,7 +635,15 @@ public class TypedFinderBuilder<ITEM> {
     @Nullable
     <TYPE> List<TYPE> get(@NotNull Dimension<TYPE> dimension);
 
+    /**
+     * Same as get, but does not mark the dimension as used
+     */
+    @Nullable
+    <TYPE> List<TYPE> lookup(@NotNull Dimension<TYPE> dimension);
+
     Set<String> getUsedDimensions();
+
+    Set<String> getUnusedDimensions();
   }
 
   public static interface DimensionConditions {
@@ -1029,10 +1037,21 @@ public class TypedFinderBuilder<ITEM> {
         return myDimensionObjects.get(dimension);
       }
 
+      @Nullable
+      @Override
+      public <TYPE> List<TYPE> lookup(@NotNull final Dimension<TYPE> dimension) {
+        return myDimensionObjects.lookup(dimension);
+      }
+
       @NotNull
       @Override
       public Set<String> getUsedDimensions() {
         return usedDimensions;
+      }
+
+      @NotNull
+      public Set<String> getUnusedDimensions() {
+        return myDimensionObjects.getUnusedDimensions();
       }
     }
   }
@@ -1161,6 +1180,12 @@ public class TypedFinderBuilder<ITEM> {
     @Override
     public <TYPE> List<TYPE> get(@NotNull final Dimension<TYPE> dimension) {
       myUsedDimensions.add(dimension.name);
+      return lookup(dimension);
+    }
+
+    @Nullable
+    @Override
+    public <TYPE> List<TYPE> lookup(@NotNull final Dimension<TYPE> dimension) {
       //noinspection unchecked
       return (List<TYPE>)myCache.get(dimension.name);
     }
