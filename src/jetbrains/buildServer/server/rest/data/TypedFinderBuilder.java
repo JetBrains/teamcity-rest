@@ -489,7 +489,7 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderBuilder<ITEM> defaults(@NotNull final DimensionCondition conditions, @NotNull final NameValuePairs defaults) {
-    myDefaultDimensionsConditions.put(conditions, defaults);
+    myDefaultDimensionsConditions.compute(conditions, (dimensionCondition, nameValuePairs) -> NameValuePairs.merge(nameValuePairs, defaults));
     return this;
   }
 
@@ -818,6 +818,16 @@ public class TypedFinderBuilder<ITEM> {
       return this;
     }
 
+    @Nullable
+    public static NameValuePairs merge(@Nullable NameValuePairs one, @Nullable NameValuePairs two) {
+      if (one == null) return two;
+      if (two == null) return one;
+      NameValuePairs result = new NameValuePairs();
+      result.myPairs.putAll(one.myPairs);
+      result.myPairs.putAll(two.myPairs);
+      return result;
+    }
+
     @NotNull
     String get(@NotNull String name) {
       return myPairs.get(name);
@@ -935,18 +945,6 @@ public class TypedFinderBuilder<ITEM> {
         List<ITEM> items = mySingleDimensionHandler.get(locator.getSingleValue());
         if (items == null) throw new OperationException("Single value items provider returned 'null', but it cannot be ignored");
         return FinderDataBinding.getItemHolder(items);
-      }
-
-      for (Map.Entry<DimensionCondition, NameValuePairs> entry : myDefaultDimensionsConditions.entrySet()) {
-        DimensionCondition conditions = entry.getKey();
-        if (conditions.complies(locator)) {
-          NameValuePairs value = entry.getValue();
-          Iterator<NameValuePairs.NameValue> iterator = value.iterator();
-          while (iterator.hasNext()) {
-            NameValuePairs.NameValue next = iterator.next();
-            locator.setDimensionIfNotPresent(next.name, next.value);
-          }
-        }
       }
 
       for (DimensionCondition conditions : myItemsConditions.keySet()) {
@@ -1085,7 +1083,24 @@ public class TypedFinderBuilder<ITEM> {
 
   @NotNull
   public DimensionObjects getDimensionObjects(@NotNull Locator locator) {
+    patchWithDefaultValues(locator);
     return new DimensionObjectsImpl(locator);
+  }
+
+  private void patchWithDefaultValues(final @NotNull Locator locator) {
+    if (!locator.isSingleValue()) {
+      for (Map.Entry<DimensionCondition, NameValuePairs> entry : myDefaultDimensionsConditions.entrySet()) {
+        DimensionCondition conditions = entry.getKey();
+        if (conditions.complies(locator)) {
+          NameValuePairs value = entry.getValue();
+          Iterator<NameValuePairs.NameValue> iterator = value.iterator();
+          while (iterator.hasNext()) {
+            NameValuePairs.NameValue next = iterator.next();
+            locator.setDimensionIfNotPresent(next.name, next.value);
+          }
+        }
+      }
+    }
   }
 
   class DimensionObjectsImpl implements DimensionObjects {
