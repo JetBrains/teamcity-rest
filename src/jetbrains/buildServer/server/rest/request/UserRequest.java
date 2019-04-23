@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import jetbrains.buildServer.auth.TokenAuthenticationModel;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -36,7 +37,6 @@ import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
-import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import jetbrains.buildServer.users.UserModel;
@@ -313,6 +313,46 @@ public class UserRequest {
       throw new NotFoundException("User does not belong to the group");
     }
     group.removeUser(user);
+  }
+
+  @POST
+  @Path("/{userLocator}/tokens/{name}")
+  @Produces({"application/xml", "application/json"})
+  public Token createToken(@PathParam("userLocator") String userLocator,
+                            @PathParam("name") @NotNull final String name) {
+    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
+      myUserFinder.checkViewAllUsersPermission();
+    }
+    final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
+    SUser user = myUserFinder.getItem(userLocator, true);
+    return new Token(name, tokenAuthenticationModel.createToken(user.getId(), name));
+  }
+
+  @GET
+  @Path("/{userLocator}/tokens")
+  @Produces({"application/xml", "application/json"})
+  public Tokens getTokens(@PathParam("userLocator") String userLocator,
+                          @QueryParam("fields") String fields,
+                          @Context @NotNull final BeanContext beanContext) {
+    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
+      myUserFinder.checkViewAllUsersPermission();
+    }
+    final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
+    SUser user = myUserFinder.getItem(userLocator, true);
+    return new Tokens(tokenAuthenticationModel.getUserTokenNames(user.getId()), new Fields(fields));
+  }
+
+  @DELETE
+  @Path("/{userLocator}/tokens/{name}")
+  public void deleteToken(@PathParam("userLocator") String userLocator,
+                          @PathParam("name") @NotNull final String name,
+                          @Context @NotNull final BeanContext beanContext) {
+    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
+      myUserFinder.checkViewAllUsersPermission();
+    }
+    final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
+    SUser user = myUserFinder.getItem(userLocator, true);
+    tokenAuthenticationModel.deleteToken(user.getId(), name);
   }
 
   /**
