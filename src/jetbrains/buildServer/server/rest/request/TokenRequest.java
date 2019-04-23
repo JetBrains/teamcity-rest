@@ -67,7 +67,6 @@ public class TokenRequest {
 
   @DELETE
   @Path("/{name}")
-  @Produces({"application/xml", "application/json"})
   public void deleteToken(@PathParam("name") @NotNull final String name,
                           @Context @NotNull final BeanContext beanContext) {
     final TokenAuthenticationModel tokenAuthenticationModel = myServiceLocator.getSingletonService(TokenAuthenticationModel.class);
