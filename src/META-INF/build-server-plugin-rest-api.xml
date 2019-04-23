@@ -59,6 +59,7 @@
   <bean id="restTestFinder" class="jetbrains.buildServer.server.rest.data.problem.TestFinder"/>
   <bean id="restTestOccurrenceFinder" class="jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder"/>
   <bean id="restBranchFinder" class="jetbrains.buildServer.server.rest.data.BranchFinder"/>
+  <bean id="restAuditEventFinder" class="jetbrains.buildServer.server.rest.data.AuditEventFinder"/>
 
 
   <bean id="timeCondition" class="jetbrains.buildServer.server.rest.data.TimeCondition"/>
@@ -90,6 +91,7 @@
   <bean id="restTestFinderProvider" class="jetbrains.buildServer.server.rest.jersey.TestFinderProvider"/>
   <bean id="restTestOccurrenceFinderProvider" class="jetbrains.buildServer.server.rest.jersey.TestOccurrenceFinderProvider"/>
   <bean id="restBranchFinderProvider" class="jetbrains.buildServer.server.rest.jersey.BranchFinderProvider"/>
+  <bean id="restAuditEventFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AuditEventFinderProvider"/>
 
   <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataUpdaterContextProvider"/>
   <bean id="serviceLocatorContextProvider" class="jetbrains.buildServer.server.rest.jersey.ServiceLocatorContextProvider"/>
