@@ -489,7 +489,7 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderBuilder<ITEM> defaults(@NotNull final DimensionCondition conditions, @NotNull final NameValuePairs defaults) {
-    myDefaultDimensionsConditions.put(conditions, defaults);
+    myDefaultDimensionsConditions.compute(conditions, (dimensionCondition, nameValuePairs) -> NameValuePairs.merge(nameValuePairs, defaults));
     return this;
   }
 
@@ -635,7 +635,15 @@ public class TypedFinderBuilder<ITEM> {
     @Nullable
     <TYPE> List<TYPE> get(@NotNull Dimension<TYPE> dimension);
 
+    /**
+     * Same as get, but does not mark the dimension as used
+     */
+    @Nullable
+    <TYPE> List<TYPE> lookup(@NotNull Dimension<TYPE> dimension);
+
     Set<String> getUsedDimensions();
+
+    Set<String> getUnusedDimensions();
   }
 
   public static interface DimensionConditions {
@@ -818,6 +826,16 @@ public class TypedFinderBuilder<ITEM> {
       return this;
     }
 
+    @Nullable
+    public static NameValuePairs merge(@Nullable NameValuePairs one, @Nullable NameValuePairs two) {
+      if (one == null) return two;
+      if (two == null) return one;
+      NameValuePairs result = new NameValuePairs();
+      result.myPairs.putAll(one.myPairs);
+      result.myPairs.putAll(two.myPairs);
+      return result;
+    }
+
     @NotNull
     String get(@NotNull String name) {
       return myPairs.get(name);
@@ -937,18 +955,6 @@ public class TypedFinderBuilder<ITEM> {
         return FinderDataBinding.getItemHolder(items);
       }
 
-      for (Map.Entry<DimensionCondition, NameValuePairs> entry : myDefaultDimensionsConditions.entrySet()) {
-        DimensionCondition conditions = entry.getKey();
-        if (conditions.complies(locator)) {
-          NameValuePairs value = entry.getValue();
-          Iterator<NameValuePairs.NameValue> iterator = value.iterator();
-          while (iterator.hasNext()) {
-            NameValuePairs.NameValue next = iterator.next();
-            locator.setDimensionIfNotPresent(next.name, next.value);
-          }
-        }
-      }
-
       for (DimensionCondition conditions : myItemsConditions.keySet()) {
         if (conditions.complies(locator)) {
           ItemsFromDimensions<ITEM> itemsFromDimensions = myItemsConditions.get(conditions);
@@ -1031,10 +1037,21 @@ public class TypedFinderBuilder<ITEM> {
         return myDimensionObjects.get(dimension);
       }
 
+      @Nullable
+      @Override
+      public <TYPE> List<TYPE> lookup(@NotNull final Dimension<TYPE> dimension) {
+        return myDimensionObjects.lookup(dimension);
+      }
+
       @NotNull
       @Override
       public Set<String> getUsedDimensions() {
         return usedDimensions;
+      }
+
+      @NotNull
+      public Set<String> getUnusedDimensions() {
+        return myDimensionObjects.getUnusedDimensions();
       }
     }
   }
@@ -1085,7 +1102,24 @@ public class TypedFinderBuilder<ITEM> {
 
   @NotNull
   public DimensionObjects getDimensionObjects(@NotNull Locator locator) {
+    patchWithDefaultValues(locator);
     return new DimensionObjectsImpl(locator);
+  }
+
+  private void patchWithDefaultValues(final @NotNull Locator locator) {
+    if (!locator.isSingleValue()) {
+      for (Map.Entry<DimensionCondition, NameValuePairs> entry : myDefaultDimensionsConditions.entrySet()) {
+        DimensionCondition conditions = entry.getKey();
+        if (conditions.complies(locator)) {
+          NameValuePairs value = entry.getValue();
+          Iterator<NameValuePairs.NameValue> iterator = value.iterator();
+          while (iterator.hasNext()) {
+            NameValuePairs.NameValue next = iterator.next();
+            locator.setDimensionIfNotPresent(next.name, next.value);
+          }
+        }
+      }
+    }
   }
 
   class DimensionObjectsImpl implements DimensionObjects {
@@ -1146,6 +1180,12 @@ public class TypedFinderBuilder<ITEM> {
     @Override
     public <TYPE> List<TYPE> get(@NotNull final Dimension<TYPE> dimension) {
       myUsedDimensions.add(dimension.name);
+      return lookup(dimension);
+    }
+
+    @Nullable
+    @Override
+    public <TYPE> List<TYPE> lookup(@NotNull final Dimension<TYPE> dimension) {
       //noinspection unchecked
       return (List<TYPE>)myCache.get(dimension.name);
     }
