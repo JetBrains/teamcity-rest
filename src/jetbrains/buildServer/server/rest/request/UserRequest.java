@@ -19,7 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
-import jetbrains.buildServer.auth.TokenAuthenticationModel;
+import jetbrains.buildServer.serverSide.auth.TokenAuthenticationModel;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
