@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.auth.AuthenticationToken;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -41,9 +42,9 @@ public class Tokens {
   public Tokens() {
   }
 
-  public Tokens(@NotNull final List<String> tokenNames, @NotNull final Fields fields) {
+  public Tokens(@NotNull final List<AuthenticationToken> tokenNames, @NotNull final Fields fields) {
     if (fields.isIncluded("token", false, true)) {
-      tokens = tokenNames.stream().map(s -> new Token(s)).collect(Collectors.toList());
+      tokens = tokenNames.stream().map(t -> new Token(t.getName(), t.getValue(), t.getCreationTime())).collect(Collectors.toList());
     }
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), tokenNames.size());
   }

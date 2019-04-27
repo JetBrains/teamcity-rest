@@ -19,7 +19,8 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
-import jetbrains.buildServer.auth.TokenAuthenticationModel;
+import jetbrains.buildServer.serverSide.auth.AuthenticationToken;
+import jetbrains.buildServer.serverSide.auth.TokenAuthenticationModel;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -325,7 +326,8 @@ public class UserRequest {
     }
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     SUser user = myUserFinder.getItem(userLocator, true);
-    return new Token(name, tokenAuthenticationModel.createToken(user.getId(), name));
+    final AuthenticationToken token = tokenAuthenticationModel.createToken(user.getId(), name);
+    return new Token(token.getName(), token.getValue(), token.getCreationTime());
   }
 
   @GET
@@ -339,7 +341,7 @@ public class UserRequest {
     }
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     SUser user = myUserFinder.getItem(userLocator, true);
-    return new Tokens(tokenAuthenticationModel.getUserTokenNames(user.getId()), new Fields(fields));
+    return new Tokens(tokenAuthenticationModel.getUserTokens(user.getId()), new Fields(fields));
   }
 
   @DELETE

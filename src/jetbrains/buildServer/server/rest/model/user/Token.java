@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.user;
 
+import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -27,23 +28,27 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings({"PublicField", "unused", "WeakerAccess"})
 @XmlRootElement(name = "token")
-@XmlType(name = "token", propOrder = {"name", "value"})
+@XmlType(name = "token", propOrder = {"name", "value", "creationTime"})
 public class Token {
   @XmlAttribute
   public String name;
   @Nullable
   @XmlAttribute(required = false)
   public String value;
+  @Nullable
+  @XmlAttribute(required = false)
+  public Date creationTime;
 
   public Token() {
   }
 
-  public Token(@NotNull final String name) {
-    this.name = name;
+  public Token(@NotNull final String name, @Nullable final Date creationTime) {
+    this(name, null, creationTime);
   }
 
-  public Token(@NotNull final String name, @Nullable final String value) {
+  public Token(@NotNull final String name, @Nullable final String value, @Nullable Date creationTime) {
     this.name = name;
     this.value = value;
+    this.creationTime = creationTime;
   }
 }
