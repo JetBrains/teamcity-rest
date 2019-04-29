@@ -40,12 +40,12 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.*;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.db.DBFunctionsProvider;
-import jetbrains.buildServer.serverSide.impl.VcsModificationChecker;
 import jetbrains.buildServer.serverSide.statistics.ValueProviderRegistry;
 import jetbrains.buildServer.serverSide.statistics.build.BuildDataStorage;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.ChangesCheckingService;
 import jetbrains.buildServer.vcs.VcsManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -71,7 +71,7 @@ public class DataProvider {
   @NotNull private final ValueProviderRegistry myValueProviderRegistry;
   @NotNull private final BuildDataStorage myBuildDataStorage;
   @NotNull private final BuildPromotionManager myPromotionManager;
-  @NotNull private final VcsModificationChecker myVcsModificationChecker;
+  @NotNull private final ChangesCheckingService myChangesCheckingService;
   @NotNull private final BeanFactory myBeanFactory;
   @NotNull private final ConfigurableApplicationContext myApplicationContext;
   @NotNull private final DBFunctionsProvider myDbFunctionsProvider;
@@ -93,7 +93,7 @@ public class DataProvider {
                       @NotNull final ValueProviderRegistry valueProviderRegistry,
                       @NotNull final BuildDataStorage buildDataStorage,
                       @NotNull final BuildPromotionManager promotionManager,
-                      @NotNull final VcsModificationChecker vcsModificationChecker,
+                      @NotNull final ChangesCheckingService changesCheckingService,
                       @NotNull final BeanFactory beanFactory,
                       @NotNull final ConfigurableApplicationContext applicationContext,
                       @NotNull final DBFunctionsProvider dbFunctionsProvider,
@@ -114,7 +114,7 @@ public class DataProvider {
     myValueProviderRegistry = valueProviderRegistry;
     myBuildDataStorage = buildDataStorage;
     myPromotionManager = promotionManager;
-    myVcsModificationChecker = vcsModificationChecker;
+    myChangesCheckingService = changesCheckingService;
     myBeanFactory = beanFactory;
     myApplicationContext = applicationContext;
     myDbFunctionsProvider = dbFunctionsProvider;
@@ -288,8 +288,8 @@ public class DataProvider {
   }
 
   @NotNull
-  public VcsModificationChecker getVcsModificationChecker() {
-    return myVcsModificationChecker;
+  public ChangesCheckingService getChangesCheckingService() {
+    return myChangesCheckingService;
   }
 
   @NotNull

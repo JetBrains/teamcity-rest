@@ -209,7 +209,7 @@ public class VcsRootInstanceRequest {
                                                                API_VCS_ROOT_INSTANCES_URL + "?locator=" + Locator.HELP_DIMENSION + "' URL.").build();
     }
 
-    myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries, OperationRequestor.COMMIT_HOOK);
+    myDataProvider.getChangesCheckingService().forceCheckingFor(vcsRootInstances.myEntries, OperationRequestor.COMMIT_HOOK);
     StringBuilder okMessage = new StringBuilder();
     okMessage.append("Scheduled checking for changes for");
     if (vcsRootInstances.isNextPageAvailable()) {
@@ -245,7 +245,7 @@ public class VcsRootInstanceRequest {
                                                      @Context @NotNull final BeanContext beanContext) {
     //todo: check whether permission checks are necessary
     final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
-    myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries, getRequestor(requestor));
+    myDataProvider.getChangesCheckingService().forceCheckingFor(vcsRootInstances.myEntries, getRequestor(requestor));
     PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances, vcsRootInstancesLocator, "locator");
 
     //return 202 Accepted

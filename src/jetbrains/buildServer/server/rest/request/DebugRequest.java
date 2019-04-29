@@ -184,7 +184,7 @@ public class DebugRequest {
                                                      @Context @NotNull final BeanContext beanContext) {
     //todo: check whether permission checks are necessary
     final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
-    myDataProvider.getVcsModificationChecker().forceCheckingFor(vcsRootInstances.myEntries, getRequestor(requestor));
+    myDataProvider.getChangesCheckingService().forceCheckingFor(vcsRootInstances.myEntries, getRequestor(requestor));
     return new VcsRootInstances(CachingValue.simple(vcsRootInstances.myEntries), null, new Fields(fields), beanContext);
   }
 
