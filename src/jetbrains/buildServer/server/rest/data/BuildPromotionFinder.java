@@ -122,7 +122,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String REVISION = "revision"; /*experimental*/
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
   public static final SnapshotDepsTraverser SNAPSHOT_DEPENDENCIES_TRAVERSER = new SnapshotDepsTraverser();
-  public static final ArtifactDepsTraverser ARTIFACT_DEPENDENCIES_TRAVERSER = new ArtifactDepsTraverser();
   protected static final String STROB_BUILD_LOCATOR = "locator";
 
   private final BuildPromotionManager myBuildPromotionManager;
@@ -593,7 +592,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (locator.getUnusedDimensions().contains(ARTIFACT_DEP)) { //performance optimization: do not filter if already processed
       final String artifactDepDimension = locator.getSingleDimensionValue(ARTIFACT_DEP);
       if (artifactDepDimension != null) {
-        final Set<BuildPromotion> artifactRelatedBuilds = new HashSet<>(getArtifactRelatedBuilds(artifactDepDimension));
+        final Set<BuildPromotion> artifactRelatedBuilds = new HashSet<>(getArtifactRelatedBuilds(artifactDepDimension, locator));
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
             return artifactRelatedBuilds.contains(item);
@@ -1199,7 +1198,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String artifactDepDimension = locator.getSingleDimensionValue(ARTIFACT_DEP);
     if (artifactDepDimension != null) {
-      return getItemHolder(getArtifactRelatedBuilds(artifactDepDimension));
+      return getItemHolder(getArtifactRelatedBuilds(artifactDepDimension, locator));
     }
 
     final String number = locator.getSingleDimensionValue(NUMBER);
@@ -1610,8 +1609,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   }
 
   @NotNull
-  private List<BuildPromotion> getArtifactRelatedBuilds(@NotNull final String depDimension) {
-    final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, ARTIFACT_DEPENDENCIES_TRAVERSER);
+  private List<BuildPromotion> getArtifactRelatedBuilds(@NotNull final String depDimension, @NotNull final Locator locator) {
+    final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, new ArtifactDepsTraverser(locator));
     final List<BuildPromotion> result = graphFinder.getItems(depDimension).myEntries;
     Collections.sort(result, BUILD_PROMOTIONS_COMPARATOR);
     return result; //todo: patch branch locator, personal, etc.???
@@ -1719,7 +1718,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
   }
 
-  private static class ArtifactDepsTraverser implements GraphFinder.Traverser<BuildPromotion> {
+  private class ArtifactDepsTraverser implements GraphFinder.Traverser<BuildPromotion> {
+    @Nullable private final Locator myStateLocator;
+
+    public ArtifactDepsTraverser(@Nullable final Locator locator) {
+      if (locator != null) {
+        Locator locatorCopy = new Locator(locator); // create a copy in order not to mark the dimensions as used
+        myStateLocator = getStateLocator(locatorCopy);
+      } else {
+        myStateLocator = null;
+      }
+    }
+
     @NotNull
     public GraphFinder.LinkRetriever<BuildPromotion> getChildren() {
       return new GraphFinder.LinkRetriever<BuildPromotion>() {
@@ -1743,8 +1753,17 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           SBuild build = item.getAssociatedBuild();
           if (build == null)
             return Collections.emptyList();
-          return build.getProvidedArtifacts().getArtifacts().keySet().stream().map(v -> ((SBuild)v).getBuildPromotion())
-                      .sorted(new Build.BuildPromotionDependenciesComparator()).collect(Collectors.toList());
+          //getArtifactRelatedBuildsCheapCount should be consistent with this logic, so far it does not support non-finished builds
+          Stream<BuildPromotion> result = Stream.empty();
+          //myStateLocator is null if locator was not passed. Defaulting to finished builds only then
+          if (myStateLocator != null && isStateIncluded(myStateLocator, STATE_QUEUED)) {
+            result = Stream.concat(result, myBuildQueue.getItems().stream().map(BuildPromotionOwner::getBuildPromotion).filter(b -> ((BuildPromotionEx)b).hasArtifactDependencyOn(item)));
+          }
+          if (myStateLocator != null && isStateIncluded(myStateLocator, STATE_RUNNING)) {
+            result = Stream.concat(result, myBuildsManager.getRunningBuilds().stream().map(BuildPromotionOwner::getBuildPromotion).filter(b -> ((BuildPromotionEx)b).hasArtifactDependencyOn(item)));
+          }
+          return Stream.concat(result, build.getProvidedArtifacts().getArtifacts().keySet().stream().map(v -> ((SBuild)v).getBuildPromotion()))
+                       .sorted(new Build.BuildPromotionDependenciesComparator()).distinct().collect(Collectors.toList());
         }
       };
     }
@@ -1963,7 +1982,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @Nullable
   private Integer getArtifactRelatedBuildsCheapCount(@NotNull final String artifactDepDimension, @Nullable final Integer limitingCount) {
-    final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, ARTIFACT_DEPENDENCIES_TRAVERSER);
+    final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, new ArtifactDepsTraverser(null));
     GraphFinder.ParsedLocator<BuildPromotion> parsedLocator = graphFinder.getParsedLocator(artifactDepDimension);
 
     Integer count = parsedLocator.getCount();
@@ -1977,6 +1996,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     List<BuildPromotion> fromItems = parsedLocator.getFromItems();
     DownloadedArtifactsLogger artifactsLogger = myServiceLocator.getSingletonService(DownloadedArtifactsLogger.class);
+    // there is a small bug where the count here can be different from the non-lazy request:
+    //  this logic does not consider queued with artifact dependency on the "from" builds and also no running builds with the same deps which have not yet downloaded the artifacts
     if (fromItems.stream().map(b -> b.getAssociatedBuildId()).filter(Objects::nonNull).noneMatch(id -> artifactsLogger.buildArtifactsWereDownloaded(id))) {
       return 0;
     }
