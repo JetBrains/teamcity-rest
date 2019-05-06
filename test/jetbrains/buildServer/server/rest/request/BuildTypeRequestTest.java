@@ -1272,6 +1272,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
                            p("vcsLabelingBranchFilter", "+:<default>", true, null),
                            p("excludeDefaultBranchChanges", "false", true, null),
                            p("buildDefaultBranch", "true", true, null),
+                           p("branchFilter", "+:*", true, null),
                            p("buildConfigurationType", "REGULAR", true, null));
 
     assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:true"), fields),
@@ -1290,6 +1291,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
                            p("vcsLabelingBranchFilter", "+:<default>", true, null),
                            p("excludeDefaultBranchChanges", "false", true, null),
                            p("buildDefaultBranch", "true", true, null),
+                           p("branchFilter", "+:*", true, null),
                            p("buildConfigurationType", "REGULAR", true, null));
 
     assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:false"), fields),
