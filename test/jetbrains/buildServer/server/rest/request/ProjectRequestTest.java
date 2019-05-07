@@ -153,22 +153,22 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
                          "branch30", null, null);
 
     //no default branch option test
-    bt1.setOption(Option.fromKey("buildDefaultBranch"), false);
+    bt1.setOption(Option.fromKey("branchFilter"), "+:*\n-:<default>");
     branches = request.getBranches("id:" + prjId, "policy:ALL_BRANCHES", null);
     assertBranchesEquals(branches.branches,
                          "master2", true, null,
                          "branch10", null, null,
                          "branch20", null, null,
                          "branch30", null, null);
-    bt2.setOption(Option.fromKey("buildDefaultBranch"), false);
+    bt2.setOption(Option.fromKey("branchFilter"), "+:*\n-:<default>");
     branches = request.getBranches("id:" + prjId, "policy:ALL_BRANCHES", null);
     assertBranchesEquals(branches.branches,
                          "branch10", null, null,
                          "branch20", null, null,
                          "branch30", null, null);
     //revert
-    bt1.setOption(Option.fromKey("buildDefaultBranch"), true);
-    bt2.setOption(Option.fromKey("buildDefaultBranch"), true);
+    bt1.setOption(Option.fromKey("branchFilter"), "+:*");
+    bt2.setOption(Option.fromKey("branchFilter"), "+:*");
 
 
 
