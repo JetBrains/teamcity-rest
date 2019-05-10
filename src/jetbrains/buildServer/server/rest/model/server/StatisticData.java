@@ -14,31 +14,30 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.model.diagnostic;
+package jetbrains.buildServer.server.rest.model.server;
 
-import java.util.List;
-import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
 
 /**
- * Entity for represent urls of online server nodes.
+ * Entity for server statistic data.
  *
  * @author Mikhail Khorkov
  * @since 2019.1
  */
 @SuppressWarnings("PublicField")
-@XmlRootElement(name = "node-urls")
-@XmlType
-public class NodeUrls {
+@XmlRootElement(name = "statistics")
+public class StatisticData {
+  @XmlAttribute(name = "time")
+  public Long time;
+  @XmlAttribute(name = "value")
+  public Long value;
 
-  @XmlElement
-  public List<String> urls;
-
-  public NodeUrls() {
+  public StatisticData() {
   }
 
-  public NodeUrls(final List<String> urls) {
-    this.urls = urls;
+  public StatisticData(final Long time, final Long value) {
+    this.time = time;
+    this.value = value;
   }
 }

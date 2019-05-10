@@ -14,46 +14,42 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.model.diagnostic;
+package jetbrains.buildServer.server.rest.model.server;
 
-import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
 /**
- * Entity for abstract graphic.
+ * Entity for cluster node information.
  *
  * @author Mikhail Khorkov
  * @since 2019.1
  */
-@XmlRootElement(name = "graphic")
+@SuppressWarnings("PublicField")
+@XmlRootElement(name = "cluster-node")
 @XmlType
-public class Graphic {
+public class ClusterNode {
 
-  /**
-   * Any description about graphic. Like 'memory', 'cpu' or so.
-   */
   @XmlElement
-  public String type;
-  /**
-   * Axis for graphic's abscissa ('x') line.
-   */
-  @XmlElement(name = "abscissa")
-  public Axis abscissa;
-  /**
-   * Axises for graphic's ordinates ('y') lines.
-   * Fj(Xk)=Yk where y = ordinates[j].dots[k], x = abscissa.dots[k]
-   */
-  @XmlElement(name = "ordinates")
-  public List<Axis> ordinates;
+  public String id;
 
-  public Graphic() {
+  @XmlElement
+  public String url;
+
+  @XmlElement
+  public Boolean online;
+
+  @XmlElement
+  public String description;
+
+  public ClusterNode() {
   }
 
-  public Graphic(final String type, final Axis abscissa, final List<Axis> ordinates) {
-    this.type = type;
-    this.abscissa = abscissa;
-    this.ordinates = ordinates;
+  public ClusterNode(final String id, final String url, final Boolean online, final String description) {
+    this.id = id;
+    this.url = url;
+    this.online = online;
+    this.description = description;
   }
 }

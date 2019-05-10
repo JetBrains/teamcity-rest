@@ -14,29 +14,37 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.model.diagnostic;
+package jetbrains.buildServer.server.rest.model.server;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 
 /**
- * Entity for group several graphics.
+ * Entity for list of cluster node information.
  *
  * @author Mikhail Khorkov
  * @since 2019.1
  */
 @SuppressWarnings("PublicField")
-@XmlRootElement(name = "graphics")
-public class Graphics {
+@XmlRootElement(name = "cluster-nodes")
+@XmlType
+public class ClusterNodes {
 
   @XmlElement
-  public List<Graphic> graphics;
+  public List<ClusterNode> nodes;
 
-  public Graphics() {
+  @XmlElement
+  public Integer count;
+
+  public ClusterNodes() {
   }
 
-  public Graphics(final List<Graphic> graphics) {
-    this.graphics = graphics;
+  public ClusterNodes(final Collection<ClusterNode> nodes) {
+    this.nodes = new ArrayList<>(nodes);
+    this.count = this.nodes.size();
   }
 }

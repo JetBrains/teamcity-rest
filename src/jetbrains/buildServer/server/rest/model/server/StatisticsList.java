@@ -14,52 +14,31 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.model.diagnostic;
+package jetbrains.buildServer.server.rest.model.server;
 
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
 
 /**
- * Entity for abstract graphic axis.
+ * Entity for list of server statistics.
  *
  * @author Mikhail Khorkov
  * @since 2019.1
  */
 @SuppressWarnings("PublicField")
-@XmlRootElement(name = "axis")
-@XmlType
-public class Axis {
+@XmlRootElement(name = "statistics-list")
+public class StatisticsList {
+  @XmlElement(name = "items")
+  public List<Statistics> items;
+  @XmlElement(name = "count")
+  public Integer count;
 
-  /**
-   * Any description of data type. Like 'percent', 'time', 'absolute' or so.
-   */
-  @XmlElement
-  public String type;
-  /**
-   * Name of axis.
-   */
-  @XmlElement
-  public String name;
-  /**
-   * Values
-   */
-  @XmlElement
-  public List<Double> dots;
-  /**
-   * Maximum possible value of the dots
-   */
-  @XmlElement
-  public Double max;
-
-  public Axis() {
+  public StatisticsList() {
   }
 
-  public Axis(final String type, final String name, final List<Double> dots, final Double max) {
-    this.type = type;
-    this.name = name;
-    this.dots = dots;
-    this.max = max;
+  public StatisticsList(final List<Statistics> items) {
+    this.items = items;
+    this.count = items.size();
   }
 }
