@@ -66,7 +66,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     public int compare(final ArtifactTreeElement o1, final ArtifactTreeElement o2) {
       return ComparisonChain.start()
                             .compareFalseFirst(o1.isContentAvailable(), o2.isContentAvailable())
-                            .compare(o1.getFullName(), o2.getFullName())
+                            .compare(o1.getFullName(), o2.getFullName(), String::compareToIgnoreCase)
                             .result();
     }
   };

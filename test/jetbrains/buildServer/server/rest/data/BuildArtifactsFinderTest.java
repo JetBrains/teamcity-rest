@@ -21,10 +21,14 @@ import com.google.common.io.Files;
 import com.intellij.openapi.util.SystemInfo;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.BuildServerCreator;
 import jetbrains.buildServer.BaseTestCase;
 import jetbrains.buildServer.TempFiles;
@@ -34,6 +38,9 @@ import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.db.TestDB;
 import jetbrains.buildServer.util.*;
+import jetbrains.buildServer.util.browser.Browser;
+import jetbrains.buildServer.util.browser.BrowserException;
+import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import jetbrains.buildServer.zip.FileZipFactory;
@@ -715,17 +722,17 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
                            "orderTest/1",
                            "orderTest/10",
                            "orderTest/2",
+                           "orderTest/_",
+                           "orderTest/a1",
                            "orderTest/A2",
                            "orderTest/A21",
                            "orderTest/A3",
-                           "orderTest/B2",
-                           "orderTest/B4",
-                           "orderTest/C2",
-                           "orderTest/_",
-                           "orderTest/a1",
                            "orderTest/a4",
                            "orderTest/b1",
-                           "orderTest/c1"
+                           "orderTest/B2",
+                           "orderTest/B4",
+                           "orderTest/c1",
+                           "orderTest/C2"
     );
   }
 
@@ -768,15 +775,15 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
                            "a.txt",
                            "dir0/a",
                            "dir0/fil.txt",
+                           "dir0/fild.txt",
                            "dir0/filE.txt",
                            "dir0/filE12.txt",
-                           "dir0/filE14.txt",
-                           "dir0/fild.txt",
                            "dir0/file13.txt",
+                           "dir0/filE14.txt",
                            "dir0/filf.txt",
                            "dir1",
-                           "dir2/filE1.txt",
                            "dir2/file.txt",
+                           "dir2/filE1.txt",
                            "file.txt"
     );
   }
@@ -808,20 +815,76 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     createFileOfSize(artifactsDir, "name_c", 5);
 
     checkOrderedCollection(getNames(getArtifacts("", "recursive:true", null, runningBuild.getBuildPromotion())),
-                           "name_B2",
                            "name_b2",
-                           "nAme_A",
+                           "name_B2",
                            "name_A",
-                           "name_B1",
-                           "name_B2/aa2",
-                           "name_B2/aa4",
-                           "name_C",
                            "name_a",
+                           "nAme_A",
+                           "name_B1",
                            "name_b2/aa1",
+                           "name_B2/aa2",
                            "name_b2/aa3",
+                           "name_B2/aa4",
                            "name_b3",
+                           "name_C",
                            "name_c"
     );
+  }
+
+  @Test
+  public void testComparator() throws Exception {
+
+    List<ArtifactTreeElement> result = toArtifactTreeElements(
+      "_name_b2",
+      "_name_B2",
+      "name_A",
+      "name_a",
+      "nAme_A",
+      "name_B1",
+      "name_b2/aa1",
+      "name_b2/aa3",
+      "name_B2/aa2",
+      "name_B2/aa4",
+      "name_b3",
+      "name_C",
+      "name_c"
+    );
+    Collections.sort(result, BuildArtifactsFinder.ARTIFACT_COMPARATOR);
+
+    checkOrderedCollection(getNames(result),
+                           "name_b2",
+                           "name_B2",
+                           "name_A",
+                           "name_a",
+                           "nAme_A",
+                           "name_B1",
+                           "name_b2/aa1",
+                           "name_B2/aa2",
+                           "name_b2/aa3",
+                           "name_B2/aa4",
+                           "name_b3",
+                           "name_C",
+                           "name_c"
+    );
+  }
+
+  /**
+   * if name starts with "_", then undescore is removed and the items is considered a directory
+   */
+  private List<ArtifactTreeElement> toArtifactTreeElements(final String... names) {
+    return Stream.of(names).map(name -> new ArtifactTreeElement() {
+      public Long getLastModified() {return null;}
+      public boolean isArchive() {return false;}
+      public boolean isInsideArchive() {return false;}
+      public String getName() {return new File(getFullName()).getName();}
+      public String getFullName() {return name.startsWith("_") ? name.substring(1) : name;}
+      public boolean isLeaf() {return false;}
+      public Iterable<Element> getChildren() throws BrowserException {return null;}
+      public boolean isContentAvailable() {return !name.startsWith("_");}
+      public InputStream getInputStream() throws IllegalStateException, IOException, BrowserException {return null;}
+      public long getSize() {return 0;}
+      public Browser getBrowser() {return null;}
+    }).collect(Collectors.toList());
   }
 
   private File createFileOfSize(final File dir, String name, int size) throws IOException {
