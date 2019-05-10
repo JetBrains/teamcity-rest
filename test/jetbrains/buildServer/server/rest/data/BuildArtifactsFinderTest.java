@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import com.intellij.openapi.util.SystemInfo;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -28,6 +29,7 @@ import jetbrains.BuildServerCreator;
 import jetbrains.buildServer.BaseTestCase;
 import jetbrains.buildServer.TempFiles;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.db.TestDB;
@@ -40,6 +42,7 @@ import jetbrains.buildServer.zip.ZipWriter;
 import junit.framework.AssertionFailedError;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -135,12 +138,12 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   private List<ArtifactTreeElement> getArtifacts(final String path, final String filesLocator) {
-    return getArtifacts(path, filesLocator, null);
+    return getArtifacts(path, filesLocator, null, myBuildWithArtifacts.getBuildPromotion());
   }
 
-  private List<ArtifactTreeElement> getArtifacts(final String path, final String filesLocator, final String basePath) {
+  private List<ArtifactTreeElement> getArtifacts(final String path, final String filesLocator, final String basePath, final BuildPromotion build) {
 //    FilesSubResource.fileApiUrlBuilder(filesLocator, BuildRequest.getArtifactsUrlPrefix(myBuildWithArtifacts, urlPrefix));
-    return BuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(myBuildWithArtifacts.getBuildPromotion(), path, myFixture), basePath, filesLocator,
+    return BuildArtifactsFinder.getItems(BuildArtifactsFinder.getArtifactElement(build, path, myFixture), basePath, filesLocator,
                                          null, myFixture);
   }
 
@@ -343,8 +346,8 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertFalse(element.isLeaf());
     assertTrue(element.isContentAvailable());
     assertSize(2, Lists.newArrayList(element.getChildren()));
-    
-    artifacts = getArtifacts(".teamcity/dirA", "hidden:true,browseArchives:true,recursive:true", ".teamcity/dirA");
+
+    artifacts = getArtifacts(".teamcity/dirA", "hidden:true,browseArchives:true,recursive:true", ".teamcity/dirA", myBuildWithArtifacts.getBuildPromotion());
 
     assertSize(7, artifacts);
     assertContainsByFullName(artifacts, "archive1.zip");
@@ -674,6 +677,151 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     checkOrderedCollection(getNames(getArtifacts(dir.getName(), "directory:false,recursive:true,size:-1")));
 
     assertExceptionThrown(() -> getArtifacts(dir.getName(), "size:aa"), BadRequestException.class);
+  }
+
+  @Test
+  public void testOrderSameLevel() throws Exception {
+    final SRunningBuild runningBuild = myFixture.startBuild();
+    final File artifactsDir = myFixture.finishBuild(runningBuild, false).getArtifactsDirectory();
+    artifactsDir.mkdirs();
+
+    File dir = new File(artifactsDir, "orderTest");
+    dir.mkdir();
+    createFileOfSize(dir, "a1", 5);
+    createFileOfSize(dir, "a4", 5);
+    createFileOfSize(dir, "b1", 5);
+    createFileOfSize(dir, "c1", 5);
+    createFileOfSize(dir, "A21", 5);
+    createFileOfSize(dir, "A2", 5);
+    createFileOfSize(dir, "A3", 5);
+    createFileOfSize(dir, "B2", 0);
+    createFileOfSize(dir, "B4", 15);
+    createFileOfSize(dir, "C2", 5);
+    createFileOfSize(dir, "0", 5);
+    createFileOfSize(dir, "1", 5);
+    createFileOfSize(dir, "2", 5);
+    createFileOfSize(dir, "10", 5);
+    createFileOfSize(dir, "01", 5);
+    createFileOfSize(dir, "_", 5);
+    new File(dir, "B3").mkdir();
+    File dir2 = new File(artifactsDir, "orderTesa");
+    dir2.mkdir();
+    createFileOfSize(dir2, "a2", 5);
+
+    checkOrderedCollection(getNames(getArtifacts(dir.getName(), null, null, runningBuild.getBuildPromotion())),
+                           "orderTest/B3",
+                           "orderTest/0",
+                           "orderTest/01",
+                           "orderTest/1",
+                           "orderTest/10",
+                           "orderTest/2",
+                           "orderTest/A2",
+                           "orderTest/A21",
+                           "orderTest/A3",
+                           "orderTest/B2",
+                           "orderTest/B4",
+                           "orderTest/C2",
+                           "orderTest/_",
+                           "orderTest/a1",
+                           "orderTest/a4",
+                           "orderTest/b1",
+                           "orderTest/c1"
+    );
+  }
+
+  @Test
+  public void testOrderRecursive() throws Exception {
+    final SRunningBuild runningBuild = myFixture.startBuild();
+    final File artifactsDir = myFixture.finishBuild(runningBuild, false).getArtifactsDirectory();
+    artifactsDir.mkdirs();
+
+    createFileOfSize(artifactsDir, "file.txt", 5);
+    createFileOfSize(artifactsDir, "a.txt", 5);
+    createFileOfSize(artifactsDir, "dir1", 0); //file with name like dir
+
+    File dir2 = new File(artifactsDir, "dir2");
+    dir2.mkdir();
+    createFileOfSize(dir2, "file.txt", 5);
+    createFileOfSize(dir2, "filE1.txt", 0);
+
+    File dir3 = new File(artifactsDir, "dir3");
+    dir3.mkdir();
+
+    File dir0 = new File(artifactsDir, "dir0");
+    dir0.mkdir();
+    createFileOfSize(dir0, "file13.txt", 5);
+    createFileOfSize(dir0, "fil.txt", 5);
+    createFileOfSize(dir0, "a", 5);
+    createFileOfSize(dir0, "filf.txt", 5);
+    createFileOfSize(dir0, "fild.txt", 5);
+    createFileOfSize(dir0, "filE12.txt", 5);
+    createFileOfSize(dir0, "filE14.txt", 5);
+    createFileOfSize(dir0, "filE.txt", 5);
+    File dir01 = new File(dir0, "dir01");
+    dir01.mkdir();
+
+    checkOrderedCollection(getNames(getArtifacts("", "recursive:true", null, runningBuild.getBuildPromotion())),
+                           "dir0",
+                           "dir0/dir01",
+                           "dir2",
+                           "dir3",
+                           "a.txt",
+                           "dir0/a",
+                           "dir0/fil.txt",
+                           "dir0/filE.txt",
+                           "dir0/filE12.txt",
+                           "dir0/filE14.txt",
+                           "dir0/fild.txt",
+                           "dir0/file13.txt",
+                           "dir0/filf.txt",
+                           "dir1",
+                           "dir2/filE1.txt",
+                           "dir2/file.txt",
+                           "file.txt"
+    );
+  }
+
+  @Test
+  public void testOrderRecursiveCaseSensitiveFileSystem() throws Exception {
+    if (!SystemInfo.isLinux) {
+      throw new SkipException("Can only run on case-sensitive file system");
+    }
+
+    final SRunningBuild runningBuild = myFixture.startBuild();
+    final File artifactsDir = myFixture.finishBuild(runningBuild, false).getArtifactsDirectory();
+    artifactsDir.mkdirs();
+
+    createFileOfSize(artifactsDir, "name_a", 5);
+    createFileOfSize(artifactsDir, "nAme_A", 5);
+    createFileOfSize(artifactsDir, "name_A", 5);
+    createFileOfSize(artifactsDir, "name_B1", 0);
+    createFileOfSize(artifactsDir, "name_b3", 5);
+    File name_b2 = new File(artifactsDir, "name_b2");
+    name_b2.mkdir();
+    createFileOfSize(name_b2, "aa1", 0);
+    createFileOfSize(name_b2, "aa3", 0);
+    File name_B2 = new File(artifactsDir, "name_B2");
+    name_B2.mkdir();
+    createFileOfSize(name_B2, "aa2", 0);
+    createFileOfSize(name_B2, "aa4", 0);
+    createFileOfSize(artifactsDir, "name_C", 5);
+    createFileOfSize(artifactsDir, "name_c", 5);
+
+    checkOrderedCollection(getNames(getArtifacts("", "recursive:true", null, runningBuild.getBuildPromotion())),
+                           "name_B2",
+                           "name_b2",
+                           "nAme_A",
+                           "name_A",
+                           "name_B1",
+                           "name_B2/aa2",
+                           "name_B2/aa4",
+                           "name_C",
+                           "name_a",
+                           "name_b2/aa1",
+                           "name_b2/aa3",
+                           "name_b3",
+                           "name_c"
+    );
   }
 
   private File createFileOfSize(final File dir, String name, int size) throws IOException {
