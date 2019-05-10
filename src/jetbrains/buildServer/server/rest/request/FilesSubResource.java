@@ -23,9 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.ParseException;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
@@ -39,6 +37,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.files.FilesSize;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -65,6 +64,7 @@ public class FilesSubResource {
   public static final String METADATA = "/metadata";
   public static final String CONTENT = "/content";
   public static final String CHILDREN = "/children";
+  public static final String SIZE = "/size";
 
   private final Provider myProvider;
   private final String myUrlPrefix;
@@ -100,6 +100,40 @@ public class FilesSubResource {
                                 @QueryParam("locator") final String locator,
                                 @QueryParam("fields") String fields) {
     return getChildren(path, basePath, locator, fields);
+  }
+
+  @GET
+  @Path(BuildRequest.AGGREGATED + SIZE + "{path:(/.*)?}")
+  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  public FilesSize getArtifactsSizes(
+    @PathParam("path") @DefaultValue("") final String path,
+    @QueryParam("basePath") final String basePath,
+    @QueryParam("locator") final String locator
+  ) {
+    final FileApiUrlBuilder builder = fileApiUrlBuilder(locator, myUrlPrefix);
+    final Element rootElement = myProvider.getElement(myProvider.preprocess(StringUtil.removeLeadingSlash(path)));
+    final List<ArtifactTreeElement> items = BuildArtifactsFinder.getItems(rootElement, myProvider.preprocess(basePath), locator, builder, myBeanContext.getServiceLocator());
+    long result = 0;
+    LinkedList<Element> stack = new LinkedList<>(items);
+    while(!stack.isEmpty()) {
+      final Element el = stack.pop();
+      if (el == null) {
+        continue;
+      }
+      if (el instanceof ArtifactElement && ((ArtifactElement)el).isArchive()) {
+        result += el.getSize();
+      } else if (el.isLeaf()) {
+        result += el.getSize();
+      } else {
+        final Iterable<Element> children = el.getChildren();
+        if (children != null) {
+          for (final Element child : el.getChildren()) {
+            stack.push(child);
+          }
+        }
+      }
+    }
+    return new FilesSize(result);
   }
 
   @GET

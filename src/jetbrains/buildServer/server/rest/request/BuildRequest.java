@@ -20,7 +20,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import java.io.*;
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -47,7 +46,6 @@ import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.change.BuildChanges;
-import jetbrains.buildServer.server.rest.model.files.ArtifactsSizes;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
@@ -70,7 +68,6 @@ import jetbrains.buildServer.util.TCStreamUtil;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
-import jetbrains.buildServer.web.artifacts.browser.ArtifactElement;
 import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebAuthUtil;
 import jetbrains.buildServer.web.util.WebUtil;
@@ -101,7 +98,6 @@ public class BuildRequest {
   public static final String API_BUILDS_URL = Constants.API_URL + BUILDS_ROOT_REQUEST_PATH;
 
   public static final String ARTIFACTS = "/artifacts";
-  public static final String ARTIFACTS_SIZES = "/artifacts-sizes";
   public static final String AGGREGATED = "/aggregated";
 
   protected static final String REST_BUILD_REQUEST_DELETE_LIMIT = "rest.buildRequest.delete.limit";
@@ -314,50 +310,6 @@ public class BuildRequest {
     final String urlPrefix = getBuildArtifactsHref(buildPromotion);
     //convert anonymous to inner here, implement DownloadProcessor
     return new FilesSubResource(new BuildArtifactsProvider(buildPromotion, resolveParameters, logBuildUsage, urlPrefix), urlPrefix, myBeanContext, true);
-  }
-
-  @GET
-  @Path("/{buildLocator}" + ARTIFACTS_SIZES)
-  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public ArtifactsSizes getArtifactsSizes(@PathParam("buildLocator") final String buildLocator) {
-    final BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(null, buildLocator);
-    final BuildArtifactsProvider provider = new BuildArtifactsProvider(buildPromotion, false, false, "");
-    final Map<String, BigDecimal> statisticValues = buildPromotion.getAssociatedBuild().getStatisticValues();
-    final long size = calculateSizeForPath("", provider, ".teamcity");
-    final long hiddenSize = calculateSizeForPath(".teamcity", provider);
-    final long reportedSize = statisticValues.getOrDefault("VisibleArtifactsSize", new BigDecimal(-1)).longValue();
-    final long reportedHiddenSize = statisticValues.getOrDefault("ArtifactsSize", new BigDecimal(-1)).longValue() - reportedSize;
-
-    return new ArtifactsSizes(size, hiddenSize, reportedSize, reportedHiddenSize);
-  }
-
-  private long calculateSizeForPath(@NotNull final String path, @NotNull final FilesSubResource.Provider provider, final String ... ignoreList) {
-    final Set<String> ignore = (ignoreList == null || ignoreList.length == 0)
-      ? Collections.emptySet()
-      : new HashSet(Arrays.asList(ignoreList));
-    long result = 0;
-    LinkedList<Element> stack = new LinkedList<>();
-    stack.push(provider.getElement(path));
-
-    while(!stack.isEmpty()) {
-      final Element el = stack.pop();
-      if (el == null) {
-        continue;
-      }
-      if (el instanceof ArtifactElement && ((ArtifactElement)el).isArchive()) {
-        result += el.getSize();
-      } else if (el.isLeaf()) {
-        result += el.getSize();
-      } else {
-        for (final Element child : el.getChildren()) {
-          if (!ignore.contains(child.getFullName())) {
-            stack.push(child);
-          }
-        }
-      }
-    }
-
-    return result;
   }
 
   @NotNull
