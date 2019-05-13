@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import com.google.common.collect.ComparisonChain;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,14 +61,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   public static final String DIMENSION_MODIFIED = "modified";
   public static final String DIMENSION_SIZE = "size";
 
-  protected static final Comparator<ArtifactTreeElement> ARTIFACT_COMPARATOR = new Comparator<ArtifactTreeElement>() {
-    public int compare(final ArtifactTreeElement o1, final ArtifactTreeElement o2) {
-      return ComparisonChain.start()
-                            .compareFalseFirst(o1.isContentAvailable(), o2.isContentAvailable())
-                            .compare(o1.getFullName(), o2.getFullName(), String::compareToIgnoreCase)
-                            .result();
-    }
-  };
+  static final Comparator<ArtifactTreeElement> ARTIFACT_COMPARATOR = new ArtifactsComparator();
   private static final Pattern SLASHES_OR_SPACE_PATTERN = Pattern.compile("[\\/ ]", Pattern.LITERAL);
 
 
@@ -598,5 +590,73 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     final String fullName = data.getFullName();
     return fullName.equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR) ||
            fullName.equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR + "/");
+  }
+
+  private static class ArtifactsComparator implements Comparator<ArtifactTreeElement> {
+    static final char PS = '/'; //path separator
+
+    public int compare(final ArtifactTreeElement o1, final ArtifactTreeElement o2) {
+      if (o1 == o2) return 0;
+      if (o1 == null) return -1;
+      if (o2 == null) return 1;
+
+      return compare(o1.getFullName(), o1.isContentAvailable(), o2.getFullName(), o2.isContentAvailable());
+    }
+
+    public int compare(@NotNull String s1, final boolean isFile1, @NotNull String s2, final boolean isFile2) {
+      int n1 = s1.length();
+      int n2 = s2.length();
+      int min = Math.min(n1, n2);
+      int characterComparisonResult = n1 - n2;
+      boolean shouldStopOnFirstDiff = false;
+      boolean shouldStopOnFirstDiffSet = false;
+      int i;
+      for (i = 0; i < min; i++) {
+        char c1 = s1.charAt(i);
+        char c2 = s2.charAt(i);
+        if (c1 != c2) {
+          if (PS == c1) return -1;
+          if (PS == c2) return 1;
+          //logic like in standard String.CASE_INSENSITIVE_ORDER
+          c1 = Character.toUpperCase(c1);
+          c2 = Character.toUpperCase(c2);
+          if (c1 != c2) {
+            c1 = Character.toLowerCase(c1);
+            c2 = Character.toLowerCase(c2);
+            if (c1 != c2) {
+              characterComparisonResult = c1 - c2;
+              break;
+            }
+          }
+          // same char in different case
+          if (!shouldStopOnFirstDiffSet) {
+            shouldStopOnFirstDiff = !isFile1 || !isFile2 || s1.indexOf(PS, i) != -1 || s2.indexOf(PS, i) != -1;
+            shouldStopOnFirstDiffSet = true;
+          }
+          characterComparisonResult = s2.charAt(i) - s1.charAt(i); //order is reversed to make lowercase characters appear before upper case ones
+          if (shouldStopOnFirstDiff) {
+            break;
+          }
+        }
+      }
+
+      if (i == min && n1 == n2 && characterComparisonResult != 0) { // characterComparisonResult holds firstDiff
+        return characterComparisonResult; //define order for non-directories different only in case
+      }
+      //noinspection SimplifiableConditionalExpression
+      boolean containsNested1 = i < n1 ? s1.indexOf(PS, i) != -1 : false;
+      //noinspection SimplifiableConditionalExpression
+      boolean containsNested2 = i < n2 ? s2.indexOf(PS, i) != -1 : false;
+      if (containsNested1 != containsNested2) {
+        if (!containsNested1) return isFile1 ? 1 : characterComparisonResult;
+        return isFile2 ? -1 : characterComparisonResult;
+      } else {
+        if (isFile1 != isFile2) {
+          return isFile1 ? 1 : -1;
+        } else {
+          return characterComparisonResult;
+        }
+      }
+    }
   }
 }

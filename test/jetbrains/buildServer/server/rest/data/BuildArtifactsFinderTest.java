@@ -770,9 +770,6 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     checkOrderedCollection(getNames(getArtifacts("", "recursive:true", null, runningBuild.getBuildPromotion())),
                            "dir0",
                            "dir0/dir01",
-                           "dir2",
-                           "dir3",
-                           "a.txt",
                            "dir0/a",
                            "dir0/fil.txt",
                            "dir0/fild.txt",
@@ -781,9 +778,12 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
                            "dir0/file13.txt",
                            "dir0/filE14.txt",
                            "dir0/filf.txt",
-                           "dir1",
+                           "dir2",
                            "dir2/file.txt",
                            "dir2/filE1.txt",
+                           "dir3",
+                           "a.txt",
+                           "dir1",
                            "file.txt"
     );
   }
@@ -816,27 +816,27 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
     checkOrderedCollection(getNames(getArtifacts("", "recursive:true", null, runningBuild.getBuildPromotion())),
                            "name_b2",
+                           "name_b2/aa1",
+                           "name_b2/aa3",
                            "name_B2",
-                           "name_A",
+                           "name_B2/aa2",
+                           "name_B2/aa4",
                            "name_a",
+                           "name_A",
                            "nAme_A",
                            "name_B1",
-                           "name_b2/aa1",
-                           "name_B2/aa2",
-                           "name_b2/aa3",
-                           "name_B2/aa4",
                            "name_b3",
-                           "name_C",
-                           "name_c"
+                           "name_c",
+                           "name_C"
     );
   }
 
   @Test
   public void testComparator() throws Exception {
-
     List<ArtifactTreeElement> result = toArtifactTreeElements(
       "_name_b2",
       "_name_B2",
+      "name_B21",
       "name_A",
       "name_a",
       "nAme_A",
@@ -847,24 +847,29 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
       "name_B2/aa4",
       "name_b3",
       "name_C",
-      "name_c"
+      "name_c",
+      "name_d",
+      "name_D"
     );
     Collections.sort(result, BuildArtifactsFinder.ARTIFACT_COMPARATOR);
 
     checkOrderedCollection(getNames(result),
                            "name_b2",
+                           "name_b2/aa1",
+                           "name_b2/aa3",
                            "name_B2",
-                           "name_A",
+                           "name_B2/aa2",
+                           "name_B2/aa4",
                            "name_a",
+                           "name_A",
                            "nAme_A",
                            "name_B1",
-                           "name_b2/aa1",
-                           "name_B2/aa2",
-                           "name_b2/aa3",
-                           "name_B2/aa4",
+                           "name_B21",
                            "name_b3",
+                           "name_c",
                            "name_C",
-                           "name_c"
+                           "name_d",
+                           "name_D"
     );
   }
 
