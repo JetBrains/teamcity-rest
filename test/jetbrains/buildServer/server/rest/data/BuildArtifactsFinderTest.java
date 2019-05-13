@@ -873,6 +873,50 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     );
   }
 
+  @Test
+  public void testComparatorForNumbers() throws Exception {
+    List<ArtifactTreeElement> result = toArtifactTreeElements(
+      "name10",
+      "name02",
+      "name11",
+      "name20",
+      "name0001",
+      "name01",
+      "name1",
+      "name3",
+      "name01b",
+      "10",
+      "02",
+      "02x",
+      "002x",
+      "02a",
+      "10-15",
+      "10-014",
+      "nam0"
+    );
+    Collections.sort(result, BuildArtifactsFinder.ARTIFACT_COMPARATOR);
+
+    checkOrderedCollection(getNames(result),
+                           "002x",
+                           "02",
+                           "02a",
+                           "02x",
+                           "10",
+                           "10-014",
+                           "10-15",
+                           "nam0",
+                           "name0001",
+                           "name01",
+                           "name01b",
+                           "name1",
+                           "name02",
+                           "name3",
+                           "name10",
+                           "name11",
+                           "name20"
+    );
+  }
+
   /**
    * if name starts with "_", then undescore is removed and the items is considered a directory
    */

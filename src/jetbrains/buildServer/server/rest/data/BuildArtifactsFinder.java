@@ -16,11 +16,13 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.ArtifactsConstants;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.*;
@@ -53,6 +55,8 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 27.04.13
  */
 public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
+  private static final Logger LOG = Logger.getInstance(BuildArtifactsFinder.class.getName());
+
   public static final String ARCHIVES_DIMENSION_NAME = "browseArchives";  //whether archives are treated as directories while browsing
   public static final String HIDDEN_DIMENSION_NAME = "hidden";  //whether .teamcity directory is included and it's children listed (does not affect anything if within .teamcity already)
   public static final String DIRECTORY_DIMENSION_NAME = "directory";  //whether to include entries which have children
@@ -287,7 +291,11 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
       }
     }));
 
-    Collections.sort(result, ARTIFACT_COMPARATOR);
+    try {
+      Collections.sort(result, ARTIFACT_COMPARATOR);
+    } catch (Exception e) {
+      LOG.error("Error sorting results: " + result.stream().map(Element::getFullName).collect(Collectors.joining(", ", "{", "}")), e);
+    }
     return getItemHolder(result);
   }
 
@@ -643,6 +651,15 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
       if (i == min && n1 == n2 && characterComparisonResult != 0) { // characterComparisonResult holds firstDiff
         return characterComparisonResult; //define order for non-directories different only in case
       }
+
+      if (i < min && Character.isDigit(s1.charAt(i))) {
+        long number1 = extractNumber(s1, i);
+        long number2 = extractNumber(s2, i);
+        if (number1 != -1 && number2 !=-1 && number1 != number2) {
+          characterComparisonResult = number1 - number2 < 0 ? -1 : 1;
+        }
+      }
+
       //noinspection SimplifiableConditionalExpression
       boolean containsNested1 = i < n1 ? s1.indexOf(PS, i) != -1 : false;
       //noinspection SimplifiableConditionalExpression
@@ -656,6 +673,31 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
         } else {
           return characterComparisonResult;
         }
+      }
+    }
+
+    /**
+     * returns positive number covering position at index
+     */
+    private long extractNumber(final String text, final int index) {
+      int numberStart = index;
+      int numberEnd = index;
+      while (numberStart > 0) {
+        if (!Character.isDigit(text.charAt(numberStart - 1))) {
+          break;
+        }
+        numberStart--;
+      }
+      while (numberEnd < text.length()) {
+        if (!Character.isDigit(text.charAt(numberEnd))) {
+          break;
+        }
+        numberEnd++;
+      }
+      try {
+        return Long.valueOf(text.substring(numberStart, numberEnd));
+      } catch (NumberFormatException ignore) {
+        return -1;
       }
     }
   }
