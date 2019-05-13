@@ -42,6 +42,9 @@ public class Statistics {
   @XmlAttribute(name = "count")
   public Integer count;
 
+  public Statistics() {
+  }
+
   public Statistics(final StatisticDataProvider provider, final ServerData serverData) {
     type = provider.getType();
     final String type = provider.getType();
