@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.server;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.controllers.admin.ServerData;
@@ -34,11 +35,11 @@ import jetbrains.buildServer.server.rest.request.ServerRequest;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "statistics")
 public class Statistics {
-  @XmlElement(name = "type")
+  @XmlAttribute(name = "type")
   public String type;
   @XmlElement(name = "statistic")
   public List<Statistic> statistic;
-  @XmlElement(name = "count")
+  @XmlAttribute(name = "count")
   public Integer count;
 
   public Statistics(final StatisticDataProvider provider, final ServerData serverData) {

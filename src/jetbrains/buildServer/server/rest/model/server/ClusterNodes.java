@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model.server;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -37,7 +38,7 @@ public class ClusterNodes {
   @XmlElement
   public List<ClusterNode> nodes;
 
-  @XmlElement
+  @XmlAttribute
   public Integer count;
 
   public ClusterNodes() {

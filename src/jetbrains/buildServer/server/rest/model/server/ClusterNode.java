@@ -31,16 +31,16 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType
 public class ClusterNode {
 
-  @XmlElement
+  @XmlElement(name = "id")
   public String id;
 
-  @XmlElement
+  @XmlElement(name = "url")
   public String url;
 
-  @XmlElement
+  @XmlElement(name = "online")
   public Boolean online;
 
-  @XmlElement
+  @XmlElement(name = "description")
   public String description;
 
   public ClusterNode() {

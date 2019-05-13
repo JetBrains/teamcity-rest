@@ -30,12 +30,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class FilesSize {
 
   @XmlElement(name = "size")
-  public long size;
+  public Long size;
 
   public FilesSize() {
   }
 
-  public FilesSize(final long size) {
+  public FilesSize(final Long size) {
     this.size = size;
   }
 }

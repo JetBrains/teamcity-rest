@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.server;
 
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -31,7 +32,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class StatisticsList {
   @XmlElement(name = "items")
   public List<Statistics> items;
-  @XmlElement(name = "count")
+  @XmlAttribute(name = "count")
   public Integer count;
 
   public StatisticsList() {
