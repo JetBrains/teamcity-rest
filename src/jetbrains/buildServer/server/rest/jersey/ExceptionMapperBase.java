@@ -158,7 +158,7 @@ public abstract class ExceptionMapperBase<E extends Throwable> implements Except
   public static boolean isCommonExternalError(@Nullable Throwable e) {
     if (e == null) return false;
     final String message = jetbrains.buildServer.util.StringUtil.emptyIfNull(e.getMessage());
-    if (e.getClass().getName().endsWith(".IllegalStateException") && message.equals("Cannot call sendError() after the response has been committed")){
+    if (e.getClass().getName().endsWith(".IllegalStateException") && message.equals("after the response has been committed")){
       //Jersey 1.19 (as opposed to Jersey 1.16) reports this error in case of ClientAbortException
       return true;
     }
