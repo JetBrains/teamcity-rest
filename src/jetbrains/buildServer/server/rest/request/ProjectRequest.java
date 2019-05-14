@@ -706,6 +706,7 @@ public class ProjectRequest {
    */
   @PUT
   @Path("/{projectLocator}/order/projects")
+  @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public Projects setProjectsOrder(@PathParam("projectLocator") String projectLocator, Projects projects, @PathParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
@@ -743,6 +744,7 @@ public class ProjectRequest {
    */
   @PUT
   @Path("/{projectLocator}/order/buildTypes")
+  @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public BuildTypes setBuildTypesOrder(@PathParam("projectLocator") String projectLocator, BuildTypes buildTypes, @PathParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
@@ -836,6 +838,7 @@ public class ProjectRequest {
   //until @Path("/{projectLocator}/loadingErrors") is implemented
   @GET
   @Path("/{projectLocator}/latest")
+  @Produces({"application/xml", "application/json"})
   public Project reloadSettingsFile (@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
     myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     final SProject project = myProjectFinder.getItem(projectLocator);

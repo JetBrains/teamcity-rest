@@ -39,8 +39,8 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
@@ -660,6 +660,7 @@ public class BuildTypeRequest {
 
   @POST
   @Path("/{btLocator}/features")
+  @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public PropEntityFeature addFeature(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields, PropEntityFeature featureDescription) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
@@ -688,6 +689,7 @@ public class BuildTypeRequest {
 
   @PUT
   @Path("/{btLocator}/features/{featureId}")
+  @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public PropEntityFeature replaceFeature(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String id, @QueryParam("fields") String fields,
                                           PropEntityFeature featureDescription) {
@@ -738,6 +740,7 @@ public class BuildTypeRequest {
   @PUT
   @Path("/{btLocator}/features/{featureId}/parameters/{parameterName}")
   @Produces({"text/plain"})
+  @Consumes({"text/plain"})
   public String addFeatureParameter(@PathParam("btLocator") String buildTypeLocator, @PathParam("featureId") String featureId,
                                   @PathParam("parameterName") String parameterName, String newValue) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
@@ -802,6 +805,7 @@ public class BuildTypeRequest {
 
   @POST
   @Path("/{btLocator}/artifact-dependencies")
+  @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public PropEntityArtifactDep addArtifactDep(@PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields, PropEntityArtifactDep description) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
@@ -832,6 +836,7 @@ public class BuildTypeRequest {
 
   @PUT
   @Path("/{btLocator}/artifact-dependencies/{artifactDepLocator}")
+  @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public PropEntityArtifactDep replaceArtifactDep(@PathParam("btLocator") String buildTypeLocator,
                                                   @PathParam("artifactDepLocator") String artifactDepLocator,

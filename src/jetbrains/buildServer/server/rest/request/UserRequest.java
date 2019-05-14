@@ -19,8 +19,6 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
-import jetbrains.buildServer.serverSide.auth.AuthenticationToken;
-import jetbrains.buildServer.serverSide.auth.TokenAuthenticationModel;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -36,8 +34,10 @@ import jetbrains.buildServer.server.rest.model.user.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.AuthenticationToken;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
+import jetbrains.buildServer.serverSide.auth.TokenAuthenticationModel;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import jetbrains.buildServer.users.UserModel;
@@ -78,6 +78,7 @@ public class UserRequest {
 
   @POST
   @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
   public User createUser(User userData, @QueryParam("fields") String fields) {
     final SUser user = myDataUpdater.createUser(userData.getSubmittedUsername());
     myDataUpdater.modify(user, userData, myBeanContext.getServiceLocator());

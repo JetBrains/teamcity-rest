@@ -567,6 +567,7 @@ public class BuildRequest {
   @PUT
   @Path("/{buildLocator}/pinInfo/")
   @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
   public PinInfo setBuildPinData(@PathParam("buildLocator") String buildLocator, PinInfo pinStatus, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
     Boolean newStatus = pinStatus.getStatusFromPosted();
     if (newStatus == null) throw new BadRequestException("Pin status should be specified in the payload");
@@ -708,6 +709,7 @@ public class BuildRequest {
   @POST
   @Path("/{buildLocator}")
   @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
   public Build cancelBuild(@PathParam("buildLocator") String buildLocator,
                            BuildCancelRequest cancelRequest,
                            @QueryParam("fields") String fields,
@@ -911,6 +913,7 @@ public class BuildRequest {
   @PUT
   @Path("/multiple/{buildLocator}/pinInfo/")
   @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
   public MultipleOperationResult pinMultiple(@PathParam("buildLocator") String buildLocator, PinInfo pinStatus, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
     Boolean newStatus = pinStatus.getStatusFromPosted();
     if (newStatus == null) throw new BadRequestException("Pin status should be specified in the payload");
@@ -957,6 +960,7 @@ public class BuildRequest {
   @PUT
   @Path("/multiple/{buildLocator}/comment")
   @Consumes({"text/plain"})
+  @Produces({"application/xml", "application/json"})
   public MultipleOperationResult replaceCommentMultiple(@PathParam("buildLocator") String buildLocator, String text, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
     final SUser user = SessionUser.getUser(request);
     return processMultiple(buildLocator, (build) -> setBuildComment(build, text, user), new Fields(fields));
@@ -969,6 +973,7 @@ public class BuildRequest {
    */
   @DELETE
   @Path("/multiple/{buildLocator}/comment")
+  @Produces({"application/xml", "application/json"})
   public MultipleOperationResult deleteCommentMultiple(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
     final SUser user = SessionUser.getUser(request);
     return processMultiple(buildLocator, (build) -> setBuildComment(build, null, user), new Fields(fields));
@@ -982,6 +987,7 @@ public class BuildRequest {
   @POST
   @Path("/multiple/{buildLocator}")
   @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
   public MultipleOperationResult cancelMultiple(@PathParam("buildLocator") String buildLocator, BuildCancelRequest cancelRequest, @QueryParam("fields") String fields, @Context HttpServletRequest request) {
     if (buildLocator == null) {
       throw new BadRequestException("Empty locator specified.");

@@ -246,6 +246,7 @@ public class AgentRequest {
    */
   @PUT
   @Path("/{agentLocator}/compatibilityPolicy")
+  @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public CompatibilityPolicy setAllowedRunConfigurations(@PathParam("agentLocator") String agentLocator, CompatibilityPolicy payload, @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);

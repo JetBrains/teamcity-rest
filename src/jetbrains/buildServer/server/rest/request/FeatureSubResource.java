@@ -122,6 +122,7 @@ public class FeatureSubResource<M, S> {
 
   @PUT
   @Path("/{featureLocator}")
+  @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public S replace(@PathParam("featureLocator") String featureLocator, @NotNull S featureDescription, @QueryParam("fields") String fields) {
     final String resultId = myEntity.replace(featureLocator, featureDescription, myBeanContext.getServiceLocator());

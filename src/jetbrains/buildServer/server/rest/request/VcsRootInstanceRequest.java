@@ -159,6 +159,7 @@ public class VcsRootInstanceRequest {
   @GET
   @Path("/{vcsRootInstanceLocator}/repositoryState/creationDate")
   @Consumes("text/plain")
+  @Produces("text/plain")
   public String getRepositoryStateCreationDate(@PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator) {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     final RepositoryState repositoryState = myDataProvider.getBean(RepositoryStateManager.class).getRepositoryState(rootInstance);
