@@ -30,6 +30,7 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.NamedThreadFactory;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.TimePrinter;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -367,7 +368,8 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
             && ((totalItemsProcessed - result.size()) > TeamCityProperties.getLong("rest.finder.processedAndFilteredItemsWarnLimit", 10000)
                 || totalItemsProcessed > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 100000)))) {
       LOG.info("Server performance can be affected by REST request and finder " + getName() + " with locator '" + locator + "': " +
-               totalItemsProcessed + " items were processed and " + result.size() + " items were returned, took " + processingTimeMs + " ms");
+               totalItemsProcessed + " items were processed and " + result.size() + " items were returned, took " + TimePrinter
+                 .createMillisecondsFormatter().formatTime(processingTimeMs));
     }
     if (result.isEmpty() && isReportErrorOnNothingFound(locator)){
       throw new NotFoundException("Nothing is found by " + getLocatorDetailsForMessage(locator) + ".");
