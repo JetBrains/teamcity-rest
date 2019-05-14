@@ -174,6 +174,7 @@ public class TimeWithPrecision {
   }
 
   public static long getMsFromRelativeTime(@NotNull final String relativeTimeString) {
+    //see also jetbrains.buildServer.diagnostic.TimeParser
     ParseResult result = new ParseResult(relativeTimeString);
     result.processTimeValue("y", 365L * 24 * 60 * 60 * 1000);
     result.processTimeValue("w", 7L * 24 * 60 * 60 * 1000);

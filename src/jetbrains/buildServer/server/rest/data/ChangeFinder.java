@@ -437,6 +437,9 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       try {
         buildFromBuildFinder = myBuildPromotionFinder.getItem(buildLocator);
       } catch (Exception e) {
+        if (!TeamCityProperties.getBoolean("rest.request.changes.legacySingleBuildSearch")) {
+          throw e;
+        }
         //support for finished builds
         //todo: use buildPromotionFinder here (ensure it also supports finished builds)
         buildFromBuildFinder = myBuildFinder.getBuildPromotion(null, buildLocator);   //THIS SHOULD NEVER HAPPEN

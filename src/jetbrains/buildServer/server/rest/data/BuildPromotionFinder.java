@@ -407,7 +407,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       PagedSearchResult<? extends Branch> branches = null;
       BadRequestException exceptinoOnFullSearch = null;
       try {
-        branches = myBranchFinder.getItemsIfValidBranchListLocator(locator.getSingleDimensionValue(BUILD_TYPE), branchLocatorValue);
+        branches = myBranchFinder.getItemsIfValidBranchListLocator(locator.lookupSingleDimensionValue(BUILD_TYPE), branchLocatorValue);
       } catch (BadRequestException e) {
         // not a valid branches listing locator
         exceptinoOnFullSearch = e;
