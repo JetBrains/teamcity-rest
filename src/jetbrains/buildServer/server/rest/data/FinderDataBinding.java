@@ -63,8 +63,6 @@ public interface FinderDataBinding<ITEM> {
     /**
      * Returns filter based on passed locator
      * Should not have side-effects other than marking used locator dimensions
-     *
-     * @param locator can be empty locator. Can
      */
     @NotNull
     ItemFilter<ITEM> getFilter();
@@ -87,7 +85,8 @@ public interface FinderDataBinding<ITEM> {
 
   @NotNull
   static <P> ItemHolder<P> getItemHolder(@NotNull Stream<? extends P> items) {
-    return processor -> items.forEach(item -> processor.processItem(item));
+    //noinspection ResultOfMethodCallIgnored
+    return processor -> items.filter(item -> !processor.processItem(item)).findFirst();
   }
 
   @NotNull
@@ -104,7 +103,7 @@ public interface FinderDataBinding<ITEM> {
 
     public void process(@NotNull final ItemProcessor<P> processor) {
       for (P entry : myEntries) {
-        processor.processItem(entry);
+        if (!processor.processItem(entry)) return;
       }
     }
   }
@@ -117,8 +116,11 @@ public interface FinderDataBinding<ITEM> {
     }
 
     public void process(@NotNull final ItemProcessor<P> processor) {
+      boolean[] processingContinues = new boolean[1];
+      processingContinues[0] = true;
       for (ItemHolder<P> itemHolder : myItemHolders) {
-        itemHolder.process(processor);
+        itemHolder.process((item) -> processingContinues[0] = processor.processItem(item));
+        if (!processingContinues[0]) return;
       }
     }
   }
