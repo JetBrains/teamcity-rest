@@ -20,7 +20,8 @@ import com.sun.jersey.api.core.InjectParam;
 import io.swagger.annotations.Api;
 import java.io.File;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -29,9 +30,6 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
-import jetbrains.buildServer.controllers.admin.ServerData;
-import jetbrains.buildServer.diagnostic.MemoryUsageMonitor;
-import jetbrains.buildServer.diagnostic.StatisticDataProvider;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
@@ -43,10 +41,12 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfos;
-import jetbrains.buildServer.server.rest.model.server.*;
+import jetbrains.buildServer.server.rest.model.server.LicenseKeyEntities;
+import jetbrains.buildServer.server.rest.model.server.LicenseKeyEntity;
+import jetbrains.buildServer.server.rest.model.server.LicensingData;
+import jetbrains.buildServer.server.rest.model.server.Server;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
-import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.maintenance.BackupConfig;
@@ -60,8 +60,6 @@ import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static jetbrains.buildServer.diagnostic.MemoryUsageMonitor.*;
-
 /*
  * User: Yegor Yarko
  * Date: 11.04.2009
@@ -69,21 +67,11 @@ import static jetbrains.buildServer.diagnostic.MemoryUsageMonitor.*;
 @Path(ServerRequest.API_SERVER_URL)
 @Api("Server")
 public class ServerRequest {
-  public static final Map<String, String> CPU_NAMES;
-  static {
-    CPU_NAMES = new HashMap<>();
-    CPU_NAMES.put(GC_USAGE_KEY, "Garbage collection");
-    CPU_NAMES.put(JAVA_PROCESS_CPU_USAGE_KEY, "TeamCity process CPU usage");
-    CPU_NAMES.put(SYSTEM_CPU_USAGE_KEY, "Overall CPU usage");
-  }
-  public static final String STATISTIC_CPU = "cpu";
-  public static final String STATISTIC_MEMORY = "memory";
   public static final String SERVER_VERSION_RQUEST_PATH = "version";
   public static final String SERVER_REQUEST_PATH = "/server";
   public static final String API_SERVER_URL = Constants.API_URL + SERVER_REQUEST_PATH;
   protected static final String LICENSING_DATA = "/licensingData";
   protected static final String LICENSING_KEYS = LICENSING_DATA + "/licenseKeys";
-  protected static final String STATISTICS = "/statistics";
   @Context
   private DataProvider myDataProvider;
   @Context
@@ -92,7 +80,6 @@ public class ServerRequest {
   private ApiUrlBuilder myApiUrlBuilder;
   @Context
   private BeanFactory myFactory;
-  private Collection<StatisticDataProvider> myStatisticDataProviders;
 
   @SuppressWarnings("NullableProblems") @Context @NotNull private BeanContext myBeanContext;
 
@@ -347,30 +334,5 @@ public class ServerRequest {
   @NotNull
   private Permission getAreaPermission(final @PathParam("areaId") String areaId) {
     return "logs".equals(areaId) ? Permission.MANAGE_SERVER_INSTALLATION : Permission.VIEW_SERVER_SETTINGS;
-  }
-
-  @GET
-  @Path(STATISTICS)
-  public StatisticsList getServerStatistics(@QueryParam("fields") String fields) {
-    final Fields fs = new Fields(fields);
-
-    final ServerData serverData = getServerData();
-    final List<Statistics> statistics = getStatisticDataProviders().stream()
-       .map(p -> ValueWithDefault.decideDefault(fs.isIncluded(p.getType(), true), new Statistics(p, serverData)))
-       .filter(Objects::nonNull)
-       .collect(Collectors.toList());
-    return new StatisticsList(statistics);
-  }
-
-  private Collection<StatisticDataProvider> getStatisticDataProviders() {
-    if (myStatisticDataProviders == null) {
-      myStatisticDataProviders = myServiceLocator.getServices(StatisticDataProvider.class);
-    }
-    return myStatisticDataProviders;
-  }
-
-  private ServerData getServerData() {
-    final MemoryUsageMonitor memoryUsageMonitor = myServiceLocator.getSingletonService(MemoryUsageMonitor.class);
-    return new ServerData(memoryUsageMonitor, null);
   }
 }
