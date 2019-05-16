@@ -24,6 +24,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.audit.ActionType;
+import jetbrains.buildServer.serverSide.audit.AuditLogAction;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -35,14 +36,20 @@ import org.jetbrains.annotations.NotNull;
 public class AuditAction {
   @XmlAttribute
   public String name;
+
+  @XmlAttribute
+  public String id;
+
   @XmlElement
-  public String description;
+  public String pattern;
 
   public AuditAction() {
   }
 
-  public AuditAction(@NotNull final ActionType actionType, @NotNull final Fields fields, @NotNull final BeanContext context) {
-    name = ValueWithDefault.decideDefault(fields.isIncluded("name"), () -> actionType.name().toLowerCase());
-    description = ValueWithDefault.decideDefault(fields.isIncluded("description"), () -> actionType.getDescription());
+  public AuditAction(@NotNull final AuditLogAction action, @NotNull final Fields fields, @NotNull final BeanContext context) {
+    final ActionType actionType = action.getActionType();
+    id = ValueWithDefault.decideDefault(fields.isIncluded("id", false, false), () -> String.valueOf(actionType.getDBId()));
+    name = ValueWithDefault.decideDefault(fields.isIncluded("name"), () -> actionType.name().toLowerCase()); //todo: add a test that no action names are changed
+    pattern = ValueWithDefault.decideDefault(fields.isIncluded("pattern", false, true), actionType::getDescription);
   }
 }

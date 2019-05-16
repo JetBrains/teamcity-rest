@@ -42,7 +42,7 @@ public class AuditEvents {
 
   public AuditEvents(final @NotNull List<AuditLogAction> items, @NotNull final Fields fields, @NotNull final BeanContext context) {
     auditEvents = ValueWithDefault.decideDefault(fields.isIncluded("auditEvent", false, true),
-                                                 () -> items.stream().map(i -> new AuditEvent(i, fields.getNestedField("auditEvent"), context)).collect(Collectors.toList()));
+                                                 () -> items.stream().map(i -> new AuditEvent(i, fields.getNestedField("auditEvent", Fields.SHORT, Fields.LONG), context)).collect(Collectors.toList()));
 
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), items::size);
   }

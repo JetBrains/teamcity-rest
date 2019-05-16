@@ -29,8 +29,8 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "unknown")
 public class UnknownEntity {
-  @XmlAttribute(name = "id")
-  private String id;
+  @XmlAttribute(name = "internalId")
+  private String internalId;
 
   @XmlAttribute(name = "type")
   private String type;
@@ -39,8 +39,8 @@ public class UnknownEntity {
   public UnknownEntity() {
   }
 
-  public UnknownEntity(@Nullable final String id, @Nullable final String type, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
-    this.id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), id);
+  public UnknownEntity(@Nullable final String internalId, @Nullable final String type, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    this.internalId = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("internalId"), internalId);
     this.type = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("type"), type);
   }
 }

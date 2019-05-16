@@ -44,7 +44,7 @@ public class RelatedEntities {
 
   public RelatedEntities(final @NotNull List<RelatedEntity.Entity> items, @NotNull final Fields fields, @NotNull final BeanContext context) {
     entities = ValueWithDefault.decideDefault(fields.isIncluded("entity", false, true),
-                                                 () -> items.stream().map(i -> new RelatedEntity(i, fields.getNestedField("entity", Fields.NONE, Fields.SHORT), context)).collect(Collectors.toList()));
+                                                 () -> items.stream().map(i -> new RelatedEntity(i, fields.getNestedField("entity", Fields.NONE, Fields.LONG), context)).collect(Collectors.toList()));
 
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), () -> items.size());
   }

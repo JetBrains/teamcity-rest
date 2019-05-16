@@ -25,6 +25,7 @@ import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
+import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.change.Change;
@@ -40,7 +41,7 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.audit.ObjectType;
 import jetbrains.buildServer.serverSide.audit.ObjectWrapper;
-import jetbrains.buildServer.serverSide.audit.helpers.*;
+import jetbrains.buildServer.serverSide.problems.BuildProblemInfo;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
@@ -52,14 +53,20 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings({"PublicField", "WeakerAccess"})
 @XmlRootElement(name = "relatedEntity")
-public class RelatedEntity {
-
+public class RelatedEntity { //see also Related
   @XmlAttribute(name = "type")
   private String type;
 
+  @XmlAttribute(name = "unknown")
+  public Boolean unknown;
 
-  @XmlElement(name = "unknown")
-  public UnknownEntity unknown;
+  /**
+   * experimental.
+   * Internal id of the entity
+   */
+  @XmlAttribute(name = "internalId")
+  private String internalId;
+
 
   @XmlElement(name = "text")
   public String text;
@@ -94,16 +101,20 @@ public class RelatedEntity {
   @XmlElement(name = "change")
   public Change change;
 
+  @XmlElement(name = "agentPool")
+  public AgentPool agentPool;
+
   @SuppressWarnings("unused")
   public RelatedEntity() {
   }
 
   public RelatedEntity(@NotNull final Entity entity, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     type = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("type"), entity.type);
+    internalId = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("internalId", false, entity.unknown), entity.internalId);
+    unknown = ValueWithDefault.decideDefault(fields.isIncluded("unknown"), entity.unknown);
+
     if (entity.text != null) {
       text = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("text"), entity.text);
-    } if (entity.unknown != null) {
-      unknown = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("unknown"), () -> new UnknownEntity(entity.unknown.id, entity.unknown.type, fields.getNestedField("unknown", Fields.SHORT, Fields.SHORT), beanContext));
     } else if (entity.build != null) {
       build = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("build"), () -> new Build(entity.build, fields.getNestedField("build", Fields.SHORT, Fields.SHORT), beanContext));
     } else if (entity.buildType != null) {
@@ -124,13 +135,16 @@ public class RelatedEntity {
       vcsRoot = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("vcsRoot"), () -> new VcsRoot(entity.vcsRoot, fields.getNestedField("vcsRoot", Fields.SHORT, Fields.SHORT), beanContext));
     } else if (entity.change != null) {
       change = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("change"), () -> new Change(entity.change, fields.getNestedField("change", Fields.SHORT, Fields.SHORT), beanContext));
+    } else if (entity.agentPool != null) {
+      agentPool = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("agentPool"), () -> new AgentPool(entity.agentPool, fields.getNestedField("agentPool", Fields.SHORT, Fields.SHORT), beanContext));
     }
   }
 
   public static class Entity {
     @Nullable private String type;
+    @Nullable private String internalId; //type-specific internalId
+    @Nullable private boolean unknown; //true if the types of the entity is unknown
 
-    @Nullable private Unknown unknown;
     @Nullable private String text;
     @Nullable private BuildPromotion build;
     @Nullable private BuildTypeOrTemplate buildType;
@@ -142,6 +156,7 @@ public class RelatedEntity {
     @Nullable private SBuildAgent agent;
     @Nullable private SVcsRoot vcsRoot;
     @Nullable private SVcsModification change;
+    @Nullable private jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool;
 
     public Entity(@NotNull final Object build) {
       if (build instanceof BuildPromotion) {
@@ -154,51 +169,76 @@ public class RelatedEntity {
 
     private Entity() {}
 
-    @Nullable
+    @NotNull
     public static Entity getFrom(@NotNull final ObjectWrapper objectWrapper, @NotNull final ServiceLocator serviceLocator) {
       Entity result = new Entity();
 
       Object object = objectWrapper.getObject();
       ObjectType objectType = objectWrapper.getObjectType();
 
+      result.internalId = "NO_ID".equals(objectWrapper.getObjectId()) ? null : objectWrapper.getObjectId();
+      result.type = getType(objectType);
+      result.unknown = false;
+
       if (!ObjectType.STRING.equals(objectType) && object instanceof String) {
         result.text = (String)object;
         result.type = "text";
-      } else  if (object != null) {
+      } else if (object != null) {
         switch (objectType) {
-          case STRING:              result.type = "text"; result.text = (new StringHelper()).getObject(object); break;
-          case BUILD_PROMOTION:     result.type = "build"; result.build = (new BuildPromotionHelper()).getObject(object); break;
-          case BUILD:               result.type = "build"; result.build = (new BuildHelper()).getObject(object).getBuildPromotion();  break;
-          case BUILD_TYPE:          result.type = "buildType"; result.buildType = new BuildTypeOrTemplate((SBuildType)(new BuildTypeHelper()).getObject(object));  break;
-          case BUILD_TYPE_TEMPLATE: result.type = "buildType"; result.buildType = new BuildTypeOrTemplate((new BuildTypeTemplateHelper()).getObject(object)); break;
-          case PROJECT:             result.type = "project"; result.project = (new ProjectHelper()).getObject(object); break;
-          case USER:                result.type = "user"; result.user = (new UserHelper()).getObject(object); break;
-          case USER_GROUP:          result.type = "userGroup"; result.userGroup = (new UserGroupHelper()).getObject(object); break;
-          case TEST:                result.type = "test"; result.test = (new TestHelper()).getObject(object); break;
-          case BUILD_PROBLEM:       result.type = "problem";  result.problem = new ProblemWrapper((new BuildProblemHelper()).getObject(object).getId(), serviceLocator); break;
-          case AGENT:               result.type = "agent"; result.agent = (new AgentHelper()).getObject(object); break;
-          case VCS_ROOT:            result.type = "vcsRoot"; result.vcsRoot = (new VcsRootHelper()).getObject(object); break;
-          case VCS_MODIFICATION:    result.type = "change"; result.change = (SVcsModification)(new VcsModificationHelper()).getObject(object); break;
-          case SERVER:              return null;
+          case STRING:              result.text = (String)object; break;
+          case BUILD_PROMOTION:     result.build = (BuildPromotion)object; break;
+          case BUILD:               result.build = ((SBuild)object).getBuildPromotion();  break;
+          case BUILD_TYPE:          result.buildType = new BuildTypeOrTemplate((SBuildType)object);  break;
+          case BUILD_TYPE_TEMPLATE: result.buildType = new BuildTypeOrTemplate((BuildTypeTemplate)object); break;
+          case PROJECT:             result.project = (SProject)object; break;
+          case USER:                result.user = (jetbrains.buildServer.users.User)object; break;
+          case USER_GROUP:          result.userGroup = (SUserGroup)object; break;
+          case TEST:                result.test = (STest)object; break;
+          case BUILD_PROBLEM:       result.problem = new ProblemWrapper(((BuildProblemInfo)object).getId(), serviceLocator); break;
+          case AGENT:               result.agent = (SBuildAgent)object; break;
+          case VCS_ROOT:            result.vcsRoot = (SVcsRoot)object; break;
+          case VCS_MODIFICATION:    result.change = (SVcsModification)object; break;
+          case AGENT_POOL:          result.agentPool = (jetbrains.buildServer.serverSide.agentPools.AgentPool)object; break;
+
+          case SERVER:              //this is usually used as "nop" and if present, affects the indexes in the pattern, so cannot be ignored
+                                    result.internalId = null; break;
 
           case UNKNOWN_OBJECT:
-          default:
-            result.type = "unknown";
-            result.unknown = new Unknown(objectWrapper.getObjectId(), objectType.name().toLowerCase());
-            break;
+          default:                  result.unknown = true;
         }
       }
       return result;
     }
   }
 
-  private static class Unknown {
-    @Nullable private String id;
-    @Nullable private String type;
+  @NotNull
+  private static String getType(@NotNull ObjectType objectType) {
+    switch (objectType) {
+       case STRING:              return "text";
+       case BUILD_PROMOTION:     return "build";
+       case BUILD:               return "build";
+       case BUILD_TYPE:          return "buildType";
+       case BUILD_TYPE_TEMPLATE: return "buildType";
+       case PROJECT:             return "project";
+       case USER:                return "user";
+       case USER_GROUP:          return "userGroup";
+       case TEST:                return "test";
+       case BUILD_PROBLEM:       return "problem";
+       case AGENT:               return "agent";
+       case VCS_ROOT:            return "vcsRoot";
+       case VCS_MODIFICATION:    return "change";
+       case SERVER:              return "empty";//used as "nop"
 
-    public Unknown(@Nullable final String id, @Nullable final String type) {
-      this.id = "NO_ID".equals(id) ? null : id;
-      this.type = type;
-    }
+       case USER_ROLE:           return "role";
+       case AGENT_TYPE:          return "agentType";
+       case AGENT_POOL:          return "agentPool";
+       case CONFIG_MODIFICATION: return "settingsChange";
+       case HEALTH_STATUS_ITEM:  return "healthItem";
+       case RUN_TYPE:            return "metaRunner";
+       case TOOL:                return "agentTool";
+
+       case UNKNOWN_OBJECT:
+       default:                  return "unknown";
+     }
   }
 }

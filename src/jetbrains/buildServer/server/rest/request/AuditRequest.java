@@ -18,13 +18,11 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.data.AuditEventFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.audit.AuditEvent;
 import jetbrains.buildServer.server.rest.model.audit.AuditEvents;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import org.jetbrains.annotations.NotNull;
@@ -42,5 +40,12 @@ public class AuditRequest {
   @Produces({"application/xml", "application/json"})
   public AuditEvents get(@QueryParam("locator") String locator, @QueryParam("fields") String fields) {
     return new AuditEvents(myAuditEventFinder.getItems(locator).myEntries, new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/{auditEventLocator}")
+  @Produces({"application/xml", "application/json"})
+  public AuditEvent getSingle(@PathParam("auditEventLocator") String auditEventLocator, @QueryParam("fields") String fields) {
+    return new AuditEvent(myAuditEventFinder.getItem(auditEventLocator), new Fields(fields), myBeanContext);
   }
 }
