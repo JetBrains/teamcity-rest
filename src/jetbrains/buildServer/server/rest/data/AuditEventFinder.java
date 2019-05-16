@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -83,6 +84,7 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
                                             });
       dimensionLong(COUNT).description("number of items to return").withDefault(String.valueOf(Constants.getDefaultPageItemsCount()));
       dimensionLong(START).description("number of items to skip");
+      dimensionLong(LOOKUP_LIMIT).description("maximum number of items to process when filtering").withDefault(String.valueOf(1000L));
 
       dimensionBoolean(SYSTEM_ACTION).description("only actions by system").withDefault("false").filter((value, item) -> FilterUtil.isIncludedByBooleanFilter(value, !item.isUserAction()));
 
@@ -102,13 +104,28 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
 
         Long count = getIfSingle(dimensions.lookup(COUNT));
         int maxEntries = -1;
-        if (dimensions.getUnusedDimensions().isEmpty() && count != null) {
+        Set<String> filteringDimensions = dimensions.getUnusedDimensions();
+        filteringDimensions.remove(COUNT.name);
+        filteringDimensions.remove(START.name);
+        filteringDimensions.remove(LOOKUP_LIMIT.name);
+        if (filteringDimensions.isEmpty() && count != null) {
           maxEntries = count.intValue();
           Long start = getIfSingle(dimensions.lookup(START));
           if (start != null) maxEntries += start;
         }
 
-        return getItemHolder(builder.getLogActions(maxEntries)); //setting maxEntries can be unexpected, so should be reworked. Ideally, should pass processor into audit retrieving logic
+        Long lookupLimit = getIfSingle(dimensions.lookup(LOOKUP_LIMIT));
+        if (lookupLimit != null) {
+          if (maxEntries != -1) {
+            maxEntries = Math.min(maxEntries, lookupLimit.intValue());
+          } else {
+            maxEntries = lookupLimit.intValue();
+          }
+        }
+
+        if (maxEntries != -1) maxEntries++;  //adding 1 to make sure we hit the limitation and report it duly to the client via nextHref
+
+        return getItemHolder(builder.getLogActions(maxEntries)); //setting maxEntries can produce unexpected results, so should be reworked. Ideally, should pass processor into audit retrieving logic
       });
 
       locatorProvider(user -> getLocator(user));
