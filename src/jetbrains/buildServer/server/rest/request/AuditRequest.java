@@ -18,13 +18,18 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.data.AuditEventFinder;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.audit.AuditEvent;
 import jetbrains.buildServer.server.rest.model.audit.AuditEvents;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.audit.AuditLogAction;
 import org.jetbrains.annotations.NotNull;
 
 @Path(AuditRequest.API_URL)
@@ -38,8 +43,10 @@ public class AuditRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  public AuditEvents get(@QueryParam("locator") String locator, @QueryParam("fields") String fields) {
-    return new AuditEvents(myAuditEventFinder.getItems(locator).myEntries, new Fields(fields), myBeanContext);
+  public AuditEvents get(@QueryParam("locator") String locator, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+    PagedSearchResult<AuditLogAction> items = myAuditEventFinder.getItems(locator);
+    final PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), items, locator, "locator");
+    return new AuditEvents(items.myEntries, pagerData, new Fields(fields), myBeanContext);
   }
 
   @GET

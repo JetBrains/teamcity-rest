@@ -23,10 +23,12 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.audit.AuditLogAction;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @XmlRootElement(name = "auditEvents")
 @XmlType(name = "auditEvents")
@@ -37,13 +39,24 @@ public class AuditEvents {
   @XmlAttribute
   public Integer count;
 
-  public AuditEvents() {
-  }
+  @XmlAttribute(required = false) @Nullable public String nextHref;
+  @XmlAttribute(required = false) @Nullable public String prevHref;
+  @XmlAttribute(required = false) @Nullable public String href;
 
-  public AuditEvents(final @NotNull List<AuditLogAction> items, @NotNull final Fields fields, @NotNull final BeanContext context) {
+  public AuditEvents() {}
+
+  public AuditEvents(final @NotNull List<AuditLogAction> items, final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext context) {
     auditEvents = ValueWithDefault.decideDefault(fields.isIncluded("auditEvent", false, true),
                                                  () -> items.stream().map(i -> new AuditEvent(i, fields.getNestedField("auditEvent", Fields.SHORT, Fields.LONG), context)).collect(Collectors.toList()));
 
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), items::size);
+
+    if (pagerData != null) {
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href", true), context.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
+      nextHref = ValueWithDefault
+        .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? context.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
+      prevHref = ValueWithDefault
+        .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? context.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
+    }
   }
 }
