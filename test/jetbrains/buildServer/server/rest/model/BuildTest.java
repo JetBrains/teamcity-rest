@@ -1309,7 +1309,16 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       Build build = new Build(build2, Fields.LONG, getBeanContext(myFixture));
       Changes changes = build.getChanges();
       assertEquals("/app/rest/changes?locator=build:(id:" + build2.getBuildId() + ")", changes.getHref());
-      assertEquals(null, changes.getCount());
+      assertEquals(Integer.valueOf(2), changes.getCount()); //changes are cached
+      assertEquals(null, changes.getChanges());
+      assertNull(changes.getNextHref());
+    }
+    {
+      ((BuildPromotionEx)build2.getBuildPromotion()).resetChangesCache();
+      Build build = new Build(build2, Fields.LONG, getBeanContext(myFixture));
+      Changes changes = build.getChanges();
+      assertEquals("/app/rest/changes?locator=build:(id:" + build2.getBuildId() + ")", changes.getHref());
+      assertEquals(null, changes.getCount()); //changes are cached
       assertEquals(null, changes.getChanges());
       assertNull(changes.getNextHref());
     }
