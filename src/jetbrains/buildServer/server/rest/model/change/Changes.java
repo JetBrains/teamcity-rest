@@ -75,7 +75,7 @@ public class Changes implements DefaultValueAware {
                                                                  .collect(Collectors.toList()));
 
       //for performance reasons: include count only when changes are to be calculated
-      myCount = ValueWithDefault.decideIncludeByDefault(myFields.isIncluded(COUNT, myModifications.isCached(), false, myChanges != null),
+      myCount = ValueWithDefault.decideIncludeByDefault(myFields.isIncluded(COUNT, myModifications.isCached(), myModifications.isCached(), myModifications.isCached()),
                                                      () -> myModifications.get().size());
     }
   }
