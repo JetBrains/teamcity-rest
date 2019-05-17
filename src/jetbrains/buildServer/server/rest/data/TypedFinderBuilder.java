@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
@@ -408,12 +409,22 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public <T extends Enum> TypedFinderDimensionWithDefaultChecker<ITEM, Set<T>, T> dimensionEnums(@NotNull final Dimension<Set<T>> dimension, @NotNull final Class<T> enumClass) {
-    return dimension(dimension, type(dimensionValue -> getEnumsValue(dimensionValue, enumClass)).description("one or more of " + getValues(enumClass)))
+    return dimensionSetOf(dimension, String.valueOf(getValues(enumClass)), s -> getValue(s, enumClass));
+  }
+
+  /**
+   * T should have due equals/hashcode to make Set<T>::contains work duly
+   */
+  public <T> TypedFinderDimensionWithDefaultChecker<ITEM, Set<T>, T> dimensionSetOf(@NotNull final Dimension<Set<T>> dimension,
+                                                                           @NotNull final String helpTextDescribingItems,
+                                                                           @NotNull final Function<String, T> dimensionValueToItem) {
+    return dimension(dimension,type(dimensionValue -> getValues(dimensionValue, helpTextDescribingItems, dimensionValueToItem))
+      .description("one or more of " + helpTextDescribingItems))
       .defaultFilter(Set::contains);
   }
 
-  public <T extends Enum> TypedFinderDimensionWithDefaultChecker<ITEM, String, String> dimensionFixedText(@NotNull final Dimension<String> dimension,
-                                                                                                          @NotNull final String... values) {
+  public TypedFinderDimensionWithDefaultChecker<ITEM, String, String> dimensionFixedText(@NotNull final Dimension<String> dimension,
+                                                                                         @NotNull final String... values) {
     Set<String> lowerCaseValues = Arrays.stream(values).map(s -> s.toLowerCase()).collect(Collectors.toSet());
     String supportedValuesText = StringUtil.join(values, ", ");
 
@@ -438,6 +449,16 @@ public class TypedFinderBuilder<ITEM> {
                                                                                                   @NotNull final String description) {
     return dimension(dimension, type(dimensionValue -> finder.getFilter(dimensionValue)).description("").description(description))
       .defaultFilter((filter, item) -> filter.isIncluded(item));
+  }
+
+  @Nullable
+  public static <T> Set<T> getIntersected(@Nullable List<Set<T>> dimensions) {
+    if (dimensions == null || dimensions.size() == 0) {
+      return null;
+    }
+    Set<T> intersected = new HashSet<>(dimensions.get(0));
+    dimensions.stream().skip(1).forEach(intersected::retainAll);
+    return intersected;
   }
 
   //============================= Main definition methods =============================
@@ -554,16 +575,16 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   @NotNull
-  public static <T extends Enum> Set<T> getEnumsValue(@NotNull final String value, @NotNull final Class<T> enumClass) {
-    Locator.processHelpRequest(value, "One value or multiple comma-separated \"item:<value>\" of supported values: " + getValues(enumClass));
+  public static <T> Set<T> getValues(@NotNull final String value, @NotNull final String helpTextDescribingItems, @NotNull final Function<String, T> dimensionValueToItem) {
+    Locator.processHelpRequest(value, "One value or multiple comma-separated \"item:<value>\" of supported values: " + helpTextDescribingItems);
     if (!value.contains(",")) {
-      return Collections.singleton(getValue(value, enumClass));
+      return Collections.singleton(dimensionValueToItem.apply(value));
     }
     return StringUtil.split(value, ",").stream().map(s -> {
       Locator locator = new Locator(s, "item");
       String item = locator.getSingleDimensionValue("item");
       if (item == null) throw new BadRequestException("Unknown value \"" + s + "\": should be single value or contain \"item\" dimensions");
-      T result = getValue(item, enumClass);
+      T result = dimensionValueToItem.apply(item);
       locator.checkLocatorFullyProcessed();
       return result;
     }).collect(Collectors.toSet());
@@ -1107,7 +1128,7 @@ public class TypedFinderBuilder<ITEM> {
       StringBuilder result = new StringBuilder();
       result.append("Supported locator dimensions:\n");
       for (TypedFinderDimensionImpl dimension : myDimensions.values()) {
-        if (!includeHidden && dimension.getHidden() && locator.getDimensionValue(dimension.getDimension().name).isEmpty() && !locator.isHelpRequested()) {
+        if (!includeHidden && dimension.getHidden() && locator.getDimensionValue(dimension.getDimension().name).isEmpty()) {
           continue;
         }
         result.append(dimension.getDimension().name);
