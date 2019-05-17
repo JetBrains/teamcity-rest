@@ -81,6 +81,7 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
     addOptionToProperty(properties, dependency, DependencyOptions.RUN_BUILD_ON_THE_SAME_AGENT);
     addOptionToProperty(properties, dependency, DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS);
     addOptionToProperty(properties, dependency, DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY);
+    addOptionToProperty(properties, dependency, DependencyOptions.SYNCHRONIZE_REVISIONS);
 
     //todo: review id, type here
     init(dependency.getDependOnExternalId(), null, SNAPSHOT_DEPENDENCY_TYPE_NAME, null,
