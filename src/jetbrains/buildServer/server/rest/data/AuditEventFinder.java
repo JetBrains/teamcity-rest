@@ -17,19 +17,20 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.RelatedEntity;
 import jetbrains.buildServer.server.rest.request.Constants;
-import jetbrains.buildServer.serverSide.audit.ActionType;
-import jetbrains.buildServer.serverSide.audit.AuditLogAction;
-import jetbrains.buildServer.serverSide.audit.AuditLogBuilder;
-import jetbrains.buildServer.serverSide.audit.AuditLogProvider;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.audit.*;
+import jetbrains.buildServer.serverSide.impl.audit.filters.BuildTypeFilter;
+import jetbrains.buildServer.serverSide.impl.audit.filters.BuildTypeTemplateFilter;
+import jetbrains.buildServer.serverSide.impl.audit.filters.HiddenActionTypesFilter;
+import jetbrains.buildServer.serverSide.impl.audit.filters.ProjectFilter;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -46,10 +47,16 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
   private static final Dimension<List<SUser>> USER = new Dimension<>("user");
   private static final Dimension<Boolean> SYSTEM_ACTION = new Dimension<>("systemAction");
   private static final Dimension<Set<ActionType>> ACTION = new Dimension<>("action");
-  private static final Dimension<Set<String>> OBJECT_ID = new Dimension<>("internalId");
+  private static final Dimension<List<BuildTypeOrTemplate>> BUILD_TYPE = new Dimension<>("buildType");
+  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("affectedProject");
+  private static final Dimension<Set<String>> OBJECT_ID = new Dimension<>("entityInternalId");
+  private static final Dimension<Set<ObjectType>> OBJECT_TYPE = new Dimension<>("entityType");
+  private static final Dimension<Boolean> HIDDEN_ACTIONS = new Dimension<>("hidden");
   private static final Dimension<Long> COUNT = new Dimension<>(PagerData.COUNT);
   private static final Dimension<Long> START = new Dimension<>(PagerData.START);
   private static final Dimension<Long> LOOKUP_LIMIT = new Dimension<>(FinderImpl.DIMENSION_LOOKUP_LIMIT);
+
+  public static final Set<ActionType> HIDDEN_ACTION_TYPES = ActionType.getHiddenActionTypes();
 
   private AuditLogProvider myAuditLogProvider;
   @NotNull private final ServiceLocator myServiceLocator;
@@ -82,7 +89,11 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
                                               User user = item.getUser();
                                               return user != null && value.stream().anyMatch(u -> u.getId() == user.getId());
                                             });
-      dimensionEnums(ACTION, ActionType.class).description("type of the action").valueForDefaultFilter(AuditLogAction::getActionType);
+
+      dimensionWithFinder(BUILD_TYPE, () -> myServiceLocator.getSingletonService(BuildTypeFinder.class), "buildType locator").description("related build type of the action, only single values are supported");
+      dimensionProjects(PROJECT, myServiceLocator).description("related project of the action, only single values are supported");
+//      dimension(OBJECT_TYPE, type(RelatedEntity::getObjectType).description("one of " + RelatedEntity.getSupportedObjectTypes())).description("entity of the action");
+      dimensionSetOf(OBJECT_TYPE, "entity type: " + RelatedEntity.getSupportedObjectTypes(), RelatedEntity::getObjectType).hidden().description("entity type of the main action entity");
       dimensionSetOf(OBJECT_ID, "internal id", s -> s)
         .description("internal id of the main action entity").hidden().valueForDefaultFilter(AuditLogAction::getObjectId);
 
@@ -91,6 +102,10 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
       dimensionLong(LOOKUP_LIMIT).description("maximum number of items to process when filtering").withDefault(String.valueOf(1000L));
 
       dimensionBoolean(SYSTEM_ACTION).description("only actions by system").withDefault("false").filter((value, item) -> FilterUtil.isIncludedByBooleanFilter(value, !item.isUserAction()));
+      dimensionBoolean(HIDDEN_ACTIONS).description("only legacy actions").withDefault("false").hidden().filter((value, item) -> FilterUtil.isIncludedByBooleanFilter(value, HIDDEN_ACTION_TYPES.contains(item.getActionType())));
+
+      //put this last as it's description is too long
+      dimensionSetOf(ACTION, String.valueOf(getActionTypesValues()), s -> getValue(s, ActionType.class)).description("type of the action").valueForDefaultFilter(AuditLogAction::getActionType);
 
       multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> {
         AuditLogBuilder builder = myAuditLogProvider.getBuilder();
@@ -106,7 +121,7 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
               builder.addFilter(data -> userSets.stream().anyMatch(ids -> ids.contains(data.getUserId())));
             }
 
-            Boolean systemActionFlag = getIfSingle(dimensions.lookup(SYSTEM_ACTION)); //tood: should only show system actions to users with due permissions?
+            Boolean systemActionFlag = getIfSingle(dimensions.lookup(SYSTEM_ACTION)); //todo: should only show system actions to users with due permissions?
             if (systemActionFlag != null && !systemActionFlag) {
               builder.setUserAction(!systemActionFlag);
               dimensions.get(SYSTEM_ACTION); //marking as used
@@ -114,9 +129,14 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
           }
         }
 
+        Boolean hidden = getIfSingle(dimensions.lookup(HIDDEN_ACTIONS));
+        if (hidden != null && !hidden) {
+          dimensions.get(HIDDEN_ACTIONS);
+          builder.addFilter(new HiddenActionTypesFilter());
+        }
+
         Set<ActionType> actions = TypedFinderBuilder.getIntersected(dimensions.get(ACTION));
         if (actions != null) {
-          dimensions.get(ACTION); //mark as used
           builder.setActionTypes(CollectionsUtil.toArray(actions, ActionType.class));
         }
 
@@ -130,15 +150,36 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
           }
         }
 
+        Set<ObjectType> filterTypes = TypedFinderBuilder.getIntersected(dimensions.get(OBJECT_TYPE));
+        if (filterTypes != null) {
+          RelatedEntity.expandTypes(filterTypes);
+          builder.addFilter(data -> filterTypes.contains(data.getObjectType()));
+        }
+
+        BuildTypeOrTemplate buildTypeOrTemplate = getIfSingle(getIfSingle(dimensions.lookup(BUILD_TYPE)));
+        if (buildTypeOrTemplate != null) {
+          dimensions.get(BUILD_TYPE); //mark as used
+          if (buildTypeOrTemplate.isBuildType()) {
+            //noinspection ConstantConditions
+            builder.addFilter(new BuildTypeFilter(buildTypeOrTemplate.getBuildType()));
+          } else {
+            //noinspection ConstantConditions
+            builder.addFilter(new BuildTypeTemplateFilter(buildTypeOrTemplate.getTemplate()));
+          }
+        }
+
+        SProject project = getIfSingle(getIfSingle(dimensions.lookup(PROJECT)));
+        if (project != null) {
+          dimensions.get(PROJECT); //mark as used
+          builder.addFilter(new ProjectFilter(project));
+        }
+
         Long count = getIfSingle(dimensions.lookup(COUNT));
         int maxEntries = -1;
         Set<String> filteringDimensions = dimensions.getUnusedDimensions();
         filteringDimensions.remove(COUNT.name);
         filteringDimensions.remove(START.name);
         filteringDimensions.remove(LOOKUP_LIMIT.name);
-        filteringDimensions.remove(USER.name);
-        filteringDimensions.remove(ACTION.name);
-        filteringDimensions.remove(OBJECT_ID.name);
         if (filteringDimensions.isEmpty() && count != null) {
           maxEntries = count.intValue();
           Long start = getIfSingle(dimensions.lookup(START));
@@ -161,6 +202,11 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
 
       locatorProvider(AuditEventFinder::getLocator);
 //      containerSetProvider(() -> new HashSet<AuditLogAction>());
+    }
+
+    @NotNull
+    private List<String> getActionTypesValues() {
+      return Arrays.stream(ActionType.class.getEnumConstants()).filter(o -> !HIDDEN_ACTION_TYPES.contains(o)).map(source -> source.name().toLowerCase()).collect(Collectors.toList());
     }
   }
 

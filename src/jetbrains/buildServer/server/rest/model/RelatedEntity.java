@@ -16,6 +16,9 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -211,6 +214,9 @@ public class RelatedEntity { //see also Related
     }
   }
 
+  /**
+   * should correspond to getObjectType, getSupportedObjectTypes
+   */
   @NotNull
   private static String getType(@NotNull ObjectType objectType) {
     switch (objectType) {
@@ -240,5 +246,69 @@ public class RelatedEntity { //see also Related
        case UNKNOWN_OBJECT:
        default:                  return "unknown";
      }
+  }
+
+  /**
+   * reverse for getType, considering expandTypes method
+   * should correspond to getType, getSupportedObjectTypes
+   */
+  @NotNull
+  public static ObjectType getObjectType(@NotNull String type) {
+    switch (type) {
+       case "text":           return ObjectType.STRING;
+       case "build":          return ObjectType.BUILD_PROMOTION;
+       case "buildType":      return ObjectType.BUILD_TYPE;
+       case "project":        return ObjectType.PROJECT;
+       case "user":           return ObjectType.USER;
+       case "userGroup":      return ObjectType.USER_GROUP;
+       case "test":           return ObjectType.TEST;
+       case "problem":        return ObjectType.BUILD_PROBLEM;
+       case "agent":          return ObjectType.AGENT;
+       case "vcsRoot":        return ObjectType.VCS_ROOT;
+       case "change":         return ObjectType.VCS_MODIFICATION;
+       case "empty":          return ObjectType.SERVER;
+       case "role":           return ObjectType.USER_ROLE;
+       case "agentType":      return ObjectType.AGENT_TYPE;
+       case "agentPool":      return ObjectType.AGENT_POOL;
+       case "settingsChange": return ObjectType.CONFIG_MODIFICATION;
+       case "healthItem":     return ObjectType.HEALTH_STATUS_ITEM;
+       case "metaRunner":     return ObjectType.RUN_TYPE;
+       case "agentTool":      return ObjectType.TOOL;
+       //UNKNOWN_OBJECT:
+       default:               throw new BadRequestException("Unknown entity type \"" + type + "\". Supported are: " + getSupportedObjectTypes());
+     }
+  }
+
+
+  @NotNull
+  public static Set<ObjectType> expandTypes(@NotNull final Set<ObjectType> set) {
+    if (set.contains(ObjectType.BUILD_PROMOTION)) set.add(ObjectType.BUILD);
+    if (set.contains(ObjectType.BUILD_TYPE)) set.add(ObjectType.BUILD_TYPE_TEMPLATE);
+    return set;
+  }
+
+  /**
+   * should correspond to getType, getObjectType
+   */
+  public static List<String> getSupportedObjectTypes() {
+    return Arrays.asList("text",
+                         "build",
+                         "buildType",
+                         "project",
+                         "user",
+                         "userGroup",
+                         "test",
+                         "problem",
+                         "agent",
+                         "vcsRoot",
+                         "change",
+                         "empty",
+                         "role",
+                         "agentType",
+                         "agentPool",
+                         "settingsChange",
+                         "healthItem",
+                         "metaRunner",
+                         "agentTool");
   }
 }

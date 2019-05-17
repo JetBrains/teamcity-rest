@@ -416,10 +416,10 @@ public class TypedFinderBuilder<ITEM> {
    * T should have due equals/hashcode to make Set<T>::contains work duly
    */
   public <T> TypedFinderDimensionWithDefaultChecker<ITEM, Set<T>, T> dimensionSetOf(@NotNull final Dimension<Set<T>> dimension,
-                                                                           @NotNull final String helpTextDescribingItems,
-                                                                           @NotNull final Function<String, T> dimensionValueToItem) {
-    return dimension(dimension,type(dimensionValue -> getValues(dimensionValue, helpTextDescribingItems, dimensionValueToItem))
-      .description("one or more of " + helpTextDescribingItems))
+                                                                                    @NotNull final String helpTextDescribingItems,
+                                                                                    @NotNull final Function<String, T> dimensionValueToItem) {
+    return dimension(dimension,
+                     type(dimensionValue -> getValues(dimensionValue, helpTextDescribingItems, dimensionValueToItem)).description("one or more of " + helpTextDescribingItems))
       .defaultFilter(Set::contains);
   }
 
@@ -597,7 +597,7 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   @NotNull
-  private static <T extends Enum> T getValue(@NotNull final String value, @NotNull final Class<T> enumClass) {
+  public static <T extends Enum> T getValue(@NotNull final String value, @NotNull final Class<T> enumClass) {
     T[] consts = enumClass.getEnumConstants();
     assert consts != null;
     for (T c : consts) {
