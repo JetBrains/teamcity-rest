@@ -407,6 +407,11 @@ public class TypedFinderBuilder<ITEM> {
     .defaultFilter((t, item) -> t.equals(item));
   }
 
+  public <T extends Enum> TypedFinderDimensionWithDefaultChecker<ITEM, Set<T>, T> dimensionEnums(@NotNull final Dimension<Set<T>> dimension, @NotNull final Class<T> enumClass) {
+    return dimension(dimension, type(dimensionValue -> getEnumsValue(dimensionValue, enumClass)).description("one or more of " + getValues(enumClass)))
+      .defaultFilter(Set::contains);
+  }
+
   public <T extends Enum> TypedFinderDimensionWithDefaultChecker<ITEM, String, String> dimensionFixedText(@NotNull final Dimension<String> dimension,
                                                                                                           @NotNull final String... values) {
     Set<String> lowerCaseValues = Arrays.stream(values).map(s -> s.toLowerCase()).collect(Collectors.toSet());
@@ -549,8 +554,29 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   @NotNull
+  public static <T extends Enum> Set<T> getEnumsValue(@NotNull final String value, @NotNull final Class<T> enumClass) {
+    Locator.processHelpRequest(value, "One value or multiple comma-separated \"item:<value>\" of supported values: " + getValues(enumClass));
+    if (!value.contains(",")) {
+      return Collections.singleton(getValue(value, enumClass));
+    }
+    return StringUtil.split(value, ",").stream().map(s -> {
+      Locator locator = new Locator(s, "item");
+      String item = locator.getSingleDimensionValue("item");
+      if (item == null) throw new BadRequestException("Unknown value \"" + s + "\": should be single value or contain \"item\" dimensions");
+      T result = getValue(item, enumClass);
+      locator.checkLocatorFullyProcessed();
+      return result;
+    }).collect(Collectors.toSet());
+  }
+
+  @NotNull
   public static <T extends Enum> T getEnumValue(@NotNull final String value, @NotNull final Class<T> enumClass) {
     Locator.processHelpRequest(value, "Supported values are: " + getValues(enumClass));
+    return getValue(value, enumClass);
+  }
+
+  @NotNull
+  private static <T extends Enum> T getValue(@NotNull final String value, @NotNull final Class<T> enumClass) {
     T[] consts = enumClass.getEnumConstants();
     assert consts != null;
     for (T c : consts) {
