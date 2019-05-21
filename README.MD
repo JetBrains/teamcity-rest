@@ -1,6 +1,6 @@
 [![official JetBrains project](http://jb.gg/badges/official-flat-square.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 
-This is the codebase of the JetBrains [TeamCity REST API](https://confluence.jetbrains.com/display/TCDL/REST+API).  
+This is the codebase of the JetBrains [TeamCity REST API](https://www.jetbrains.com/help/teamcity/?REST+API).  
 The functionality is bundled in TeamCity distributions and is developed as open-source plugin maintained by TeamCity team.
 
 Issues about TeamCity REST API are to be filed into the [TeamCity issue tracker](https://youtrack.jetbrains.com/issues/TW).
