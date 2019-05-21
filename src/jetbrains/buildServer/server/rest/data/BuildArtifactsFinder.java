@@ -668,7 +668,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
         if (!containsNested1) return isFile1 ? 1 : characterComparisonResult;
         return isFile2 ? -1 : characterComparisonResult;
       } else {
-        if (isFile1 != isFile2) {
+        if (!containsNested1 && isFile1 != isFile2) {
           return isFile1 ? 1 : -1;
         } else {
           return characterComparisonResult;

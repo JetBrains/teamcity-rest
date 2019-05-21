@@ -917,6 +917,93 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     );
   }
 
+  @Test
+  public void testComparatorSet1() throws Exception {
+    //these data used to throw IllegalArgumentException: Comparison method violates its general contract!
+    List<ArtifactTreeElement> result = toArtifactTreeElements(
+       "_i/j/j-",
+      "i/j/j/19",
+      "_i/j/j-",
+      "i/j/j/19",
+      "_i/j/j-",
+      "_i/j/j-",
+      "i/j/j/19",
+      "_i/jF",
+      "_i/js",
+      "_i/j/js",
+      "_i/js",
+      "i/j/j/19",
+      "i/j/j/19",
+      "_i/j/js",
+      "_i/j/ju",
+      "i/m/m/19",
+      "_i/p/an",
+      "_i/p/bu",
+      "_i/p/lv",
+      "_i/p/pr",
+      "_i/p/re",
+      "_i/p/re",
+      "_i/p/re",
+      "_i/p/te",
+      "i/p/t/19",
+      "i/p/v/19",
+      "_i/s/st",
+      "i/t/t/19",
+      "_i/t/jp",
+      "_i/v/hg",
+      "_i/x/xm",
+      "_i/x/xm"
+    );
+    Collections.sort(result, BuildArtifactsFinder.ARTIFACT_COMPARATOR);
+    checkOrderedCollection(getNames(result),
+           "i/j/j/19",
+           "i/j/j/19",
+           "i/j/j/19",
+           "i/j/j/19",
+           "i/j/j/19",
+      /*_*/"i/j/j-",
+     /*_*/"i/j/j-",
+     /*_*/"i/j/j-",
+     /*_*/"i/j/j-",
+     /*_*/"i/j/js",
+     /*_*/"i/j/js",
+     /*_*/"i/j/ju",
+     /*_*/"i/jF",
+     /*_*/"i/js",
+     /*_*/"i/js",
+          "i/m/m/19",
+     /*_*/"i/p/an",
+     /*_*/"i/p/bu",
+     /*_*/"i/p/lv",
+     /*_*/"i/p/pr",
+     /*_*/"i/p/re",
+     /*_*/"i/p/re",
+     /*_*/"i/p/re",
+          "i/p/t/19",
+     /*_*/"i/p/te",
+          "i/p/v/19",
+     /*_*/"i/s/st",
+     /*_*/"i/t/jp",
+          "i/t/t/19",
+     /*_*/"i/v/hg",
+     /*_*/"i/x/xm",
+     /*_*/"i/x/xm"
+    );
+  }
+
+  @Test
+  public void testComparatorSet2() throws Exception {
+    List<ArtifactTreeElement> result = toArtifactTreeElements(
+      "_i/vaa/hhh",
+      "i/p/test/10"
+    );
+    Collections.sort(result, BuildArtifactsFinder.ARTIFACT_COMPARATOR);
+    checkOrderedCollection(getNames(result),
+                           "i/p/test/10",
+                           "i/vaa/hhh"
+    );
+  }
+
   /**
    * if name starts with "_", then undescore is removed and the items is considered a directory
    */
