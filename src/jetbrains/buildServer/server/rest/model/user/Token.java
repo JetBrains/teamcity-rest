@@ -16,10 +16,10 @@
 
 package jetbrains.buildServer.server.rest.model.user;
 
-import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.auth.AuthenticationToken;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,13 +35,13 @@ public class Token {
   public String name;
   @Nullable
   @XmlAttribute(required = false)
-  public Date creationTime;
+  public String creationTime;
 
   public Token() {
   }
 
   public Token(@NotNull final AuthenticationToken t) {
     name = t.getName();
-    creationTime = t.getCreationTime();
+    creationTime = Util.formatTime(t.getCreationTime());
   }
 }
