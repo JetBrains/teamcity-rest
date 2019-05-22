@@ -34,10 +34,8 @@ import jetbrains.buildServer.server.rest.model.user.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.serverSide.auth.AuthenticationToken;
+import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.auth.RoleEntry;
-import jetbrains.buildServer.serverSide.auth.TokenAuthenticationModel;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import jetbrains.buildServer.users.UserModel;
@@ -327,7 +325,11 @@ public class UserRequest {
     }
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     final SUser user = myUserFinder.getItem(userLocator, true);
-    return new Token(tokenAuthenticationModel.createToken(user.getId(), name));
+    try {
+      return new Token(tokenAuthenticationModel.createToken(user.getId(), name));
+    } catch (AuthenticationTokenStorage.CreationException e) {
+      throw new BadRequestException(e.getMessage());
+    }
   }
 
   @GET
@@ -354,7 +356,11 @@ public class UserRequest {
     }
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     SUser user = myUserFinder.getItem(userLocator, true);
-    tokenAuthenticationModel.deleteToken(user.getId(), name);
+    try {
+      tokenAuthenticationModel.deleteToken(user.getId(), name);
+    } catch (AuthenticationTokenStorage.DeletionException e) {
+      throw new NotFoundException(e.getMessage());
+    }
   }
 
   /**
