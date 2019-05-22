@@ -326,9 +326,8 @@ public class UserRequest {
       myUserFinder.checkViewAllUsersPermission();
     }
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
-    SUser user = myUserFinder.getItem(userLocator, true);
-    final AuthenticationToken token = tokenAuthenticationModel.createToken(user.getId(), name);
-    return new Token(token.getName(), token.getValue(), token.getCreationTime());
+    final SUser user = myUserFinder.getItem(userLocator, true);
+    return new Token(tokenAuthenticationModel.createToken(user.getId(), name));
   }
 
   @GET

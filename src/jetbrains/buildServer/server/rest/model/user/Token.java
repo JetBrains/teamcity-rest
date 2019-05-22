@@ -20,6 +20,7 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.serverSide.auth.AuthenticationToken;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,13 +29,10 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings({"PublicField", "unused", "WeakerAccess"})
 @XmlRootElement(name = "token")
-@XmlType(name = "token", propOrder = {"name", "value", "creationTime"})
+@XmlType(name = "token", propOrder = {"name", "creationTime"})
 public class Token {
   @XmlAttribute
   public String name;
-  @Nullable
-  @XmlAttribute(required = false)
-  public String value;
   @Nullable
   @XmlAttribute(required = false)
   public Date creationTime;
@@ -42,13 +40,8 @@ public class Token {
   public Token() {
   }
 
-  public Token(@NotNull final String name, @Nullable final Date creationTime) {
-    this(name, null, creationTime);
-  }
-
-  public Token(@NotNull final String name, @Nullable final String value, @Nullable Date creationTime) {
-    this.name = name;
-    this.value = value;
-    this.creationTime = creationTime;
+  public Token(@NotNull final AuthenticationToken t) {
+    name = t.getName();
+    creationTime = t.getCreationTime();
   }
 }

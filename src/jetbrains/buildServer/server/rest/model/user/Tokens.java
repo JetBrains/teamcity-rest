@@ -44,7 +44,7 @@ public class Tokens {
 
   public Tokens(@NotNull final List<AuthenticationToken> tokenNames, @NotNull final Fields fields) {
     if (fields.isIncluded("token", false, true)) {
-      tokens = tokenNames.stream().map(t -> new Token(t.getName(), t.getValue(), t.getCreationTime())).collect(Collectors.toList());
+      tokens = tokenNames.stream().map(Token::new).collect(Collectors.toList());
     }
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), tokenNames.size());
   }
