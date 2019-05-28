@@ -60,6 +60,6 @@ public class RangeLimit {
 
   @Override
   public String toString() {
-    return "(date: " + myDate + (myBuild == null ? "" : LogUtil.describe(myBuild)) + ")";
+    return "(date: " +LogUtil.describe(myDate) + (myBuild == null ? "" : LogUtil.describe(myBuild)) + ")";
   }
 }
