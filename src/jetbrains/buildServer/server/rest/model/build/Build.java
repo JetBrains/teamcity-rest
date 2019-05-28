@@ -985,8 +985,6 @@ public class Build {
                                                 return null;
                                               }
 
-                                              final int mutedTestsCount =
-                                                statistics.getFailedTestsIncludingMuted().size() - statistics.getFailedTestCount(); //TeamCity API: not effective
                                               if (myBuild.getBuildType() == null){
                                                 //workaround for http://youtrack.jetbrains.com/issue/TW-34734
                                                 return null;
@@ -1009,7 +1007,7 @@ public class Build {
                                                                          statistics.getFailedTestCount(),
                                                                          statistics.getNewFailedCount(),
                                                                          statistics.getIgnoredTestCount(),
-                                                                         mutedTestsCount,
+                                                                         statistics.getMutedTestsCount(),
                                                                          TestOccurrenceRequest.getHref(myBuild),
                                                                          null,
                                                                          testOccurrencesFields, myBeanContext
