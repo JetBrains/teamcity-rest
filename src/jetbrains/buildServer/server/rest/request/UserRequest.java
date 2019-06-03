@@ -326,7 +326,7 @@ public class UserRequest {
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     final SUser user = myUserFinder.getItem(userLocator, true);
     try {
-      return new Token(tokenAuthenticationModel.createToken(user.getId(), name));
+      return new TokenValue(tokenAuthenticationModel.createToken(user.getId(), name));
     } catch (AuthenticationTokenStorage.CreationException e) {
       throw new BadRequestException(e.getMessage());
     }
