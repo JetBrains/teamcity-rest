@@ -122,7 +122,7 @@ public class BuildFinderFixedBuildSequenceByPromotionTest extends BuildFinderTes
                 myBuild3tagged,
                 myBuild2failed, myBuild1);
 
-    checkBuilds("user:(username:" + myUser.getUsername() + ")", myBuild10byUser);
+    checkBuilds("user:(username:" + myUser.getUsername() + ")", myBuild10byUser, myBuild6personalFailed, myBuild5personal);
     checkBuilds("tags:tag1", myBuild3tagged);
     checkBuilds("tag:tag1", myBuild3tagged);
     checkNoBuildsFound("tag:bla");

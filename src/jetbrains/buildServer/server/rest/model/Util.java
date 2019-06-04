@@ -61,6 +61,11 @@ public class Util {
     return t == null ? null : f.apply(t);
   }
 
+  @NotNull
+  public static <T, R> R resolveNull(@Nullable T t, @NotNull Function<T, R> f, @NotNull R resultForNull) {
+    return t == null ? resultForNull : f.apply(t);
+  }
+
   @Nullable
   public static String encodeUrlParamValue(@Nullable final String value) {
     if (value == null) return null;

@@ -676,9 +676,12 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuilds("personal:any,status:SUCCESS", b20personal, b10);
     checkBuilds("personal:true,status:SUCCESS", b20personal);
     //checkBuilds("buildType:(id:" + myBuildType.getExternalId() + "),personal:any,status:FAILURE", b100personalFailedToStart, b90FailedToStart);
-    checkNoBuildsFound("user:(id:" + user1.getId() + ")");
-    checkNoBuildsFound("user:(id:" + user1.getId() + "),personal:true");
-    checkNoBuildsFound("user:(id:" + user1.getId() + "),personal:any");
+    checkBuilds("user:(id:" + user1.getId() + ")", b80personal, running60, running40, b20personal);
+    checkBuilds("user:(id:" + user1.getId() + "),personal:true", b80personal, running60, running40, b20personal);
+    checkBuilds("user:(id:" + user1.getId() + "),personal:any", b80personal, running60, running40, b20personal);
+    checkNoBuildsFound("triggered:(user:(id:" + user1.getId() + "))");
+    checkNoBuildsFound("triggered:(user:(id:" + user1.getId() + ")),personal:true");
+    checkNoBuildsFound("triggered:(user:(id:" + user1.getId() + ")),personal:any");
    }
 
   @Test

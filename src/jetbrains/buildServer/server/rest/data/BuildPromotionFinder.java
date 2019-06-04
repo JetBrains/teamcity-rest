@@ -34,6 +34,7 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.ItemsProviders;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
@@ -73,6 +74,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String AGENT_TYPE_ID = "agentTypeId";
   public static final String PERSONAL = "personal";
   public static final String USER = "user";
+  public static final String TRIGGERED = "triggered"; //experimental
   protected static final String BRANCH = "branch";
   protected static final String BRANCHED = "branched"; //experimental
   protected static final String PROPERTY = "property";
@@ -122,7 +124,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String REVISION = "revision"; /*experimental*/
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
   public static final SnapshotDepsTraverser SNAPSHOT_DEPENDENCIES_TRAVERSER = new SnapshotDepsTraverser();
-  protected static final String STROB_BUILD_LOCATOR = "locator";
+  private final Finder<TriggeredBy> myTriggerByFinder;
 
   private final BuildPromotionManager myBuildPromotionManager;
   private final BuildQueue myBuildQueue;
@@ -174,7 +176,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                         SINCE_BUILD_ID_LOOK_AHEAD_COUNT,  //experimental
                         ORDERED,  //experimental
                         STROB,  //experimental
-                        BRANCHED  //experimental
+                        BRANCHED,  //experimental
+                        TRIGGERED  //experimental
     );
 
     myPermissionChecker = permissionChecker;
@@ -190,6 +193,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     myMetadataStorage = metadataStorage;
     myTimeCondition = timeCondition;
     myServiceLocator = serviceLocator;
+
+    myTriggerByFinder = getTriggeredByFinder(myTimeCondition, myServiceLocator);
   }
 
   @NotNull
@@ -551,18 +556,21 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final SUser user = myUserFinder.getItem(userDimension);
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
-          SUser actualUser = null;
-          final SBuild build = item.getAssociatedBuild();
-          if (build != null) {
-            actualUser = build.getTriggeredBy().getUser();
+          SUser owner = item.getOwner();
+          if (owner != null) {
+            // if owner is present, consider only it: this is consistent with the builds search in the prefiltering
+            return user.getId() == owner.getId();
           }
-          final SQueuedBuild queuedBuild = item.getQueuedBuild();
-          if (queuedBuild != null) {
-            actualUser = queuedBuild.getTriggeredBy().getUser();
-          }
+          SUser actualUser = Util.resolveNull(getTriggeredBy(item), TriggeredBy::getUser);
           return actualUser != null && user.getId() == actualUser.getId();
         }
       });
+    }
+
+    final String triggeredDimension = locator.getSingleDimensionValue(TRIGGERED);
+    if (triggeredDimension != null) {
+      final ItemFilter<TriggeredBy> filter = myTriggerByFinder.getFilter(triggeredDimension);
+      result.add(item -> Util.resolveNull(getTriggeredBy(item), filter::isIncluded, false));
     }
 
     final List<String> properties = locator.getDimensionValue(PROPERTY);
@@ -816,6 +824,28 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     return getFilterWithProcessingCutOff(result, locator.getSingleDimensionValueAsLong(SINCE_BUILD_ID_LOOK_AHEAD_COUNT), sinceBuildPromotion, sinceBuildId, sinceStartDate);
+  }
+
+  @Nullable
+  private static TriggeredBy getTriggeredBy(@NotNull final BuildPromotion buildPromotion) {
+    final SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null) return build.getTriggeredBy();
+
+    final SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null) return queuedBuild.getTriggeredBy();
+    return null;
+  }
+
+  @NotNull
+  private static Finder<TriggeredBy> getTriggeredByFinder(@NotNull final TimeCondition timeCondition, @NotNull final ServiceLocator serviceLocator) {
+    TypedFinderBuilder<TriggeredBy> builder = new TypedFinderBuilder<>();
+    builder.dimensionTimeCondition(new TypedFinderBuilder.Dimension<>("date"), timeCondition).description("timestamp of the triggering")
+           .valueForDefaultFilter(TriggeredBy::getTriggeredDate);
+    builder.dimensionUsers(new TypedFinderBuilder.Dimension<>("user"), serviceLocator).description("user who triggered")
+           .valueForDefaultFilter(triggeredBy -> Collections.singleton(triggeredBy.getUser()));
+    builder.dimensionValueCondition(new TypedFinderBuilder.Dimension<>("type")).description("type of the trigger")
+           .valueForDefaultFilter(item -> jetbrains.buildServer.server.rest.model.build.TriggeredBy.getDetails(item, serviceLocator).type);
+    return builder.build();
   }
 
   @Nullable
@@ -1530,7 +1560,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     if (defaultFiltering == null) { // if it is set, then use the value ("true" if we got there)
       if (TeamCityProperties.getBooleanOrTrue("rest.buildPromotionFinder.varyingDefaults")) {
-        if (locator.isAnyPresent(AGENT, AGENT_NAME, USER, HANGING, EQUIVALENT)) {
+        if (locator.isAnyPresent(AGENT, AGENT_NAME, USER, HANGING, EQUIVALENT, TRIGGERED)) {
           // users usually expect that any build will be returned for such locators, see TW-45140
           return;
         }

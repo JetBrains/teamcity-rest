@@ -1798,8 +1798,11 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     check("agent:(id:" + build120.getAssociatedBuild().getAgent().getId() + "),running:true", build120);
     check("agentName:" + build120.getAssociatedBuild().getAgent().getName() + ",running:true", build120);
 
-    check("user:id:" + user1.getId(), build50);
-    check("user:id:" + user1.getId() + ",state:any", build110, build50);
+    check("user:id:" + user1.getId(), build50, build45, build15);
+    check("user:id:" + user1.getId() + ",state:any", build150, build120, build110, build50, build45, build15);
+
+    check("triggered:(user:id:" + user1.getId() + ")", build50);
+    check("triggered:(user:id:" + user1.getId() + "),state:any", build110, build50);
 
     check("id:" + build50.getId(), build50);
     check("id:" + build60.getId(), build60);
@@ -1999,6 +2002,43 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     //cleanup logging settings
     restLogger.setLevel(null);
     restLogger.removeAllAppenders();
+  }
+
+  @Test
+  public void testUserDimension() {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConf = (BuildTypeEx)project.createBuildType("buildConf", "buildConf");
+    SUser user1 = createUser("user1");
+    SUser user2 = createUser("user2");
+
+    BuildPromotion build10 = build().in(buildConf).number("1").finish().getBuildPromotion();
+    BuildPromotion build20 = build().in(buildConf).number("1").personalForUser(user1.getUsername()).finish().getBuildPromotion();
+    BuildPromotion build30 = build().in(buildConf).number("1").by(user1).finish().getBuildPromotion();
+    BuildPromotion build40 = build().in(buildConf).number("1").personalForUser(user2.getUsername()).by(user1).finish().getBuildPromotion();
+    BuildPromotion build50 = build().in(buildConf).personalForUser(user1.getUsername()).addToQueue().getBuildPromotion();
+
+    assertNull(build20.getAssociatedBuild().getTriggeredBy().getUser());
+
+    //searches with "number:1" execute only filter part of the logic, but shold result in the same set of builds
+    check("state:any,defaultFilter:false", build50, build40, build30, build20, build10);
+    check("state:any,defaultFilter:false,number:1", build40, build30, build20, build10);
+    check("state:any,defaultFilter:false,user:user1", build50, build30, build20);
+    check("state:any,defaultFilter:false,user:user1,number:1", build30, build20);
+    check("state:any,defaultFilter:false,user:user2",          build40);
+    check("state:any,defaultFilter:false,user:user2,number:1", build40);
+    check("state:any,defaultFilter:false,user:user1,personal:true", build50, build20);
+    check("state:any,defaultFilter:false,user:user1,personal:true,number:1", build20);
+    check("state:any,defaultFilter:false,user:user2,personal:true",          build40);
+    check("state:any,defaultFilter:false,user:user2,personal:true,number:1", build40);
+    check("state:any,defaultFilter:false,user:user1,personal:false",          build30);
+    check("state:any,defaultFilter:false,user:user1,personal:false,number:1", build30);
+    check("state:any,defaultFilter:false,user:user2,personal:false");
+    check("state:any,defaultFilter:false,user:user2,personal:false,number:1");
+
+    check("state:any,defaultFilter:false,triggered:(user:user1)", build40, build30);
+    check("state:any,defaultFilter:false,triggered:(user:user1),user:user2", build40);
+    check("state:any,defaultFilter:false,user:user1,not:(triggered:(user:user1))", build50, build20);
+    check("state:any,defaultFilter:false,triggered:(type:user)", build40, build30);
   }
 
   //==================================================
