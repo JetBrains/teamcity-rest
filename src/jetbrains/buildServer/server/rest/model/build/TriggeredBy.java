@@ -36,6 +36,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -98,7 +99,11 @@ public class TriggeredBy {
     });
 
     //TeamCity API issue: would be cool to extract common logic from ServerTriggeredByProcessor.render and provide visitor as a service
-    setType(triggeredBy, fields, beanContext);
+    Details parsedDetails = getDetails(triggeredBy, beanContext.getServiceLocator());
+    if (parsedDetails.type != null) type = ValueWithDefault.decideDefault(fields.isIncluded("type"), parsedDetails.type);
+    if (parsedDetails.details != null) details = ValueWithDefault.decideDefault(fields.isIncluded("details"), parsedDetails.details);
+    if (parsedDetails.build != null) build = ValueWithDefault.decideDefault(fields.isIncluded("build"), new Build(parsedDetails.build, fields.getNestedField("build"), beanContext));
+    if (parsedDetails.buildType != null) buildType = ValueWithDefault.decideDefault(fields.isIncluded("buildType"), new BuildType(new BuildTypeOrTemplate(parsedDetails.buildType), fields.getNestedField("buildType"), beanContext));
 
     displayText = ValueWithDefault.decideDefault(fields.isIncluded("displayText", false, false), () -> triggeredBy.getAsString());
 
@@ -115,95 +120,86 @@ public class TriggeredBy {
     });
   }
 
-  private void setType(final jetbrains.buildServer.serverSide.TriggeredBy triggeredBy, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+  public static Details getDetails(@NotNull final jetbrains.buildServer.serverSide.TriggeredBy triggeredBy, @NotNull final ServiceLocator serviceLocator) {
+    Details result = new Details();
     //see also jetbrains.buildServer.serverSide.impl.ServerTriggeredByProcessor.render()
     final String rawTriggeredBy = triggeredBy.getRawTriggeredBy();
     if (rawTriggeredBy != null && !rawTriggeredBy.startsWith(TriggeredByBuilder.PARAMETERS_PREFIX)) {
-      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "unknown");
-      details = ValueWithDefault.decideDefault(fields.isIncluded("details"), rawTriggeredBy);
+      result.type = "unknown";
+      result.details = rawTriggeredBy;
     }
 
     final Map<String, String> triggeredByParams = triggeredBy.getParameters();
 
     String buildId = triggeredByParams.get(TriggeredByBuilder.BUILD_ID_PARAM_NAME);
     if (buildId != null) {
-      build = ValueWithDefault.decideDefault(fields.isIncluded("build"), () -> {
-        try {
-          final BuildPromotion foundBuild = beanContext.getSingletonService(BuildFinder.class).getBuildByPromotionId(Long.valueOf(buildId));
-          return new Build(foundBuild, fields.getNestedField("build"), beanContext);
-        } catch (Exception e) {
-          return null;
-        }
-      });
+      try {
+        result.build = serviceLocator.getSingletonService(BuildFinder.class).getBuildByPromotionId(Long.valueOf(buildId));
+      } catch (Exception ignore) {
+      }
     }
 
     String typeInParams = triggeredByParams.get(TriggeredByBuilder.TYPE_PARAM_NAME);
     if (typeInParams != null) {
-      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), () -> typeInParams);
+      result.type = typeInParams;
     }
 
 
     String buildTypeId = triggeredByParams.get(TriggeredByBuilder.BUILD_TYPE_ID_PARAM_NAME);
     if (buildTypeId != null) {
       if (typeInParams == null) {
-        type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "buildType");
+        result.type = "buildType";
       }
       try {
-        final SBuildType foundBuildType = beanContext.getSingletonService(ProjectManager.class).findBuildTypeById(buildTypeId);
         //this mostly duplicates the data from the "build" sub-node, but can be useful (when build is deleted) and this was also part of API before 2017.1
-        buildType = foundBuildType == null
-                    ? null
-                    : ValueWithDefault.decideDefault(fields.isIncluded("buildType"), new ValueWithDefault.Value<BuildType>() {
-                      public BuildType get() {
-                        return new BuildType(new BuildTypeOrTemplate(foundBuildType), fields.getNestedField("buildType"), beanContext);
-                      }
-                    });
-      } catch (AccessDeniedException e) {
-        buildType = null; //ignoring inability to view the triggering build type
+        result.buildType = serviceLocator.getSingletonService(ProjectManager.class).findBuildTypeById(buildTypeId);
+      } catch (AccessDeniedException ignore) {
+        //ignoring inability to view the triggering build type
       }
-      return;
+      return result;
     }
 
     if (triggeredByParams.get("unexpectedFinish") != null ||
         triggeredByParams.get(TriggeredByBuilder.RE_ADDED_AFTER_STOP_NAME) != null) {
       if (typeInParams == null || "unexpectedFinish".equals(typeInParams)) {
         //compatibility with "type" value prior to 2017.1
-        type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "restarted");
+        result.type = "restarted";
       }
-      return;
+      return result;
     }
 
     String idePlugin = triggeredByParams.get(TriggeredByBuilder.IDE_PLUGIN_PARAM_NAME);
     if (idePlugin != null) {
       if (typeInParams == null || CORE_TRIGGERED_BY_TYPE_XML_RPC.equals(typeInParams)) {
         //compatibility with "type" value prior to 2017.1
-        type = ValueWithDefault.decideDefault(fields.isIncluded("type"), TYPE_IDE_PLUGIN_REST);
+        result.type = TYPE_IDE_PLUGIN_REST;
       }
-      details = ValueWithDefault.decideDefault(fields.isIncluded("details"), idePlugin);
-      return;
+      result.details = idePlugin;
+      return result;
     }
 
     String vcsName = triggeredByParams.get(TriggeredByBuilder.VCS_NAME_PARAM_NAME);
     if (vcsName != null) {
       if (typeInParams == null) {
-        type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "vcs");
+        result.type = "vcs";
       }
-      details = ValueWithDefault.decideDefault(fields.isIncluded("details"), vcsName);
-      return;
+      result.details = vcsName;
+      return result;
     }
 
     String user = triggeredByParams.get(TriggeredByBuilder.USER_PARAM_NAME);
     if (user != null) {
       if (typeInParams == null) {
-        type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "user");
+        result.type = "user";
       }
-      return;
+      return result;
     }
 
     if (typeInParams == null) {
-      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), "unknown");
-      details = ValueWithDefault.decideDefault(fields.isIncluded("details"), rawTriggeredBy);
+      result.type = "unknown";
+      result.details = rawTriggeredBy;
     }
+    return result;
   }
 
   @NotNull
@@ -224,5 +220,12 @@ public class TriggeredBy {
       }
     }
     return result;
+  }
+
+  public static class Details {
+    @Nullable public String type;
+    @Nullable String details;
+    @Nullable BuildPromotion build;
+    @Nullable SBuildType buildType;
   }
 }
