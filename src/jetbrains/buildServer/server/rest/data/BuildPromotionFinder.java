@@ -122,6 +122,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String METADATA = "metadata"; /*experimental*/
 
   public static final String REVISION = "revision"; /*experimental*/
+
+  protected static final String STROB_BUILD_LOCATOR = "locator";
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
   public static final SnapshotDepsTraverser SNAPSHOT_DEPENDENCIES_TRAVERSER = new SnapshotDepsTraverser();
   private final Finder<TriggeredBy> myTriggerByFinder;
