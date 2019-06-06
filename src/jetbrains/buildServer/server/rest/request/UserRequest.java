@@ -319,14 +319,16 @@ public class UserRequest {
   @Path("/{userLocator}/tokens/{name}")
   @Produces({"application/xml", "application/json"})
   public Token createToken(@PathParam("userLocator") String userLocator,
-                            @PathParam("name") @NotNull final String name) {
+                           @PathParam("name") @NotNull final String name,
+                           @QueryParam("fields") String fields) {
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
       myUserFinder.checkViewAllUsersPermission();
     }
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     final SUser user = myUserFinder.getItem(userLocator, true);
     try {
-      return new TokenValue(tokenAuthenticationModel.createToken(user.getId(), name));
+      final AuthenticationToken token = tokenAuthenticationModel.createToken(user.getId(), name);
+      return new Token(token, token.getValue(), new Fields(fields));
     } catch (AuthenticationTokenStorage.CreationException e) {
       throw new BadRequestException(e.getMessage());
     }

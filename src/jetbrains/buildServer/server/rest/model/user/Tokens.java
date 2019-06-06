@@ -31,20 +31,21 @@ import org.jetbrains.annotations.NotNull;
  * @author Dmitrii Bogdanov
  */
 @SuppressWarnings({"PublicField", "WeakerAccess", "unused"})
-@XmlRootElement(name = "tokens")
-@XmlType(name = "tokens")
+@XmlRootElement(name = Tokens.TYPE)
+@XmlType(name = Tokens.TYPE)
 public class Tokens {
+  static final String TYPE = "tokens";
   @XmlAttribute
   public Integer count;
-  @XmlElement(name = "token")
+  @XmlElement(name = Token.TYPE)
   public List<Token> tokens;
 
   public Tokens() {
   }
 
   public Tokens(@NotNull final List<AuthenticationToken> tokenNames, @NotNull final Fields fields) {
-    if (fields.isIncluded("token", false, true)) {
-      tokens = tokenNames.stream().map(Token::new).collect(Collectors.toList());
+    if (fields.isIncluded(Token.TYPE, false, true)) {
+      tokens = tokenNames.stream().map(token -> new Token(token, fields.getNestedField(Token.TYPE))).collect(Collectors.toList());
     }
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), tokenNames.size());
   }
