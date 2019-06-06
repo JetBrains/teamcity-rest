@@ -233,7 +233,7 @@ public class VcsRoot {
       return vcsRoot.getVcsName();
     } else if ("projectInternalId".equals(field)) { //Not documented, do we actually need this?
       return vcsRoot.getScope().getOwnerProjectId();
-    } else if ("projectId".equals(field)) { //todo: do we actually need this?
+    } else if ("projectId".equals(field) || "project".equals(field)) { //this should correspond to the setting part to be able to return result from it
       return dataProvider.getProjectByInternalId(vcsRoot.getScope().getOwnerProjectId()).getExternalId();
     } else if ("modificationCheckInterval".equals(field)) {
       return String.valueOf(vcsRoot.getModificationCheckInterval());
@@ -295,7 +295,7 @@ public class VcsRoot {
       return;
     }
 
-    throw new NotFoundException("Setting field '" + field + "' is not supported. Supported are: name, project, modificationCheckInterval");
+    throw new NotFoundException("Setting field '" + field + "' is not supported. Supported are: id, name, projectId, modificationCheckInterval");
   }
 
   public static Collection<VcsMappingElement> getRepositoryMappings(@NotNull final jetbrains.buildServer.vcs.VcsRoot root, @NotNull final VcsManager vcsManager) throws VcsException {
