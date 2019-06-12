@@ -1301,6 +1301,9 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     addChange(root1, 60, changesPolicy);
     ensureChangesDetected();
 
+    BuildPromotionEx bp = (BuildPromotionEx)build2.getBuildPromotion();
+    bp.getDetectedChanges(SelectPrevBuildPolicy.SINCE_LAST_BUILD); // makes sure changes are cached and thus getCount will return not null value
+
     {
       Build build = new Build(build2, Fields.SHORT, getBeanContext(myFixture));
       assertNull(build.getChanges());
