@@ -85,6 +85,7 @@ public class PropEntityArtifactDep extends PropEntity {
 
     final SArtifactDependency artifactDependency = factory.createArtifactDependencyByInternalId(
       propertiesMap.get(NAME_SOURCE_BUILD_TYPE_ID),
+      null,
       propertiesMap.get(NAME_PATH_RULES),
       RevisionRules.newRevisionRule(revisionName, propertiesMap.get(NAME_REVISION_VALUE)));
     final String cleanDir = propertiesMap.get(NAME_CLEAN_DESTINATION_DIRECTORY);
