@@ -838,7 +838,7 @@ public class BuildRequest {
         if (cancelRequest.readdIntoQueue) {
           stoppedBuilds.add(runningBuild);
         }
-        runningBuild.stop(currentUser, cancelRequest.comment);
+        runningBuild.stop(currentUser, cancelRequest.comment == null ? "Canceled via REST API" : cancelRequest.comment);
       } catch (RuntimeException e) {
         errors.putIfAbsent(build.getId(), e);
       }
