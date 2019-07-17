@@ -443,7 +443,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
           @Override
           public String get(@NotNull final String key) {
             String value = propertiesMap.get(key);
-            if (ReferencesResolverUtil.containsReference(value)) {
+            if (value != null && ReferencesResolverUtil.containsReference(value)) {
               throw CannedException.INSTANCE;
             }
             return value;
@@ -463,7 +463,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
           }
         });
 
-        //while filtering, no reference was encountered: remove from the collection if id does not match the condition
+        //while filtering, no reference was encountered: remove from the collection if it does not match the condition
         if (!matches) iterator.remove();
 
       } catch (CannedException ignore) {
