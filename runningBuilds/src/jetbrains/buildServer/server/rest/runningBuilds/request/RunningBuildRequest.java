@@ -75,8 +75,7 @@ public class RunningBuildRequest {
 
   @POST
   @Path("/{buildLocator}/log")
-  @Consumes({"text/plain"})
-  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  @Consumes({MediaType.TEXT_PLAIN})
   public void addLogMessage(@PathParam("buildLocator") String buildLocator, //todo: return next command to the client
                             String logLines,
                             @QueryParam("fields") String fields,
@@ -109,10 +108,10 @@ public class RunningBuildRequest {
     }
   }
 
-  @POST
+  @PUT
   @Path("/{buildLocator}/finishDate") //add GET
-  @Consumes({"text/plain"})
-  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  @Consumes({MediaType.TEXT_PLAIN})
+  @Produces({MediaType.TEXT_PLAIN})
   public String setFinishedTime(@PathParam("buildLocator") String buildLocator,
                             String date,
                             @QueryParam("fields") String fields, //drop
