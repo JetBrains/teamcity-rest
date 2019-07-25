@@ -28,13 +28,17 @@ import jetbrains.buildServer.server.rest.data.BuildPromotionFinder;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.TimeWithPrecision;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.QueuedBuildEx;
 import jetbrains.buildServer.serverSide.RunningBuildEx;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
@@ -72,6 +76,30 @@ public class RunningBuildRequest {
   public String testPost() {
     return "OK";
   }
+
+    //todo: add GET .../runningData for consistency
+    @PUT
+    @Path("/{buildLocator}/runningData")
+    @Consumes({MediaType.TEXT_PLAIN})
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public Build markBuildAsRunning(@PathParam("buildLocator") String buildLocator,
+                                    String requestor,
+                                    @QueryParam("fields") String fields,
+                                    @Context HttpServletRequest request) {
+      BuildPromotion buildPromotion = myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
+      checkBuildOperationPermission(buildPromotion);
+      QueuedBuildEx build = (QueuedBuildEx)buildPromotion.getQueuedBuild();
+      if (build != null) {
+        try {
+          build.startBuild(requestor);
+        } catch (IllegalStateException e) {
+          throw new BadRequestException("Error on attempt to mark the build as running: " + e.getMessage());
+        }
+      } else {
+        throw new BadRequestException("Build with promotion id " + buildPromotion.getId() + " is not a queued build");
+      }
+      return new Build(buildPromotion, new Fields(fields), myBeanContext);
+    }
 
   @POST
   @Path("/{buildLocator}/log")
