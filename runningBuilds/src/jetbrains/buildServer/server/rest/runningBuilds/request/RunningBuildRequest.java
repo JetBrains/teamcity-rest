@@ -157,7 +157,7 @@ public class RunningBuildRequest {
     TimeService timeService = myServiceLocator.findSingletonService(TimeService.class);
     Date finishTime = !StringUtil.isEmpty(date) ? TimeWithPrecision.parse(date, timeService).getTime() : new Date(timeService.now());
     logMessage(build, "Build finish request received via REST endpoint");
-    runningBuild.markAsFinished(finishTime, false); //todo: should add a message into the build log
+    myServiceLocator.getSingletonService(BuildAgentMessagesQueue.class).buildFinished(runningBuild, finishTime, false);
     return Util.formatTime(finishTime);
     //add javadoc and note that it's async
   }
