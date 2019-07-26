@@ -16,6 +16,10 @@
 
 package jetbrains.buildServer.server.rest.runningBuilds.request;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Collections;
 import java.util.Date;
 import javax.servlet.http.HttpServletRequest;
@@ -117,6 +121,38 @@ public class RunningBuildRequest {
     }
     logMessage(build, logLines);
     //return next command?
+  }
+
+  /*
+  this is an experiment to try to support for reading streamed input
+  Can be used with a command like:
+  curl -H "Transfer-Encoding: chunked" -H "Content-Type: text/plain" -X POST -T -  .../app/rest/runningBuilds/XXX/log/stream
+   */
+  @POST
+  @Path("/{buildLocator}/log/stream")
+  @Consumes({MediaType.TEXT_PLAIN})
+  public void addLogMessage(@PathParam("buildLocator") String buildLocator,
+                            InputStream requestBody) {
+    //ideally, this should be async not to waste the thread on input waiting
+    BuildPromotion buildPromotion = myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
+    checkBuildOperationPermission(buildPromotion);
+    // check for running?
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build == null) {
+      throw new NotFoundException("Build with id " + buildPromotion.getId() + " is not in the runing or finished state");
+    }
+
+    try {
+      BufferedReader reader = new BufferedReader(new InputStreamReader(requestBody));
+      String line = reader.readLine();
+      while (line != null) {
+        logMessage(build, line);
+        line = reader.readLine();
+      }
+    } catch (IOException e) {
+      //todo: log
+      throw new OperationException("Error reading request body: " + e.toString(), e);
+    }
   }
 
   //todo: ideally, should put all the data from the same client into the same flow in the build
