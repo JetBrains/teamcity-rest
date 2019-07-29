@@ -1,9 +1,6 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.build.BuildsFilter;
 import jetbrains.buildServer.server.rest.data.build.BuildsFilterProcessor;
@@ -21,6 +18,10 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.UriInfo;
+import java.util.*;
 
 /**
  * Specifies build locator.
@@ -80,7 +81,7 @@ public class BuildFinder {
                                              false, onlyPinned ? true : null, tags, new BranchMatcher(null), agentName,
                                              null, getRangeLimit(buildType, sinceBuildLocator, DataProvider.parseDate(sinceDate)),
                                              null,
-                                             start, count, null);
+                                             start, count, null, myDataProvider.getServer());
     }
 
     final Integer c = buildsFilter.getCount();

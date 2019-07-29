@@ -18,10 +18,7 @@ package jetbrains.buildServer.server.rest.data.build;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -33,6 +30,11 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 public class GenericBuildsFilter implements BuildsFilter {
   final static Logger LOG = Logger.getInstance(GenericBuildsFilter.class.getName());
@@ -51,6 +53,7 @@ public class GenericBuildsFilter implements BuildsFilter {
   @Nullable private final List<String> myTags;
   @NotNull private final BranchMatcher myBranchMatcher;
   @Nullable private final String myAgentName;
+  @NotNull private final ServiceLocator myServiceLocator;
   @Nullable private final RangeLimit mySince;
   @Nullable private final RangeLimit myUntil;
   @Nullable private final Long myLookupLimit;
@@ -95,8 +98,8 @@ public class GenericBuildsFilter implements BuildsFilter {
                              @Nullable final RangeLimit until,
                              @Nullable final Long start,
                              @Nullable final Integer count,
-                             @Nullable final Long lookupLimit
-  ) {
+                             @Nullable final Long lookupLimit,
+                             @NotNull final ServiceLocator serviceLocator) {
     myStart = start;
     myCount = count;
 
@@ -113,6 +116,7 @@ public class GenericBuildsFilter implements BuildsFilter {
     myBranchMatcher = branchMatcher;
     //todo: support agent locator
     myAgentName = agentName;
+    myServiceLocator = serviceLocator;
     mySince = since;
     myUntil = until;
     myLookupLimit = lookupLimit;
@@ -255,7 +259,7 @@ public class GenericBuildsFilter implements BuildsFilter {
     }
     
     if (myParameterCondition != null){
-      if (!myParameterCondition.matches(build)){
+      if (!myParameterCondition.matches(build, myServiceLocator)){
         return false;
       }
     }

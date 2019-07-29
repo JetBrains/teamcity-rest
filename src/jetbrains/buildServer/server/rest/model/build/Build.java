@@ -16,12 +16,10 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
-import java.util.*;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.parameters.ParametersProvider;
+import jetbrains.buildServer.parameters.PasswordParametersFilterCore;
+import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -37,13 +35,22 @@ import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
 import jetbrains.buildServer.server.rest.model.user.UserRef;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
-import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.Branch;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
+import jetbrains.buildServer.serverSide.impl.BaseBuild;
+import jetbrains.buildServer.serverSide.parameters.types.PasswordsSearcher;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.PasswordReplacer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
+import java.util.*;
 
 /**
  * User: Yegor Yarko
@@ -206,6 +213,49 @@ public class Build {
   @XmlElement
   public Properties getProperties() {
     return new Properties(myBuild.getBuildPromotion().getParameters());
+  }
+
+  @NotNull
+  public static ParametersProvider getBuildResultingParameters(@NotNull BuildPromotion buildPromotion, @NotNull ServiceLocator serviceLocator) {
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null && build instanceof BaseBuild) {
+      try {
+        Map<String, String> parameters = ((BaseBuild)build).getBuildFinishParameters();
+        if (parameters == null) {
+          parameters = ((BaseBuild)build).getBuildStartParameters();
+        }
+        if (parameters != null) {
+          return new MapParametersProviderImpl(parameters);
+        }
+      } catch (ClassCastException ignore) {
+      }
+    }
+    //falling back to recalculated parameters
+    return calculateAllParameters(buildPromotion, serviceLocator.findSingletonService(PasswordsSearcher.class));
+  }
+
+  private static ParametersProvider calculateAllParameters(@NotNull final BuildPromotion buildPromotion, @NotNull PasswordsSearcher searcher) {
+    Set<String> passwords = searcher.collectPasswords(buildPromotion);
+    final ParametersProvider provider = ((BuildPromotionEx)buildPromotion).getParametersProvider();
+    if (passwords.isEmpty()) {
+      return provider;
+    }
+    final PasswordReplacer passwordReplacer = PasswordParametersFilterCore.createPasswordReplacer(passwords);
+    return new ParametersProvider() {
+      @Nullable public String get(@NotNull final String key) {
+        String value = provider.get(key);
+        return value == null ? null : passwordReplacer.replacePasswords(value);
+      }
+      public int size() { return provider.size();}
+      public Map<String, String> getAll() {
+        Map<String, String> all = provider.getAll();
+        Map<String, String> map = new HashMap<String, String>(all.size());
+        for (Map.Entry<String, String> e : all.entrySet()) {
+          map.put(e.getKey(), passwordReplacer.replacePasswords(e.getValue()));
+        }
+        return map;
+      }
+    };
   }
 
   @XmlAttribute(name = "running")
