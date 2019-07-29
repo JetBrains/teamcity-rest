@@ -17,11 +17,6 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
@@ -55,6 +50,12 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.UriInfo;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * User: Yegor Yarko
@@ -144,7 +145,7 @@ public class DataProvider {
                                       false, onlyPinned ? true : null, tags, null, agentName,
                                       null, getRangeLimit(buildType, sinceBuildLocator, parseDate(sinceDate)),
                                       null,
-                                      start, count, null);
+                                      start, count, null, myServer);
     }
 
     // override start and count if set in URL query parameters
@@ -403,7 +404,8 @@ public class DataProvider {
                                           parseDate(locator.getSingleDimensionValue("untilDate"))),
                             locator.getSingleDimensionValueAsLong("start"),
                             count == null?null:count.intValue(),
-                            locator.getSingleDimensionValueAsLong("lookupLimit")
+                            locator.getSingleDimensionValueAsLong("lookupLimit"),
+                            myServer
     );
   }
 

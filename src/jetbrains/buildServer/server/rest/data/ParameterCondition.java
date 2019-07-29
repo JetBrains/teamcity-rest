@@ -1,6 +1,8 @@
 package jetbrains.buildServer.server.rest.data;
 
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -33,8 +35,8 @@ public class ParameterCondition {
     return new ParameterCondition(name, locator.getSingleDimensionValue("value"));
   }
 
-  public boolean matches(@NotNull final SBuild build) {
-    final String value = build.getParametersProvider().get(myParameterName);
+  public boolean matches(@NotNull final SBuild build, @NotNull final ServiceLocator serviceLocator) {
+    final String value = Build.getBuildResultingParameters(build.getBuildPromotion(), serviceLocator).get(myParameterName);
     if (StringUtil.isEmpty(myParameterValue)) {
       return true;
     } else {

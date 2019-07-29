@@ -18,12 +18,6 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jersey.multipart.file.DefaultMediaTypePredictor;
-import java.io.*;
-import java.util.*;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildLocator;
@@ -54,13 +48,19 @@ import jetbrains.buildServer.serverSide.statistics.build.BuildValue;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.FileUtil;
-import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
+import java.io.*;
+import java.util.*;
 
 /*
  * User: Yegor Yarko
@@ -134,7 +134,7 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
-    return new Properties(build.getParametersProvider().getAll());
+    return new Properties(Build.getBuildResultingParameters(build.getBuildPromotion(), myServiceLocator).getAll());
     /* alternative
     try {
       return new Properties(((FinishedBuildEx)build).getBuildFinishParameters());
@@ -150,7 +150,7 @@ public class BuildRequest {
   public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
     SBuild build = myDataProvider.getBuild(null, buildLocator);
     myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
-    return BuildTypeUtil.getParameter(propertyName, build.getParametersProvider(), true, true);
+    return BuildTypeUtil.getParameter(propertyName, Build.getBuildResultingParameters(build.getBuildPromotion(), myServiceLocator), true, true);
   }
 
   //todo: need to expose file name and type?

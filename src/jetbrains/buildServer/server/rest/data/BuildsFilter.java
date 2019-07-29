@@ -17,14 +17,16 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class BuildsFilter{
   final static Logger LOG = Logger.getInstance(BuildsFilter.class.getName());
@@ -49,6 +51,7 @@ public class BuildsFilter{
   @Nullable private ParameterCondition myParameterCondition;
   @Nullable private final SUser myUser;
   @Nullable private final SBuildType myBuildType;
+  @NotNull private final ServiceLocator myServiceLocator;
 
   /**
    * @param buildType       build type to return builds from, can be null to return all builds
@@ -84,7 +87,8 @@ public class BuildsFilter{
                       @Nullable final RangeLimit until,
                       @Nullable final Long start,
                       @Nullable final Integer count,
-                      @Nullable final Long lookupLimit
+                      @Nullable final Long lookupLimit,
+                      @NotNull final ServiceLocator serviceLocator
   ) {
     myStart = start;
     myCount = count;
@@ -105,6 +109,7 @@ public class BuildsFilter{
     myUntil = until;
     myLookupLimit = lookupLimit;
     myParameterCondition = parameterCondition;
+    myServiceLocator = serviceLocator;
   }
 
   @Nullable
@@ -173,7 +178,7 @@ public class BuildsFilter{
     }
     
     if (myParameterCondition != null){
-      if (!myParameterCondition.matches(build)){
+      if (!myParameterCondition.matches(build, myServiceLocator)){
         return false;
       }
     }
