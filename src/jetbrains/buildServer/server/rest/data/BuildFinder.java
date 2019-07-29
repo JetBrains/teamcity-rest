@@ -399,7 +399,8 @@ public class BuildFinder {
                                                  DataProvider.parseDate(buildLocator.getSingleDimensionValue("untilDate"))),
                                    buildLocator.getSingleDimensionValueAsLong(PagerData.START),
                                    count == null ? null : count.intValue(),
-                                   buildLocator.getSingleDimensionValueAsLong("lookupLimit")
+                                   buildLocator.getSingleDimensionValueAsLong("lookupLimit"),
+                                   myServiceLocator
     );
   }
 

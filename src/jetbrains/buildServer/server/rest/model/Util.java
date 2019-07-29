@@ -19,7 +19,11 @@ package jetbrains.buildServer.server.rest.model;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.function.Function;
+
 import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -48,5 +52,15 @@ public class Util {
       }
     }
     return result.toString();
+  }
+  @Nullable
+  @Contract("null, _ -> null; !null, _ -> !null")
+  public static <T, R> R resolveNull(@Nullable T t, @NotNull Function<T, R> f) { //todo: do we already have this?
+    return t == null ? null : f.apply(t);
+  }
+
+  @NotNull
+  public static <T, R> R resolveNull(@Nullable T t, @NotNull Function<T, R> f, @NotNull R resultForNull) {
+    return t == null ? resultForNull : f.apply(t);
   }
 }
