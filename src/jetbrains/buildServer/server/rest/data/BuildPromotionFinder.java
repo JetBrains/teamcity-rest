@@ -22,6 +22,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
@@ -125,6 +126,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private final MetadataStorageEx myMetadataStorage;
   private final TimeCondition myTimeCondition;
   private final PermissionChecker myPermissionChecker;
+  @NotNull private final ServiceLocator myServiceLocator;
 
   @NotNull
   public static String getLocator(@NotNull final BuildPromotion buildPromotion) {
@@ -148,7 +150,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                               final BranchFinder branchFinder,
                               final TimeCondition timeCondition,
                               final PermissionChecker permissionChecker,
-                              final MetadataStorageEx metadataStorage) {
+                              final MetadataStorageEx metadataStorage,
+                              final ServiceLocator serviceLocator) {
     super(DIMENSION_ID, PROMOTION_ID, PROJECT, AFFECTED_PROJECT, BUILD_TYPE, BRANCH, AGENT, USER, PERSONAL, STATE, TAG, PROPERTY, COMPATIBLE_AGENT, NUMBER, STATUS, CANCELED,
           PINNED, QUEUED_TIME, STARTED_TIME, FINISHED_TIME, SINCE_BUILD, SINCE_DATE, UNTIL_BUILD, UNTIL_DATE, FAILED_TO_START, SNAPSHOT_DEP, ARTIFACT_DEP, HANGING, HISTORY,
           DEFAULT_FILTERING, SINCE_BUILD_ID_LOOK_AHEAD_COUNT,
@@ -174,6 +177,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     myBranchFinder = branchFinder;
     myMetadataStorage = metadataStorage;
     myTimeCondition = timeCondition;
+    myServiceLocator = serviceLocator;
   }
 
   @NotNull
