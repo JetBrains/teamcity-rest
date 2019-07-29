@@ -555,7 +555,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       result.add(new FilterConditionChecker<BuildPromotion>() {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           //does not correspond to Build.getProperties() which includes less parameters
-          return parameterCondition.matches(((BuildPromotionEx)item).getParametersProvider()); //TeamCity open API issue
+          return parameterCondition.matches(Build.getBuildResultingParameters(item, myServiceLocator)); //TeamCity open API issue
         }
       });
     }
