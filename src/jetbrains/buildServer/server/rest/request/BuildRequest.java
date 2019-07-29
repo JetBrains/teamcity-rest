@@ -17,15 +17,6 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
 import jetbrains.buildServer.controllers.artifacts.RepositoryUtil;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
@@ -67,6 +58,16 @@ import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /*
  * User: Yegor Yarko
@@ -172,7 +173,7 @@ public class BuildRequest {
   public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
-    return new Properties(build.getParametersProvider().getAll());
+    return new Properties(Build.getBuildResultingParameters(build.getBuildPromotion(), myBeanContext.getServiceLocator()).getAll());
     /* alternative
     try {
       return new Properties(((FinishedBuildEx)build).getBuildFinishParameters());
@@ -188,7 +189,7 @@ public class BuildRequest {
   public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     myDataProvider.checkProjectPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build.getProjectId());
-    return BuildTypeUtil.getParameter(propertyName, build.getParametersProvider(), true, true);
+    return BuildTypeUtil.getParameter(propertyName, Build.getBuildResultingParameters(build.getBuildPromotion(), myBeanContext.getServiceLocator()), true, true);
   }
 
   /**
