@@ -20,11 +20,15 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.parameters.ParametersProvider;
+import jetbrains.buildServer.parameters.PasswordParametersFilterCore;
+import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
@@ -55,14 +59,17 @@ import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
+import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
+import jetbrains.buildServer.serverSide.parameters.types.PasswordsSearcher;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.PasswordReplacer;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
@@ -376,6 +383,41 @@ public class Build {
         return new Properties(parameters, customParameters, null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myServiceLocator);
       }
     });
+  }
+
+  @NotNull
+  public static ParametersProvider getBuildResultingParameters(@NotNull BuildPromotion buildPromotion, @NotNull ServiceLocator serviceLocator) {
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null && build instanceof BaseBuild) {
+      try {
+        Map<String, String> parameters = ((BaseBuild)build).getBuildFinishParameters();
+        if (parameters == null) {
+          parameters = ((BaseBuild)build).getBuildStartParameters();
+        }
+        if (parameters != null) {
+          return new MapParametersProviderImpl(parameters);
+        }
+      } catch (ClassCastException ignore) {
+      }
+    }
+    //falling back to recalculated parameters
+    return calculateAllParameters(buildPromotion, serviceLocator.findSingletonService(PasswordsSearcher.class));
+  }
+
+  private static ParametersProvider calculateAllParameters(@NotNull final BuildPromotion buildPromotion, @NotNull PasswordsSearcher searcher) {
+    Set<String> passwords = searcher.collectPasswords(buildPromotion);
+    ParametersProvider provider = ((BuildPromotionEx)buildPromotion).getParametersProvider();
+    if (passwords.isEmpty()) {
+      return provider;
+    }
+    PasswordReplacer passwordReplacer = PasswordParametersFilterCore.createPasswordReplacer(passwords);
+    return new ParametersProvider() {
+      @Nullable @Override public String get(@NotNull final String key) { return Util.resolveNull(provider.get(key), passwordReplacer::replacePasswords);}
+      @Override public int size() { return provider.size();}
+      @Override public Map<String, String> getAll() {
+        return provider.getAll().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> passwordReplacer.replacePasswords(e.getValue())));
+      }
+    };
   }
 
   @XmlElement
