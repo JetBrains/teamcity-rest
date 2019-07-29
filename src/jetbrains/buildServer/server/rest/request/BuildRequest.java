@@ -262,7 +262,7 @@ public class BuildRequest {
   public Properties serveBuildActualParameters(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildPromotionFinder.getItem(buildLocator);
     myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build);
-    return new Properties(Build.getBuildResultingParameters(build).getAll(), null, new Fields(fields), myBeanContext);
+    return new Properties(Build.getBuildResultingParameters(build, myBeanContext.getServiceLocator()).getAll(), null, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -271,7 +271,7 @@ public class BuildRequest {
   public String getParameter(@PathParam("buildLocator") String buildLocator, @PathParam("propertyName") String propertyName) {
     BuildPromotion build = myBuildPromotionFinder.getItem(buildLocator);
     myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build);
-    return BuildTypeUtil.getParameter(propertyName, Build.getBuildResultingParameters(build), true, true, myBeanContext.getServiceLocator());
+    return BuildTypeUtil.getParameter(propertyName, Build.getBuildResultingParameters(build, myBeanContext.getServiceLocator()), true, true, myBeanContext.getServiceLocator());
   }
 
   /**

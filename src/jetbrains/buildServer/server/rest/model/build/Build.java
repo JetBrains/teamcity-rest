@@ -523,12 +523,14 @@ public class Build {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("resultingProperties", false, false), new ValueWithDefault.Value<Properties>() {
       public Properties get() {
         checkCanViewRuntimeData();
-        return new Properties(getBuildResultingParameters(myBuildPromotion).getAll(), null, myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
+        return new Properties(getBuildResultingParameters(myBuildPromotion, myServiceLocator).getAll(), null,
+                              myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
       }
     });
   }
 
-  public static ParametersProvider getBuildResultingParameters(@NotNull BuildPromotion buildPromotion) {
+  @NotNull
+  public static ParametersProvider getBuildResultingParameters(@NotNull BuildPromotion buildPromotion, @NotNull ServiceLocator serviceLocator) {
     SBuild build = buildPromotion.getAssociatedBuild();
     if (build != null && build.isFinished()) {
       try {
