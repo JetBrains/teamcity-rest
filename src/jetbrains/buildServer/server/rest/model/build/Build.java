@@ -34,6 +34,7 @@ import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.controllers.changes.ChangesBean;
 import jetbrains.buildServer.controllers.changes.ChangesPopupUtil;
 import jetbrains.buildServer.parameters.ParametersProvider;
+import jetbrains.buildServer.parameters.PasswordParametersFilterCore;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
@@ -78,20 +79,22 @@ import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
+import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import jetbrains.buildServer.serverSide.impl.DownloadedArtifactsLoggerImpl;
-import jetbrains.buildServer.serverSide.impl.FinishedBuildEx;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.audit.filters.ActionTypesFilter;
 import jetbrains.buildServer.serverSide.impl.changeProviders.ArtifactDependencyChangesProvider;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.metadata.BuildMetadataEntry;
 import jetbrains.buildServer.serverSide.metadata.impl.MetadataStorageEx;
+import jetbrains.buildServer.serverSide.parameters.types.PasswordsSearcher;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.PasswordReplacer;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SelectPrevBuildPolicy;
@@ -105,31 +108,32 @@ import org.jetbrains.annotations.Nullable;
  * User: Yegor Yarko
  * Date: 29.03.2009
  */
+@SuppressWarnings("WeakerAccess")
 @XmlRootElement(name = "build")
 /*Comments inside propOrder: q = queued, r = running, f = finished*/
 @XmlType(name = "build",
-         propOrder = {"id", "promotionId", "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "composite",
-           "failedToStart"/*f*/,
-           "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
-           "queuePosition"/*q*/, "limitedChangesCount", "artifactsDirectory" /*experimental*/,
-           "links",
-           "statusText"/*rf*/,
-           "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
-           "startEstimate"/*q*/, "waitReason"/*q*/,
-           "runningBuildInfo"/*r*/, "canceledInfo"/*rf*/,
-           "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
-           "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision", "artifactDependencyChanges" /*experimental*/,
-           "agent", "compatibleAgents"/*q*/,
-           "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
-           "artifacts"/*rf*/, "issues"/*rf*/,
-           "properties", "resultingProperties", "attributes", "statistics", "metadata"/*rf*/,
-           "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
-           "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId", "replacementIds",
-           "related", /*experimental*/
-           "triggeringOptions"/*only when triggering*/,
-           "usedByOtherBuilds" /*experimental*/,
-           "statusChangeComment" /*experimental, temporary*/
-})
+  propOrder = {"id", "promotionId", "buildTypeId", "buildTypeInternalId", "number"/*rf*/, "status"/*rf*/, "state", "running"/*r*/, "composite",
+    "failedToStart"/*f*/,
+    "personal", "percentageComplete"/*r*/, "branchName", "defaultBranch", "unspecifiedBranch", "history", "pinned"/*rf*/, "href", "webUrl",
+    "queuePosition"/*q*/, "limitedChangesCount", "artifactsDirectory" /*experimental*/,
+    "links",
+    "statusText"/*rf*/,
+    "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
+    "startEstimate"/*q*/, "waitReason"/*q*/,
+    "runningBuildInfo"/*r*/, "canceledInfo"/*rf*/,
+    "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
+    "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision", "artifactDependencyChanges" /*experimental*/,
+    "agent", "compatibleAgents"/*q*/,
+    "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
+    "artifacts"/*rf*/, "issues"/*rf*/,
+    "properties", "resultingProperties", "attributes", "statistics", "metadata"/*rf*/,
+    "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
+    "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId", "replacementIds",
+    "related", /*experimental*/
+    "triggeringOptions"/*only when triggering*/,
+    "usedByOtherBuilds" /*experimental*/,
+    "statusChangeComment" /*experimental, temporary*/
+  })
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
 
@@ -195,16 +199,13 @@ public class Build {
 
   @XmlAttribute
   public Long getId() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("id", true), new ValueWithDefault.Value<Long>() {
-      @Nullable
-      public Long get() {
-        // since 9.0 promotionId == buildId (apart from https://youtrack.jetbrains.com/issue/TW-38777), so assume so for queued builds
-        return myBuild != null ? myBuild.getBuildId() : myBuildPromotion.getId();
-      }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("id", true), () -> {
+      // since 9.0 promotionId == buildId (apart from https://youtrack.jetbrains.com/issue/TW-38777), so assume so for queued builds
+      return myBuild != null ? myBuild.getBuildId() : myBuildPromotion.getId();
     });
   }
 
-  @XmlAttribute (name = PROMOTION_ID)
+  @XmlAttribute(name = PROMOTION_ID)
   public Long getPromotionId() {
     return ValueWithDefault.decideDefault(myFields.isIncluded(PROMOTION_ID, false, false), myBuildPromotion.getId());
   }
@@ -215,7 +216,7 @@ public class Build {
    */
   @XmlAttribute
   public String getState() {
-    if (!myFields.isIncluded("state", true, true)){
+    if (!myFields.isIncluded("state", true, true)) {
       return null;
     }
     if (myQueuedBuild != null) return "queued";
@@ -231,8 +232,8 @@ public class Build {
   }
 
   /**
-   * @deprecated use "state" instead
    * @return
+   * @deprecated use "state" instead
    */
   @XmlAttribute
   public Boolean isRunning() {
@@ -328,7 +329,7 @@ public class Build {
    */
   @XmlAttribute
   public Boolean isUsedByOtherBuilds() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("usedByOtherBuilds", false, false),() -> myBuild != null && myBuild.isUsedByOtherBuilds());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("usedByOtherBuilds", false, false), () -> myBuild != null && myBuild.isUsedByOtherBuilds());
   }
 
   @XmlAttribute
@@ -340,20 +341,18 @@ public class Build {
       } else if (myQueuedBuild != null) {
         result = myServiceLocator.getSingletonService(WebLinks.class).getQueuedBuildUrl(myQueuedBuild);
       }
-      return result;});
+      return result;
+    });
   }
 
   @XmlAttribute
   public String getBuildTypeId() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("buildTypeId", true), new ValueWithDefault.Value<String>() {
-      @Nullable
-      public String get() {
-        final String buildTypeExternalId = myBuildPromotion.getBuildTypeExternalId();
-        if (!BuildPromotion.NOT_EXISTING_BUILD_TYPE_ID.equals(buildTypeExternalId)) {
-          return buildTypeExternalId;
-        } else {
-          return null;
-        }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("buildTypeId", true), () -> {
+      final String buildTypeExternalId = myBuildPromotion.getBuildTypeExternalId();
+      if (!BuildPromotion.NOT_EXISTING_BUILD_TYPE_ID.equals(buildTypeExternalId)) {
+        return buildTypeExternalId;
+      } else {
+        return null;
       }
     });
   }
@@ -365,74 +364,62 @@ public class Build {
 
   @XmlElement
   public Links getLinks() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("links", false, false), new ValueWithDefault.Value<Links>() {
-      @Nullable
-      @Override
-      public Links get() {
-        WebLinks webLinks = myBeanContext.getSingletonService(WebLinks.class);
-        RelativeWebLinks relativeWebLinks = new RelativeWebLinks();
-        Links.LinksBuilder builder = new Links.LinksBuilder();
-        if (myBuild != null) {
-          builder.add(Link.WEB_VIEW_TYPE, webLinks.getViewResultsUrl(myBuild), relativeWebLinks.getViewResultsUrl(myBuild));
-        } else if (myQueuedBuild != null) {
-          builder.add(Link.WEB_VIEW_TYPE, webLinks.getQueuedBuildUrl(myQueuedBuild), relativeWebLinks.getQueuedBuildUrl(myQueuedBuild));
-        }
-        return builder.build(myFields.getNestedField("links"));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("links", false, false), () -> {
+      WebLinks webLinks = myBeanContext.getSingletonService(WebLinks.class);
+      RelativeWebLinks relativeWebLinks = new RelativeWebLinks();
+      Links.LinksBuilder builder = new Links.LinksBuilder();
+      if (myBuild != null) {
+        builder.add(Link.WEB_VIEW_TYPE, webLinks.getViewResultsUrl(myBuild), relativeWebLinks.getViewResultsUrl(myBuild));
+      } else if (myQueuedBuild != null) {
+        builder.add(Link.WEB_VIEW_TYPE, webLinks.getQueuedBuildUrl(myQueuedBuild), relativeWebLinks.getQueuedBuildUrl(myQueuedBuild));
       }
+      return builder.build(myFields.getNestedField("links"));
     });
   }
 
   @XmlElement
   public String getStatusText() {
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("statusText", false, true), new ValueWithDefault.Value<String>() {
-      public String get() {
-        return myBuild.getStatusDescriptor().getText();
-      }
-    });
+    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("statusText", false, true), () -> myBuild.getStatusDescriptor().getText());
   }
 
   @XmlElement(name = "agent")
   public Agent getAgent() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("agent", false), new ValueWithDefault.Value<Agent>() {
-      public Agent get() {
-        if (myBuild != null) {
-          if (myBuild.isAgentLessBuild()) return null;
-          SBuildAgent agent = myBuild.getAgent();
-          return new Agent(agent, myBeanContext.getSingletonService(AgentPoolFinder.class), myFields.getNestedField("agent"), myBeanContext);
-        }
-        if (myQueuedBuild != null) {
-          final AgentRestrictor agentRestrictor = myQueuedBuild.getAgentRestrictor();
-          if (agentRestrictor != null) {
-            if (agentRestrictor.getType() == AgentRestrictorType.SINGLE_AGENT) {
-              SBuildAgent agent = myQueuedBuild.getBuildAgent();
-              if (agent != null) {
-                return new Agent(agent, myBeanContext.getSingletonService(AgentPoolFinder.class), myFields.getNestedField("agent"), myBeanContext);
-              }
-            }
-            if (agentRestrictor.getType() == AgentRestrictorType.AGENT_POOL) {
-              final int agentPoolId = agentRestrictor.getId();
-              final AgentPool agentPool = myBeanContext.getSingletonService(AgentPoolFinder.class).getAgentPoolById(agentPoolId);
-              return new Agent(agentPool, myFields.getNestedField("agent"), myBeanContext);
-            }
-            if (agentRestrictor.getType() == AgentRestrictorType.CLOUD_IMAGE) {
-              final int agentTypeId = agentRestrictor.getId();
-              final SAgentType agentType = AgentFinder.getAgentType(String.valueOf(agentTypeId), myBeanContext.getSingletonService(AgentTypeFinder.class));
-              return new Agent(agentType, myFields.getNestedField("agent"), myBeanContext);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("agent", false), () -> {
+      if (myBuild != null) {
+        if (myBuild.isAgentLessBuild()) return null;
+        SBuildAgent agent = myBuild.getAgent();
+        return new Agent(agent, myBeanContext.getSingletonService(AgentPoolFinder.class), myFields.getNestedField("agent"), myBeanContext);
+      }
+      if (myQueuedBuild != null) {
+        final AgentRestrictor agentRestrictor = myQueuedBuild.getAgentRestrictor();
+        if (agentRestrictor != null) {
+          if (agentRestrictor.getType() == AgentRestrictorType.SINGLE_AGENT) {
+            SBuildAgent agent = myQueuedBuild.getBuildAgent();
+            if (agent != null) {
+              return new Agent(agent, myBeanContext.getSingletonService(AgentPoolFinder.class), myFields.getNestedField("agent"), myBeanContext);
             }
           }
+          if (agentRestrictor.getType() == AgentRestrictorType.AGENT_POOL) {
+            final int agentPoolId = agentRestrictor.getId();
+            final AgentPool agentPool = myBeanContext.getSingletonService(AgentPoolFinder.class).getAgentPoolById(agentPoolId);
+            return new Agent(agentPool, myFields.getNestedField("agent"), myBeanContext);
+          }
+          if (agentRestrictor.getType() == AgentRestrictorType.CLOUD_IMAGE) {
+            final int agentTypeId = agentRestrictor.getId();
+            final SAgentType agentType = AgentFinder.getAgentType(String.valueOf(agentTypeId), myBeanContext.getSingletonService(AgentTypeFinder.class));
+            return new Agent(agentType, myFields.getNestedField("agent"), myBeanContext);
+          }
         }
-        return null;
       }
+      return null;
     });
   }
 
   @XmlElement(name = "buildType")
   public BuildType getBuildType() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("buildType", false), new ValueWithDefault.Value<BuildType>() {
-      public BuildType get() {
-        final SBuildType buildType = myBuildPromotion.getParentBuildType();
-        return buildType == null ? null : new BuildType(new BuildTypeOrTemplate(buildType), myFields.getNestedField("buildType"), myBeanContext);
-      }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("buildType", false), () -> {
+      final SBuildType buildType = myBuildPromotion.getParentBuildType();
+      return buildType == null ? null : new BuildType(new BuildTypeOrTemplate(buildType), myFields.getNestedField("buildType"), myBeanContext);
     });
   }
 
@@ -470,12 +457,10 @@ public class Build {
 
   @XmlElement
   public Tags getTags() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("tags", false), new ValueWithDefault.Value<Tags>() {
-      public Tags get() {
-        final Fields fields = myFields.getNestedField("tags", Fields.NONE, Fields.LONG);
-        final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), myBuildPromotion);
-        return new Tags(tagFinder.getItems(fields.getLocator(), TagFinder.getDefaultLocator()).myEntries, fields, myBeanContext);
-      }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("tags", false), () -> {
+      final Fields fields = myFields.getNestedField("tags", Fields.NONE, Fields.LONG);
+      final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), myBuildPromotion);
+      return new Tags(tagFinder.getItems(fields.getLocator(), TagFinder.getDefaultLocator()).myEntries, fields, myBeanContext);
     });
   }
 
@@ -484,12 +469,10 @@ public class Build {
     if (myBuild == null || !myBuild.isPinned()) {
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("pinInfo", false), new ValueWithDefault.Value<Comment>() {
-      public Comment get() {
-        final jetbrains.buildServer.serverSide.comments.Comment pinComment = getPinComment(myBuild);
-        if (pinComment == null) return null;
-        return new Comment(pinComment, myFields.getNestedField("pinInfo", Fields.NONE, Fields.LONG), myBeanContext);
-      }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("pinInfo", false), () -> {
+      final jetbrains.buildServer.serverSide.comments.Comment pinComment = getPinComment(myBuild);
+      if (pinComment == null) return null;
+      return new Comment(pinComment, myFields.getNestedField("pinInfo", Fields.NONE, Fields.LONG), myBeanContext);
     });
   }
 
@@ -506,12 +489,10 @@ public class Build {
 
   @XmlElement
   public Properties getProperties() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
-      public Properties get() {
-        checkCanViewRuntimeData();
-        return new Properties(Properties.createEntity(myBuildPromotion.getParameters(), myBuildPromotion.getCustomParameters()), null,
-                              null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myBeanContext);
-      }
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("properties", false), () -> {
+      checkCanViewRuntimeData();
+      return new Properties(Properties.createEntity(myBuildPromotion.getParameters(), myBuildPromotion.getCustomParameters()), null,
+                            null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myBeanContext);
     });
   }
 
@@ -520,21 +501,22 @@ public class Build {
    */
   @XmlElement
   public Properties getResultingProperties() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("resultingProperties", false, false), new ValueWithDefault.Value<Properties>() {
-      public Properties get() {
-        checkCanViewRuntimeData();
-        return new Properties(getBuildResultingParameters(myBuildPromotion, myServiceLocator).getAll(), null,
-                              myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
-      }
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("resultingProperties", false, false), () -> {
+      checkCanViewRuntimeData();
+      return new Properties(getBuildResultingParameters(myBuildPromotion, myServiceLocator).getAll(), null,
+                            myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
     });
   }
 
   @NotNull
   public static ParametersProvider getBuildResultingParameters(@NotNull BuildPromotion buildPromotion, @NotNull ServiceLocator serviceLocator) {
     SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null && build.isFinished()) {
+    if (build != null && build instanceof BaseBuild) {
       try {
-        Map<String, String> parameters = ((FinishedBuildEx)build).getBuildFinishParameters();
+        Map<String, String> parameters = ((BaseBuild)build).getBuildFinishParameters();
+        if (parameters == null) {
+          parameters = ((BaseBuild)build).getBuildStartParameters();
+        }
         if (parameters != null) {
           return new MapParametersProviderImpl(parameters);
         }
@@ -542,33 +524,47 @@ public class Build {
       }
     }
     //falling back to recalculated parameters
-    return ((BuildPromotionEx)buildPromotion).getParametersProvider();
+    return calculateAllParameters(buildPromotion, serviceLocator.findSingletonService(PasswordsSearcher.class));
+  }
+
+  private static ParametersProvider calculateAllParameters(@NotNull final BuildPromotion buildPromotion, @NotNull PasswordsSearcher searcher) {
+    Set<String> passwords = searcher.collectPasswords(buildPromotion);
+    ParametersProvider provider = ((BuildPromotionEx)buildPromotion).getParametersProvider();
+    if (passwords.isEmpty()) {
+      return provider;
+    }
+    PasswordReplacer passwordReplacer = PasswordParametersFilterCore.createPasswordReplacer(passwords);
+    return new ParametersProvider() {
+      @Nullable @Override public String get(@NotNull final String key) { return Util.resolveNull(provider.get(key), passwordReplacer::replacePasswords);}
+      @Override public int size() { return provider.size();}
+      @Override public Map<String, String> getAll() {
+        return provider.getAll().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> passwordReplacer.replacePasswords(e.getValue())));
+      }
+    };
   }
 
   @XmlElement
   public Entries getAttributes() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("attributes", false), new ValueWithDefault.Value<Entries>() {
-      public Entries get() {
-        checkCanViewRuntimeData();
-        final LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
-        Fields nestedFields = myFields.getNestedField("attributes", Fields.LONG, Fields.LONG);
-        String locator = ParameterCondition.getNameAndNotEmptyValueLocator(BuildAttributes.CLEAN_SOURCES);
-        boolean supportCustomLocator = TeamCityProperties.getPropertyOrNull(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES) == null;
-        if (supportCustomLocator) {
-          String locatorFromFields = nestedFields.getLocator();
-          if (locatorFromFields != null) locator = locatorFromFields;
-        } else if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
-          locator = null; //include all
-        }
-        final ParameterCondition parameterCondition = ParameterCondition.create(locator);
-        final Map<String, Object> buildAttributes = ((BuildPromotionEx)myBuildPromotion).getAttributes();
-        for (Map.Entry<String, Object> attribute : buildAttributes.entrySet()) {
-          if (parameterCondition == null || parameterCondition.parameterMatches(new SimpleParameter(attribute.getKey(), attribute.getValue().toString()), null)) {
-            result.put(attribute.getKey(), attribute.getValue().toString());
-          }
-        }
-        return new Entries(result, nestedFields);
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("attributes", false), () -> {
+      checkCanViewRuntimeData();
+      final LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
+      Fields nestedFields = myFields.getNestedField("attributes", Fields.LONG, Fields.LONG);
+      String locator = ParameterCondition.getNameAndNotEmptyValueLocator(BuildAttributes.CLEAN_SOURCES);
+      boolean supportCustomLocator = TeamCityProperties.getPropertyOrNull(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES) == null;
+      if (supportCustomLocator) {
+        String locatorFromFields = nestedFields.getLocator();
+        if (locatorFromFields != null) locator = locatorFromFields;
+      } else if (TeamCityProperties.getBoolean(REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES)) {
+        locator = null; //include all
       }
+      final ParameterCondition parameterCondition = ParameterCondition.create(locator);
+      final Map<String, Object> buildAttributes = ((BuildPromotionEx)myBuildPromotion).getAttributes();
+      for (Map.Entry<String, Object> attribute : buildAttributes.entrySet()) {
+        if (parameterCondition == null || parameterCondition.parameterMatches(new SimpleParameter(attribute.getKey(), attribute.getValue().toString()), null)) {
+          result.put(attribute.getKey(), attribute.getValue().toString());
+        }
+      }
+      return new Entries(result, nestedFields);
     });
   }
 
@@ -578,13 +574,11 @@ public class Build {
       return null;
     } else {
       final String statisticsHref = myBeanContext.getApiUrlBuilder().getHref(myBuild) + BuildRequest.STATISTICS;
-        return ValueWithDefault.decideDefault(myFields.isIncluded("statistics", false), new ValueWithDefault.Value<Properties>() {
-          public Properties get() {
-            final Fields nestedField = myFields.getNestedField("statistics");
-            return new Properties(nestedField.isMoreThenShort() ? getBuildStatisticsValues(myBuild) : null, //for performance reasons
-                                  statisticsHref, nestedField, myBeanContext);
-          }
-        });
+      return ValueWithDefault.decideDefault(myFields.isIncluded("statistics", false), () -> {
+        final Fields nestedField = myFields.getNestedField("statistics");
+        return new Properties(nestedField.isMoreThenShort() ? getBuildStatisticsValues(myBuild) : null, //for performance reasons
+                              statisticsHref, nestedField, myBeanContext);
+      });
     }
   }
 
@@ -593,31 +587,29 @@ public class Build {
     if (myBuild == null) {
       return null;
     } else {
-      return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("metadata", false, false), new ValueWithDefault.Value<NamedDatas>() {
-        public NamedDatas get() {
-          checkCanViewRuntimeData();
-          HashMap<String, Map<String, String>> result = new HashMap<>();
-          MetadataStorageEx metadataStorage = myServiceLocator.getSingletonService(MetadataStorageEx.class);
-          for (String providerId : metadataStorage.getProviderIds()) {
-            Iterator<BuildMetadataEntry> metadataEntryIterator = metadataStorage.getBuildEntry(myBuild.getBuildId(), providerId);
-            while (metadataEntryIterator.hasNext()) {
-              BuildMetadataEntry metadataEntry = metadataEntryIterator.next();
-              HashMap<String, String> properties = new HashMap<>(metadataEntry.getMetadata());
-              if (properties.get(".providerId") == null) {
-                properties.put(".providerId", providerId);
-              } else {
-                properties.put(".teamcity.rest.providerId", providerId); // assume clash here does not happen
-              }
-              if (properties.get(".key") == null) {
-                properties.put(".key", metadataEntry.getKey());
-              } else {
-                properties.put(".teamcity.rest.key", metadataEntry.getKey());  // assume clash here does not happen
-              }
-              result.put(providerId + "_" + metadataEntry.getKey(), properties);
+      return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("metadata", false, false), () -> {
+        checkCanViewRuntimeData();
+        HashMap<String, Map<String, String>> result = new HashMap<>();
+        MetadataStorageEx metadataStorage = myServiceLocator.getSingletonService(MetadataStorageEx.class);
+        for (String providerId : metadataStorage.getProviderIds()) {
+          Iterator<BuildMetadataEntry> metadataEntryIterator = metadataStorage.getBuildEntry(myBuild.getBuildId(), providerId);
+          while (metadataEntryIterator.hasNext()) {
+            BuildMetadataEntry metadataEntry = metadataEntryIterator.next();
+            HashMap<String, String> properties = new HashMap<>(metadataEntry.getMetadata());
+            if (properties.get(".providerId") == null) {
+              properties.put(".providerId", providerId);
+            } else {
+              properties.put(".teamcity.rest.providerId", providerId); // assume clash here does not happen
             }
+            if (properties.get(".key") == null) {
+              properties.put(".key", metadataEntry.getKey());
+            } else {
+              properties.put(".teamcity.rest.key", metadataEntry.getKey());  // assume clash here does not happen
+            }
+            result.put(providerId + "_" + metadataEntry.getKey(), properties);
           }
-          return new NamedDatas(result, myFields.getNestedField("metadata"));
         }
+        return new NamedDatas(result, myFields.getNestedField("metadata"));
       });
     }
   }
@@ -701,19 +693,17 @@ public class Build {
       //todo: support serving artifact dependencies for queued build, may be rename the node
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("artifact-dependencies", false), new ValueWithDefault.Value<Builds>() {
-      public Builds get() {
-        final Map<jetbrains.buildServer.Build, List<ArtifactInfo>> artifacts = myBuild.getDownloadedArtifacts().getArtifacts();
-        final List<BuildPromotion> builds = new ArrayList<BuildPromotion>(artifacts.size());
-        for (jetbrains.buildServer.Build sourceBuild : artifacts.keySet()) {
-          //TeamCity API: cast to SBuild?
-          builds.add(((SBuild)sourceBuild).getBuildPromotion());
-        }
-        Collections.sort(builds, new BuildPromotionDependenciesComparator());
-        return Builds.createFromBuildPromotions(builds, null,
-                          myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG),
-                          myBeanContext);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("artifact-dependencies", false), () -> {
+      final Map<jetbrains.buildServer.Build, List<ArtifactInfo>> artifacts = myBuild.getDownloadedArtifacts().getArtifacts();
+      final List<BuildPromotion> builds = new ArrayList<BuildPromotion>(artifacts.size());
+      for (jetbrains.buildServer.Build sourceBuild : artifacts.keySet()) {
+        //TeamCity API: cast to SBuild?
+        builds.add(((SBuild)sourceBuild).getBuildPromotion());
       }
+      Collections.sort(builds, new BuildPromotionDependenciesComparator());
+      return Builds.createFromBuildPromotions(builds, null,
+                                              myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG),
+                                              myBeanContext);
     });
   }
 
@@ -726,11 +716,9 @@ public class Build {
       //todo: support serving for the running/finished builds, via a link
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("custom-artifact-dependencies", false), new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
-      public PropEntitiesArtifactDep get() {
-        final List<SArtifactDependency> artifactDependencies = ((BuildPromotionEx)myBuildPromotion).getCustomArtifactDependencies(); //TeamCity API: cast
-        return new PropEntitiesArtifactDep(artifactDependencies, null, myFields.getNestedField("custom-artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
-      }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("custom-artifact-dependencies", false), () -> {
+      final List<SArtifactDependency> artifactDependencies = ((BuildPromotionEx)myBuildPromotion).getCustomArtifactDependencies(); //TeamCity API: cast
+      return new PropEntitiesArtifactDep(artifactDependencies, null, myFields.getNestedField("custom-artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
     });
   }
 
@@ -772,41 +760,38 @@ public class Build {
   @XmlAttribute(name = "artifactsDirectory")
   public String getArtifactsDirectory() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("artifactsDirectory", false, false),
-                            () -> {
-                              myBeanContext.getServiceLocator().findSingletonService(PermissionChecker.class).checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
-                              return myBuildPromotion.getArtifactsDirectory().getAbsolutePath();
-                            });
+                                                              () -> {
+                                                                myBeanContext.getServiceLocator().findSingletonService(PermissionChecker.class)
+                                                                             .checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
+                                                                return myBuildPromotion.getArtifactsDirectory().getAbsolutePath();
+                                                              });
   }
 
   @XmlElement(name = "revisions")
   public Revisions getRevisions() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("revisions", false), new ValueWithDefault.Value<Revisions>() {
-      public Revisions get() {
-        return new Revisions(myBuildPromotion.getRevisions(), myFields.getNestedField("revisions", Fields.NONE, Fields.LONG), myBeanContext);
-      }
-    });
+    return ValueWithDefault.decideDefault(myFields.isIncluded("revisions", false),
+                                          () -> new Revisions(myBuildPromotion.getRevisions(), myFields.getNestedField("revisions", Fields.NONE, Fields.LONG), myBeanContext));
   }
 
   @XmlElement(name = "versionedSettingsRevision")
   public Revision getVersionedSettingsRevision() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("versionedSettingsRevision", false), new ValueWithDefault.Value<Revision>() {
-      public Revision get() {
-        List<BuildRevision> revisions =
-          CollectionsUtil.filterAndConvertCollection(((BuildPromotionEx)myBuildPromotion).getAllRevisionsMap().values(), source -> source, data -> data.isSettingsRevision());
-        if (revisions.isEmpty()) {
-          return null;
-        }
-        if (revisions.size() > 1) {
-          LOG.warn("Found more then one versioned settings revision for " + LogUtil.describe(myBuildPromotion));
-        }
-        return new Revision(revisions.get(0), myFields.getNestedField("versionedSettingsRevision", Fields.NONE, Fields.LONG), myBeanContext);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("versionedSettingsRevision", false), () -> {
+      List<BuildRevision> revisions =
+        CollectionsUtil.filterAndConvertCollection(((BuildPromotionEx)myBuildPromotion).getAllRevisionsMap().values(), source -> source, data -> data.isSettingsRevision());
+      if (revisions.isEmpty()) {
+        return null;
       }
+      if (revisions.size() > 1) {
+        LOG.warn("Found more then one versioned settings revision for " + LogUtil.describe(myBuildPromotion));
+      }
+      return new Revision(revisions.get(0), myFields.getNestedField("versionedSettingsRevision", Fields.NONE, Fields.LONG), myBeanContext);
     });
   }
 
   /**
    * Lists last change(s) included into the build so that this can be used in the build start request. The changes correspond to the revisions used by the build.
    * The set of the changes included can vary in the future TeamCity versions. In TeamCity 8.1 this is the last usual change and also a personal change (for personal build only)
+   *
    * @return
    */
   @XmlElement(name = "lastChanges")
@@ -814,30 +799,28 @@ public class Build {
     if (!myFields.isIncluded("lastChanges", false, true)) {
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("lastChanges", false), new ValueWithDefault.Value<Changes>() {
-      public Changes get() {
-        final Changes result = new Changes(null, myFields.getNestedField("lastChanges", Fields.NONE, Fields.LONG), myBeanContext, new CachingValue<List<SVcsModification>>() {
-          @NotNull
-          @Override
-          protected List<SVcsModification> doGet() {
-            final List<SVcsModification> result = new ArrayList<SVcsModification>();
-            final Long lastModificationId = myBuildPromotion.getLastModificationId();
-            if (lastModificationId != null && lastModificationId != -1) {
-              try {
-                SVcsModification modification = myBeanContext.getSingletonService(VcsModificationHistory.class).findChangeById(lastModificationId);
-                if (modification != null && modification.getRelatedConfigurations().contains(myBuildPromotion.getParentBuildType())) {
-                  result.add(modification);
-                }
-              } catch (AccessDeniedException e) {
-                //ignore: the associated modification id probably does not belong to the build configuration (related to TW-35390)
+    return ValueWithDefault.decideDefault(myFields.isIncluded("lastChanges", false), () -> {
+      final Changes result = new Changes(null, myFields.getNestedField("lastChanges", Fields.NONE, Fields.LONG), myBeanContext, new CachingValue<List<SVcsModification>>() {
+        @NotNull
+        @Override
+        protected List<SVcsModification> doGet() {
+          final List<SVcsModification> result = new ArrayList<SVcsModification>();
+          final Long lastModificationId = myBuildPromotion.getLastModificationId();
+          if (lastModificationId != null && lastModificationId != -1) {
+            try {
+              SVcsModification modification = myBeanContext.getSingletonService(VcsModificationHistory.class).findChangeById(lastModificationId);
+              if (modification != null && modification.getRelatedConfigurations().contains(myBuildPromotion.getParentBuildType())) {
+                result.add(modification);
               }
+            } catch (AccessDeniedException e) {
+              //ignore: the associated modification id probably does not belong to the build configuration (related to TW-35390)
             }
-            result.addAll(myBuildPromotion.getPersonalChanges());
-            return result;
           }
-        });
-        return result.isDefault() ? null : result;
-      }
+          result.addAll(myBuildPromotion.getPersonalChanges());
+          return result;
+        }
+      });
+      return result.isDefault() ? null : result;
     });
   }
 
@@ -846,42 +829,38 @@ public class Build {
     if (!myFields.isIncluded("changes", false, true)) {
       return null;
     }
-    return ValueWithDefault.decide(myFields.isIncluded("changes", false), new ValueWithDefault.Value<Changes>() {
-      public Changes get() {
-        final Fields changesFields = myFields.getNestedField("changes");
-        String locator = Locator.merge(changesFields.getLocator(), ChangeFinder.getLocator(myBuildPromotion));
-        final String href = ChangeRequest.getChangesHref(locator); //using locator without count in href
-        final String finalLocator = Locator.merge(locator, Locator.getStringLocator(PagerData.COUNT, String.valueOf(FinderImpl.NO_COUNT)));
-        CachingValue<List<SVcsModification>> data;
-        ChangeFinder changeFinder = myBeanContext.getSingletonService(ChangeFinder.class);
-        try {
-          if (changeFinder.isCheap(myBuildPromotion, finalLocator)) {
-            data = CachingValue.simple(changeFinder.getItems(finalLocator).myEntries);
-          } else {
-            data = CachingValue.simple(() -> changeFinder.getItems(finalLocator).myEntries);
-          }
-        } catch (Exception e) {
-          LOG.warnAndDebugDetails("Failed to get changes (including empty changes) for " + LogUtil.describe(myBuildPromotion), e);
-          data = CachingValue.simple(() -> Collections.emptyList());
+    return ValueWithDefault.decide(myFields.isIncluded("changes", false), () -> {
+      final Fields changesFields = myFields.getNestedField("changes");
+      String locator = Locator.merge(changesFields.getLocator(), ChangeFinder.getLocator(myBuildPromotion));
+      final String href = ChangeRequest.getChangesHref(locator); //using locator without count in href
+      final String finalLocator = Locator.merge(locator, Locator.getStringLocator(PagerData.COUNT, String.valueOf(FinderImpl.NO_COUNT)));
+      CachingValue<List<SVcsModification>> data;
+      ChangeFinder changeFinder = myBeanContext.getSingletonService(ChangeFinder.class);
+      try {
+        if (changeFinder.isCheap(myBuildPromotion, finalLocator)) {
+          data = CachingValue.simple(changeFinder.getItems(finalLocator).myEntries);
+        } else {
+          data = CachingValue.simple(() -> changeFinder.getItems(finalLocator).myEntries);
         }
-        return new Changes(new PagerData(href), changesFields, myBeanContext, data);
+      } catch (Exception e) {
+        LOG.warnAndDebugDetails("Failed to get changes (including empty changes) for " + LogUtil.describe(myBuildPromotion), e);
+        data = CachingValue.simple(() -> Collections.emptyList());
       }
+      return new Changes(new PagerData(href), changesFields, myBeanContext, data);
     }, null, true);
     //see jetbrains.buildServer.controllers.changes.ChangesBean.getLimitedChanges for further optimization
   }
 
   @XmlElement(name = "triggered")
   public TriggeredBy getTriggered() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("triggered", false), new ValueWithDefault.Value<TriggeredBy>() {
-      public TriggeredBy get() {
-        jetbrains.buildServer.serverSide.TriggeredBy triggeredBy = null;
-        if (myBuild != null) {
-          triggeredBy = myBuild.getTriggeredBy();
-        } else if (myQueuedBuild != null) {
-          triggeredBy = myQueuedBuild.getTriggeredBy();
-        }
-        return triggeredBy == null ? null : new TriggeredBy(triggeredBy, myFields.getNestedField("triggered", Fields.NONE, Fields.LONG),myBeanContext);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("triggered", false), () -> {
+      jetbrains.buildServer.serverSide.TriggeredBy triggeredBy = null;
+      if (myBuild != null) {
+        triggeredBy = myBuild.getTriggeredBy();
+      } else if (myQueuedBuild != null) {
+        triggeredBy = myQueuedBuild.getTriggeredBy();
       }
+      return triggeredBy == null ? null : new TriggeredBy(triggeredBy, myFields.getNestedField("triggered", Fields.NONE, Fields.LONG), myBeanContext);
     });
   }
 
@@ -889,21 +868,17 @@ public class Build {
   public IssueUsages getIssues() {
     return myBuild == null
            ? null
-           : ValueWithDefault.decideDefault(myFields.isIncluded("relatedIssues", false), new ValueWithDefault.Value<IssueUsages>() {
-             public IssueUsages get() {
-               final boolean includeAllInline = TeamCityProperties.getBoolean("rest.beans.build.inlineRelatedIssues");
-               return new IssueUsages(myBuild, myFields.getNestedField("relatedIssues", Fields.NONE, includeAllInline ? Fields.LONG : Fields.SHORT), myBeanContext);
-             }
+           : ValueWithDefault.decideDefault(myFields.isIncluded("relatedIssues", false), () -> {
+             final boolean includeAllInline = TeamCityProperties.getBoolean("rest.beans.build.inlineRelatedIssues");
+             return new IssueUsages(myBuild, myFields.getNestedField("relatedIssues", Fields.NONE, includeAllInline ? Fields.LONG : Fields.SHORT), myBeanContext);
            });
   }
 
   @XmlElement(name = "user")
   public jetbrains.buildServer.server.rest.model.user.User getPersonalBuildUser() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("user", false), new ValueWithDefault.Value<jetbrains.buildServer.server.rest.model.user.User>() {
-      public jetbrains.buildServer.server.rest.model.user.User get() {
-        final SUser owner = myBuildPromotion.getOwner();
-        return owner == null ? null : new User(owner, myFields.getNestedField("user"), myBeanContext);
-      }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("user", false), () -> {
+      final SUser owner = myBuildPromotion.getOwner();
+      return owner == null ? null : new User(owner, myFields.getNestedField("user"), myBeanContext);
     });
   }
 
@@ -975,80 +950,75 @@ public class Build {
   public TestOccurrences getTestOccurrences() {
     if (myBuild == null) return null;
     return ValueWithDefault.decideDefault(myFields.isIncluded("testOccurrences", false),
-                                          new ValueWithDefault.Value<TestOccurrences>() {
-                                            @Nullable
-                                            public TestOccurrences get() {
-                                              final Fields testOccurrencesFields = myFields.getNestedField("testOccurrences");
-                                              final Boolean testDetailsIncluded = TestOccurrences.isTestOccurrenceIncluded(testOccurrencesFields);
-                                              final BuildStatistics fullStatistics = (testDetailsIncluded == null || testDetailsIncluded) ?
-                                                                                     TestOccurrenceFinder.getBuildStatistics(myBuild, null) : null;
-                                              final ShortStatistics statistics = fullStatistics != null ? fullStatistics : myBuild.getShortStatistics();
-                                              if (statistics.getAllTestCount() == 0) {
-                                                return null;
-                                              }
-
-                                              if (myBuild.getBuildType() == null){
-                                                //workaround for http://youtrack.jetbrains.com/issue/TW-34734
-                                                return null;
-                                              }
-                                              final List<STestRun> tests = ValueWithDefault.decideDefault(
-                                                testDetailsIncluded, new ValueWithDefault.Value<List<STestRun>>() {
-                                                  public List<STestRun> get() {
-                                                    String testOccurrencesLocator = testOccurrencesFields.getLocator();
-                                                    if (testOccurrencesLocator == null) {
-                                                      return fullStatistics != null ? fullStatistics.getAllTests() : TestOccurrenceFinder.getBuildStatistics(myBuild, null).getAllTests();
-                                                    }
-                                                    String  actualLocatorText = Locator.merge(TestOccurrenceFinder.getTestRunLocator(myBuild), testOccurrencesLocator);
-                                                    return myServiceLocator.getSingletonService(TestOccurrenceFinder.class).getItems(actualLocatorText).myEntries;
-                                                  }
-                                                }
-                                              );
-                                              return new TestOccurrences(tests,
-                                                                         statistics.getAllTestCount(),
-                                                                         statistics.getPassedTestCount(),
-                                                                         statistics.getFailedTestCount(),
-                                                                         statistics.getNewFailedCount(),
-                                                                         statistics.getIgnoredTestCount(),
-                                                                         statistics.getMutedTestsCount(),
-                                                                         TestOccurrenceRequest.getHref(myBuild),
-                                                                         null,
-                                                                         testOccurrencesFields, myBeanContext
-                                              );
+                                          () -> {
+                                            final Fields testOccurrencesFields = myFields.getNestedField("testOccurrences");
+                                            final Boolean testDetailsIncluded = TestOccurrences.isTestOccurrenceIncluded(testOccurrencesFields);
+                                            final BuildStatistics fullStatistics = (testDetailsIncluded == null || testDetailsIncluded) ?
+                                                                                   TestOccurrenceFinder.getBuildStatistics(myBuild, null) : null;
+                                            final ShortStatistics statistics = fullStatistics != null ? fullStatistics : myBuild.getShortStatistics();
+                                            if (statistics.getAllTestCount() == 0) {
+                                              return null;
                                             }
+
+                                            if (myBuild.getBuildType() == null) {
+                                              //workaround for http://youtrack.jetbrains.com/issue/TW-34734
+                                              return null;
+                                            }
+                                            final List<STestRun> tests = ValueWithDefault.decideDefault(
+                                              testDetailsIncluded, () -> {
+                                                String testOccurrencesLocator = testOccurrencesFields.getLocator();
+                                                if (testOccurrencesLocator == null) {
+                                                  return fullStatistics != null
+                                                         ? fullStatistics.getAllTests()
+                                                         : TestOccurrenceFinder.getBuildStatistics(myBuild, null).getAllTests();
+                                                }
+                                                String actualLocatorText = Locator.merge(TestOccurrenceFinder.getTestRunLocator(myBuild), testOccurrencesLocator);
+                                                return myServiceLocator.getSingletonService(TestOccurrenceFinder.class).getItems(actualLocatorText).myEntries;
+                                              }
+                                            );
+                                            return new TestOccurrences(tests,
+                                                                       statistics.getAllTestCount(),
+                                                                       statistics.getPassedTestCount(),
+                                                                       statistics.getFailedTestCount(),
+                                                                       statistics.getNewFailedCount(),
+                                                                       statistics.getIgnoredTestCount(),
+                                                                       statistics.getMutedTestsCount(),
+                                                                       TestOccurrenceRequest.getHref(myBuild),
+                                                                       null,
+                                                                       testOccurrencesFields, myBeanContext
+                                            );
                                           });
   }
 
   @XmlElement(name = "problemOccurrences")
   public ProblemOccurrences getProblemOccurrences() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("problemOccurrences", false),
-                                          new ValueWithDefault.Value<ProblemOccurrences>() {
-                                            @Nullable
-                                            public ProblemOccurrences get() {
-                                              final List<BuildProblem> problemOccurrences = ProblemOccurrenceFinder.getProblemOccurrences(myBuildPromotion);
-                                              if (problemOccurrences.size() == 0) return null;
+                                          () -> {
+                                            final List<BuildProblem> problemOccurrences = ProblemOccurrenceFinder.getProblemOccurrences(myBuildPromotion);
+                                            if (problemOccurrences.size() == 0) return null;
 
-                                              int newProblemsCount = 0;
-                                              int mutedProblemsCount = 0;
-                                              for (BuildProblem problem : problemOccurrences) {
-                                                if (problem.isMutedInBuild()) mutedProblemsCount++;
-                                                final Boolean isNew = ((BuildProblemImpl)problem).isNew();
-                                                if (isNew != null && isNew) newProblemsCount++;
-                                              }
-                                              final Fields problemOccurrencesFields = myFields.getNestedField("problemOccurrences");
-                                              final List<BuildProblem> problems = ValueWithDefault.decideDefault(problemOccurrencesFields.isIncluded("problemOccurrence", false),
-                                                                                                                 () -> ProblemOccurrenceFinder.getProblemOccurrences(myBuildPromotion));
-                                              return new ProblemOccurrences(problems,
-                                                                            problemOccurrences.size(),
-                                                                            null,
-                                                                            null,
-                                                                            newProblemsCount,
-                                                                            null,
-                                                                            mutedProblemsCount,
-                                                                            ProblemOccurrenceRequest.getHref(myBuildPromotion),
-                                                                            null,
-                                                                            problemOccurrencesFields, myBeanContext
-                                              );
+                                            int newProblemsCount = 0;
+                                            int mutedProblemsCount = 0;
+                                            for (BuildProblem problem : problemOccurrences) {
+                                              if (problem.isMutedInBuild()) mutedProblemsCount++;
+                                              final Boolean isNew = ((BuildProblemImpl)problem).isNew();
+                                              if (isNew != null && isNew) newProblemsCount++;
                                             }
+                                            final Fields problemOccurrencesFields = myFields.getNestedField("problemOccurrences");
+                                            final List<BuildProblem> problems = ValueWithDefault.decideDefault(problemOccurrencesFields.isIncluded("problemOccurrence", false),
+                                                                                                               () -> ProblemOccurrenceFinder
+                                                                                                                 .getProblemOccurrences(myBuildPromotion));
+                                            return new ProblemOccurrences(problems,
+                                                                          problemOccurrences.size(),
+                                                                          null,
+                                                                          null,
+                                                                          newProblemsCount,
+                                                                          null,
+                                                                          mutedProblemsCount,
+                                                                          ProblemOccurrenceRequest.getHref(myBuildPromotion),
+                                                                          null,
+                                                                          problemOccurrencesFields, myBeanContext
+                                            );
                                           });
   }
 
@@ -1089,11 +1059,8 @@ public class Build {
 
   @XmlElement(name = CANCELED_INFO)
   public Comment getCanceledInfo() {  //TeamCity API: is only available for running or finished build, while isCanceled is available for queued
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded(CANCELED_INFO, false), new ValueWithDefault.Value<Comment>() {
-      public Comment get() {
-        return getCanceledComment(myBuild, myFields.getNestedField(CANCELED_INFO, Fields.NONE, Fields.LONG), myBeanContext);
-      }
-    });
+    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded(CANCELED_INFO, false),
+                                                                   () -> getCanceledComment(myBuild, myFields.getNestedField(CANCELED_INFO, Fields.NONE, Fields.LONG), myBeanContext));
   }
 
 
@@ -1112,12 +1079,10 @@ public class Build {
 
   @XmlElement(name = "compatibleAgents")
   public Agents getCompatibleAgents() {
-    return myQueuedBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false, true), new ValueWithDefault.Value<Agents>() {
-      public Agents get() {
-        final Fields nestedFields = myFields.getNestedField("compatibleAgents");
-        String  actualLocatorText = Locator.merge(nestedFields.getLocator(), AgentFinder.getCompatibleAgentsLocator(myBuildPromotion));
-        return new Agents(actualLocatorText, new PagerData(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
-      }
+    return myQueuedBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false, true), () -> {
+      final Fields nestedFields = myFields.getNestedField("compatibleAgents");
+      String actualLocatorText = Locator.merge(nestedFields.getLocator(), AgentFinder.getCompatibleAgentsLocator(myBuildPromotion));
+      return new Agents(actualLocatorText, new PagerData(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
     });
   }
 
@@ -1125,26 +1090,23 @@ public class Build {
   public String getStartEstimate() {
     final Boolean include = myFields.isIncluded("startEstimate", false);
     if (myQueuedBuild == null || (include != null && !include)) return null;
-    return ValueWithDefault.decideDefault(include, new ValueWithDefault.Value<String>() {
-      @Nullable
-      public String get() {
-        final BuildEstimates buildEstimates = myQueuedBuild.getBuildEstimates();
-        if (buildEstimates == null) return null;
+    return ValueWithDefault.decideDefault(include, () -> {
+      final BuildEstimates buildEstimates = myQueuedBuild.getBuildEstimates();
+      if (buildEstimates == null) return null;
 
-        final TimeInterval timeInterval = buildEstimates.getTimeInterval();
-        if (timeInterval == null) return null;
+      final TimeInterval timeInterval = buildEstimates.getTimeInterval();
+      if (timeInterval == null) return null;
 
-        if (TeamCityProperties.getBoolean("rest.beans.build.startEstimate.legacyBehavior")) {
-          //logic before https://youtrack.jetbrains.com/issue/TW-50824 fix as the fix goes to the bugfix update
-          //this property support can be dropped in TeamCity 2017.2
-          final TimePoint endPoint = timeInterval.getEndPoint();
-          if (endPoint == null) return null;
-          return Util.formatTime(endPoint.getAbsoluteTime());
-        }
-        TimePoint result = timeInterval.getStartPoint();
-        if (result == TimePoint.NEVER) return null;
-        return Util.formatTime(result.getAbsoluteTime());
+      if (TeamCityProperties.getBoolean("rest.beans.build.startEstimate.legacyBehavior")) {
+        //logic before https://youtrack.jetbrains.com/issue/TW-50824 fix as the fix goes to the bugfix update
+        //this property support can be dropped in TeamCity 2017.2
+        final TimePoint endPoint = timeInterval.getEndPoint();
+        if (endPoint == null) return null;
+        return Util.formatTime(endPoint.getAbsoluteTime());
       }
+      TimePoint result = timeInterval.getStartPoint();
+      if (result == TimePoint.NEVER) return null;
+      return Util.formatTime(result.getAbsoluteTime());
     });
   }
 
@@ -1153,16 +1115,13 @@ public class Build {
     final Boolean include = myFields.isIncluded("waitReason", false);
     if (myQueuedBuild == null || (include != null && !include)) return null;
 
-    return ValueWithDefault.decideDefault(include, new ValueWithDefault.Value<String>() {
-      @Nullable
-      public String get() {
-        final BuildEstimates buildEstimates = myQueuedBuild.getBuildEstimates();
-        if (buildEstimates == null) return null;
+    return ValueWithDefault.decideDefault(include, () -> {
+      final BuildEstimates buildEstimates = myQueuedBuild.getBuildEstimates();
+      if (buildEstimates == null) return null;
 
-        final WaitReason waitReason = buildEstimates.getWaitReason();
-        if (waitReason == null) return null;
-        return waitReason.getDescription();
-      }
+      final WaitReason waitReason = buildEstimates.getWaitReason();
+      if (waitReason == null) return null;
+      return waitReason.getDescription();
     });
   }
 
@@ -1182,12 +1141,9 @@ public class Build {
    */
   @XmlElement
   public String getSettingsHash() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("settingsHash", false, false), new ValueWithDefault.Value<String>() {
-      @Nullable
-      public String get() {
-        checkCanViewRuntimeData();
-        return new String(Hex.encodeHex(((BuildPromotionEx)myBuildPromotion).getSettingsDigest(false)));
-      }
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("settingsHash", false, false), () -> {
+      checkCanViewRuntimeData();
+      return new String(Hex.encodeHex(((BuildPromotionEx)myBuildPromotion).getSettingsDigest(false)));
     });
   }
 
@@ -1196,12 +1152,9 @@ public class Build {
    */
   @XmlElement
   public String getCurrentSettingsHash() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("currentSettingsHash", false, false), new ValueWithDefault.Value<String>() {
-      @Nullable
-      public String get() {
-        checkCanViewRuntimeData();
-        return new String(Hex.encodeHex(((BuildPromotionEx)myBuildPromotion).getBuildSettings().getDigest()));
-      }
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("currentSettingsHash", false, false), () -> {
+      checkCanViewRuntimeData();
+      return new String(Hex.encodeHex(((BuildPromotionEx)myBuildPromotion).getBuildSettings().getDigest()));
     });
   }
 
@@ -1210,12 +1163,9 @@ public class Build {
    */
   @XmlElement
   public String getModificationId() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("modificationId", false, false), new ValueWithDefault.Value<String>() {
-      @Nullable
-      public String get() {
-        checkCanViewRuntimeData();
-        return String.valueOf(myBuildPromotion.getLastModificationId());
-      }
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("modificationId", false, false), () -> {
+      checkCanViewRuntimeData();
+      return String.valueOf(myBuildPromotion.getLastModificationId());
     });
   }
 
@@ -1224,12 +1174,9 @@ public class Build {
    */
   @XmlElement
   public String getChainModificationId() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("chainModificationId", false, false), new ValueWithDefault.Value<String>() {
-      @Nullable
-      public String get() {
-        checkCanViewRuntimeData();
-        return String.valueOf(((BuildPromotionEx)myBuildPromotion).getChainModificationId());
-      }
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("chainModificationId", false, false), () -> {
+      checkCanViewRuntimeData();
+      return String.valueOf(((BuildPromotionEx)myBuildPromotion).getChainModificationId());
     });
   }
 
@@ -1238,24 +1185,22 @@ public class Build {
    */
   @XmlElement
   public Items getReplacementIds() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("replacementIds", false, false), new ValueWithDefault.Value<Items>() {
-      @Nullable
-      public Items get() {
-        final Collection<Long> replacementIds = myServiceLocator.getSingletonService(BuildPromotionReplacement.class).getOriginalPromotionIds(myBuildPromotion.getId());
-        ArrayList<Long> sortedReplacemetIds = new ArrayList<Long>(replacementIds);
-        Collections.sort(sortedReplacemetIds, Collections.reverseOrder());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("replacementIds", false, false), () -> {
+      final Collection<Long> replacementIds = myServiceLocator.getSingletonService(BuildPromotionReplacement.class).getOriginalPromotionIds(myBuildPromotion.getId());
+      ArrayList<Long> sortedReplacemetIds = new ArrayList<Long>(replacementIds);
+      Collections.sort(sortedReplacemetIds, Collections.reverseOrder());
 
-        return new Items(CollectionsUtil.convertCollection(sortedReplacemetIds, new Converter<String, Long>() {
-          @Override
-          public String createFrom(@NotNull final Long source) {
-            return String.valueOf(source);
-          }
-        }));
-      }
+      return new Items(CollectionsUtil.convertCollection(sortedReplacemetIds, new Converter<String, Long>() {
+        @Override
+        public String createFrom(@NotNull final Long source) {
+          return String.valueOf(source);
+        }
+      }));
     });
   }
 
   private boolean myCanViewRuntimeDataChecked = false;
+
   private void checkCanViewRuntimeData() {
     if (!myCanViewRuntimeDataChecked) {
       //noinspection ConstantConditions
@@ -1264,13 +1209,13 @@ public class Build {
     }
   }
 
-  public static boolean canViewRuntimeData(@NotNull PermissionChecker permissionChecker, @NotNull BuildPromotion buildPromotion){
-      final SBuildType buildType = buildPromotion.getBuildType();
-      final AuthorityHolder authorityHolder = permissionChecker.getCurrent();
-      if (buildType == null){
-        return authorityHolder.isPermissionGrantedGlobally(Permission.VIEW_BUILD_RUNTIME_DATA);
-      }
-      return authorityHolder.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_BUILD_RUNTIME_DATA);
+  public static boolean canViewRuntimeData(@NotNull PermissionChecker permissionChecker, @NotNull BuildPromotion buildPromotion) {
+    final SBuildType buildType = buildPromotion.getBuildType();
+    final AuthorityHolder authorityHolder = permissionChecker.getCurrent();
+    if (buildType == null) {
+      return authorityHolder.isPermissionGrantedGlobally(Permission.VIEW_BUILD_RUNTIME_DATA);
+    }
+    return authorityHolder.isPermissionGrantedForProject(buildType.getProjectId(), Permission.VIEW_BUILD_RUNTIME_DATA);
   }
 
   /**
@@ -1353,18 +1298,18 @@ public class Build {
       final Locator locator = Locator.createEmptyLocator();
       if (submittedPromotionId != null) {
         final Long replacementPromotionId = buildPromotionIdQueuedBuildsReplacements.get(submittedPromotionId);
-        if (replacementPromotionId != null){
+        if (replacementPromotionId != null) {
           locator.setDimension(BuildPromotionFinder.PROMOTION_ID, String.valueOf(replacementPromotionId));
-        } else{
+        } else {
           locator.setDimension(BuildPromotionFinder.PROMOTION_ID, String.valueOf(submittedPromotionId));
         }
       }
       if (submittedId != null) {
         //assuming https://youtrack.jetbrains.com/issue/TW-38777 never takes place
         final Long replacementPromotionId = buildPromotionIdQueuedBuildsReplacements.get(submittedId);
-        if (replacementPromotionId != null){
+        if (replacementPromotionId != null) {
           locator.setDimension(BuildPromotionFinder.PROMOTION_ID, String.valueOf(replacementPromotionId));
-        } else{
+        } else {
           locator.setDimension(BuildPromotionFinder.DIMENSION_ID, String.valueOf(submittedId));
         }
       }
@@ -1505,7 +1450,7 @@ public class Build {
         throw new BadRequestException("Submitted comment does not have 'text' set.");
       }
     }
-    if (submittedProperties != null){
+    if (submittedProperties != null) {
       customizer.setParameters(submittedProperties.getMap());
     }
 
@@ -1544,14 +1489,14 @@ public class Build {
       if (submittedTriggeringOptions.rebuildDependencies != null) {
         customizer.setRebuildDependencies(CollectionsUtil.convertCollection(
           submittedTriggeringOptions.rebuildDependencies.getFromPosted(serviceLocator.getSingletonService(BuildTypeFinder.class)), new Converter<String, BuildTypeOrTemplate>() {
-          public String createFrom(@NotNull final BuildTypeOrTemplate source) {
-            if (source.getBuildType() == null) {
-              //noinspection ConstantConditions
-              throw new BadRequestException("Template is specified instead of a build type. Template id: '" + source.getTemplate().getExternalId() + "'");
+            public String createFrom(@NotNull final BuildTypeOrTemplate source) {
+              if (source.getBuildType() == null) {
+                //noinspection ConstantConditions
+                throw new BadRequestException("Template is specified instead of a build type. Template id: '" + source.getTemplate().getExternalId() + "'");
+              }
+              return source.getBuildType().getInternalId();
             }
-            return source.getBuildType().getInternalId();
-          }
-        }));
+          }));
       }
     }
 
@@ -1579,11 +1524,11 @@ public class Build {
       }
     }
 
-    if (submittedTags != null){
-        customizer.setTagDatas(new HashSet<TagData>(submittedTags.getFromPosted(serviceLocator.getSingletonService(UserFinder.class))));
+    if (submittedTags != null) {
+      customizer.setTagDatas(new HashSet<TagData>(submittedTags.getFromPosted(serviceLocator.getSingletonService(UserFinder.class))));
     }
-    if (submittedAttributes != null){
-        customizer.setAttributes(submittedAttributes.getMap());
+    if (submittedAttributes != null) {
+      customizer.setAttributes(submittedAttributes.getMap());
     }
     final BuildPromotion result;
     try {
@@ -1592,10 +1537,12 @@ public class Build {
       //IllegalStateException is thrown e.g. when we try to create a personal build in a build type which does not allow this
       throw new BadRequestException("Cannot trigger build: " + e.getMessage());
     } catch (RevisionsNotFoundException e) {
-      throw new BadRequestException("Cannot trigger build, if the changes are specified, they should be visible on the build configuration Change Log under the requested branch. Original error: " + e.getMessage());
+      throw new BadRequestException(
+        "Cannot trigger build, if the changes are specified, they should be visible on the build configuration Change Log under the requested branch. Original error: " +
+        e.getMessage());
     }
     BuildTypeEx modifiedBuildType = getCustomizedSubmittedBuildType(serviceLocator);
-    if (modifiedBuildType!= null) {
+    if (modifiedBuildType != null) {
       //it's core's responsibility to check permissions here
       try {
         ((BuildPromotionEx)result).freezeSettings(modifiedBuildType, "rest");
@@ -1670,7 +1617,6 @@ public class Build {
   }
 
   /**
-   *
    * @return null if the submitted build type does not contain any custom settings
    */
   @Nullable
@@ -1679,13 +1625,14 @@ public class Build {
       return null;
     }
 
-    final BuildTypeOrTemplate customizedBuildTypeFromPosted = submittedBuildType.getCustomizedBuildTypeFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class), serviceLocator);
+    final BuildTypeOrTemplate customizedBuildTypeFromPosted =
+      submittedBuildType.getCustomizedBuildTypeFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class), serviceLocator);
     if (customizedBuildTypeFromPosted == null) {
       return null;
     }
 
     return (BuildTypeEx)customizedBuildTypeFromPosted.getBuildType();
-   }
+  }
 
   private SBuildType getSubmittedBuildType(@NotNull ServiceLocator serviceLocator, @Nullable final SVcsModification personalChange, @Nullable final SUser currentUser) {
     if (submittedBuildType == null) {
