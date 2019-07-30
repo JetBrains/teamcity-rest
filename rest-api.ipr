@@ -9,6 +9,33 @@
       <maximumStackSize value="32" />
     </buildFile>
   </component>
+  <component name="ArtifactManager">
+    <artifact name="rest-api">
+      <output-path>$PROJECT_DIR$/out/artifacts/rest_api</output-path>
+      <root id="root">
+        <element id="archive" name="rest-api.zip">
+          <element id="directory" name="server">
+            <element id="library" level="project" name="Jackson" />
+            <element id="library" level="project" name="jaxb" />
+            <element id="library" level="project" name="Jersey" />
+            <element id="library" level="project" name="Swagger" />
+            <element id="archive" name="rest-api.jar">
+              <element id="module-output" name="rest-api" />
+            </element>
+          </element>
+          <element id="file-copy" path="$PROJECT_DIR$/teamcity-plugin.xml" />
+        </element>
+        <element id="archive" name="rest-contrib.zip">
+          <element id="directory" name="server">
+            <element id="archive" name="rest-contrib.jar">
+              <element id="module-output" name="contrib" />
+            </element>
+          </element>
+          <element id="file-copy" path="$PROJECT_DIR$/contrib/teamcity-plugin.xml" />
+        </element>
+      </root>
+    </artifact>
+  </component>
   <component name="BuildJarProjectSettings">
     <option name="BUILD_JARS_ON_MAKE" value="false" />
   </component>
@@ -18,8 +45,10 @@
       <entry name=".+\.(gif|png|jpeg|jpg)" />
     </resourceExtensions>
     <wildcardResourcePatterns>
+      <entry name="?*.dist" />
       <entry name="?*.properties" />
       <entry name="?*.xml" />
+      <entry name="?*.xsl" />
       <entry name="?*.gif" />
       <entry name="?*.png" />
       <entry name="?*.jpeg" />
@@ -27,7 +56,26 @@
       <entry name="?*.html" />
       <entry name="?*.dtd" />
       <entry name="?*.tld" />
+      <entry name="?*.js" />
+      <entry name="?*.css" />
+      <entry name="?*.map" />
+      <entry name="?*.jsp" />
+      <entry name="?*.jspf" />
       <entry name="?*.ftl" />
+      <entry name="?*.exe" />
+      <entry name="?*.pdb" />
+      <entry name="?*.dll" />
+      <entry name="?*.ftl" />
+      <entry name="?*.xsd" />
+      <entry name="?*.rb" />
+      <entry name="?*.config" />
+      <entry name="?*.gant" />
+      <entry name="?*.eot" />
+      <entry name="?*.svg" />
+      <entry name="?*.ttf" />
+      <entry name="?*.woff" />
+      <entry name="*.sql" />
+      <entry name="META-INF/services/?*" />
     </wildcardResourcePatterns>
     <bytecodeTargetLevel target="1.8" />
   </component>
@@ -63,7 +111,7 @@
     <option name="GENERATE_NO_WARNINGS" value="true" />
     <option name="DEPRECATION" value="false" />
   </component>
-  <component name="Encoding" useUTFGuessing="true" native2AsciiForPropertiesFiles="false">
+  <component name="Encoding">
     <file url="PROJECT" charset="UTF-8" />
   </component>
   <component name="FacetAutodetectingManager">
@@ -3032,6 +3080,35 @@
       </item>
     </group>
   </component>
+  <component name="ProjectCodeStyleConfiguration">
+    <option name="USE_PER_PROJECT_SETTINGS" value="true" />
+    <code_scheme name="Project" version="173">
+      <option name="OTHER_INDENT_OPTIONS">
+        <value>
+          <option name="INDENT_SIZE" value="2" />
+          <option name="CONTINUATION_INDENT_SIZE" value="4" />
+          <option name="TAB_SIZE" value="2" />
+        </value>
+      </option>
+      <XML>
+        <option name="XML_LEGACY_SETTINGS_IMPORTED" value="true" />
+      </XML>
+      <codeStyleSettings language="JAVA">
+        <indentOptions>
+          <option name="INDENT_SIZE" value="2" />
+          <option name="CONTINUATION_INDENT_SIZE" value="4" />
+          <option name="TAB_SIZE" value="2" />
+        </indentOptions>
+      </codeStyleSettings>
+      <codeStyleSettings language="XML">
+        <indentOptions>
+          <option name="INDENT_SIZE" value="2" />
+          <option name="CONTINUATION_INDENT_SIZE" value="4" />
+          <option name="TAB_SIZE" value="2" />
+        </indentOptions>
+      </codeStyleSettings>
+    </code_scheme>
+  </component>
   <component name="ProjectCodeStyleSettingsManager">
     <option name="PER_PROJECT_SETTINGS">
       <value>
@@ -3114,10 +3191,9 @@
       </map>
     </option>
     <option name="myVersion" value="124" />
-    <option name="mySupportsUserInfoFilter" value="true" />
   </component>
   <component name="VcsDirectoryMappings">
-    <mapping directory="" vcs="svn" />
+    <mapping directory="" vcs="Git" />
   </component>
   <component name="WebServicesPlugin" addRequiredLibraries="true" />
   <component name="libraryTable">
@@ -3272,7 +3348,6 @@
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/guava-13.0.1.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/slf4j-api-1.7.5.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/slf4j-log4j12-1.7.5.jar!/" />
-        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/commons-codec-1.3.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/commons-codec.jar!/" />
       </CLASSES>
       <JAVADOC />
