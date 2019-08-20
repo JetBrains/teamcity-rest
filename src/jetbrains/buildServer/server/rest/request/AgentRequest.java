@@ -111,7 +111,7 @@ public class AgentRequest {
   @Path("/{agentLocator}")
   @Produces({"application/xml", "application/json"})
   public Agent serveAgent(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
-    return new Agent(myAgentFinder.getItem(agentLocator), myAgentPoolFinder, new Fields(fields), myBeanContext);
+    return new Agent(myAgentFinder.getItem(agentLocator), new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -212,7 +212,7 @@ public class AgentRequest {
       throw new AuthorizationFailedException("No permission to view agent details");
     }
     Fields fieldsDefinition = new Fields(Agent.COMPATIBLE_BUILD_TYPES + "(" + (StringUtil.isEmpty(fields) ? "$long" : fields) + ")");
-    return new Agent(agent, myAgentPoolFinder, fieldsDefinition, myBeanContext).compatibleBuildTypes;
+    return new Agent(agent, fieldsDefinition, myBeanContext).compatibleBuildTypes;
   }
 
   /**
@@ -227,7 +227,7 @@ public class AgentRequest {
       throw new AuthorizationFailedException("No permission to view agent details");
     }
     Fields fieldsDefinition = new Fields(Agent.INCOMPATIBLE_BUILD_TYPES + "(" + (StringUtil.isEmpty(fields) ? "$long" : fields) + ")");
-    return new Agent(agent, myAgentPoolFinder, fieldsDefinition, myBeanContext).incompatibleBuildTypes;
+    return new Agent(agent, fieldsDefinition, myBeanContext).incompatibleBuildTypes;
   }
 
   /**

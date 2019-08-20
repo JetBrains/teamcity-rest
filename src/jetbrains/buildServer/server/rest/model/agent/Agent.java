@@ -113,7 +113,7 @@ public class Agent {
     typeId = ValueWithDefault.decideDefault(fields.isIncluded("typeId", true), agentType.getAgentTypeId());
   }
 
-  public Agent(@NotNull final SBuildAgent agent, @NotNull final AgentPoolFinder agentPoolFinder, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+  public Agent(@NotNull final SBuildAgent agent, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     final int agentId = agent.getId();
     final boolean unknownAgent = agentId == UNKNOWN_AGENT_ID;
     name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), agent.getName());
@@ -231,7 +231,7 @@ public class Agent {
         pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", false), new ValueWithDefault.Value<AgentPool>() {
           @Nullable
           public AgentPool get() {
-            return new AgentPool(agentPoolFinder.getAgentPool(agent), fields.getNestedField("pool"), beanContext);
+            return new AgentPool(beanContext.getSingletonService(AgentPoolFinder.class).getAgentPool(agent), fields.getNestedField("pool"), beanContext);
           }
         });
       }
