@@ -368,6 +368,21 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
+  public void testBuildPromotionFinderMultipleAgents() {
+    checkBuilds("compatibleAgent:(item:(id:" + myAgent20.getId() + ")),state:queued",
+                myBuild10, myBuild20);
+    checkBuilds("compatibleAgent:(item:(id:" + myAgent60.getId() + ")),state:queued",
+                myBuild30);
+    checkBuilds("compatibleAgent:(item:(id:" + myAgent20.getId() + "),item:(id:" + myAgent60.getId() + ")),state:queued",
+                myBuild10, myBuild20, myBuild30);
+    checkBuilds("compatibleAgent:(item:(id:" + myAgent60.getId() + "),item:(id:" + myAgent20.getId() + ")),state:queued",
+                myBuild10, myBuild20, myBuild30);
+
+    checkBuilds("compatibleAgent:(item:(id:" + myAgent60.getId() + "),item:(id:" + myAgent20.getId() + ")),state:any",
+                myBuild10, myBuild20, myBuild30);
+  }
+
+  @Test
   public void testBuildPromotionFinder_QueuedBuildsWithSnapshotDep() throws AgentPoolCannotBeRenamedException, PoolQuotaExceededException, NoSuchAgentPoolException {
     addSnapshotBuilds();
 
