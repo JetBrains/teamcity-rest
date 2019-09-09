@@ -25,6 +25,8 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.maintenance.StartupContext;
+import jetbrains.buildServer.metrics.MetricValue;
+import jetbrains.buildServer.metrics.ServerMetricsReader;
 import jetbrains.buildServer.plugins.PluginManager;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
@@ -78,6 +80,7 @@ public class DataProvider {
   @NotNull private final StartupContext myStartupContext;
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final PermissionChecker myPermissionChecker;
+  @NotNull private final ServerMetricsReader myMetricsReader;
 
   public DataProvider(@NotNull final SBuildServer myServer,
                       @NotNull final BuildHistory myBuildHistory,
@@ -100,7 +103,8 @@ public class DataProvider {
                       @NotNull final StartupContext startupContext,
                       @NotNull final ServiceLocator serviceLocator,
                       @NotNull final RootUrlHolder rootUrlHolder,
-                      @NotNull final PermissionChecker permissionChecker) {
+                      @NotNull final PermissionChecker permissionChecker,
+                      @NotNull final ServerMetricsReader metricsReader) {
     this.myServer = myServer;
     this.myBuildHistory = myBuildHistory;
     this.myUserModel = userModel;
@@ -121,6 +125,7 @@ public class DataProvider {
     myStartupContext = startupContext;
     myServiceLocator = serviceLocator;
     myPermissionChecker = permissionChecker;
+    myMetricsReader = metricsReader;
   }
 
   public static String dumpQuoted(final Collection<String> strings) {
@@ -255,6 +260,10 @@ public class DataProvider {
       result.add((ServerPluginInfo)plugin);
     }
     return result;
+  }
+
+  public List<MetricValue> getMetrics() {
+    return myMetricsReader.queryBuilder().withExperimental(true).build();
   }
 
   @NotNull

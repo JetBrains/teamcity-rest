@@ -59,6 +59,7 @@ import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.debug.Session;
 import jetbrains.buildServer.server.rest.model.debug.Sessions;
+import jetbrains.buildServer.server.rest.model.metrics.Metrics;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.serverSide.*;
@@ -385,6 +386,14 @@ public class DebugRequest {
   public Properties getEnvironmentVariables(@Context HttpServletRequest request, @QueryParam("fields") final String fields) {
     myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     return new Properties(System.getenv(), null, new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/metrics")
+  @Produces({"application/xml", "application/json"})
+  public Metrics serveMetrics(@QueryParam("fields") String fields) {
+    myDataProvider.checkGlobalPermission(Permission.VIEW_USAGE_STATISTICS);
+    return new Metrics(myDataProvider.getMetrics(), new Fields(fields));
   }
 
   /**
