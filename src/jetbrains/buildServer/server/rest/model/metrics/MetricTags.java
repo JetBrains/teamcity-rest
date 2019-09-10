@@ -17,19 +17,32 @@
 package jetbrains.buildServer.server.rest.model.metrics;
 
 import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.DefaultValueAware;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import org.jetbrains.annotations.NotNull;
 
 
 @XmlRootElement(name = "metricTags")
-public class Tags {
-  @XmlElement(name = "metricTag")
-  public List<Tag> tags;
+public class MetricTags implements DefaultValueAware {
+  @XmlAttribute public Integer count;
 
-  public Tags() {
+  @XmlElement(name = "metricTag")
+  public List<MetricTag> tags;
+
+  public MetricTags() {
   }
 
-  public Tags(List<Tag> tags) {
-    this.tags = tags;
+  public MetricTags(@NotNull List<MetricTag> tags, final @NotNull Fields fields) {
+
+    this.tags = ValueWithDefault.decideDefault(fields.isIncluded("tag", true), () -> tags);
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), tags.size());
+  }
+
+  public boolean isDefault() {
+    return ValueWithDefault.isAllDefault(count, tags);
   }
 }

@@ -31,6 +31,7 @@ import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.log.Loggers;
+import jetbrains.buildServer.metrics.ServerMetricsReader;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -40,6 +41,7 @@ import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.metrics.Metrics;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfos;
 import jetbrains.buildServer.server.rest.model.server.LicenseKeyEntities;
 import jetbrains.buildServer.server.rest.model.server.LicenseKeyEntity;
@@ -108,6 +110,15 @@ public class ServerRequest {
   public PluginInfos servePlugins(@QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     return new PluginInfos(myDataProvider.getPlugins(), new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/metrics")
+  @Produces({"application/xml", "application/json"})
+  public Metrics serveMetrics(@QueryParam("fields") String fields) {
+    myDataProvider.checkGlobalPermission(Permission.VIEW_USAGE_STATISTICS);
+
+    return new Metrics(new Fields(fields), myServiceLocator.findSingletonService(ServerMetricsReader.class));
   }
 
   /**

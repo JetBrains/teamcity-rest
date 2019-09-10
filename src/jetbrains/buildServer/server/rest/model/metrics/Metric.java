@@ -55,7 +55,7 @@ public class Metric {
 
   @XmlAttribute
   public String getDescription() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("description"), metricId().getDescription());
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("description"), metricId().getDescription());
   }
 
   @XmlAttribute
@@ -64,13 +64,15 @@ public class Metric {
   }
 
   @XmlElement
-  public Tags getMetricTags() {
-    final Map<String, String> tags = metricId().getTags();
-    final List<Tag> result = new ArrayList<>();
-    for (String name : tags.keySet()) {
-      result.add(new Tag(name, tags.get(name)));
-    }
-    return new Tags(result);
+  public MetricTags getMetricTags() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("metricTags"), () -> {
+      final Map<String, String> tags = metricId().getTags();
+      final List<MetricTag> result = new ArrayList<>();
+      for (String name : tags.keySet()) {
+        result.add(new MetricTag(name, tags.get(name)));
+      }
+      return new MetricTags(result, myFields);
+    });
   }
 
   @XmlAttribute

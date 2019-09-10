@@ -16,12 +16,12 @@
 
 package jetbrains.buildServer.server.rest.model.metrics;
 
-import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.metrics.MetricValue;
+import jetbrains.buildServer.metrics.ServerMetricsReader;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -35,13 +35,17 @@ public class Metrics {
   public Integer count;
 
   @XmlElement(name = "metric")
-  public List<Metric> plugins;
+  public List<Metric> metrics;
 
   public Metrics() {
   }
 
-  public Metrics(final Collection<MetricValue> metricValues, @NotNull final Fields fields) {
-    plugins = ValueWithDefault.decideDefault(fields.isIncluded("metric", true), () -> {
+  public Metrics(@NotNull final Fields fields, @NotNull final ServerMetricsReader metricsReader) {
+
+    final Boolean experimental = fields.isIncluded("experimental", false, false);
+    final List<MetricValue> metricValues = metricsReader.queryBuilder().withExperimental(experimental == null || experimental).build();
+    
+    metrics = ValueWithDefault.decideDefault(fields.isIncluded("metric", true, true), () -> {
       return CollectionsUtil
         .convertCollection(metricValues, new Converter<Metric, MetricValue>() {
           public Metric createFrom(@NotNull final MetricValue source) {

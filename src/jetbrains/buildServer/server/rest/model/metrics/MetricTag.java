@@ -24,16 +24,16 @@ import org.jetbrains.annotations.NotNull;
 
 @XmlRootElement(name = "metricTag")
 @XmlType(name = "metricTag", propOrder = {"name", "value"})
-public class Tag {
+public class MetricTag {
   @XmlAttribute
   public String name;
   @XmlAttribute
   public String value;
 
-  public Tag() {
+  public MetricTag() {
   }
 
-  public Tag(@NotNull String name, @NotNull String value) {
+  public MetricTag(@NotNull String name, @NotNull String value) {
     this.name = name;
     this.value = value;
   }
@@ -50,7 +50,7 @@ public class Tag {
   public boolean equals(final Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    final Tag tag = (Tag)o;
+    final MetricTag tag = (MetricTag)o;
     return Objects.equals(name, tag.name) &&
            Objects.equals(value, tag.value);
   }
