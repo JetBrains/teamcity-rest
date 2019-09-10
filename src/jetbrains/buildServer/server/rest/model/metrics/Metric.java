@@ -35,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 16.11.2009
  */
 @XmlRootElement(name = "metric")
-@XmlType(propOrder = {"name", "description", "prometheusName", "value", "tags"})
+@XmlType(propOrder = {"name", "description", "prometheusName", "value", "metricTags"})
 public class Metric {
   private MetricValue myMetricValue;
   private Fields myFields;
@@ -64,7 +64,7 @@ public class Metric {
   }
 
   @XmlElement
-  public Tags getTags() {
+  public Tags getMetricTags() {
     final Map<String, String> tags = metricId().getTags();
     final List<Tag> result = new ArrayList<>();
     for (String name : tags.keySet()) {

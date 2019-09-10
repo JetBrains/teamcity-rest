@@ -21,9 +21,9 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 
-@XmlRootElement(name = "tags")
+@XmlRootElement(name = "metricTags")
 public class Tags {
-  @XmlElement(name = "tag")
+  @XmlElement(name = "metricTag")
   public List<Tag> tags;
 
   public Tags() {

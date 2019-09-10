@@ -22,8 +22,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import org.jetbrains.annotations.NotNull;
 
-@XmlRootElement(name = "tag")
-@XmlType(name = "tag", propOrder = {"name", "value"})
+@XmlRootElement(name = "metricTag")
+@XmlType(name = "metricTag", propOrder = {"name", "value"})
 public class Tag {
   @XmlAttribute
   public String name;
