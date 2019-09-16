@@ -511,14 +511,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    final String compatibleAagentLocator = locator.getSingleDimensionValue(COMPATIBLE_AGENT); //experimental, only for queued builds
-    if (compatibleAagentLocator != null) {
-      final SBuildAgent agent = myAgentFinder.getItem(compatibleAagentLocator);
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          return myAgentFinder.canActuallyRun(agent, item);
-        }
-      });
+    final String compatibleAgentLocator = locator.getSingleDimensionValue(COMPATIBLE_AGENT);
+    if (compatibleAgentLocator != null) {
+      List<SBuildAgent> agents = myAgentFinder.getItems(compatibleAgentLocator).myEntries;
+      result.add(build -> agents.stream().anyMatch(agent -> myAgentFinder.canActuallyRun(agent, build)));
     }
 
     final Long compatibleAgentsCount = locator.getSingleDimensionValueAsLong(COMPATIBLE_AGENTS_COUNT); //experimental, only for queued builds
@@ -582,7 +578,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         public boolean isIncluded(@NotNull final BuildPromotion item) {
           if (!Build.canViewRuntimeData(myPermissionChecker, item)) return false;
           //does not correspond to Build.getProperties() which includes less parameters
-          return parameterCondition.matches(Build.getBuildResultingParameters(item)); //TeamCity open API issue
+          return parameterCondition.matches(Build.getBuildResultingParameters(item, myServiceLocator)); //TeamCity open API issue
         }
       });
     }

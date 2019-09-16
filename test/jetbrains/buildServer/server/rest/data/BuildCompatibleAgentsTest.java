@@ -368,6 +368,21 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
+  public void testBuildPromotionFinderMultipleAgents() {
+    checkBuilds("compatibleAgent:(item:(id:" + myAgent20.getId() + ")),state:queued",
+                myBuild10, myBuild20);
+    checkBuilds("compatibleAgent:(item:(id:" + myAgent60.getId() + ")),state:queued",
+                myBuild30);
+    checkBuilds("compatibleAgent:(item:(id:" + myAgent20.getId() + "),item:(id:" + myAgent60.getId() + ")),state:queued",
+                myBuild10, myBuild20, myBuild30);
+    checkBuilds("compatibleAgent:(item:(id:" + myAgent60.getId() + "),item:(id:" + myAgent20.getId() + ")),state:queued",
+                myBuild10, myBuild20, myBuild30);
+
+    checkBuilds("compatibleAgent:(item:(id:" + myAgent60.getId() + "),item:(id:" + myAgent20.getId() + ")),state:any",
+                myBuild10, myBuild20, myBuild30);
+  }
+
+  @Test
   public void testBuildPromotionFinder_QueuedBuildsWithSnapshotDep() throws AgentPoolCannotBeRenamedException, PoolQuotaExceededException, NoSuchAgentPoolException {
     addSnapshotBuilds();
 
@@ -459,29 +474,29 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
     patchExpectationsForAgentRequests();
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
-      assertCollectionEquals(agent.getName(), new Agent(agent, myAgentPoolFinder, new Fields("compatibleBuildTypes($long)"), getBeanContext(myFixture)).compatibleBuildTypes,
+      assertCollectionEquals(agent.getName(), new Agent(agent, new Fields("compatibleBuildTypes($long)"), getBeanContext(myFixture)).compatibleBuildTypes,
                              myExpected.compatibleBuildTypes(agent));
     }
 
     //test node presence
-    assertNull(new Agent(myBuildAgent, myAgentPoolFinder, new Fields("$short"), getBeanContext(myFixture)).compatibleBuildTypes); //not included by default
-    assertNull(new Agent(myBuildAgent, myAgentPoolFinder, new Fields("$long"), getBeanContext(myFixture)).compatibleBuildTypes); //not included by default, todo: add href by default
-    assertCollectionEquals(null, new Agent(myBuildAgent, myAgentPoolFinder, new Fields("compatibleBuildTypes(buildType)"), getBeanContext(myFixture)).compatibleBuildTypes,
+    assertNull(new Agent(myBuildAgent, new Fields("$short"), getBeanContext(myFixture)).compatibleBuildTypes); //not included by default
+    assertNull(new Agent(myBuildAgent, new Fields("$long"), getBeanContext(myFixture)).compatibleBuildTypes); //not included by default, todo: add href by default
+    assertCollectionEquals(null, new Agent(myBuildAgent, new Fields("compatibleBuildTypes(buildType)"), getBeanContext(myFixture)).compatibleBuildTypes,
                            myExpected.compatibleBuildTypes(myBuildAgent));
     assertEquals(Integer.valueOf(myExpected.compatibleBuildTypes(myBuildAgent).length),
-                 new Agent(myBuildAgent, myAgentPoolFinder, new Fields("compatibleBuildTypes(count)"), getBeanContext(myFixture)).compatibleBuildTypes.count);
+                 new Agent(myBuildAgent, new Fields("compatibleBuildTypes(count)"), getBeanContext(myFixture)).compatibleBuildTypes.count);
 
     for (SBuildAgent agent : myExpected.getAllAgents()) {
-      assertCollectionEquals(agent.getName(), new Agent(agent, myAgentPoolFinder, new Fields("incompatibleBuildTypes($long)"), getBeanContext(myFixture)).incompatibleBuildTypes,
+      assertCollectionEquals(agent.getName(), new Agent(agent, new Fields("incompatibleBuildTypes($long)"), getBeanContext(myFixture)).incompatibleBuildTypes,
                              myExpected.incompatibleBuildTypes(agent));
     }
 
-    assertNull(new Agent(myBuildAgent, myAgentPoolFinder, new Fields("$short"), getBeanContext(myFixture)).incompatibleBuildTypes); //not included by default
-    assertNull(new Agent(myBuildAgent, myAgentPoolFinder, new Fields("$long"), getBeanContext(myFixture)).incompatibleBuildTypes); //not included by default
-    assertCollectionEquals(null, new Agent(myBuildAgent, myAgentPoolFinder, new Fields("incompatibleBuildTypes(compatibility)"), getBeanContext(myFixture)).incompatibleBuildTypes,
+    assertNull(new Agent(myBuildAgent, new Fields("$short"), getBeanContext(myFixture)).incompatibleBuildTypes); //not included by default
+    assertNull(new Agent(myBuildAgent, new Fields("$long"), getBeanContext(myFixture)).incompatibleBuildTypes); //not included by default
+    assertCollectionEquals(null, new Agent(myBuildAgent, new Fields("incompatibleBuildTypes(compatibility)"), getBeanContext(myFixture)).incompatibleBuildTypes,
                            myExpected.incompatibleBuildTypes(myBuildAgent));
     assertEquals(Integer.valueOf(myExpected.incompatibleBuildTypes(myBuildAgent).length),
-                 new Agent(myBuildAgent, myAgentPoolFinder, new Fields("incompatibleBuildTypes(count)"), getBeanContext(myFixture)).incompatibleBuildTypes.count);
+                 new Agent(myBuildAgent, new Fields("incompatibleBuildTypes(count)"), getBeanContext(myFixture)).incompatibleBuildTypes.count);
   }
 
   @Test

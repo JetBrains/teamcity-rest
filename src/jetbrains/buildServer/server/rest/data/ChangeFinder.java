@@ -303,22 +303,26 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       });
     }
 
-    final String internalVersion = locator.getSingleDimensionValue(INTERNAL_VERSION);
-    if (internalVersion != null) {
-      result.add(new FilterConditionChecker<SVcsModification>() {
-        public boolean isIncluded(@NotNull final SVcsModification item) {
-          return internalVersion.equals(item.getVersion());
-        }
-      });
+    if (locator.isUnused(INTERNAL_VERSION)) {
+      final String internalVersion = locator.getSingleDimensionValue(INTERNAL_VERSION);
+      if (internalVersion != null) {
+        result.add(new FilterConditionChecker<SVcsModification>() {
+          public boolean isIncluded(@NotNull final SVcsModification item) {
+            return internalVersion.equals(item.getVersion());
+          }
+        });
+      }
     }
 
-    final String displayVersion = locator.getSingleDimensionValue(VERSION);
-    if (displayVersion != null) {
-      result.add(new FilterConditionChecker<SVcsModification>() {
-        public boolean isIncluded(@NotNull final SVcsModification item) {
-          return displayVersion.equals(item.getDisplayVersion());
-        }
-      });
+    if (locator.isUnused(VERSION)) {
+      final String displayVersion = locator.getSingleDimensionValue(VERSION);
+      if (displayVersion != null) {
+        result.add(new FilterConditionChecker<SVcsModification>() {
+          public boolean isIncluded(@NotNull final SVcsModification item) {
+            return displayVersion.equals(item.getDisplayVersion());
+          }
+        });
+      }
     }
 
     final String commentLocator = locator.getSingleDimensionValue(COMMENT);
@@ -421,7 +425,15 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
   @Override
   public ItemHolder<SVcsModification> getPrefilteredItems(@NotNull final Locator locator) {
 
-    //todo: implement effective search by VCSRootInstance and internalVersion
+    final String internalVersion = locator.getSingleDimensionValue(INTERNAL_VERSION);
+    if (internalVersion != null) {
+      return FinderDataBinding.getItemHolder(((VcsModificationHistoryEx)myVcsModificationHistory).findModificationsByVersion(internalVersion));
+    }
+
+    final String displayVersion = locator.getSingleDimensionValue(VERSION);
+    if (displayVersion != null) {
+      return FinderDataBinding.getItemHolder(((VcsModificationHistoryEx)myVcsModificationHistory).findModificationsByDisplayVersion(displayVersion));
+    }
 
     Boolean personal = locator.lookupSingleDimensionValueAsBoolean(PERSONAL);
     if (personal != null && personal) {

@@ -239,7 +239,7 @@ public class AgentPoolRequest {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getItem(agentPoolLocator);
     myDataProvider.addAgentToPool(agentPool, agent.getAgentTypeIdFromPosted(myServiceLocator));
     try {
-      return new Agent(agent.getAgentFromPosted(myAgentFinder), myAgentPoolFinder, new Fields(fields), myBeanContext);
+      return new Agent(agent.getAgentFromPosted(myAgentFinder), new Fields(fields), myBeanContext);
     } catch (Exception e) {
       //ignore for agent type
       return null;

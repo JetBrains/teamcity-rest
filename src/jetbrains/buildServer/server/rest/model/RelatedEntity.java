@@ -24,7 +24,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.SUserGroup;
-import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
@@ -133,7 +132,7 @@ public class RelatedEntity { //see also Related
     } else if (entity.problem != null) {
       problem = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("problem"), () -> new Problem(entity.problem, fields.getNestedField("problem", Fields.SHORT, Fields.SHORT), beanContext));
     } else if (entity.agent != null) {
-      agent = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("agent"), () -> new Agent(entity.agent, beanContext.getSingletonService(AgentPoolFinder.class), fields.getNestedField("agent", Fields.SHORT, Fields.SHORT), beanContext));
+      agent = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("agent"), () -> new Agent(entity.agent, fields.getNestedField("agent", Fields.SHORT, Fields.SHORT), beanContext));
     } else if (entity.vcsRoot != null) {
       vcsRoot = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("vcsRoot"), () -> new VcsRoot(entity.vcsRoot, fields.getNestedField("vcsRoot", Fields.SHORT, Fields.SHORT), beanContext));
     } else if (entity.change != null) {

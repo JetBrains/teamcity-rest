@@ -24,7 +24,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
-import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -79,7 +78,7 @@ public class Agents {
         public List<Agent> get() {
           final ArrayList<Agent> items = new ArrayList<Agent>(agentObjects.size());
           for (SBuildAgent item : agentObjects) {
-            items.add(new Agent(item, beanContext.getSingletonService(AgentPoolFinder.class), fields.getNestedField(AGENT), beanContext));
+            items.add(new Agent(item, fields.getNestedField(AGENT), beanContext));
           }
           return items;
         }
