@@ -214,8 +214,8 @@ public class ParameterCondition {
   }
 
   public static String getLocatorExactValueMatch(@NotNull final String value) {
-    if (value.equals(Locator.getValueForRendering(value))) return value;
-    return Locator.getStringLocator(VALUE, value);
+    //if (value.equals(Locator.getValueForRendering(value))) return value;
+    return Locator.getStringLocator(VALUE, value, IGNORE_CASE, "false");
   }
 
   public boolean matches(@NotNull final ParametersProvider parametersProvider) {
