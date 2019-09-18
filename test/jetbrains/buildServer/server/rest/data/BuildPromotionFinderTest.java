@@ -1315,9 +1315,9 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   @Test
   public void testBranchLocator() {
     BuildTypeEx buildType = createProject("p1").createBuildType("bt10", "bt10");
-    assertEquals("buildType:(id:bt10),branch:(name:brnch),a:b", BuildPromotionFinder.getLocator(buildType, new BranchImpl("brnch", "brnch"), "a:b"));
-    assertEquals("buildType:(id:bt10),branch:(name:(value:(brnch(1)))),a:b", BuildPromotionFinder.getLocator(buildType, new BranchImpl("brnch(1)", "brnch(1)"), "a:b"));
-    assertEquals("buildType:(id:bt10),branch:(name:(value:($base64:" + base64("brnch(") + "))),a:b", BuildPromotionFinder.getLocator(buildType, new BranchImpl("brnch(", "brnch("), "a:b"));
+    assertEquals("buildType:(id:bt10),branch:(name:(value:brnch,ignoreCase:false)),a:b", BuildPromotionFinder.getLocator(buildType, new BranchImpl("brnch", "brnch"), "a:b"));
+    assertEquals("buildType:(id:bt10),branch:(name:(value:(brnch(1)),ignoreCase:false)),a:b", BuildPromotionFinder.getLocator(buildType, new BranchImpl("brnch(1)", "brnch(1)"), "a:b"));
+    assertEquals("buildType:(id:bt10),branch:(name:(value:($base64:" + base64("brnch(") + "),ignoreCase:false)),a:b", BuildPromotionFinder.getLocator(buildType, new BranchImpl("brnch(", "brnch("), "a:b"));
   }
 
   @Test
