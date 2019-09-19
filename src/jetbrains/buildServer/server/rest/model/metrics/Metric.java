@@ -77,7 +77,9 @@ public class Metric {
 
   @XmlAttribute
   public Double getValue() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("value"), myMetricValue.getValue());
+    // todo: kir - fix multiple values for the same metric
+    return ValueWithDefault.decideDefault(myFields.isIncluded("value"),
+                                          myMetricValue.getValues().values().iterator().next());
   }
 
   private MetricId metricId() {
