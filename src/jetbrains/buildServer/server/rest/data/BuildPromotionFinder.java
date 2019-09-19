@@ -1443,6 +1443,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         public void process(@NotNull final ItemProcessor<BuildPromotion> processor) {
           myBuildsManager.processBuilds(options, new ItemProcessor<SBuild>() {
             public boolean processItem(SBuild item) {
+              if (!item.isFinished()) return true; //workaround for the running builds which can appear here
               return processor.processItem(item.getBuildPromotion());
             }
           });
