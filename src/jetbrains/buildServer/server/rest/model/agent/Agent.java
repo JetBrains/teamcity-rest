@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.model.cloud.CloudInstance;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
@@ -74,6 +75,7 @@ public class Agent {
   @XmlElement public AgentEnabledInfo enabledInfo;
   @XmlElement public AgentAuthorizedInfo authorizedInfo;
   @XmlElement public Properties properties;
+  @XmlElement public CloudInstance cloudInstance;
   /**
    * Experimental support only
    */
@@ -199,13 +201,24 @@ public class Agent {
             }
           });
 
-          //TODO: review, if it should return all parameters on agent, use #getDefinedParameters()
           properties = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
             @Nullable
             public Properties get() {
               return new Properties(agent.getAvailableParameters(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG), beanContext);
             }
           });
+
+          cloudInstance = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("cloudInstance", false, false),
+                                                     () -> {
+                                                       try {
+                                                         return new CloudInstance(
+                                                           beanContext.getSingletonService(CloudInstanceFinder.class).getItem(CloudInstanceFinder.getLocator(agent)),
+                                                           fields.getNestedField("cloudInstance"), beanContext);
+                                                       } catch (NotFoundException e) {
+                                                         //no cloud instance found
+                                                         return null;
+                                                       }
+                                                     });
 
           compatibilityPolicy = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded(COMPATIBILITY_POLICY, false, false),
                                            () -> CompatibilityPolicy.getCompatibilityPolicy(agent, fields.getNestedField(COMPATIBILITY_POLICY), beanContext));
@@ -314,11 +327,9 @@ public class Agent {
     SUser currentUser = serviceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     if ("enabled".equals(name)) {
       agent.setEnabled(Boolean.valueOf(value), currentUser, getActualActionComment(null));
-      //todo (TeamCity) why not use current user by default?
       return;
     } else if ("authorized".equals(name)) {
       agent.setAuthorized(Boolean.valueOf(value), currentUser, getActualActionComment(null));
-      //todo (TeamCity) why not use current user by default?
       return;
     } else if ("enabledInfoCommentText".equals(name)) {
       agent.setEnabled(agent.isEnabled(), currentUser, value);

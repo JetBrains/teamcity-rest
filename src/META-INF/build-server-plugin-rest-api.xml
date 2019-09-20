@@ -52,6 +52,9 @@
   <bean id="restChangeFinder" class="jetbrains.buildServer.server.rest.data.ChangeFinder"/>
   <bean id="restAgentPoolsFinder" class="jetbrains.buildServer.server.rest.data.AgentPoolFinder"/>
   <bean id="restAgentFinder" class="jetbrains.buildServer.server.rest.data.AgentFinder"/>
+  <bean id="restCloudInstanceFinder" class="jetbrains.buildServer.server.rest.data.CloudInstanceFinder"/>
+  <bean id="restCloudImageFinder" class="jetbrains.buildServer.server.rest.data.CloudImageFinder"/>
+  <bean id="restCloudProfileFinder" class="jetbrains.buildServer.server.rest.data.CloudProfileFinder"/>
   <bean id="restInvestigationFinder" class="jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder"/>
   <bean id="restMuteFinder" class="jetbrains.buildServer.server.rest.data.mutes.MuteFinder"/>
   <bean id="restProblemFinder" class="jetbrains.buildServer.server.rest.data.problem.ProblemFinder"/>
@@ -84,6 +87,9 @@
   <bean id="changeFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.ChangeFinderContextProvider"/>
   <bean id="restAgentPoolsFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AgentPoolsFinderProvider"/>
   <bean id="restAgentFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AgentFinderProvider"/>
+  <bean id="restCloudInstanceFinderProvider" class="jetbrains.buildServer.server.rest.jersey.CloudInstanceFinderProvider"/>
+  <bean id="restCloudImageFinderProvider" class="jetbrains.buildServer.server.rest.jersey.CloudImageFinderProvider"/>
+  <bean id="restCloudProfileFinderProvider" class="jetbrains.buildServer.server.rest.jersey.CloudProfileFinderProvider"/>
   <bean id="restInvestigationFinderProvider" class="jetbrains.buildServer.server.rest.jersey.InvestigationFinderProvider"/>
   <bean id="restMuteFinderProvider" class="jetbrains.buildServer.server.rest.jersey.MuteFinderProvider"/>
   <bean id="restProblemFinderProvider" class="jetbrains.buildServer.server.rest.jersey.ProblemFinderProvider"/>
@@ -93,6 +99,7 @@
   <bean id="restBranchFinderProvider" class="jetbrains.buildServer.server.rest.jersey.BranchFinderProvider"/>
   <bean id="restAuditEventFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AuditEventFinderProvider"/>
 
+  <bean id="restCloudUtil" class="jetbrains.buildServer.server.rest.data.CloudUtil"/>
   <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataUpdaterContextProvider"/>
   <bean id="serviceLocatorContextProvider" class="jetbrains.buildServer.server.rest.jersey.ServiceLocatorContextProvider"/>
   <bean id="beanFactoryContextProvider" class="jetbrains.buildServer.server.rest.jersey.BeanFactoryContextProvider"/>

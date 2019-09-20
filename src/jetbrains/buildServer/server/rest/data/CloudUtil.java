@@ -1,0 +1,188 @@
+/*
+ * Copyright 2000-2019 JetBrains s.r.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package jetbrains.buildServer.server.rest.data;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.clouds.CloudClientEx;
+import jetbrains.buildServer.clouds.CloudImage;
+import jetbrains.buildServer.clouds.CloudInstance;
+import jetbrains.buildServer.clouds.CloudProfile;
+import jetbrains.buildServer.clouds.server.CloudInstancesProvider;
+import jetbrains.buildServer.clouds.server.CloudInstancesProviderExtendedCallback;
+import jetbrains.buildServer.clouds.server.CloudManager;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
+import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.util.ItemProcessor;
+import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * @author Yegor.Yarko
+ * Date: 13/09/2019
+ */
+public class CloudUtil {
+  @NotNull private final ServiceLocator myServiceLocator;
+  @NotNull private final CloudInstancesProvider myCloudInstancesProvider;
+  @NotNull private final CloudManager myCloudManager;
+  @NotNull private final ProjectManager myProjectManager;
+
+  public CloudUtil(@NotNull final ServiceLocator serviceLocator,
+                   @NotNull final CloudInstancesProvider cloudInstancesProvider,
+                   @NotNull final CloudManager cloudManager,
+                   @NotNull final ProjectManager projectManager) {
+    myServiceLocator = serviceLocator;
+    myCloudInstancesProvider = cloudInstancesProvider;
+    myCloudManager = cloudManager;
+    myProjectManager = projectManager;
+  }
+
+  public static boolean containProjectOrParent(@NotNull final List<SProject> projects, @NotNull SProject project) {
+    while (project != null) {
+      if (projects.contains(project)) {
+        return true;
+      }
+      project = project.getParentProject();
+    }
+    return false;
+  }
+
+  @Nullable
+  public SProject getProject(@NotNull final CloudProfile profile) {
+    return myProjectManager.findProjectById(profile.getProjectId());
+  }
+
+  @Nullable
+  public SProject getProject(@NotNull final CloudImage image) {
+    return Util.resolveNull(getProfile(image), this::getProject);
+  }
+
+  @NotNull
+  public Collection<? extends CloudImage> getImages(@NotNull final CloudProfile profile) {
+    return getClient(profile).getImages();
+  }
+
+  @NotNull
+  public CloudClientEx getClient(@NotNull final CloudProfile profile) {
+    return myCloudManager.getClient(profile.getProjectId(), profile.getProfileId());
+  }
+
+  @Nullable
+  public CloudProfile getProfile(@NotNull final CloudImage image) {
+    Optional<CloudProfile> profileOpt = myCloudManager.listAllProfiles().stream()
+                                                                          .filter(p -> getImages(p).stream().anyMatch(cip -> cip.getId().equals(image.getId())))
+                                                                          .findAny();
+    return profileOpt.orElse(null);
+  }
+
+  @Nullable
+  public SProject getInstanceProject(@NotNull final CloudInstanceData instance) {
+    CloudProfile profile = getProfile(instance.getInstance().getImage());
+    return profile == null ? null : myProjectManager.findProjectById(profile.getProjectId());
+  }
+
+
+  @NotNull
+  public Stream<CloudInstanceData> getInstancesByProfile(@NotNull CloudProfile profile) {
+    ArrayList<CloudInstanceData> result = new ArrayList<>();
+    myCloudInstancesProvider.iterateProfileInstances(profile, callback(item -> {result.add(item); return true;}));
+    return result.stream();
+  }
+
+  public FinderDataBinding.ItemHolder<CloudInstanceData> getAllInstancesProcessor() {
+    return processor -> myCloudInstancesProvider.iterateInstances(callback(processor));
+  }
+
+  @NotNull
+  private CloudInstancesProviderExtendedCallback callback(@NotNull final ItemProcessor<CloudInstanceData> processor) {
+    return new CloudInstancesProviderExtendedCallback() {
+      @Override public void processNotReady(@NotNull final CloudProfile profile) {}
+      @Override public void processClientError(@NotNull final CloudProfile profile) {}
+      @Override public void processImageError(@NotNull final CloudProfile profile, @NotNull final CloudImage image) {}
+      @Override public void processInstanceError(@NotNull final CloudProfile profile, @NotNull final CloudInstance instance) {}
+      @Override public void processInstanceExpired(@NotNull final CloudProfile profile, @NotNull final CloudClientEx client, @NotNull final CloudInstance instance) {}
+      @Override public boolean processInstance(@NotNull final CloudProfile profile, @NotNull final CloudInstance instance) {return processor.processItem(new CloudInstanceData(instance, myServiceLocator));}
+    };
+  }
+
+  @NotNull
+  public String getId(@NotNull final CloudInstance instance) {
+    CloudProfile profile = getProfile(instance.getImage());
+    String profileId = profile != null ? profile.getProfileId() : "<missing>";
+    return Locator.getStringLocator("profileId", profileId, "imageId", instance.getImageId(), "id", instance.getInstanceId());
+  }
+
+  @NotNull
+  public String getId(@NotNull final CloudImage image) {
+    CloudProfile profile = getProfile(image);
+    String profileId = profile != null ? profile.getProfileId() : "<missing>";
+    return Locator.getStringLocator("profileId", profileId, "id", image.getId());
+  }
+
+  @Nullable
+  public CloudImage getImage(@NotNull final String profileId, @NotNull final String id) {
+    CloudProfile profile = myCloudManager.findProfileGloballyById(profileId);
+    if (profile == null) return null;
+    return getImages(profile).stream().filter(i -> id.equals(i.getId())).findFirst().orElse(null);
+  }
+
+  @Nullable
+  public CloudInstance getInstance(@NotNull final String profileId, @NotNull final String imageId, @NotNull final String id) {
+    CloudProfile profile = myCloudManager.findProfileGloballyById(profileId);
+    if (profile == null) return null;
+    return myCloudManager.findInstanceById(profile.getProjectId(), profile.getProfileId(), id);
+  }
+
+  static class ImageIdData {
+    String profileId;
+    String id;
+
+    public ImageIdData(@NotNull final String value) {
+      Locator locator = new Locator(value, "profileId", "id");
+      profileId = locator.getSingleDimensionValue("profileId");
+      id = locator.getSingleDimensionValue("id");
+      if (StringUtil.isEmpty(profileId) || StringUtil.isEmpty(id)) {
+        throw new LocatorProcessException("Invalid cloud image id \"" + value + "\": should be in the form \"profileId:<profileId>,id:<imageId>\"");
+      }
+      locator.checkLocatorFullyProcessed();
+    }
+  }
+
+  static class InstanceIdData {
+    String profileId;
+    String imageId;
+    String id;
+
+    public InstanceIdData(@NotNull final String value) {
+      Locator locator = new Locator(value, "profileId", "id");
+      profileId = locator.getSingleDimensionValue("profileId");
+      imageId = locator.getSingleDimensionValue("imageId");
+      id = locator.getSingleDimensionValue("id");
+      if (StringUtil.isEmpty(profileId) || StringUtil.isEmpty(imageId) || StringUtil.isEmpty(id)) {
+        throw new LocatorProcessException("Invalid cloud instance id \"" + value + "\": should be in the form \"profileId:<profileId>,imageId:<imageId>,id:<instanceId>\"");
+      }
+      locator.checkLocatorFullyProcessed();
+    }
+  }
+}

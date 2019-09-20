@@ -23,11 +23,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.server.rest.APIController;
-import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.PermissionChecker;
-import jetbrains.buildServer.server.rest.data.ProjectFinder;
-import jetbrains.buildServer.server.rest.data.UserFinder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.parameters.InheritableUserParametersHolderEntityWithParameters;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -36,6 +34,8 @@ import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
+import jetbrains.buildServer.server.rest.model.cloud.CloudProfiles;
+import jetbrains.buildServer.server.rest.request.CloudRequest;
 import jetbrains.buildServer.server.rest.request.ProjectRequest;
 import jetbrains.buildServer.server.rest.request.VcsRootRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -55,7 +55,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "project")
 @XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "description", "href", "webUrl",
-  "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects"})
+  "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects", "cloudProfiles"})
 @SuppressWarnings("PublicField")
 public class Project {
   @XmlAttribute
@@ -134,6 +134,10 @@ public class Project {
   @XmlElement (name = "projects")
   public Projects projects;
 
+
+  @XmlElement (name = "cloudProfiles")
+  public CloudProfiles cloudProfiles;
+
   /**
    * This is used only when posting a link to a project
    */
@@ -143,7 +147,6 @@ public class Project {
   }
 
   public Project(@Nullable final String externalId, @Nullable final String internalId, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    //todo: check usages: externalId should actually be NotNull and internal id should never be necessary
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), externalId);
     this.internalId = ValueWithDefault.decideDefault(fields.isIncluded("internalId"), internalId);
   }
@@ -225,6 +228,15 @@ public class Project {
         final List<SProject> projects = projectFinder.getItems(project, projectsLocator).myEntries;
         return new Projects(projects, null, projectsFields, beanContext);
       }
+    });
+
+    cloudProfiles = ValueWithDefault.decideDefault(fields.isIncluded("cloudProfiles", false, false), () -> {
+      final Fields nestedFields = fields.getNestedField("cloudProfiles", Fields.NONE, Fields.LONG);
+      String locator = CloudProfileFinder.getLocator(nestedFields.getLocator(), project);
+
+      final CloudProfileFinder finder = beanContext.getSingletonService(CloudProfileFinder.class);
+      final List<CloudProfile> items = finder.getItems(locator).myEntries;
+      return new CloudProfiles(items, new PagerData(CloudRequest.getProfilesHref(nestedFields.getLocator(), project)), nestedFields, beanContext);
     });
 
     final SProject actualParentProject = project.getParentProject();
@@ -342,7 +354,6 @@ public class Project {
 
   @NotNull
   public String getLocatorFromPosted() {
-    //todo: support posted parentProject fields here
     String locatorText = "";
     if (internalId != null) locatorText = "internalId:" + internalId;
     if (id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + id;

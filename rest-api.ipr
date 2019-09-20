@@ -3289,6 +3289,10 @@
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/common-impl.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/federation.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/joda-time.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/cloud-server-api.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/cloud-server.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/cloud-interface.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/server-metrics.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES />
