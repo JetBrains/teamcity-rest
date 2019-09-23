@@ -35,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 16.11.2009
  */
 @XmlRootElement(name = "metric")
-@XmlType(propOrder = {"name", "description", "prometheusName", "value", "metricTags"})
+@XmlType(propOrder = {"name", "description", "prometheusName", "metricValues", "metricTags"})
 public class Metric {
   private MetricValue myMetricValue;
   private Fields myFields;
@@ -75,11 +75,16 @@ public class Metric {
     });
   }
 
-  @XmlAttribute
-  public Double getValue() {
-    // todo: kir - fix multiple values for the same metric
-    return ValueWithDefault.decideDefault(myFields.isIncluded("value"),
-                                          myMetricValue.getValues().values().iterator().next());
+  @XmlElement
+  public MetricValues getMetricValues() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("metricValues"), () -> {
+      final List<jetbrains.buildServer.server.rest.model.metrics.MetricValue>result = new ArrayList<>();
+      final Map<String, Double> values = myMetricValue.getValues();
+      for (String key : values.keySet()) {
+        result.add(new jetbrains.buildServer.server.rest.model.metrics.MetricValue(key, values.get(key)));
+      }
+      return new MetricValues(result, myFields);
+    });
   }
 
   private MetricId metricId() {
