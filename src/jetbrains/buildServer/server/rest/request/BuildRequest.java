@@ -108,12 +108,16 @@ public class BuildRequest {
     return API_BUILDS_URL;
   }
 
+  public static String getHref(@NotNull String locator) {
+    return API_BUILDS_URL + "/" + locator;
+  }
+
   public static String getBuildHref(@NotNull SBuild build) {
-    return API_BUILDS_URL + "/" + getBuildLocator(build);
+    return getHref(getBuildLocator(build));
   }
 
   public static String getBuildHref(@NotNull BuildPromotion build) {
-    return API_BUILDS_URL + "/" + getBuildLocator(build);
+    return getHref(getBuildLocator(build));
   }
 
   @Nullable

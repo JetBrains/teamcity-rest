@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.agent;
 
+import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -28,8 +29,10 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.build.Build;
+import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.cloud.CloudInstance;
+import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
@@ -42,6 +45,7 @@ import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
 import jetbrains.buildServer.serverSide.impl.agent.DummyAgentType;
 import jetbrains.buildServer.serverSide.impl.agent.PollingRemoteAgentConnection;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -66,6 +70,7 @@ public class Agent {
   @XmlAttribute public String protocol;
   @XmlAttribute public String version; //experimental
   @XmlAttribute public String lastActivityTime; //experimental
+  @XmlAttribute public String idleSinceTime; //experimental
   @XmlAttribute public String disconnectionComment;  //experimental
   @XmlAttribute public String href;
   @XmlAttribute public String webUrl;
@@ -84,6 +89,7 @@ public class Agent {
   @XmlElement public CompatibilityPolicy compatibilityPolicy;
   @XmlElement public BuildTypes compatibleBuildTypes;
   @XmlElement public Compatibilities incompatibleBuildTypes;
+  @XmlElement public Builds builds;
 
   public static final String COMPATIBILITY_POLICY = "compatibilityPolicy";
   public static final String COMPATIBLE_BUILD_TYPES = "compatibleBuildTypes";
@@ -184,6 +190,12 @@ public class Agent {
           lastActivityTime = ValueWithDefault.decideDefault(fields.isIncluded("lastActivityTime", false, false),
                                                             () -> Util.formatTime(agent.getLastCommunicationTimestamp()));
 
+          idleSinceTime = ValueWithDefault.decideDefault(fields.isIncluded("idleSinceTime", false, false),
+                                                         () -> {
+                                                           long idleTime = agent.getIdleTime();
+                                                           return idleTime <= 0 ? null : Util.formatTime(new Date(Dates.now().getTime() - idleTime));
+                                                         });
+
           disconnectionComment = ValueWithDefault.decideDefault(fields.isIncluded("disconnectionComment", false, false),
                                                                 () -> agent.getUnregistrationComment());
 
@@ -239,6 +251,16 @@ public class Agent {
           });
         }
       }
+
+      builds = ValueWithDefault.decideDefault(fields.isIncluded("builds", false, false),
+                                              () -> {
+                                                Fields nestedFields = fields.getNestedField("builds", Fields.NONE, Fields.SHORT);
+                                                String locator = Locator.merge(nestedFields.getLocator(),
+                                                                               Locator.setDimension(BuildPromotionFinder.getLocator(agent), PagerData.COUNT, "1"));
+                                                return Builds.createFromBuildPromotions(
+                                                  beanContext.getServiceLocator().getSingletonService(BuildPromotionFinder.class).getItems(locator).myEntries,
+                                                  new PagerData(BuildRequest.getHref(locator)), fields, beanContext);
+                                              });
 
       if(!unknownAgent){
         pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", false), new ValueWithDefault.Value<AgentPool>() {

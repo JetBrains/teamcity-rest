@@ -209,6 +209,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return Locator.merge(result, additionalLocator);
   }
 
+  @NotNull
+  public static String getLocator(@NotNull final SBuildAgent agent){
+    return Locator.getStringLocator(AGENT, AgentFinder.getLocator(agent));
+  }
+
   @Override
   public Long getDefaultPageItemsCount() {
     return (long)Constants.getDefaultPageItemsCount();
