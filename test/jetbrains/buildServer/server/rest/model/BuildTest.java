@@ -61,6 +61,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -927,7 +928,6 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     final File artifactsDir = finishedBuild.getArtifactsDirectory();
     artifactsDir.mkdirs();
     String specialCharacters = "~!@#$%^&()_+=-`][{}'; .,\u044B%61";
-    String specialCharacters_escaped = "%7E%21%40%23%24%25%5E%26%28%29_%2B%3D-%60%5D%5B%7B%7D%27%3B%20.%2C%D1%8B%2561";
 
     File dir = new File(artifactsDir, specialCharacters);
     dir.mkdirs();
@@ -945,7 +945,13 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     assertEquals("/app/rest/version/builds/id:1", build.getHref());
     //noinspection ConstantConditions
     jetbrains.buildServer.server.rest.model.files.File artifact1 = build.getArtifacts().files.get(0);
-    assertEquals(specialCharacters, artifact1.name);
+    String specialCharacters_escaped;
+    if (!specialCharacters.equals(artifact1.name)) {
+      System.out.println("File system does not see to support some characters. Was creating file \"" + specialCharacters + "\" but got \"" + artifact1.name + "\"");
+      specialCharacters_escaped = WebUtil.encode(artifact1.name);
+    } else {
+      specialCharacters_escaped = WebUtil.encode(specialCharacters);
+    }
     assertEquals("/app/rest/version/builds/id:1/artifacts/metadata/" + specialCharacters_escaped, artifact1.href);
     assertEquals("/app/rest/version/builds/id:1/artifacts/children/" + specialCharacters_escaped + "?locator=pattern(%2B:**,%2B:%25)", artifact1.getChildren().href);
     //noinspection ConstantConditions
