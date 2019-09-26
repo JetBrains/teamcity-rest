@@ -264,23 +264,16 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected <S, R> OrderedMatcherStrategy<S, R> getDefaultMatchStrategy(@Nullable final String locator,
                                                                         @NotNull final Matcher<S, R> equalsMatcher,
                                                                         @NotNull final S[] items) {
-    return new OrderedMatcherStrategy<S, R>(equalsMatcher, new DescriptionProvider<Pair<List<R>, Integer>>() {
-      @Override
-      public String describe(@NotNull final Pair<List<R>, Integer> p) {
-        return "Wrong item found for locator \"" + locator + "\" at position " + (p.getSecond() + 1) + "/" + items.length + "\n" +
-               "Expected:\n" + Arrays.toString(items) + "\n" +
-               "\nActual:\n" + p.first;
-      }
-    }, new DescriptionProvider<Pair<S, R>>() {
-      @Override
-      public String describe(@NotNull final Pair<S, R> p) {
-        if (p.first == null) {
-          return "No items should be found by locator \"" + locator + "\", but found: " + ((DescriptionProvider<R>)BaseFinderTest::getDescription).describe(p.second);
-        } else {
-          return "While searching for single item with locator \"" + locator + "\"\n" +
-                 "Expected: " + ((DescriptionProvider<S>)BaseFinderTest::getDescription).describe(p.first) + "\n" +
-                 "Actual: " + ((DescriptionProvider<R>)BaseFinderTest::getDescription).describe(p.second);
-        }
+    return new OrderedMatcherStrategy<S, R>(equalsMatcher, p -> "Wrong item found for locator \"" + locator + "\" at position " + (p.getSecond() + 1) + "/" + items.length + "\n" +
+                                                                "Expected:\n" + Arrays.toString(items) + "\n" +
+                                                                "\nActual:\n" + p.first
+      , p -> {
+      if (p.first == null) {
+        return "No items should be found by locator \"" + locator + "\", but found: " + ((DescriptionProvider<R>)BaseFinderTest::getDescription).describe(p.second);
+      } else {
+        return "While searching for single item with locator \"" + locator + "\"\n" +
+               "Expected: " + BaseFinderTest.getDescription(p.first) + "\n" +
+               "Actual: " + BaseFinderTest.getDescription(p.second);
       }
     });
   }
