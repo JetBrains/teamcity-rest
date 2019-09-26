@@ -179,12 +179,19 @@ public class BuildFinderFixedBuildSequenceByPromotionTest extends BuildFinderTes
 //    checkBuilds("untilBuild:(id:" + deleted.getBuildId() + ")", build2failed, build1); //todo: should handle this
 
     final String startDate = fDate(myBuild4conf2FailedPinned.getStartDate());
-    checkBuilds("sinceDate:" + startDate, myBuild12, myBuild10byUser, myBuild4conf2FailedPinned);
-    checkBuilds("sinceDate:" + startDate + ")", myBuild12, myBuild10byUser, myBuild4conf2FailedPinned);  //documenting current behavior
-    checkBuilds("sinceDate:" + startDate + "),failedToStart:any", myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned);
+    if (myBuild4conf2FailedPinned.getStartDate().getTime() % 1000 == 0) {
+      checkBuilds("sinceDate:" + startDate, myBuild12, myBuild10byUser);
+      checkBuilds("sinceDate:" + startDate + ")", myBuild12, myBuild10byUser);  //documenting current behavior
+      checkBuilds("sinceDate:" + startDate + "),failedToStart:any", myBuild12, myBuild10byUser, myBuild9failedToStart);
+      checkBuilds("untilDate:" + startDate + ")", myBuild4conf2FailedPinned, myBuild3tagged, myBuild2failed, myBuild1);
+    } else {
+      checkBuilds("sinceDate:" + startDate, myBuild12, myBuild10byUser, myBuild4conf2FailedPinned);
+      checkBuilds("sinceDate:" + startDate + ")", myBuild12, myBuild10byUser, myBuild4conf2FailedPinned);  //documenting current behavior
+      checkBuilds("sinceDate:" + startDate + "),failedToStart:any", myBuild12, myBuild10byUser, myBuild9failedToStart, myBuild4conf2FailedPinned);
+      checkBuilds("untilDate:" + startDate + ")", myBuild3tagged, myBuild2failed, myBuild1);
+    }
     checkBuilds("sinceDate:" + fDate(myTimeAfterBuild4), myBuild12, myBuild10byUser);
     checkBuilds("sinceDate:" + fDate(myTimeAfterBuild4) + ",failedToStart:any", myBuild12, myBuild10byUser, myBuild9failedToStart);
-    checkBuilds("untilDate:" + startDate + ")", myBuild3tagged, myBuild2failed, myBuild1);
     checkBuilds("untilDate:" + fDate(myTimeAfterBuild4) + ")", myBuild4conf2FailedPinned, myBuild3tagged, myBuild2failed, myBuild1);
     checkExceptionOnBuildsSearch(BadRequestException.class,
                                  "sinceBuild:(id:" + myBuild3tagged.getBuildId() + "),sinceDate:" + startDate + ",byPromotion:false"); //this is for buildFinder
@@ -240,7 +247,11 @@ public class BuildFinderFixedBuildSequenceByPromotionTest extends BuildFinderTes
 
     checkBuild("sinceDate:" + fDate(myBuild4conf2FailedPinned.getStartDate()), myBuild12);
     checkBuild("sinceDate:" + fDate(myBuild4conf2FailedPinned.getStartDate()) + ")", myBuild12);  //documenting current behavior
-    checkBuild("untilDate:" + fDate(myBuild4conf2FailedPinned.getStartDate()) + ")", myBuild3tagged);
+    if (myBuild4conf2FailedPinned.getStartDate().getTime() % 1000 == 0) {
+      checkBuild("untilDate:" + fDate(myBuild4conf2FailedPinned.getStartDate()) + ")", myBuild4conf2FailedPinned);
+    } else {
+      checkBuild("untilDate:" + fDate(myBuild4conf2FailedPinned.getStartDate()) + ")", myBuild3tagged);
+    }
   }
 
   @Test
