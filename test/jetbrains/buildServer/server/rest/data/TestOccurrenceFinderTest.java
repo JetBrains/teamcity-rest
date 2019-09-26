@@ -320,7 +320,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     public boolean matches(@NotNull final TestRunData data, @NotNull final STestRun sTestRun) {
       return data.testName.equals(sTestRun.getTest().getName().getAsString()) &&
              data.status.equals(sTestRun.getStatus()) &&
-             data.orderId == sTestRun.getOrderId() &&
+             //data.orderId == sTestRun.getOrderId() && //https://youtrack.jetbrains.com/issue/TW-62277 currently orderId depends on the way the tests are provided and the cache state, so it should not be relied upon
              (Status.UNKNOWN.equals(data.status) == sTestRun.isIgnored());
     }
   };
@@ -367,7 +367,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     @Override
     public String toString() {
-      return "{" + testName + ", " + status.getText() + ", " + orderId + ", " + buildId + "}";
+      return "{" + testName + ", " + status.getText() + "(" + status.getPriority() + "), order: " + orderId + ", buildId: " + buildId + "}";
     }
   }
 
