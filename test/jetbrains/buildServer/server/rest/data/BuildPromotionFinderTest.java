@@ -579,7 +579,9 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final MockTimeService time = new MockTimeService(Dates.now().getTime());
     myServer.setTimeService(time);
     initFinders(); //recreate finders to let time service sink in
-
+    if (time.now() % 1000 == 0){
+      time.jumpTo(10L);
+    }
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
 
@@ -772,7 +774,9 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   public void testStopProcessing() {
     final MockTimeService time = new MockTimeService(Dates.now().getTime());
     myServer.setTimeService(time);
-
+    if (time.now() % 1000 == 0){
+      time.jumpTo(10L);
+    }
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
 
