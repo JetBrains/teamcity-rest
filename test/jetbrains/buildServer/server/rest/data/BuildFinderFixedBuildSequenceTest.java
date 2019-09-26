@@ -68,6 +68,10 @@ public class BuildFinderFixedBuildSequenceTest extends BuildFinderTestBase {
     myServer.setTimeService(myTimeService);
 //  do not need this in finally, do we?     myServer.setTimeService(SystemTimeService.getInstance());
 
+    if (time.now() % 1000 == 0){ //disable checkong 0ms case
+      time.jumpTo(10L);
+    }
+
     myUser = createUser("uuser");
     myBuildConf = registerBuildType("buildConf1", "project");
     myBuildConf2 = registerBuildType("buildConf2", "project");
