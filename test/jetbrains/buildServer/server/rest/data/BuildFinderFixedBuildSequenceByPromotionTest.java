@@ -67,8 +67,8 @@ public class BuildFinderFixedBuildSequenceByPromotionTest extends BuildFinderTes
     myServer.setTimeService(myTimeService);
 //  do not need this in finally, do we?     myServer.setTimeService(SystemTimeService.getInstance());
 
-    if (time.now() % 1000 == 0){ //disable checking 0ms case
-      time.jumpTo(10L);
+    if (myTimeService.now() % 1000 == 0){ //disable checking 0ms case
+      myTimeService.jumpTo(10L);
     }
 
     myUser = createUser("uuser");
