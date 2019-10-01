@@ -20,8 +20,10 @@ import com.google.common.collect.ComparisonChain;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.AgentRestrictor;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.clouds.CloudInstance;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -60,6 +62,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   protected static final String INCOMPATIBLE = "incompatible";
   protected static final String COMPATIBLE_BUILD_TYPE = "buildType";
   protected static final String COMPATIBLE_BUILD = "build";
+  protected static final String CLOUD_INSTANCE = "cloudInstance";
 
   @NotNull private final BuildAgentManager myAgentManager;
   @NotNull private final ServiceLocator myServiceLocator;
@@ -234,6 +237,21 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
           return parameterCondition.matches(new MapParametersProviderImpl(item.getAvailableParameters()));
         }
       });
+    }
+
+    if (locator.isUnused(CLOUD_INSTANCE)) {
+      final String cloudInstanceLocator = locator.getSingleDimensionValue(CLOUD_INSTANCE);
+      if (cloudInstanceLocator != null) {
+        List<CloudInstance> instances = myServiceLocator.getSingletonService(CloudInstanceFinder.class)
+                                                        .getItems(cloudInstanceLocator).myEntries.stream().map(CloudInstanceData::getInstance).collect(Collectors.toList());
+        result.add(a -> instances.stream().anyMatch(i -> i.containsAgent(a)));
+        /* CloudInstance might not have equals/hashcode, if it does, it would be better to use in a set like below
+        Set<CloudInstance> instances = myServiceLocator.getSingletonService(CloudInstanceFinder.class).getItems(cloudInstanceLocator).myEntries.stream().map(i -> i.getInstance()).collect(
+          Collectors.toSet());
+        CloudManager cloudManager = myServiceLocator.getSingletonService(CloudManager.class);
+        result.add(a -> Util.resolveNull(cloudManager.findInstanceByAgent(a), pair -> instances.contains(pair.getSecond()), false));
+        */
+      }
     }
 
     if (locator.isUnused(COMPATIBLE)) {
@@ -514,6 +532,13 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     final String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       return getItemHolder(getBuildRelatedAgents(buildDimension));
+    }
+
+    final String cloudInstanceLocator = locator.getSingleDimensionValue(CLOUD_INSTANCE);
+    if (cloudInstanceLocator != null) {
+      CloudInstanceFinder cloudInstanceFinder = myServiceLocator.getSingletonService(CloudInstanceFinder.class);
+      Stream<SBuildAgent> agents = cloudInstanceFinder.getItems(cloudInstanceLocator).myEntries.stream().map(CloudInstanceData::getAgent).filter(Objects::nonNull).distinct();
+      return FinderDataBinding.getItemHolder(agents);
     }
 
     if (TeamCityProperties.getBooleanOrTrue("rest.request.agents.compatibilityPrefilter")) { //added just in case
