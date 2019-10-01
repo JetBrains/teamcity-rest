@@ -89,10 +89,10 @@ public class CloudProfile {
 
   @XmlElement(name = "images")
   public CloudImages getImages() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("images", false),
+    return ValueWithDefault.decideDefault(myFields.isIncluded("images", false, true),
                                           () -> new CloudImages(
                                             CachingValue.simple(() -> new ArrayList<>(myBeanContext.getSingletonService(CloudUtil.class).getImages(myCloudProfile))),
                                             new PagerData(CloudRequest.getImagesHref(myCloudProfile)),
-                                            myFields.getNestedField("images"), myBeanContext));
+                                            myFields.getNestedField("images", Fields.NONE, Fields.LONG), myBeanContext));
   }
 }
