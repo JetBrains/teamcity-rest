@@ -945,20 +945,23 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     assertEquals("/app/rest/version/builds/id:1", build.getHref());
     //noinspection ConstantConditions
     jetbrains.buildServer.server.rest.model.files.File artifact1 = build.getArtifacts().files.get(0);
+    jetbrains.buildServer.server.rest.model.files.File artifact2 = build.getArtifacts().files.get(1);
+
     String specialCharacters_escaped;
     if (!specialCharacters.equals(artifact1.name)) {
-      System.out.println("File system does not see to support some characters. Was creating file \"" + specialCharacters + "\" but got \"" + artifact1.name + "\"");
+      System.out.println("File system does not seem to support some characters. Was creating file \"" + specialCharacters + "\" but got \"" + artifact1.name + "\"");
       specialCharacters_escaped = WebUtil.encode(artifact1.name);
     } else {
       specialCharacters_escaped = WebUtil.encode(specialCharacters);
+      assertEquals(specialCharacters, artifact2.name);
+      assertEquals(specialCharacters + "/" + specialCharacters, artifact2.fullName);
     }
     assertEquals("/app/rest/version/builds/id:1/artifacts/metadata/" + specialCharacters_escaped, artifact1.href);
-    assertEquals("/app/rest/version/builds/id:1/artifacts/children/" + specialCharacters_escaped + "?locator=pattern(%2B:**,%2B:%25)", artifact1.getChildren().href);
     //noinspection ConstantConditions
-    jetbrains.buildServer.server.rest.model.files.File artifact2 = build.getArtifacts().files.get(1);
-    assertEquals(specialCharacters, artifact2.name);
-    assertEquals(specialCharacters + "/" + specialCharacters, artifact2.fullName);
+    assertEquals("/app/rest/version/builds/id:1/artifacts/children/" + specialCharacters_escaped + "?locator=pattern(%2B:**,%2B:%25)", artifact1.getChildren().href);
+
     assertEquals("/app/rest/version/builds/id:1/artifacts/metadata/" + specialCharacters_escaped + "/" + specialCharacters_escaped, artifact2.href);
+    //noinspection ConstantConditions
     assertEquals("/app/rest/version/builds/id:1/artifacts/content/" + specialCharacters_escaped + "/" + specialCharacters_escaped, artifact2.getContent().href);
   }
 
