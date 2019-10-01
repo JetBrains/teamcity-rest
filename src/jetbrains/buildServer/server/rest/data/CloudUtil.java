@@ -91,7 +91,7 @@ public class CloudUtil {
   @Nullable
   public CloudProfile getProfile(@NotNull final CloudImage image) {
     Optional<CloudProfile> profileOpt = myCloudManager.listAllProfiles().stream()
-                                                                          .filter(p -> getImages(p).stream().anyMatch(cip -> cip.getId().equals(image.getId())))
+                                                                          .filter(p -> getImages(p).contains(image)) //todo: this works only for duly implemented equals/hashcode which might not be the case
                                                                           .findAny();
     return profileOpt.orElse(null);
   }
