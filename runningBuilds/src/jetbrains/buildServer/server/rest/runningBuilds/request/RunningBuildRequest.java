@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.runningBuilds.request;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,9 +57,11 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
+ * Experimental support for operations with running and agent-less builds.
+ * Use with caution: this API is not yet stable and is subject to change.
  */
 @Path(Constants.API_URL + "/runningBuilds")
-//@Api("RunningBuilds") //todo Swagger
+@Api("RunningBuild")
 public class RunningBuildRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private BuildPromotionFinder myBuildPromotionFinder;
@@ -65,27 +69,12 @@ public class RunningBuildRequest {
   @Context @NotNull private PermissionChecker myPermissionChecker;
   @Context @NotNull private BeanContext myBeanContext;
 
-  //drop
-  @GET
-  @Path("/test")
-  @Produces({MediaType.TEXT_PLAIN})
-  public String test() {
-    return "OK";
-  }
-
-  //drop
-  @POST
-  @Path("/test")
-  @Produces({MediaType.TEXT_PLAIN})
-  public String testPost() {
-    return "OK";
-  }
-
     //todo: add GET .../runningData for consistency
     @PUT
     @Path("/{buildLocator}/runningData")
     @Consumes({MediaType.TEXT_PLAIN})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @ApiOperation("Starts the queued build as an agent-less build and returns the corresponding running build.")
     public Build markBuildAsRunning(@PathParam("buildLocator") String buildLocator,
                                     String requestor,
                                     @QueryParam("fields") String fields,
@@ -108,6 +97,7 @@ public class RunningBuildRequest {
   @POST
   @Path("/{buildLocator}/log")
   @Consumes({MediaType.TEXT_PLAIN})
+  @ApiOperation("Adds a message to the build log. Service messages are accepted.")
   public void addLogMessage(@PathParam("buildLocator") String buildLocator, //todo: return next command to the client
                             String logLines,
                             @QueryParam("fields") String fields,
@@ -131,6 +121,7 @@ public class RunningBuildRequest {
   @POST
   @Path("/{buildLocator}/log/stream")
   @Consumes({MediaType.TEXT_PLAIN})
+  @ApiOperation(hidden = true, value = "Experimental ability to stream build log as request body")
   public void addLogMessage(@PathParam("buildLocator") String buildLocator,
                             InputStream requestBody) {
     //ideally, this should be async not to waste the thread on input waiting
@@ -176,6 +167,7 @@ public class RunningBuildRequest {
   @Path("/{buildLocator}/finishDate") //add GET
   @Consumes({MediaType.TEXT_PLAIN})
   @Produces({MediaType.TEXT_PLAIN})
+  @ApiOperation("Marks the running agent-less build as finished. An empty finish date means \"now\".")
   public String setFinishedTime(@PathParam("buildLocator") String buildLocator,
                             String date,
                             @QueryParam("fields") String fields, //drop
