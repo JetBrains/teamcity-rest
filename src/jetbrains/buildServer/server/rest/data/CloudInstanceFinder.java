@@ -31,7 +31,6 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 
 import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
@@ -52,19 +51,13 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
 
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final CloudManager myCloudManager;
-  @NotNull private final CloudInstancesProvider myCloudInstancesProvider;
-  @NotNull private final ProjectManager myProjectManager;
   @NotNull public final CloudUtil myCloudUtil;
   @NotNull private final TimeCondition myTimeCondition;
 
   public CloudInstanceFinder(@NotNull final ServiceLocator serviceLocator,
-                             @NotNull final CloudInstancesProvider cloudInstancesProvider,
-                             @NotNull final ProjectManager projectManager,
                              @NotNull final CloudUtil cloudUtil,
                              @NotNull final TimeCondition timeCondition) {
     myServiceLocator = serviceLocator;
-    myCloudInstancesProvider = cloudInstancesProvider;
-    myProjectManager = projectManager;
     myCloudUtil = cloudUtil;
     myTimeCondition = timeCondition;
     myCloudManager = myServiceLocator.getSingletonService(CloudManager.class);
@@ -144,17 +137,6 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
       multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> {
         return myCloudUtil.getAllInstancesProcessor();
       });
-
-      filter(DimensionCondition.ALWAYS, dimensions -> {
-        final PermissionChecker permissionChecker = myServiceLocator.getSingletonService(PermissionChecker.class);
-        final boolean hasPermission = permissionChecker.hasGlobalPermission(Permission.VIEW_AGENT_CLOUDS);
-        if (hasPermission) return null;
-        return new ItemFilter<CloudInstanceData>() {
-          @Override public boolean shouldStop(@NotNull final CloudInstanceData item) {return true;}
-          @Override public boolean isIncluded(@NotNull final CloudInstanceData item) { return false;}
-        };
-      });
-
 
       locatorProvider(CloudInstanceFinder::getLocator);
     }

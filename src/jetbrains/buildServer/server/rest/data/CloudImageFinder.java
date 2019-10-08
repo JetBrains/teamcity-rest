@@ -30,7 +30,6 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
-import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 
 import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
@@ -49,17 +48,11 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
 
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final CloudManager myCloudManager;
-  @NotNull private final CloudInstancesProvider myCloudInstancesProvider;
-  @NotNull private final ProjectManager myProjectManager;
   @NotNull private final CloudUtil myCloudUtil;
 
   public CloudImageFinder(@NotNull final ServiceLocator serviceLocator,
-                          @NotNull final CloudInstancesProvider cloudInstancesProvider,
-                          @NotNull final ProjectManager projectManager,
                           @NotNull final CloudUtil cloudUtil) {
     myServiceLocator = serviceLocator;
-    myCloudInstancesProvider = cloudInstancesProvider;
-    myProjectManager = projectManager;
     myCloudUtil = cloudUtil;
     myCloudManager = myServiceLocator.getSingletonService(CloudManager.class);
     setDelegate(new Builder().build());
@@ -120,16 +113,6 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
                                           .flatMap(p -> myCloudUtil.getImages(p).stream())
                                           .filter(i -> !processor.processItem(i)).findFirst();
 
-      });
-
-      filter(DimensionCondition.ALWAYS, dimensions -> {
-        final PermissionChecker permissionChecker = myServiceLocator.getSingletonService(PermissionChecker.class);
-        final boolean hasPermission = permissionChecker.hasGlobalPermission(Permission.VIEW_AGENT_CLOUDS);
-        if (hasPermission) return null;
-        return new ItemFilter<CloudImage>() {
-          @Override public boolean shouldStop(@NotNull final CloudImage item) {return true;}
-          @Override public boolean isIncluded(@NotNull final CloudImage item) { return false;}
-        };
       });
 
       locatorProvider(i -> getLocator(i, myCloudUtil));

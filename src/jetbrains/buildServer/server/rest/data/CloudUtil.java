@@ -26,13 +26,13 @@ import jetbrains.buildServer.clouds.CloudClientEx;
 import jetbrains.buildServer.clouds.CloudImage;
 import jetbrains.buildServer.clouds.CloudInstance;
 import jetbrains.buildServer.clouds.CloudProfile;
-import jetbrains.buildServer.clouds.server.CloudInstancesProvider;
 import jetbrains.buildServer.clouds.server.CloudInstancesProviderExtendedCallback;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -44,16 +44,13 @@ import org.jetbrains.annotations.Nullable;
  */
 public class CloudUtil {
   @NotNull private final ServiceLocator myServiceLocator;
-  @NotNull private final CloudInstancesProvider myCloudInstancesProvider;
   @NotNull private final CloudManager myCloudManager;
   @NotNull private final ProjectManager myProjectManager;
 
   public CloudUtil(@NotNull final ServiceLocator serviceLocator,
-                   @NotNull final CloudInstancesProvider cloudInstancesProvider,
                    @NotNull final CloudManager cloudManager,
                    @NotNull final ProjectManager projectManager) {
     myServiceLocator = serviceLocator;
-    myCloudInstancesProvider = cloudInstancesProvider;
     myCloudManager = cloudManager;
     myProjectManager = projectManager;
   }
@@ -106,12 +103,21 @@ public class CloudUtil {
   @NotNull
   public Stream<CloudInstanceData> getInstancesByProfile(@NotNull CloudProfile profile) {
     ArrayList<CloudInstanceData> result = new ArrayList<>();
-    myCloudInstancesProvider.iterateProfileInstances(profile, callback(item -> {result.add(item); return true;}));
+    myCloudManager.iterateProfileInstances(profile, callback(item -> {result.add(item); return true;}));
     return result.stream();
   }
 
+  @Nullable
+  CloudProfile findProfileGloballyById(@NotNull String profileId) {
+    try {
+      return myCloudManager.findProfileGloballyById(profileId);
+    } catch (AccessDeniedException e ) {
+      return null;
+    }
+  }
+
   public FinderDataBinding.ItemHolder<CloudInstanceData> getAllInstancesProcessor() {
-    return processor -> myCloudInstancesProvider.iterateInstances(callback(processor));
+    return processor -> myCloudManager.iterateInstances(callback(processor));
   }
 
   @NotNull
@@ -142,14 +148,14 @@ public class CloudUtil {
 
   @Nullable
   public CloudImage getImage(@NotNull final String profileId, @NotNull final String id) {
-    CloudProfile profile = myCloudManager.findProfileGloballyById(profileId);
+    CloudProfile profile = findProfileGloballyById(profileId);
     if (profile == null) return null;
     return getImages(profile).stream().filter(i -> id.equals(i.getId())).findFirst().orElse(null);
   }
 
   @Nullable
   public CloudInstance getInstance(@NotNull final String profileId, @NotNull final String imageId, @NotNull final String id) {
-    CloudProfile profile = myCloudManager.findProfileGloballyById(profileId);
+    CloudProfile profile = findProfileGloballyById(profileId);
     if (profile == null) return null;
     return myCloudManager.findInstanceById(profile.getProjectId(), profile.getProfileId(), id);
   }

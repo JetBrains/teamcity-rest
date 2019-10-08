@@ -29,7 +29,6 @@ import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,16 +47,13 @@ public class CloudProfileFinder extends DelegatingFinder<CloudProfile> {
 
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final CloudManager myCloudManager;
-  @NotNull private final CloudInstancesProvider myCloudInstancesProvider;
   @NotNull private final ProjectManager myProjectManager;
   @NotNull private final CloudUtil myCloudUtil;
 
   public CloudProfileFinder(@NotNull final ServiceLocator serviceLocator,
-                            @NotNull final CloudInstancesProvider cloudInstancesProvider,
                             @NotNull final ProjectManager projectManager,
                             @NotNull final CloudUtil cloudUtil) {
     myServiceLocator = serviceLocator;
-    myCloudInstancesProvider = cloudInstancesProvider;
     myProjectManager = projectManager;
     myCloudUtil = cloudUtil;
     myCloudManager = myServiceLocator.getSingletonService(CloudManager.class);
@@ -87,7 +83,7 @@ public class CloudProfileFinder extends DelegatingFinder<CloudProfile> {
 
       dimensionString(ID).description("profile id").
         filter((value, item) -> value.equals(item.getProfileId())).
-        toItems(dimension -> Util.resolveNull(myCloudManager.findProfileGloballyById(dimension), Collections::singletonList, Collections.emptyList()));
+        toItems(dimension -> Util.resolveNull(myCloudUtil.findProfileGloballyById(dimension), Collections::singletonList, Collections.emptyList()));
 
       dimensionValueCondition(NAME).description("profile name").valueForDefaultFilter(CloudProfile::getProfileName);
       dimensionValueCondition(CLOUD_PROVIDER_ID).description("profile cloud provider id").valueForDefaultFilter(CloudProfile::getCloudCode);
@@ -111,16 +107,6 @@ public class CloudProfileFinder extends DelegatingFinder<CloudProfile> {
         .toItems(projects -> projects.stream().flatMap(project -> myCloudManager.listProfilesByProject(project.getProjectId(), true).stream()).collect(Collectors.toList()));
 
       multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> FinderDataBinding.getItemHolder(myCloudManager.listAllProfiles()));
-
-      filter(DimensionCondition.ALWAYS, dimensions -> {
-        final PermissionChecker permissionChecker = myServiceLocator.getSingletonService(PermissionChecker.class);
-        final boolean hasPermission = permissionChecker.hasGlobalPermission(Permission.VIEW_AGENT_CLOUDS);
-        if (hasPermission) return null;
-        return new ItemFilter<CloudProfile>() {
-          @Override public boolean shouldStop(@NotNull final CloudProfile item) {return true;}
-          @Override public boolean isIncluded(@NotNull final CloudProfile item) { return false;}
-        };
-      });
 
       locatorProvider(CloudProfileFinder::getLocator);
     }
