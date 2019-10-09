@@ -478,10 +478,8 @@ public class APIController extends BaseController implements ServletContextAware
 
               if (runAsSystemActual) {
                 if (shouldLogToDebug && LOG.isDebugEnabled()) LOG.debug("Executing request with system security level");
-                mySecurityContext.runAsSystem(new SecurityContextEx.RunAsAction() {
-                  public void run() throws Throwable {
+                mySecurityContext.runAsSystem(() -> {
                     myWebComponent.doFilter(actualRequest, response, null);
-                  }
                 });
               } else {
                 myWebComponent.doFilter(actualRequest, response, null);
