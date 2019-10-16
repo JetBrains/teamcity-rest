@@ -120,6 +120,38 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
           t("com.jetbrains.teamcity.MyClass.method2", Status.NORMAL, 5));
   }
 
+
+  @Test
+  public void testTestNameDetails() throws Exception {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build10 = build().in(buildType)
+                                          .withTest("com.jetbrains.teamcity.MyClass.method1", false)
+                                          .withTest("com.jetbrains.teamcity.MyClass.method2", true)
+                                          .finish();
+
+    check("build:(id:" + build10.getBuildId() + ")", TEST_MATCHER,
+          t("com.jetbrains.teamcity.MyClass.method1", Status.FAILURE, 1),
+          t("com.jetbrains.teamcity.MyClass.method2", Status.NORMAL, 2));
+
+    STestRun method1 = build10.getFullStatistics().getAllTests().get(0);
+    STestRun method2 = build10.getFullStatistics().getAllTests().get(1);
+
+    {
+      TestOccurrence testOccurrence = new TestOccurrence(method1, getBeanContext(myServer), new Fields("test(id,name,testClass,testMethodName)"));
+      assertEquals("MyClass", testOccurrence.getTest().testClass);
+      assertEquals("method1", testOccurrence.getTest().testMethodName);
+      assertNull(testOccurrence.getTest().testPackage); //we didn't ask for the testPackage in the fields list
+    }
+
+
+    {
+      TestOccurrence testOccurrence = new TestOccurrence(method2, getBeanContext(myServer), new Fields("test(id,name,testClass,testMethodName,testPackage)"));
+      assertEquals("MyClass", testOccurrence.getTest().testClass);
+      assertEquals("method2", testOccurrence.getTest().testMethodName);
+      assertEquals("com.jetbrains.teamcity", testOccurrence.getTest().testPackage); //this time we did ask
+    }
+  }
+
   @Test
   public void testSameTestInDifferentBuilds() throws Exception {
     final BuildTypeImpl buildType1 = registerBuildType("buildConf1", "project1");
