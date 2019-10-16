@@ -21,7 +21,7 @@ import jetbrains.BuildServerCreator;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
 import jetbrains.buildServer.responsibility.BuildTypeResponsibilityEntry;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
-import jetbrains.buildServer.responsibility.ResponsibilityEntryEx;
+import jetbrains.buildServer.responsibility.InvestigationEntryEx;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -170,8 +170,8 @@ public class InvestigationFinderTest extends BaseFinderTest<InvestigationWrapper
   }
 
   @Override
-  protected ResponsibilityEntryEx createRespEntry(ResponsibilityEntry.State state, SUser user) {
-    return new ResponsibilityEntryEx(state, user, user, new Date(), "The comment", ResponsibilityEntry.RemoveMethod.WHEN_FIXED);
+  protected InvestigationEntryEx createRespEntry(ResponsibilityEntry.State state, SUser user) {
+    return new InvestigationEntryEx(state, user, user, new Date(), "The comment", ResponsibilityEntry.RemoveMethod.WHEN_FIXED);
   }
 
   private void createFailingBuild() {

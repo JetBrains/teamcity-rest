@@ -66,7 +66,7 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
   /**
    * internal use only
    */
-  public InvestigationWrapper(@NotNull ResponsibilityEntryEx entry) {
+  public InvestigationWrapper(@NotNull InvestigationEntryEx entry) {
     myRE = entry;
     myExId = entry.getProblemId();
     myBuildTypeRE = entry instanceof BuildTypeResponsibilityEntry ? (BuildTypeResponsibilityEntry)entry : null;
