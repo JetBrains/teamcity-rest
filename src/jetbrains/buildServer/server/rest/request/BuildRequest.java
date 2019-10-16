@@ -33,6 +33,7 @@ import jetbrains.buildServer.agent.ServerProvidedProperties;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.controllers.HttpDownloadProcessor;
 import jetbrains.buildServer.log.Loggers;
+import jetbrains.buildServer.messages.DefaultMessagesInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
@@ -56,7 +57,9 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.impl.BaseBuild;
+import jetbrains.buildServer.serverSide.impl.BuildAgentMessagesQueue;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.tags.TagsManager;
 import jetbrains.buildServer.users.SUser;
@@ -65,6 +68,7 @@ import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
+import jetbrains.buildServer.util.TimeService;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsManager;
@@ -1061,6 +1065,155 @@ public class BuildRequest {
       }
 
     }, urlPrefix, myBeanContext, true);
+  }
+
+  /**
+   * Experimental support for marking a queued agent-less build as started.
+   * Use with caution: this API is not yet stable and is subject to change.
+   */
+  //todo: add GET .../runningData for consistency
+    @PUT
+    @Path("/{buildLocator}/runningData")
+    @Consumes({MediaType.TEXT_PLAIN})
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @ApiOperation("Starts the queued build as an agent-less build and returns the corresponding running build.")
+    public Build markBuildAsRunning(@PathParam("buildLocator") String buildLocator, String requestor, @QueryParam("fields") String fields) {
+      BuildPromotion buildPromotion = myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
+      checkBuildOperationPermission(buildPromotion);
+      QueuedBuildEx build = (QueuedBuildEx)buildPromotion.getQueuedBuild();
+      if (build != null) {
+        try {
+          build.startBuild(requestor);
+        } catch (IllegalStateException e) {
+          throw new BadRequestException("Error on attempt to mark the build as running: " + e.getMessage(), e);
+        }
+      } else {
+        throw new BadRequestException("Build with promotion id " + buildPromotion.getId() + " is not a queued build");
+      }
+      return new Build(buildPromotion, new Fields(fields), myBeanContext);
+    }
+
+  /**
+   * Experimental support for logging a message to a running build.
+   * Use with caution: this API is not yet stable and is subject to change.
+   */
+  @POST
+  @Path("/{buildLocator}/log")
+  @Consumes({MediaType.TEXT_PLAIN})
+  @ApiOperation("Adds a message to the build log. Service messages are accepted.")
+  public void addLogMessage(@PathParam("buildLocator") String buildLocator, String logLines, @QueryParam("fields") String fields) {
+    BuildPromotion buildPromotion = myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
+    checkBuildOperationPermission(buildPromotion);
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build == null) {
+      throw new NotFoundException("Build with id " + buildPromotion.getId() + " is not in the runing or finished state");
+    }
+    //check for running?
+    logMessage(build, logLines);
+    //return next command?
+  }
+
+  /**
+   * Experimental support for streaming messages to a running build.
+   * Use with caution: this API is not yet stable and is subject to change.
+   *   this is an experiment to try to support for reading streamed input
+   *   Can be used with a command like:
+   *   curl -H "Transfer-Encoding: chunked" -H "Content-Type: text/plain" -X POST -T -  .../app/rest/runningBuilds/XXX/log/stream
+   */
+  /*
+  @POST
+  @Path("/{buildLocator}/log/stream")
+  @Consumes({MediaType.TEXT_PLAIN})
+  @ApiOperation(hidden = true, value = "Experimental ability to stream build log as request body")
+  public void addLogMessage(@PathParam("buildLocator") String buildLocator, InputStream requestBody) {
+    //ideally, this should be async not to waste the thread on input waiting
+    BuildPromotion buildPromotion = myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
+    checkBuildOperationPermission(buildPromotion);
+    // check for running?
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build == null) {
+      throw new NotFoundException("Build with id " + buildPromotion.getId() + " is not in the runing or finished state");
+    }
+
+    try {
+      BufferedReader reader = new BufferedReader(new InputStreamReader(requestBody));
+      String line = reader.readLine();
+      while (line != null) {
+        logMessage(build, line);
+        line = reader.readLine();
+      }
+    } catch (IOException e) {
+      //todo: log
+      throw new OperationException("Error reading request body: " + e.toString(), e);
+    }
+  }
+  */
+
+  //todo: ideally, should put all the data from the same client into the same flow in the build
+  //can also try to put it into a dedicated block...
+  private void logMessage(@NotNull final SBuild build, final String lines) {
+//    build.getBuildLog().message(lines, Status.NORMAL, MessageAttrs.attrs());
+    if (build.isFinished() || !(build instanceof RunningBuildEx)) {
+      throw new NotFoundException("Build with id " + build.getBuildId() + " is already finished");
+    }
+    RunningBuildEx runningBuild = (RunningBuildEx)build;
+    try {
+      myBeanContext.getSingletonService(BuildAgentMessagesQueue.class).processMessages(runningBuild, Collections.singletonList(DefaultMessagesInfo.createTextMessage(lines)));
+    } catch (InterruptedException e) {
+      throw new OperationException("Got interrupted", e); //todo
+    } catch (BuildAgentMessagesQueue.BuildMessagesQueueFullException e) {
+      throw new OperationException("Failed to add messages as the queue is full", e); //todo
+    }
+  }
+
+  /**
+   * Experimental support for finishing the build. The actual build finish process can be long and can finish after the request has returned.
+   * Use with caution: this API is not yet stable and is subject to change.
+   */
+  @PUT
+  @Path("/{buildLocator}/finishDate")
+  @Consumes({MediaType.TEXT_PLAIN})
+  @Produces({MediaType.TEXT_PLAIN})
+  @ApiOperation("Marks the running build as finished by passing agent time of the build finish. An empty finish date means \"now\".")
+  public String setFinishedTime(@PathParam("buildLocator") String buildLocator, String date) {
+    BuildPromotion buildPromotion = myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
+    checkBuildOperationPermission(buildPromotion);
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build == null) {
+      throw new NotFoundException("Build with id " + buildPromotion.getId() + " is not in the runing or finished state");
+    }
+    if (build.isFinished() || !(build instanceof RunningBuildEx)) {
+      throw new NotFoundException("Build with id " + buildPromotion.getId() + " is already finished");
+    }
+    RunningBuildEx runningBuild = (RunningBuildEx)build;
+    TimeService timeService = myBeanContext.getSingletonService(TimeService.class);
+    Date finishTime = !StringUtil.isEmpty(date) ? TimeWithPrecision.parse(date, timeService).getTime() : new Date(timeService.now());
+    logMessage(build, "Build finish request received via REST endpoint");
+    myBeanContext.getSingletonService(BuildAgentMessagesQueue.class).buildFinished(runningBuild, finishTime, false);
+    return Util.formatTime(finishTime);
+  }
+
+  private void checkBuildOperationPermission(@NotNull final BuildPromotion buildPromotion) {
+    AuthorityHolder user = myPermissionChecker.getCurrent();
+    Long buildId = ServerAuthUtil.getBuildIdIfBuildAuthority(user);
+    if (buildId != null) {
+      SBuild build = buildPromotion.getAssociatedBuild();
+      if (build != null && buildId == build.getBuildId()) {
+        return;
+      }
+    }
+    try {
+      myPermissionChecker.checkPermission(Permission.EDIT_PROJECT, buildPromotion);
+    } catch (AuthorizationFailedException e) {
+      throw new AuthorizationFailedException("Should use build authentication or have \"" + Permission.EDIT_PROJECT + "\" permission to do the build operation", e);
+    }
+  }
+
+  @GET
+  @Path("/{buildLocator}/finishDate")
+  @Produces("text/plain")
+  public String getBuildFinishDate(@PathParam("buildLocator") String buildLocator) {
+    return serveBuildFieldByBuildOnly(buildLocator, "finishDate");
   }
 
   @GET

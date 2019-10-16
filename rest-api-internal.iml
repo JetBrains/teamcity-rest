@@ -149,5 +149,6 @@
     <orderEntry type="module" module-name="server-diagnostic" />
     <orderEntry type="module" module-name="server-metrics" />
     <orderEntry type="module" module-name="cloud-server" />
+    <orderEntry type="module" module-name="messages-processing" />
   </component>
 </module>
