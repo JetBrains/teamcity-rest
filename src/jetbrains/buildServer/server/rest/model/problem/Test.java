@@ -48,11 +48,19 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "test")
 @XmlType(name = "test", propOrder = {"id", "name",
-  "mutes", "investigations", "testOccurrences"})
+  "mutes", "investigations", "testOccurrences", "testPackage", "testSuite", "testClass", "testShortName",
+  "testNameWithoutAPrefix", "testMethodName", "testNameWithParameters"})
 public class Test {
   @XmlAttribute public String id;
   @XmlAttribute public String name;
   @XmlAttribute public String href;
+  @XmlAttribute public String testPackage;
+  @XmlAttribute public String testSuite;
+  @XmlAttribute public String testClass;
+  @XmlAttribute public String testShortName;
+  @XmlAttribute public String testNameWithoutPrefix;
+  @XmlAttribute public String testMethodName;
+  @XmlAttribute public String testNameWithParameters;
 
   /**
    * This is used only when posting
@@ -97,6 +105,14 @@ public class Test {
         return new TestOccurrences(null, null, null, null, null, null, null, TestOccurrenceRequest.getHref(test), null, nestedFields, beanContext);
       }
     });
+
+    testPackage = ValueWithDefault.decideDefault(fields.isIncluded("testPackage"), test.getName().getPackageName());
+    testSuite = ValueWithDefault.decideDefault(fields.isIncluded("testSuite"), test.getName().getSuite());
+    testClass = ValueWithDefault.decideDefault(fields.isIncluded("testClass"), test.getName().getClassName());
+    testShortName = ValueWithDefault.decideDefault(fields.isIncluded("testShortName"), test.getName().getShortName());
+    testNameWithoutPrefix = ValueWithDefault.decideDefault(fields.isIncluded("testNameWithoutPrefix"), test.getName().getTestNameWithoutPrefix());
+    testMethodName = ValueWithDefault.decideDefault(fields.isIncluded("testMethodName"), test.getName().getTestMethodName());
+    testNameWithParameters = ValueWithDefault.decideDefault(fields.isIncluded("testNameWithParameters"), test.getName().getTestNameWithParameters());
   }
 
   @NotNull
