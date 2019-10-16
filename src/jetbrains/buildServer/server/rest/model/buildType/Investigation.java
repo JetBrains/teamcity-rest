@@ -27,7 +27,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
-import jetbrains.buildServer.responsibility.InvestigationEntryEx;
+import jetbrains.buildServer.responsibility.ResponsibilityEntryEx;
 import jetbrains.buildServer.responsibility.ResponsibilityFacadeEx;
 import jetbrains.buildServer.server.rest.data.TypedFinderBuilder;
 import jetbrains.buildServer.server.rest.data.UserFinder;
@@ -138,12 +138,12 @@ public class Investigation {
       throw new BadRequestException("Invalid 'investigation' entity: " + e.getMessage());
     }
 
-    ResponsibilityEntry entry = new InvestigationEntryEx(TypedFinderBuilder.getEnumValue(state, ResponsibilityEntry.State.class),
-                                                         assignee.getFromPosted(serviceLocator.getSingletonService(UserFinder.class)),
-                                                         serviceLocator.getSingletonService(UserFinder.class).getCurrentUser(),
-                                                         new Date(),
+    ResponsibilityEntry entry = new ResponsibilityEntryEx(TypedFinderBuilder.getEnumValue(state, ResponsibilityEntry.State.class),
+                                                            assignee.getFromPosted(serviceLocator.getSingletonService(UserFinder.class)),
+                                                            serviceLocator.getSingletonService(UserFinder.class).getCurrentUser(),
+                                                            new Date(),
                                                             assignment == null || assignment.getTextFromPosted() == null ? "" : assignment.getTextFromPosted(),
-                                                         resolution.getFromPostedForInvestigation(serviceLocator));
+                                                            resolution.getFromPostedForInvestigation(serviceLocator));
 
     ResponsibilityFacadeEx responsibilityFacade = serviceLocator.getSingletonService(ResponsibilityFacadeEx.class);
 
