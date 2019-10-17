@@ -49,7 +49,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "test")
 @XmlType(name = "test", propOrder = {"id", "name",
   "mutes", "investigations", "testOccurrences", "testPackage", "testSuite", "testClass", "testShortName",
-  "testNameWithoutAPrefix", "testMethodName", "testNameWithParameters"})
+  "testNameWithoutPrefix", "testMethodName", "testNameWithParameters"})
 public class Test {
   @XmlAttribute public String id;
   @XmlAttribute public String name;
