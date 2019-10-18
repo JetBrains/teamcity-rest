@@ -30,7 +30,9 @@ import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.tests.TestName;
+import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.ItemProcessor;
+import jetbrains.buildServer.util.NamedThreadFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,6 +56,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static final String CURRENTLY_MUTED = "currentlyMuted";
   protected static final String EXPAND_INVOCATIONS = "expandInvocations"; //experimental
   protected static final String INVOCATIONS = "invocations"; //experimental
+  protected static final String ORDER = "orderBy"; //highly experimental
 
   private static final String PART_TEST_NAME = "partOfTestName"; //even more experimental, works only with 'build' locator
 
@@ -73,6 +76,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull CurrentProblemsManager currentProblemsManager) {
     super(DIMENSION_ID, TEST, PART_TEST_NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
     setHiddenDimensions(EXPAND_INVOCATIONS, INVOCATIONS);
+    setHiddenDimensions(ORDER); //highly experiemntal
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -181,6 +185,11 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @NotNull
   @Override
   public ItemHolder<STestRun> getPrefilteredItems(@NotNull final Locator locator) {
+    return getSortedItemHolder(getPrefilteredItemsInternal(locator), getComparator(locator));
+  }
+
+  @NotNull
+  private ItemHolder<STestRun> getPrefilteredItemsInternal(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
@@ -639,4 +648,85 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       return myDelegate.createContainerSet();
     }
   }
+
+  @Nullable
+  private static Comparator<STestRun> getComparator(@NotNull final Locator locator) {
+    String orderBy = locator.getSingleDimensionValue(ORDER);
+    if (orderBy == null) return null;
+    return getComparator(SUPPORTED_ORDERS, orderBy);
+  }
+
+  @NotNull
+  private static <T> Comparator<T> getComparator(@NotNull final Orders<T> orders, @NotNull final String orderLocatorText) {
+    String[] names = orders.getNames();
+    Locator locator = new Locator(orderLocatorText, names);
+    if (locator.isSingleValue()) {
+      return orders.get(locator.getSingleValue());
+    }
+    Comparator<T> ALL_EQUAL = (o1, o2) -> 0;
+    Comparator<T> comparator = ALL_EQUAL;
+    for (String name : locator.getDefinedDimensions()) {
+      Comparator<T> comp = orders.get(name);
+      String dimension = locator.getSingleDimensionValue(name);
+      if (dimension != null) {
+        if ("asc".equals(dimension) || "".equals(dimension)) {
+          comparator = comparator.thenComparing(comp);
+        } else if ("desc".equals(dimension)) {
+          comparator = comparator.thenComparing(comp.reversed());
+        } else {
+          throw new BadRequestException("Dimension \"" + name + "\" has invalid value \"" + dimension + "\". Should be \"asc\" or \"desc\"");
+        }
+      }
+    }
+    locator.checkLocatorFullyProcessed();
+    if (comparator == ALL_EQUAL) {
+      throw new BadRequestException("No order is defined by the supplied ordering locator");
+    }
+    return comparator;
+  }
+
+  @NotNull
+  private static <T> ItemHolder<T> getSortedItemHolder(@NotNull final ItemHolder<T> baseHolder, @Nullable final Comparator<T> comparator) {
+    if (comparator == null) return baseHolder;
+
+    ArrayList<T> items = new ArrayList<>(100);
+    baseHolder.process(items::add);
+    try {
+      return NamedThreadFactory.executeWithNewThreadName("Sorting " + items.size() + " items", () -> {
+        Collections.sort(items, comparator);
+        return getItemHolder(items);
+      });
+    } catch (Exception e) {
+      ExceptionUtil.rethrowAsRuntimeException(e);
+      return null;
+    }
+  }
+
+  private static final Orders<STestRun> SUPPORTED_ORDERS = new Orders<STestRun>() //see TestOccurrence for names
+     .add("name", Comparator.comparing(tr -> tr.getTest().getName().getAsString(), String.CASE_INSENSITIVE_ORDER))
+     .add("duration", Comparator.comparingInt(STestRun::getDuration))
+     .add("runOrder", Comparator.comparingInt(STestRun::getOrderId))
+     .add("status", Comparator.comparing(tr -> tr.getStatus().getPriority()));
+
+  private static class Orders<T> {
+    private final Map<String, Comparator<T>> myComparators = new LinkedHashMap<>();
+    @NotNull
+    Orders<T> add(@NotNull String orderName, @NotNull Comparator<T> comparator) {
+      myComparators.put(orderName, comparator);
+      return this;
+    }
+
+    @NotNull
+    Comparator<T> get(@NotNull String orderName) {
+      Comparator<T> result = myComparators.get(orderName);
+      if (result == null) throw new BadRequestException("Order \"" + orderName + "\" is not supported. Supported orders are: " + Arrays.toString(getNames()));
+      return result;
+    }
+
+    @NotNull
+    public String[] getNames() {
+      return myComparators.keySet().toArray(new String[0]);
+    }
+  }
+  
 }
