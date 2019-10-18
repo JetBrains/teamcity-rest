@@ -168,14 +168,14 @@ public class TestOccurrence {
     //todo: use FirstFailedInFixedInCalculator#calculateFFIData instead???
     return ValueWithDefault.decideDefault(myFields.isIncluded("firstFailed", false),
                                           () -> Util.resolveNull(myTestRun.getFirstFailed(),
-                                                                 (ff) -> new TestOccurrence(getTestRun(ff, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
+                                                                 (ff) -> new TestOccurrence(getFailedTestRun(ff, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
   }
 
   @XmlElement
   public TestOccurrence getNextFixed() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("nextFixed", false),
                                           () -> Util.resolveNull(myTestRun.getFixedIn(),
-                                                                 (fi) -> new TestOccurrence(getTestRun(fi, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
+                                                                 (fi) -> new TestOccurrence(getSuccessfulTestRun(fi, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
   }
 
   @XmlElement
@@ -200,10 +200,21 @@ public class TestOccurrence {
   }
 
   @NotNull
-  private STestRun getTestRun(@NotNull final SBuild build, @NotNull final STestRun sampleTestRun) {
+  private STestRun getFailedTestRun(@NotNull final SBuild build, @NotNull final STestRun sampleTestRun) {
+    //this is different from getSuccessfulTestRun to be more performant
+    long testNameId = sampleTestRun.getTest().getTestNameId();
+    return build.getShortStatistics().getFailedTests().stream().filter(t -> t.getTest().getTestNameId() == testNameId).findFirst()
+                          .orElseThrow(() -> new IllegalArgumentException("Cannot find test with name \"" + sampleTestRun.getFullText() + "\" in build with id " + build.getBuildId()));
+  }
+
+  /**
+   * For not successful test use getFailedTestRun for performance reasons.
+   */
+  @NotNull
+  private STestRun getSuccessfulTestRun(@NotNull final SBuild build, @NotNull final STestRun sampleTestRun) {
     final STestRun testRun = build.getBuildStatistics(ALL_TESTS_NO_DETAILS).findTestByTestNameId(sampleTestRun.getTest().getTestNameId());
     if (testRun == null) {
-      throw new IllegalArgumentException("Cannot find test with name " + sampleTestRun.getFullText() + " in build " + build);
+      throw new IllegalArgumentException("Cannot find test with name \"" + sampleTestRun.getFullText() + "\" in build with id " + build.getBuildId());
     }
     return testRun;
   }
