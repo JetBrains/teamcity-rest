@@ -74,8 +74,8 @@ public class CompatibilityPolicy {
   }
 
   public void applyTo(@NotNull final SBuildAgent agent, @NotNull final ServiceLocator serviceLocator) {
-    if (!AuthUtil.canAdministerAgent(serviceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder(), agent)) {
-      throw new AuthorizationFailedException("No permission to edit agent details");
+    if (!AuthUtil.canViewAgentDetails(serviceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder(), agent)) { //can get pool name i from the error message if we do not check this
+      throw new AuthorizationFailedException("No permission to view agent details");
     }
 
     final AgentTypeManager agentTypeManager = serviceLocator.getSingletonService(AgentTypeManager.class);
