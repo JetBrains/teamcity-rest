@@ -40,6 +40,7 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -47,20 +48,14 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "test")
-@XmlType(name = "test", propOrder = {"id", "name",
-  "mutes", "investigations", "testOccurrences", "testPackage", "testSuite", "testClass", "testShortName",
-  "testNameWithoutPrefix", "testMethodName", "testNameWithParameters"})
+@XmlType(name = "test", propOrder = {"id", "name", "mutes", "investigations", "testOccurrences", "parsedTestName"})
 public class Test {
   @XmlAttribute public String id;
   @XmlAttribute public String name;
   @XmlAttribute public String href;
-  @XmlAttribute public String testPackage;
-  @XmlAttribute public String testSuite;
-  @XmlAttribute public String testClass;
-  @XmlAttribute public String testShortName;
-  @XmlAttribute public String testNameWithoutPrefix;
-  @XmlAttribute public String testMethodName;
-  @XmlAttribute public String testNameWithParameters;
+
+  @XmlElement
+  public ParsedTestName parsedTestName;
 
   /**
    * This is used only when posting
@@ -106,13 +101,17 @@ public class Test {
       }
     });
 
-    testPackage = ValueWithDefault.decideDefault(fields.isIncluded("testPackage"), test.getName().getPackageName());
-    testSuite = ValueWithDefault.decideDefault(fields.isIncluded("testSuite"), test.getName().getSuite());
-    testClass = ValueWithDefault.decideDefault(fields.isIncluded("testClass"), test.getName().getClassName());
-    testShortName = ValueWithDefault.decideDefault(fields.isIncluded("testShortName"), test.getName().getShortName());
-    testNameWithoutPrefix = ValueWithDefault.decideDefault(fields.isIncluded("testNameWithoutPrefix"), test.getName().getTestNameWithoutPrefix());
-    testMethodName = ValueWithDefault.decideDefault(fields.isIncluded("testMethodName"), test.getName().getTestMethodName());
-    testNameWithParameters = ValueWithDefault.decideDefault(fields.isIncluded("testNameWithParameters"), test.getName().getTestNameWithParameters());
+    if (fields.isIncluded("parsedTestName", false, false)) {
+      parsedTestName = new ParsedTestName();
+      parsedTestName.testPackage = test.getName().getPackageName();
+      parsedTestName.testSuite  = test.getName().getSuite();
+      parsedTestName.testClass = test.getName().getClassName();
+      parsedTestName.testShortName = test.getName().getShortName();
+      parsedTestName.testNameWithoutPrefix = test.getName().getTestNameWithoutPrefix();
+      parsedTestName.testMethodName = test.getName().getTestMethodName();
+      parsedTestName.testNameWithParameters = test.getName().getTestNameWithParameters();
+    }
+
   }
 
   @NotNull
@@ -122,6 +121,11 @@ public class Test {
     } catch (NotFoundException e) {
       throw new BadRequestException("Invalid 'test' entity: " + e.getMessage());
     }
+  }
+
+  @Nullable
+  public ParsedTestName getParsedTestName() {
+    return parsedTestName;
   }
 
   @NotNull

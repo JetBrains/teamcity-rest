@@ -137,18 +137,23 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     STestRun method2 = build10.getFullStatistics().getAllTests().get(1);
 
     {
-      TestOccurrence testOccurrence = new TestOccurrence(method1, getBeanContext(myServer), new Fields("test(id,name,testClass,testMethodName)"));
-      assertEquals("MyClass", testOccurrence.getTest().testClass);
-      assertEquals("method1", testOccurrence.getTest().testMethodName);
-      assertNull(testOccurrence.getTest().testPackage); //we didn't ask for the testPackage in the fields list
+      TestOccurrence testOccurrence = new TestOccurrence(method1, getBeanContext(myServer), new Fields("test(id,name)"));
+      assertNull( testOccurrence.getTest().getParsedTestName());  //if we didn't ask for parsed test name - the object will be not filled
+    }
+
+    {
+      TestOccurrence testOccurrence = new TestOccurrence(method1, getBeanContext(myServer), new Fields("test(id,name,parsedTestName)"));
+      assertNotNull( testOccurrence.getTest().getParsedTestName());
+      assertEquals("MyClass", testOccurrence.getTest().getParsedTestName().testClass);
+      assertEquals("method1", testOccurrence.getTest().getParsedTestName().testMethodName);
     }
 
 
     {
-      TestOccurrence testOccurrence = new TestOccurrence(method2, getBeanContext(myServer), new Fields("test(id,name,testClass,testMethodName,testPackage)"));
-      assertEquals("MyClass", testOccurrence.getTest().testClass);
-      assertEquals("method2", testOccurrence.getTest().testMethodName);
-      assertEquals("com.jetbrains.teamcity", testOccurrence.getTest().testPackage); //this time we did ask
+      TestOccurrence testOccurrence = new TestOccurrence(method2, getBeanContext(myServer), new Fields("test(id,name,parsedTestName)"));
+      assertNotNull( testOccurrence.getTest().getParsedTestName());
+      assertEquals("MyClass", testOccurrence.getTest().getParsedTestName().testClass);
+      assertEquals("method2", testOccurrence.getTest().getParsedTestName().testMethodName);
     }
   }
 
