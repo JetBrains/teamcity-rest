@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
+import com.intellij.openapi.diagnostic.Logger;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -47,6 +48,8 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
   "href",
   "ignoreDetails", "details", "test", "mute", "build", "firstFailed", "nextFixed", "invocations", "metadata"})
 public class TestOccurrence {
+  private static final Logger LOG = Logger.getInstance(TestOccurrence.class.getName());
+
   @NotNull private BeanContext myBeanContext;
   @NotNull private Fields myFields;
   @NotNull private STestRun myTestRun;
@@ -166,16 +169,27 @@ public class TestOccurrence {
   @XmlElement
   public TestOccurrence getFirstFailed() {
     //todo: use FirstFailedInFixedInCalculator#calculateFFIData instead???
-    return ValueWithDefault.decideDefault(myFields.isIncluded("firstFailed", false),
-                                          () -> Util.resolveNull(myTestRun.getFirstFailed(),
-                                                                 (ff) -> new TestOccurrence(getFailedTestRun(ff, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
+    try {
+      return ValueWithDefault.decideDefault(myFields.isIncluded("firstFailed", false),
+                                            () -> Util.resolveNull(myTestRun.getFirstFailed(),
+                                                                   (ff) -> new TestOccurrence(getFailedTestRun(ff, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
+    } catch (IllegalArgumentException e) {
+      // can be thrown by getFailedTestRun
+      LOG.warnAndDebugDetails("Returning empty firstFailed as there was an error while getting firstFailed for test occurrence \"" + TestOccurrenceFinder.getTestRunLocator(myTestRun) + "\"", e);
+      return null;
+    }
   }
 
   @XmlElement
   public TestOccurrence getNextFixed() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("nextFixed", false),
-                                          () -> Util.resolveNull(myTestRun.getFixedIn(),
-                                                                 (fi) -> new TestOccurrence(getSuccessfulTestRun(fi, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
+    try {
+      return ValueWithDefault.decideDefault(myFields.isIncluded("nextFixed", false),
+                                            () -> Util.resolveNull(myTestRun.getFixedIn(),
+                                                                   (fi) -> new TestOccurrence(getSuccessfulTestRun(fi, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
+    } catch (IllegalArgumentException e) {
+      LOG.warnAndDebugDetails("Returning empty nextFixed as there was an error while getting nextFixed for test occurrence \"" + TestOccurrenceFinder.getTestRunLocator(myTestRun) + "\"", e);
+      return null;
+    }
   }
 
   @XmlElement
@@ -204,7 +218,7 @@ public class TestOccurrence {
     //this is different from getSuccessfulTestRun to be more performant
     long testNameId = sampleTestRun.getTest().getTestNameId();
     return build.getShortStatistics().getFailedTests().stream().filter(t -> t.getTest().getTestNameId() == testNameId).findFirst()
-                          .orElseThrow(() -> new IllegalArgumentException("Cannot find test with name \"" + sampleTestRun.getFullText() + "\" in build with id " + build.getBuildId()));
+                          .orElseThrow(() -> new IllegalArgumentException("Cannot find test with name \"" + sampleTestRun.getTest().getName() + "\" in build with id " + build.getBuildId()));
   }
 
   /**
@@ -214,7 +228,7 @@ public class TestOccurrence {
   private STestRun getSuccessfulTestRun(@NotNull final SBuild build, @NotNull final STestRun sampleTestRun) {
     final STestRun testRun = build.getBuildStatistics(ALL_TESTS_NO_DETAILS).findTestByTestNameId(sampleTestRun.getTest().getTestNameId());
     if (testRun == null) {
-      throw new IllegalArgumentException("Cannot find test with name \"" + sampleTestRun.getFullText() + "\" in build with id " + build.getBuildId());
+      throw new IllegalArgumentException("Cannot find test with name \"" + sampleTestRun.getTest().getName() + "\" in build with id " + build.getBuildId());
     }
     return testRun;
   }
