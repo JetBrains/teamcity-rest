@@ -706,7 +706,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
      .add("name", Comparator.comparing(tr -> tr.getTest().getName().getAsString(), String.CASE_INSENSITIVE_ORDER))
      .add("duration", Comparator.comparingInt(STestRun::getDuration))
      .add("runOrder", Comparator.comparingInt(STestRun::getOrderId))
-     .add("status", Comparator.comparing(tr -> tr.getStatus().getPriority()));
+     .add("status", Comparator.comparing(tr -> tr.getStatus().getPriority()))
+     .add("isNew", Comparator.comparing(STestRun::isNewFailure)); //even more experimental than entire sorting feature
 
   private static class Orders<T> {
     private final Map<String, Comparator<T>> myComparators = new LinkedHashMap<>();
