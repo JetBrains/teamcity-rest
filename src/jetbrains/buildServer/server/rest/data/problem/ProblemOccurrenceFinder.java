@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data.problem;
 import com.intellij.openapi.diagnostic.Logger;
 import java.io.IOException;
 import java.util.*;
+import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -389,5 +390,10 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     }else{
       return myProjectFinder.getRootProject();
     }
+  }
+
+  @NotNull
+  public BuildProblem getProblem(final @NotNull SBuild build, @NotNull final BuildProblemData problemData) {
+    return getItem(Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(build)).setDimension(IDENTITY, problemData.getIdentity()).getStringRepresentation());
   }
 }

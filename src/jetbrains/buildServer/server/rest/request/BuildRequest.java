@@ -29,6 +29,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.agent.ServerProvidedProperties;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.controllers.HttpDownloadProcessor;
@@ -40,6 +41,7 @@ import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
+import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -48,6 +50,7 @@ import jetbrains.buildServer.server.rest.model.build.*;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.change.BuildChanges;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
+import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.util.AggregatedBuildArtifactsElementBuilder;
@@ -682,6 +685,48 @@ public class BuildRequest {
     return new ProblemOccurrences(buildProblems, ProblemOccurrenceRequest.getHref(build), null,  new Fields(fields), myBeanContext);
   }
 
+  /**
+   * Experimental.
+   * Adds a build problem with given details. The same as marking the build as failed from UI.
+   */
+  @POST
+  @Path("/{buildLocator}/problemOccurrences")
+  @Consumes({"text/plain"})
+  @Produces({"application/xml", "application/json"})
+  public ProblemOccurrence addProblem(@PathParam("buildLocator") String buildLocator, String problemDetails,  @QueryParam("fields") String fields) {
+    BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(null, buildLocator);
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build == null) {
+      throw new NotFoundException("No finished build associated with promotion id " + buildPromotion.getId());
+    }
+    User user = myPermissionChecker.getCurrent().getAssociatedUser();
+    if (user == null) {
+      throw new BadRequestException("Cannot perform operation: no current user");
+    }
+    BuildProblemData problemData = build.addUserBuildProblem((SUser)user, problemDetails);
+    return new ProblemOccurrence(myBeanContext.getSingletonService(ProblemOccurrenceFinder.class).getProblem(build, problemData), myBeanContext, new Fields(fields));
+  }
+
+  /**
+   * Experimental.
+   * Allows to add a build problem to the build. The only used attributes of the submitted problem are identity, type, details, additionalData
+   */
+  @POST
+  @Path("/{buildLocator}/problemOccurrences")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  public ProblemOccurrence addProblem(@PathParam("buildLocator") String buildLocator, ProblemOccurrence problemOccurrence,  @QueryParam("fields") String fields) {
+    BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(null, buildLocator);
+    checkBuildOperationPermission(buildPromotion);
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build == null) {
+      throw new NotFoundException("No finished build associated with promotion id " + buildPromotion.getId());
+    }
+    BuildProblemData problemDetails = problemOccurrence.getFromPosted(myBeanContext.getServiceLocator());
+    build.addBuildProblem(problemDetails);
+    return new ProblemOccurrence(myBeanContext.getSingletonService(ProblemOccurrenceFinder.class).getProblem(build, problemDetails), myBeanContext, new Fields(fields));
+  }
+  
   @GET
   @Path("/{buildLocator}/" + TESTS)
   @Produces({"application/xml", "application/json"})
