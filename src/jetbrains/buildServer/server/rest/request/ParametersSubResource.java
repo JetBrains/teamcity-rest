@@ -258,6 +258,16 @@ public class ParametersSubResource {
     }
 
     @NotNull
+    public Collection<Parameter> getInheritedParametersCollection() {
+      return myBuildTypeOrTemplate.get().getInheritedParametersCollection();
+    }
+
+    @NotNull
+    public Collection<Parameter> getOwnParametersWithoutInheritedSpec() {
+      return myBuildTypeOrTemplate.get().getOwnParametersWithoutInheritedSpec();
+    }
+
+    @NotNull
     public Map<String, String> getOwnParameters() {
       return myBuildTypeOrTemplate.get().getOwnParameters();
     }
@@ -319,6 +329,11 @@ public class ParametersSubResource {
     @NotNull
     public Collection<Parameter> getInheritedParametersCollection() {
       return myProject.getInheritedParametersCollection();
+    }
+
+    @NotNull
+    public Collection<Parameter> getOwnParametersWithoutInheritedSpec() {
+      return myProject.getOwnParametersWithoutInheritedSpec();
     }
 
     @NotNull
