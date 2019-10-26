@@ -317,6 +317,11 @@ public class ParametersSubResource {
     }
 
     @NotNull
+    public Collection<Parameter> getInheritedParametersCollection() {
+      return myProject.getInheritedParametersCollection();
+    }
+
+    @NotNull
     public Map<String, String> getOwnParameters() {
       return myProject.getOwnParameters();
     }
