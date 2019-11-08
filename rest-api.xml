@@ -123,8 +123,6 @@
     <path refid="library.tomcat.classpath"/>
     <pathelement location="${basedir}/lib/activation-1.1.1.jar"/>
     <pathelement location="${basedir}/lib/jackson-core-asl-1.9.2.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
     <pathelement location="${basedir}/lib/jettison-1.1.jar"/>
     <pathelement location="${basedir}/lib/stax-api-1.0-2.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/common-impl.jar"/>
@@ -149,8 +147,6 @@
     <path refid="library.tomcat.classpath"/>
     <pathelement location="${basedir}/lib/activation-1.1.1.jar"/>
     <pathelement location="${basedir}/lib/jackson-core-asl-1.9.2.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
     <pathelement location="${basedir}/lib/jettison-1.1.jar"/>
     <pathelement location="${basedir}/lib/stax-api-1.0-2.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/common-impl.jar"/>
@@ -175,8 +171,6 @@
     <path refid="library.tomcat.classpath"/>
     <pathelement location="${basedir}/lib/activation-1.1.1.jar"/>
     <pathelement location="${basedir}/lib/jackson-core-asl-1.9.2.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
     <pathelement location="${basedir}/lib/jettison-1.1.jar"/>
     <pathelement location="${basedir}/lib/stax-api-1.0-2.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/common-impl.jar"/>
@@ -203,8 +197,6 @@
     <path refid="library.tomcat.classpath"/>
     <pathelement location="${basedir}/lib/activation-1.1.1.jar"/>
     <pathelement location="${basedir}/lib/jackson-core-asl-1.9.2.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
     <pathelement location="${basedir}/lib/jettison-1.1.jar"/>
     <pathelement location="${basedir}/lib/stax-api-1.0-2.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/common-impl.jar"/>
