@@ -131,19 +131,6 @@
     <orderEntry type="module" module-name="remote-api-impl" />
     <orderEntry type="library" name="slf4j" level="project" />
     <orderEntry type="library" name="commons-codec" level="project" />
-    <orderEntry type="module-library">
-      <library name="jaxb">
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jaxb-api-2.2.5.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jaxb-impl-2.2.5.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/src/jaxb-api-2.2.5-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jaxb-impl-2.2.5-sources.jar!/" />
-        </SOURCES>
-      </library>
-    </orderEntry>
     <orderEntry type="module" module-name="federation-server" />
     <orderEntry type="library" name="JodaTime" level="project" />
     <orderEntry type="module" module-name="server-diagnostic" />

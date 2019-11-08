@@ -16,7 +16,6 @@
         <element id="archive" name="rest-api.zip">
           <element id="directory" name="server">
             <element id="library" level="project" name="Jackson" />
-            <element id="library" level="project" name="jaxb" />
             <element id="library" level="project" name="Jersey" />
             <element id="library" level="project" name="Swagger" />
             <element id="archive" name="rest-api.jar">
@@ -3222,17 +3221,6 @@
         <root url="jar://$PROJECT_DIR$/lib/src/jackson-jaxrs-base-2.6.6-sources.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/src/jackson-jaxrs-json-provider-2.6.6-sources.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/src/jackson-module-jaxb-annotations-2.6.6-sources.jar!/" />
-      </SOURCES>
-    </library>
-    <library name="jaxb">
-      <CLASSES>
-        <root url="jar://$PROJECT_DIR$/lib/jaxb-api-2.2.5.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jaxb-impl-2.2.5.jar!/" />
-      </CLASSES>
-      <JAVADOC />
-      <SOURCES>
-        <root url="jar://$PROJECT_DIR$/lib/src/jaxb-api-2.2.5-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/jaxb-impl-2.2.5-sources.jar!/" />
       </SOURCES>
     </library>
     <library name="Jersey">

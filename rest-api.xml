@@ -74,11 +74,6 @@
     <pathelement location="${basedir}/lib/stax2-api-3.1.4.jar"/>
   </path>
   
-  <path id="library.jaxb.classpath">
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.5.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.5.jar"/>
-  </path>
-  
   <path id="library.jersey.classpath">
     <pathelement location="${basedir}/lib/jersey-core-1.19.jar"/>
     <pathelement location="${basedir}/lib/jersey-json-1.19.jar"/>
@@ -215,7 +210,6 @@
     <path refid="library.jackson.classpath"/>
     <path refid="library.swagger.classpath"/>
     <path refid="library.teamcity_closed_api_server.classpath"/>
-    <path refid="library.jaxb.classpath"/>
   </path>
   
   <path id="rest-api.runtime.production.module.classpath">
@@ -228,7 +222,6 @@
     <path refid="library.jackson.classpath"/>
     <path refid="library.swagger.classpath"/>
     <path refid="library.teamcity_closed_api_server.classpath"/>
-    <path refid="library.jaxb.classpath"/>
   </path>
   
   <path id="rest-api.module.classpath">
@@ -243,7 +236,6 @@
     <path refid="library.teamcity_closed_api_server.classpath"/>
     <path refid="library.testng_&amp;_mockito.classpath"/>
     <path refid="library.teamcity_server_tests.classpath"/>
-    <path refid="library.jaxb.classpath"/>
   </path>
   
   <path id="rest-api.runtime.module.classpath">
@@ -259,7 +251,6 @@
     <path refid="library.teamcity_closed_api_server.classpath"/>
     <path refid="library.testng_&amp;_mockito.classpath"/>
     <path refid="library.teamcity_server_tests.classpath"/>
-    <path refid="library.jaxb.classpath"/>
   </path>
   
   
