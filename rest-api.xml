@@ -139,8 +139,6 @@
   
   <path id="rest-api.module.production.classpath">
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
     <pathelement location="${basedir}/lib/jersey-core-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-json-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-server-1.16.jar"/>
@@ -164,8 +162,6 @@
   <path id="rest-api.runtime.production.module.classpath">
     <pathelement location="${rest-api.output.dir}"/>
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
     <pathelement location="${basedir}/lib/jersey-core-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-json-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-server-1.16.jar"/>
@@ -189,8 +185,6 @@
   <path id="rest-api.module.classpath">
     <pathelement location="${rest-api.output.dir}"/>
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
     <pathelement location="${basedir}/lib/jersey-core-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-json-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-server-1.16.jar"/>
@@ -222,8 +216,6 @@
     <pathelement location="${rest-api.testoutput.dir}"/>
     <pathelement location="${rest-api.output.dir}"/>
     <pathelement location="${basedir}/lib/asm-3.1.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
     <pathelement location="${basedir}/lib/jersey-core-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-json-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-server-1.16.jar"/>

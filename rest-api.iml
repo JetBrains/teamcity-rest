@@ -31,8 +31,6 @@
           <root url="jar://$MODULE_DIR$/lib/jersey-server-1.16.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jersey-servlet-1.16.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jersey-spring-1.16.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jaxb-impl-2.2.4-1.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/jaxb-api-2.2.4.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
@@ -42,8 +40,6 @@
           <root url="jar://$MODULE_DIR$/lib/src/jersey-servlet-1.16-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/jersey-spring-1.16-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/asm-3.1-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jaxb-impl-2.2.4-1-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/jaxb-api-2.2.4-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
