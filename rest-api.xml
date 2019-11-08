@@ -133,8 +133,6 @@
     <path refid="library.tomcat.classpath"/>
     <pathelement location="${basedir}/lib/activation-1.1.jar"/>
     <pathelement location="${basedir}/lib/jackson-core-asl-1.1.1.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.1.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.1.12.jar"/>
     <pathelement location="${basedir}/lib/jettison-1.1.jar"/>
     <pathelement location="${basedir}/lib/jsr173_1.0_api.jar"/>
     <pathelement location="${basedir}/lib/stax-api-1.0-2.jar"/>
@@ -159,8 +157,6 @@
     <path refid="library.tomcat.classpath"/>
     <pathelement location="${basedir}/lib/activation-1.1.jar"/>
     <pathelement location="${basedir}/lib/jackson-core-asl-1.1.1.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.1.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.1.12.jar"/>
     <pathelement location="${basedir}/lib/jettison-1.1.jar"/>
     <pathelement location="${basedir}/lib/jsr173_1.0_api.jar"/>
     <pathelement location="${basedir}/lib/stax-api-1.0-2.jar"/>
@@ -185,8 +181,6 @@
     <path refid="library.tomcat.classpath"/>
     <pathelement location="${basedir}/lib/activation-1.1.jar"/>
     <pathelement location="${basedir}/lib/jackson-core-asl-1.1.1.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.1.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.1.12.jar"/>
     <pathelement location="${basedir}/lib/jettison-1.1.jar"/>
     <pathelement location="${basedir}/lib/jsr173_1.0_api.jar"/>
     <pathelement location="${basedir}/lib/stax-api-1.0-2.jar"/>
@@ -213,8 +207,6 @@
     <path refid="library.tomcat.classpath"/>
     <pathelement location="${basedir}/lib/activation-1.1.jar"/>
     <pathelement location="${basedir}/lib/jackson-core-asl-1.1.1.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.1.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.1.12.jar"/>
     <pathelement location="${basedir}/lib/jettison-1.1.jar"/>
     <pathelement location="${basedir}/lib/jsr173_1.0_api.jar"/>
     <pathelement location="${basedir}/lib/stax-api-1.0-2.jar"/>
