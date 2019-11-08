@@ -126,8 +126,6 @@
     <pathelement location="${basedir}/lib/jersey-server-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-servlet-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-spring-1.16.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
     <path refid="library.teamcity_open_api_server.classpath"/>
     <path refid="library.teamcity_open_api_common.classpath"/>
     <path refid="library.teamcity_third-party.classpath"/>
@@ -151,8 +149,6 @@
     <pathelement location="${basedir}/lib/jersey-server-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-servlet-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-spring-1.16.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
     <path refid="library.teamcity_open_api_server.classpath"/>
     <path refid="library.teamcity_open_api_common.classpath"/>
     <path refid="library.teamcity_third-party.classpath"/>
@@ -176,8 +172,6 @@
     <pathelement location="${basedir}/lib/jersey-server-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-servlet-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-spring-1.16.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
     <path refid="library.teamcity_open_api_server.classpath"/>
     <path refid="library.teamcity_open_api_common.classpath"/>
     <path refid="library.teamcity_third-party.classpath"/>
@@ -204,8 +198,6 @@
     <pathelement location="${basedir}/lib/jersey-server-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-servlet-1.16.jar"/>
     <pathelement location="${basedir}/lib/jersey-spring-1.16.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-api-2.2.4.jar"/>
-    <pathelement location="${basedir}/lib/jaxb-impl-2.2.4-1.jar"/>
     <path refid="library.teamcity_open_api_server.classpath"/>
     <path refid="library.teamcity_open_api_common.classpath"/>
     <path refid="library.teamcity_third-party.classpath"/>
