@@ -170,10 +170,14 @@ public class TestOccurrence {
   public TestOccurrence getFirstFailed() {
     //todo: use FirstFailedInFixedInCalculator#calculateFFIData instead???
     try {
+      if (myTestRun.isNewFailure()) {
+        return null;
+      }
+
       return ValueWithDefault.decideDefault(myFields.isIncluded("firstFailed", false),
                                             () -> Util.resolveNull(myTestRun.getFirstFailed(),
                                                                    (ff) -> new TestOccurrence(getFailedTestRun(ff, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
-    } catch (IllegalArgumentException e) {
+    } catch (IllegalArgumentException | UnsupportedOperationException e) {
       // can be thrown by getFailedTestRun
       LOG.warnAndDebugDetails("Returning empty firstFailed as there was an error while getting firstFailed for test occurrence \"" + TestOccurrenceFinder.getTestRunLocator(myTestRun) + "\"", e);
       return null;
@@ -183,10 +187,13 @@ public class TestOccurrence {
   @XmlElement
   public TestOccurrence getNextFixed() {
     try {
+      if (!myTestRun.isFixed()) {
+        return null;
+      }
       return ValueWithDefault.decideDefault(myFields.isIncluded("nextFixed", false),
                                             () -> Util.resolveNull(myTestRun.getFixedIn(),
                                                                    (fi) -> new TestOccurrence(getSuccessfulTestRun(fi, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
-    } catch (IllegalArgumentException e) {
+    } catch (IllegalArgumentException | UnsupportedOperationException e) {
       LOG.warnAndDebugDetails("Returning empty nextFixed as there was an error while getting nextFixed for test occurrence \"" + TestOccurrenceFinder.getTestRunLocator(myTestRun) + "\"", e);
       return null;
     }
