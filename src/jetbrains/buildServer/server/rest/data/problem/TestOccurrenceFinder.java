@@ -60,8 +60,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   protected static final String INVOCATIONS = "invocations"; //experimental
   protected static final String ORDER = "orderBy"; //highly experimental
 
-  private static final String PART_TEST_NAME = "partOfTestName"; //even more experimental, works only with 'build' locator
-
   @NotNull private final TestFinder myTestFinder;
   @NotNull private final BuildFinder myBuildFinder;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
@@ -76,7 +74,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull ProjectFinder projectFinder,
                               final @NotNull BuildHistoryEx buildHistory,
                               final @NotNull CurrentProblemsManager currentProblemsManager) {
-    super(DIMENSION_ID, TEST, NAME, PART_TEST_NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
+    super(DIMENSION_ID, TEST, NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
     setHiddenDimensions(EXPAND_INVOCATIONS, INVOCATIONS);
     setHiddenDimensions(ORDER); //highly experiemntal
     myTestFinder = testFinder;
@@ -108,7 +106,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                   .setDimension(TEST, TestFinder.getTestLocator(testRun.getTest()))
                   .setDimension(BUILD, BuildRequest.getBuildLocator(testRun.getBuild()))
                   .setDimension(EXPAND_INVOCATIONS, Locator.BOOLEAN_TRUE)
-                  .setDimension(PART_TEST_NAME, Locator.getStringLocator())
                   .getStringRepresentation();
   }
 
@@ -440,17 +437,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         result.add(new FilterConditionChecker<STestRun>() {
           public boolean isIncluded(@NotNull final STestRun item) {
             return builds.contains(item.getBuild().getBuildPromotion());
-          }
-        });
-      }
-    }
-
-    if (locator.getUnusedDimensions().contains(PART_TEST_NAME)) {
-      String testDimension = locator.getSingleDimensionValue(PART_TEST_NAME);
-      if (testDimension != null) {
-        result.add(new FilterConditionChecker<STestRun>() {
-          public boolean isIncluded(@NotNull final STestRun item) {
-            return item.getTest().getName().getAsString().contains(testDimension);
           }
         });
       }

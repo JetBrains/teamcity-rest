@@ -226,33 +226,8 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     test.check("(value:aaa,ignoreCase:true)", "aaa", "AAA");
     test.check("(value:aaa,matchType:starts-with)", "aaabbb", "aaa");
     test.check("(value:ab,matchType:contains)", "aaabbb", "(aaabbb)");
+    test.check("(value:(aa),matchType:contains)", "aaabbb", "aaa", "(aaabbb)");
   }
-
-  @Test
-  public void testByPartOfTestName() throws Exception {
-    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
-    final SFinishedBuild build10 = build().in(buildType)
-                                          .withTest("aaa", false)
-                                          .withTest("aabb", true)
-                                          .withTest("ccc", false)
-                                          .withTest("com.jetbrains.teamcity.MyClass.method1", false)
-                                          .withTest("com.jetbrains.teamcity.MyClass.method2", true)
-                                          .finish();
-
-    check("build:(id:" + build10.getBuildId() + ")", TEST_MATCHER, t("aaa", Status.FAILURE, 1),
-          t("aabb", Status.NORMAL, 2),
-          t("ccc", Status.FAILURE, 3),
-          t("com.jetbrains.teamcity.MyClass.method1", Status.FAILURE, 4),
-          t("com.jetbrains.teamcity.MyClass.method2", Status.NORMAL, 5));
-    check("build:(id:" + build10.getBuildId() + "),partOfTestName:missingTest", TEST_MATCHER);
-    check("build:(id:" + build10.getBuildId() + "),partOfTestName:aabb", TEST_MATCHER, t("aabb", Status.NORMAL, 2));
-    check("build:(id:" + build10.getBuildId() + "),partOfTestName:aa", TEST_MATCHER, t("aaa", Status.FAILURE, 1), t("aabb", Status.NORMAL, 2));
-    check("build:(id:" + build10.getBuildId() + "),partOfTestName:aa,status:FAILURE", TEST_MATCHER, t("aaa", Status.FAILURE, 1));
-    check("build:(id:" + build10.getBuildId() + "),partOfTestName:com.jetbrains.teamcity.MyClass", TEST_MATCHER,
-          t("com.jetbrains.teamcity.MyClass.method1", Status.FAILURE, 4),
-          t("com.jetbrains.teamcity.MyClass.method2", Status.NORMAL, 5));
-  }
-
 
   @Test
   public void testTestNameDetails() throws Exception {
