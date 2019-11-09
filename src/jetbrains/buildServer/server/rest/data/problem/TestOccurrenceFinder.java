@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data.problem;
 
 import com.google.common.collect.ComparisonChain;
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
@@ -211,9 +212,10 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       for (BuildPromotion build : builds) {
         SBuild associatedBuild = build.getAssociatedBuild();
         if (associatedBuild != null) {
-          for (STest test : tests.myEntries) {
-            STestRun item = findTest(test.getTestNameId(), associatedBuild);
-            if (item != null) {
+          Set<Long> allTestNameIds = tests.myEntries.stream().map(t -> t.getTestNameId()).collect(Collectors.toSet());
+          final List<STestRun> allTests = getBuildStatistics(associatedBuild, locator).getAllTests();
+          for (STestRun item : allTests) {
+            if (allTestNameIds.contains(item.getTest().getTestNameId())) {
               result.add(item);
             }
           }
@@ -579,13 +581,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return build.getBuildStatistics(new BuildStatisticsOptions(optionsMask, 0));
   }
 
-  //todo: use getBuildStatistics
-  @Nullable
-  private STestRun findTest(final @NotNull Long testNameId, final @NotNull SBuild build) {
-    return build.getBuildStatistics(ALL_TESTS_NO_DETAILS).findTestByTestNameId(testNameId);
-  }
-
-  //todo: use getBuildStatistics
   @Nullable
   private STestRun findTestByTestRunId(@NotNull final Long testRunId, @NotNull final SBuild build) {
     //todo: TeamCity API (MP) how to implement this without build?
