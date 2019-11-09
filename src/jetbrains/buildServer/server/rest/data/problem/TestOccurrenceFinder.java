@@ -46,6 +46,7 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
 public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   private static final String BUILD = "build";
   private static final String TEST = "test";
+  private static final String NAME = "name"; //value condition for the test's name
   private static final String BUILD_TYPE = "buildType";
   public static final String AFFECTED_PROJECT = "affectedProject";
   private static final String CURRENT = "currentlyFailing";
@@ -75,7 +76,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull ProjectFinder projectFinder,
                               final @NotNull BuildHistoryEx buildHistory,
                               final @NotNull CurrentProblemsManager currentProblemsManager) {
-    super(DIMENSION_ID, TEST, PART_TEST_NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
+    super(DIMENSION_ID, TEST, NAME, PART_TEST_NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
     setHiddenDimensions(EXPAND_INVOCATIONS, INVOCATIONS);
     setHiddenDimensions(ORDER); //highly experiemntal
     myTestFinder = testFinder;
@@ -408,6 +409,12 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
           return FilterUtil.isIncludedByBooleanFilter(ignoredDimension, item.isIgnored());
         }
       });
+    }
+
+    final String nameDimension = locator.getSingleDimensionValue(NAME);
+    if (nameDimension != null) {
+      ValueCondition nameCondition = ParameterCondition.createValueConditionFromPlainValueOrCondition(nameDimension);
+      result.add(item -> nameCondition.matches(item.getTest().getName().getAsString()));
     }
 
     if (locator.getUnusedDimensions().contains(TEST)) {

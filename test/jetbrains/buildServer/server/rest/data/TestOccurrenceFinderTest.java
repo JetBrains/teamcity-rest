@@ -197,6 +197,38 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
   }
 
   @Test
+  public void testByTestOccurrenceNameCondition() throws Exception {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build10 = build().in(buildType)
+                                          .withTest("aaabbb", true)
+                                          .withTest("aaa", true)
+                                          .withTest("AAA", true)
+                                          .withTest("bbb", true)
+                                          .withTest("(aaabbb)", true)
+                                          .finish();
+
+    int idx = 1;
+    check("build:(id:" + build10.getBuildId() + "),expandInvocations:true", TEST_MATCHER,
+          t("aaabbb", Status.NORMAL, idx++),
+          t("aaa", Status.NORMAL, idx++),
+          t("AAA", Status.NORMAL, idx++),
+          t("bbb", Status.NORMAL, idx++),
+          t("(aaabbb)", Status.NORMAL, idx++)
+    );
+
+    Checker test = new Checker<TestRunData, String>(nameDimension -> "build:(id:" + build10.getBuildId() + "),name:" + nameDimension,
+                                                    testName -> t(testName, Status.NORMAL, null),
+                                                    TEST_MATCHER);
+
+    test.check("aaa", "aaa");
+    test.check("aa");
+    test.check("(value:aaa)", "aaa");
+    test.check("(value:aaa,ignoreCase:true)", "aaa", "AAA");
+    test.check("(value:aaa,matchType:starts-with)", "aaabbb", "aaa");
+    test.check("(value:ab,matchType:contains)", "aaabbb", "(aaabbb)");
+  }
+
+  @Test
   public void testByPartOfTestName() throws Exception {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
     final SFinishedBuild build10 = build().in(buildType)
