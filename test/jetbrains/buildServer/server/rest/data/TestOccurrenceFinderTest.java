@@ -18,6 +18,8 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.base.Objects;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
@@ -27,6 +29,7 @@ import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityFacade;
 import jetbrains.buildServer.responsibility.impl.TestNameResponsibilityEntryImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.TypedValue;
@@ -93,6 +96,72 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     check("build:(id:" + build10.getBuildId() + "),test:(name:missingTest)", TEST_MATCHER);
     check("build:(id:" + build10.getBuildId() + "),test:(name:bbb)", TEST_MATCHER, t("bbb", Status.NORMAL, 2));
     check("build:(id:" + build10.getBuildId() + "),test:(currentlyFailing:true)", TEST_MATCHER, t("aaa", Status.FAILURE, 1), t("ccc", Status.FAILURE, 3));
+  }
+  
+  @Test
+  public void testByTestName() throws Exception {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build10 = build().in(buildType)
+                                          .withTest("bbb", true)
+                                          .withTest("(bbb)", true)
+                                          .withTest("((bbb))", true)
+                                          .withTest("ccc(ddd)", true)
+                                          .withTest("ccc(ddd)", true)
+                                          .withTest("(aaa(bbb))", true)
+                                          .withTest("(aaa)(bbb)", true)
+                                          .withTest("aaa:bbb", true)
+                                          .withTest("(aaa:bbb)", true)
+                                          .withTest("((::,,", true)
+                                          .withTest("::,,", true)
+                                          .withTest("(::,,)", true)
+                                          .withTest("((::,,))", true)
+                                          .finish();
+
+    int idx = 1;
+    check("build:(id:" + build10.getBuildId() + "),expandInvocations:true", TEST_MATCHER,
+          t("bbb", Status.NORMAL, idx++),
+          t("(bbb)", Status.NORMAL, idx++),
+          t("((bbb))", Status.NORMAL, idx++),
+          t("ccc(ddd)", Status.NORMAL, idx++),
+          t("ccc(ddd)", Status.NORMAL, idx++),
+          t("(aaa(bbb))", Status.NORMAL, idx++),
+          t("(aaa)(bbb)", Status.NORMAL, idx++),
+          t("aaa:bbb", Status.NORMAL, idx++),
+          t("(aaa:bbb)", Status.NORMAL, idx++),
+          t("((::,,", Status.NORMAL, idx++),
+          t("::,,", Status.NORMAL, idx++),
+          t("(::,,)", Status.NORMAL, idx++),
+          t("((::,,))", Status.NORMAL, idx++)
+    );
+
+    Checker test = new Checker<TestRunData, String>(nameDimension -> "build:(id:" + build10.getBuildId() + "),expandInvocations:true,test:(name:" + nameDimension + ")",
+                                                    testName -> t(testName, Status.NORMAL, null),
+                                                    TEST_MATCHER);
+
+    test.check("bbb", "bbb");
+    test.check("(bbb)", "bbb");
+    test.check("((bbb))", "(bbb)");
+    test.check("(((bbb)))", "((bbb))");
+    check("build:(id:" + build10.getBuildId() + "),expandInvocations:true,test:(name:" + "ccc(ddd)" + ")", TEST_MATCHER,
+          t("ccc(ddd)", Status.NORMAL, null), t("ccc(ddd)", Status.NORMAL, null));
+    check("build:(id:" + build10.getBuildId() + "),expandInvocations:true,test:(name:" + "(ccc(ddd))" + ")", TEST_MATCHER,
+          t("ccc(ddd)", Status.NORMAL, null), t("ccc(ddd)", Status.NORMAL, null));
+    test.check("((ccc(ddd)))");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "build:(id:" + build10.getBuildId() + "),expandInvocations:true,test:(name:" + "(aaa)(bbb)" + ")");
+    test.check("((aaa)(bbb))", "(aaa)(bbb)");
+    test.check("((aaa)(bbb))", "(aaa)(bbb)");
+    test.check("aaa:bbb", "aaa:bbb");
+    test.check("(aaa:bbb)", "aaa:bbb");
+    test.check("((aaa:bbb))", "(aaa:bbb)");
+    test.check("(((aaa:bbb)))");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "build:(id:" + build10.getBuildId() + "),expandInvocations:true,test:(name:" + "((::,," + ")");
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "build:(id:" + build10.getBuildId() + "),expandInvocations:true,test:(name:" + "::,," + ")");
+    test.check("(::,,)", "::,,");
+    test.check("((::,,))", "(::,,)");
+    test.check("(((::,,)))", "((::,,))");
+
+    test.check("($base64:" + new String(Base64.getUrlEncoder().encode("::,,".getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8) + ")", "::,,");
+    test.check("($base64:" + new String(Base64.getUrlEncoder().encode("((::,,".getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8) + ")", "((::,,");
   }
 
   @Test
@@ -381,22 +450,22 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     @Override
     public boolean matches(@NotNull final TestRunData data, @NotNull final STestRun sTestRun) {
       return data.testName.equals(sTestRun.getTest().getName().getAsString()) &&
-             data.status.equals(sTestRun.getStatus()) &&
+             (data.status == null || data.status.equals(sTestRun.getStatus())) &&
              //data.orderId == sTestRun.getOrderId() && //https://youtrack.jetbrains.com/issue/TW-62277 currently orderId depends on the way the tests are provided and the cache state, so it should not be relied upon
              (Status.UNKNOWN.equals(data.status) == sTestRun.isIgnored());
     }
   };
 
-  private static TestRunData t(final String testName, final Status status, final int orderId) {
+  private static TestRunData t(final String testName, @Nullable final Status status, @Nullable final Integer orderId) {
     return new TestRunData(testName, status, orderId);
   }
 
   private static class TestRunData {
     protected final String testName;
     protected final Status status;
-    protected final int orderId;
+    protected final Integer orderId;
 
-    private TestRunData(final String testName, final Status status, final int orderId) {
+    private TestRunData(final String testName, final Status status, final Integer orderId) {
       this.testName = testName;
       this.status = status;
       this.orderId = orderId;

@@ -20,6 +20,7 @@ import com.intellij.openapi.util.Pair;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.artifacts.RevisionRules;
@@ -220,6 +221,10 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     check(locator, matcher, getFinder(), items);
   }
 
+  private <S> void check_helper(@Nullable final String locator, @NotNull Matcher<S, T> matcher, S[] items) {
+    check(locator, matcher, getFinder(), items);
+  }
+
   public <S, R> void check(@Nullable final String locator, @NotNull Matcher<S, R> matcher, @NotNull final Finder<R> finder, S... items) {
     check(locator, matcher, r -> getDescription(r), r -> getDescription(r), finder, items);
   }
@@ -243,6 +248,21 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     //check single item retrieve
     if (locator != null) {
       strategy.matchSingle(items, () -> finder.getItem(locator));
+    }
+  }
+
+  class Checker<S, I> {
+    @NotNull private final Function<String, String> myLocatorCreator;
+    @NotNull private final Function<I, S> myMapper;
+    @NotNull private final Matcher<S, T> myMatcher;
+
+    Checker(@NotNull final Function<String, String> locatorCreator, @NotNull final Function<I, S> mapper, @NotNull Matcher<S, T> matcher) {
+      myLocatorCreator = locatorCreator;
+      myMapper = mapper;
+      myMatcher = matcher;
+    }
+    public void check(@Nullable final String locatorPart, I... items) {
+      check_helper(myLocatorCreator.apply(locatorPart), myMatcher, (S[])Arrays.stream(items).map(myMapper).toArray());
     }
   }
 
