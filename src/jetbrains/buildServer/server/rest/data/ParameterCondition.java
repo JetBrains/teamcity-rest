@@ -25,6 +25,7 @@ import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.serverSide.Parameter;
@@ -148,12 +149,30 @@ public class ParameterCondition {
 
   @Nullable
   @Contract("!null -> !null; null -> null")
+  public static ValueCondition createValueConditionFromPlainValueOrCondition(@Nullable final String propertyConditionLocator) {
+    try {
+      return createValueCondition(propertyConditionLocator, false);
+    } catch (LocatorProcessException e) {
+      //not a valid locator - consider it a plain text value then
+      return new ValueCondition(RequirementType.EQUALS, propertyConditionLocator, false);
+    }
+  }
+
+  @Nullable
+  @Contract("!null -> !null; null -> null")
   public static ValueCondition createValueCondition(@Nullable final String propertyConditionLocator) {
+    return createValueCondition(propertyConditionLocator, true);
+  }
+
+  @Nullable
+  @Contract("!null -> !null; null -> null")
+  private static ValueCondition createValueCondition(@Nullable final String propertyConditionLocator, boolean surroundingBracesHaveSpecialMeaning) {
     if (propertyConditionLocator == null) {
       return null;
     }
 
-    final Locator locator = new Locator(propertyConditionLocator, VALUE, TYPE, IGNORE_CASE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    final Locator locator = new Locator(propertyConditionLocator, new Locator.Metadata(false, surroundingBracesHaveSpecialMeaning),
+                                        VALUE, TYPE, IGNORE_CASE, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
 
     final String value = locator.isSingleValue() ? locator.getSingleValue() : locator.getSingleDimensionValue(VALUE);
 

@@ -186,7 +186,7 @@ public class LocatorTest {
   }
 
   @Test
-  public void testEscaped() {
+  public void testEscaped() { //see also testEscapedNoSpecialBraces
     check("abc", true, "abc");
     check("(abc)", true, "abc");
     check("(a:b)", true, "a:b");
@@ -208,6 +208,33 @@ public class LocatorTest {
     checkException("a:(a)b)", LocatorProcessException.class);
     checkException("(a)b", LocatorProcessException.class);
     checkException("(a:b", LocatorProcessException.class);
+  }
+
+  @Test
+  public void testEscapedNoSpecialBraces() { //see also testEscaped
+    Locator.Metadata m = new Locator.Metadata(false, false);
+
+    check("abc", m, true, "abc");
+    check("(abc)", m, true, "(abc)");
+    check("(a:b)", m, true, "(a:b)");
+    checkException("a:b,(c:d)", m, LocatorProcessException.class);
+    check("a:b,c:(d)", m, false, null, "a", "b", "c", "d");
+    check("(a:b,d(x:y))", m, true, "(a:b,d(x:y))");
+    check("(a:b,)d(x:y)", m, true, "(a:b,)d(x:y)");
+    check("a:(bb)", m, false, null, "a", "bb");
+    check("a:(b:c)", m, false, null, "a", "b:c");
+    check("a:(a:b,d(x:y))", m, false, null, "a", "a:b,d(x:y)");
+    checkException("a:(a:b,)d(x:y)", m, LocatorProcessException.class);
+    check("a:(x((y))z)", m, false, null, "a", "x((y))z");
+    checkException("a:(x(y))z)", m, LocatorProcessException.class);
+    checkException("a:(x((y)z)", m, LocatorProcessException.class);
+
+    check("a:((bb))", m, false, null, "a", "(bb)");
+
+    checkException("a:(a(b)", m, LocatorProcessException.class);
+    checkException("a:(a)b)", m, LocatorProcessException.class);
+    checkException("(a)b", m, LocatorProcessException.class);
+    checkException("(a:b", m, LocatorProcessException.class);
   }
 
   @Test
@@ -678,8 +705,17 @@ public class LocatorTest {
     BaseFinderTest.checkException(exception, () -> new Locator(locatorText), "creating locator for text '" + locatorText + "'");
   }
 
+  static <E extends Throwable> void checkException(String locatorText, Locator.Metadata metadata, @NotNull Class<E> exception) {
+    //noinspection ThrowableResultOfMethodCallIgnored
+    BaseFinderTest.checkException(exception, () -> new Locator(locatorText, metadata), "creating locator for text '" + locatorText + "'");
+  }
+
   void check(String locatorText, boolean isSingleValue, String singleValue, @Nullable String... dimensions) {
     check(new Locator(locatorText), isSingleValue, singleValue, dimensions);
+  }
+
+  void check(String locatorText, Locator.Metadata metadata, boolean isSingleValue, String singleValue, @Nullable String... dimensions) {
+    check(new Locator(locatorText, metadata), isSingleValue, singleValue, dimensions);
   }
 
   void check(Locator locator, boolean isSingleValue, String singleValue, @Nullable String... dimensions) {

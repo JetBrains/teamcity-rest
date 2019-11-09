@@ -86,7 +86,7 @@ public class TestFinder extends AbstractFinder<STest> {
 
   @NotNull
   public static String getTestLocator(@NotNull final String testName) {
-    return Locator.createEmptyLocator().setDimension(NAME, testName).getStringRepresentation();
+    return Locator.createEmptyLocator().setDimension(NAME, testName).getStringRepresentation(); //here we generate simple presentation, but can use name value condition syntax
   }
 
   @Override
@@ -118,13 +118,18 @@ public class TestFinder extends AbstractFinder<STest> {
 
     String nameDimension = locator.getSingleDimensionValue(NAME);
     if (nameDimension != null) {
-      final Long testNameId = myTestName2Index.findTestNameId(new TestName(nameDimension));
+      ValueCondition nameCondition = ParameterCondition.createValueConditionFromPlainValueOrCondition(nameDimension);
+      String constantName = nameCondition.getConstantValueIfSimpleEqualsCondition();
+      if (constantName == null) {
+        return null;
+      }
+      final Long testNameId = myTestName2Index.findTestNameId(new TestName(constantName));
       if (testNameId == null) {
-        throw new NotFoundException("No test can be found by " + NAME + " '" + nameDimension + "' on the entire server.");
+        throw new NotFoundException("No test can be found by " + NAME + " '" + constantName + "' on the entire server.");
       }
       STest test = findTest(testNameId);
       if (test == null) {
-        throw new NotFoundException("No test can be found by id corresponding to " + NAME + " '" + nameDimension + "' on the entire server.");
+        throw new NotFoundException("No test can be found by id corresponding to " + NAME + " '" + constantName + "' on the entire server.");
       }
       return test;
     }
@@ -161,10 +166,10 @@ public class TestFinder extends AbstractFinder<STest> {
     //todo: TeamCity API: find a way to support more cases
 
     ArrayList<String> exampleLocators = new ArrayList<String>();
-    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(NAME, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "<NUMBER>"));
+    exampleLocators.add(Locator.getStringLocator(NAME, "<CONSTANT_NAME>"));
+    exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "<PROJECT_LOCATOR>"));
+    exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "<PROJECT_LOCATOR>"));
     throw new BadRequestException("Unsupported test locator '" + locator.getStringRepresentation() + "'. Try locators: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
@@ -206,11 +211,8 @@ public class TestFinder extends AbstractFinder<STest> {
 
     final String nameDimension = locator.getSingleDimensionValue(NAME);
     if (nameDimension != null) {
-      result.add(new FilterConditionChecker<STest>() {
-        public boolean isIncluded(@NotNull final STest item) {
-          return nameDimension.equals(item.getName().getAsString());
-        }
-      });
+      ValueCondition nameCondition = ParameterCondition.createValueConditionFromPlainValueOrCondition(nameDimension);
+      result.add(item -> nameCondition.matches(item.getName().getAsString()));
     }
 
     final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);

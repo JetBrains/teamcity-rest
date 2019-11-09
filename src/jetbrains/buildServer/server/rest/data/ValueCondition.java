@@ -101,7 +101,8 @@ public class ValueCondition {
     final StringBuilder result = new StringBuilder();
     result.append("Value condition (");
     result.append(myRequirementType.getName()).append(", ");
-    if (myParameterValue != null) result.append("value:").append(myParameterValue).append(", ");
+    if (myParameterValue != null) result.append("value:").append(myParameterValue);
+    if (myIgnoreCase != null) result.append(", ignoreCase");
     result.append(")");
     return result.toString();
   }

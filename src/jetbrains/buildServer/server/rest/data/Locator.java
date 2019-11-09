@@ -61,7 +61,7 @@ public class Locator {
   public static final String HELP_DIMENSION = "$help";
 
   private final String myRawValue;
-  private final boolean myExtendedMode;
+  @NotNull private final Metadata myMetadata;
   private boolean modified = false;
   private final LinkedHashMap<String, List<String>> myDimensions;
   private final String mySingleValue;
@@ -94,7 +94,7 @@ public class Locator {
     mySupportedDimensions = locator.mySupportedDimensions != null ? locator.mySupportedDimensions.clone() : null;
     myIgnoreUnusedDimensions.addAll(locator.myIgnoreUnusedDimensions);
     myHiddenSupportedDimensions.addAll(locator.myHiddenSupportedDimensions);
-    myExtendedMode = locator.myExtendedMode;
+    myMetadata = locator.myMetadata;
   }
 
   /**
@@ -116,25 +116,37 @@ public class Locator {
    * @throws LocatorProcessException
    */
   public Locator(@Nullable final String locator, final boolean extendedMode, @Nullable final String... supportedDimensions) throws LocatorProcessException {
+    this(locator, new Metadata(extendedMode, true), supportedDimensions);
+  }
+
+  /**
+   * Creates locator with given metadata
+   *
+   * @param locator
+   * @param supportedDimensions dimensions supported in this locator, used in {@link #checkLocatorFullyProcessed()}
+   * @throws LocatorProcessException
+   */
+  public Locator(@Nullable final String locator, final Metadata metadata, @Nullable final String... supportedDimensions) throws LocatorProcessException {
     myRawValue = locator;
-    myExtendedMode = extendedMode;
+    myMetadata = new Metadata(metadata);
     if (StringUtil.isEmpty(locator)) {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
     mySupportedDimensions = supportedDimensions;
     myUsedDimensions = new HashSet<String>(mySupportedDimensions == null ? 10 : Math.max(mySupportedDimensions.length, 10));
-    String escapedValue = getUnescapedSingleValue(locator);
+    String escapedValue = getUnescapedSingleValue(locator, myMetadata);
+    
     if (escapedValue != null) {
       mySingleValue = escapedValue;
       myDimensions = new LinkedHashMap<String, List<String>>();
-    } else if (!extendedMode && !hasDimensions(locator)) {
+    } else if (!myMetadata.extendedMode && !hasDimensions(locator)) {
       mySingleValue = locator;
       myDimensions = new LinkedHashMap<String, List<String>>();
     } else {
       mySingleValue = null;
       myHiddenSupportedDimensions.add(HELP_DIMENSION);
       myIgnoreUnusedDimensions.add(HELP_DIMENSION);
-      myDimensions = parse(locator, mySupportedDimensions, myHiddenSupportedDimensions, myExtendedMode);
+      myDimensions = parse(locator, mySupportedDimensions, myHiddenSupportedDimensions, myMetadata.extendedMode);
     }
   }
 
@@ -153,19 +165,25 @@ public class Locator {
     }
     myHiddenSupportedDimensions.add(HELP_DIMENSION);
     myIgnoreUnusedDimensions.add(HELP_DIMENSION);
-    myExtendedMode = false;
+    myMetadata = new Metadata(false, true);
   }
 
   @Nullable
-  private String getUnescapedSingleValue(@NotNull final String text) {
+  private static String getUnescapedSingleValue(@NotNull final String text, final Metadata metadata) {
     if (text.length() > (DIMENSION_COMPLEX_VALUE_START_DELIMITER.length() + DIMENSION_COMPLEX_VALUE_END_DELIMITER.length()) &&
         text.startsWith(DIMENSION_COMPLEX_VALUE_START_DELIMITER) && text.endsWith(DIMENSION_COMPLEX_VALUE_END_DELIMITER)) {
-      return text.substring(DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(), text.length() - DIMENSION_COMPLEX_VALUE_END_DELIMITER.length());
+      //the value is wrapped in braces
+      if (metadata.surroundingBracesHaveSpecialMeaning) {
+        return text.substring(DIMENSION_COMPLEX_VALUE_START_DELIMITER.length(), text.length() - DIMENSION_COMPLEX_VALUE_END_DELIMITER.length());
+      } else {
+        return text;
+      }
+    } else {
+      return getBase64UnescapedSingleValue(text, metadata.extendedMode);
     }
-    return getBase64UnescapedSingleValue(text, myExtendedMode);
   }
-
-  @Nullable
+    
+    @Nullable
   private static String getBase64UnescapedSingleValue(final @NotNull String text, final boolean extendedMode) {
     if (!TeamCityProperties.getBooleanOrTrue("rest.locator.allowBase64")) return null;
     if (!text.startsWith(BASE64_ESCAPE_FAKE_DIMENSION + DIMENSION_NAME_VALUE_DELIMITER)) {
@@ -1064,5 +1082,20 @@ public class Locator {
   @Override
   public String toString() {
     return getStringRepresentation();
+  }
+
+  public static class Metadata {
+    final boolean extendedMode;
+    final boolean surroundingBracesHaveSpecialMeaning;
+
+    public Metadata(@NotNull final Metadata source) {
+      extendedMode = source.extendedMode;
+      surroundingBracesHaveSpecialMeaning = source.surroundingBracesHaveSpecialMeaning;
+    }
+
+    public Metadata(final boolean extendedMode, final boolean surroundingBracesHaveSpecialMeaning) {
+      this.extendedMode = extendedMode;
+      this.surroundingBracesHaveSpecialMeaning = surroundingBracesHaveSpecialMeaning;
+    }
   }
 }
