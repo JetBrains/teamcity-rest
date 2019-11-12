@@ -655,7 +655,7 @@ public class ProjectRequest {
   public String createSecureToken(@PathParam("projectLocator") String projectLocator, String secureValue) {
     SProject project = myProjectFinder.getItem(projectLocator);
     myPermissionChecker.checkProjectPermission(Permission.EDIT_PROJECT, project.getProjectId());
-    return ((ProjectEx)project).getOrCreateToken(secureValue);
+    return ((ProjectEx)project).getOrCreateToken(secureValue, "Requested via REST");
   }
 
   /* TeamCity API note:
@@ -840,7 +840,7 @@ public class ProjectRequest {
     myPermissionChecker.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     final SProject project = myProjectFinder.getItem(projectLocator);
     final String projectConfigFile = project.getConfigurationFile().getAbsolutePath();
-    final List<File> emptyList = Collections.<File>emptyList();
+    final List<File> emptyList = Collections.emptyList();
     myBeanContext.getSingletonService(ProjectsLoader.class).reloadProjects(emptyList, Collections.singleton(new File(projectConfigFile)), emptyList);
     return new Project(myProjectFinder.getItem(projectLocator), new Fields(fields), myBeanContext);
   }
