@@ -1638,7 +1638,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private List<BuildPromotion> getSnapshotRelatedBuilds(@NotNull final String snapshotDepDimension) {
     final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, SNAPSHOT_DEPENDENCIES_TRAVERSER);
     final List<BuildPromotion> result = graphFinder.getItems(snapshotDepDimension).myEntries;
-    Collections.sort(result, BUILD_PROMOTIONS_COMPARATOR);
+    sortBuildPromotions(result);
     return result; //todo: patch branch locator, personal, etc.???
   }
 
@@ -1646,8 +1646,29 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private List<BuildPromotion> getArtifactRelatedBuilds(@NotNull final String depDimension, @NotNull final Locator locator) {
     final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, new ArtifactDepsTraverser(locator));
     final List<BuildPromotion> result = graphFinder.getItems(depDimension).myEntries;
-    Collections.sort(result, BUILD_PROMOTIONS_COMPARATOR);
+    sortBuildPromotions(result);
     return result; //todo: patch branch locator, personal, etc.???
+  }
+
+  private void sortBuildPromotions(@NotNull final List<BuildPromotion> result) {
+    if (result.size() == 1) {
+      return;
+    }
+
+    Set<Long> buildIds = new HashSet<>();
+    result.forEach(bp -> {
+      Long buildId = bp.getAssociatedBuildId();
+      if (buildId != null) buildIds.add(buildId);
+    });
+
+    Map<Long, SBuild> resolvedBuildsMap = new HashMap<>();
+    if (!buildIds.isEmpty()) {
+      for (SBuild build: myBuildsManager.findBuildInstances(buildIds)) {
+        resolvedBuildsMap.put(build.getBuildPromotion().getId(), build);
+      }
+    }
+
+    Collections.sort(result, new BuildPromotionComparator(resolvedBuildsMap));
   }
 
   @NotNull
@@ -1684,6 +1705,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   }
 
   private static class BuildPromotionComparator implements Comparator<BuildPromotion> {
+    private final Map<Long, SBuild> myResolvedBuildsMap;
+
+    public BuildPromotionComparator() {
+      myResolvedBuildsMap = null;
+    }
+
+    public BuildPromotionComparator(@NotNull Map<Long, SBuild> resolvedBuildsMap) {
+      myResolvedBuildsMap = resolvedBuildsMap;
+    }
+
     public int compare(final BuildPromotion o1, final BuildPromotion o2) {
       final SQueuedBuild qb1 = o1.getQueuedBuild();
       final SQueuedBuild qb2 = o2.getQueuedBuild();
@@ -1697,8 +1728,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         return 1;
       }
 
-      final SBuild b1 = o1.getAssociatedBuild();
-      final SBuild b2 = o2.getAssociatedBuild();
+      final SBuild b1 = myResolvedBuildsMap == null ? o1.getAssociatedBuild() : myResolvedBuildsMap.get(o1.getId());
+      final SBuild b2 = myResolvedBuildsMap == null ? o2.getAssociatedBuild() : myResolvedBuildsMap.get(o2.getId());
       if (b1 != null) {
         if (b2 != null) {
           if (b1.isFinished()) {
