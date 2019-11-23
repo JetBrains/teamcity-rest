@@ -44,7 +44,7 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
  */
 @SuppressWarnings({"WeakerAccess"})
 @XmlRootElement(name = "testOccurrence")
-@XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "duration", "runOrder"/*experimental*/, "muted", "currentlyMuted", "currentlyInvestigated",
+@XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "duration", "runOrder"/*experimental*/, "newFailure"/*experimental*/, "muted", "currentlyMuted", "currentlyInvestigated",
   "href",
   "ignoreDetails", "details", "test", "mute", "build", "firstFailed", "nextFixed", "invocations", "metadata"})
 public class TestOccurrence {
@@ -83,6 +83,18 @@ public class TestOccurrence {
   @XmlAttribute
   public String getRunOrder() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("runOrder", false, false), String.valueOf(myTestRun.getOrderId()));
+  }
+
+  /**
+   * Experimental. Present only for failed tests. Indicates if this test was not failing in the previous build.
+   * This can be more effective than getting "firstFailed" details
+   */
+  @XmlAttribute
+  public Boolean isNewFailure() {
+    if (!myTestRun.getStatus().above(Status.NORMAL)) {
+      return null;
+    }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("newFailure", false, false), myTestRun.isNewFailure());
   }
 
   @XmlAttribute
@@ -168,7 +180,7 @@ public class TestOccurrence {
 
   @XmlElement
   public TestOccurrence getFirstFailed() {
-    //todo: use FirstFailedInFixedInCalculator#calculateFFIData instead???
+    //can use FirstFailedInFixedInCalculator#calculateFFIData instead, but since 2019.2 TestRun.getFirstFailed() should always return good data
     try {
       if (myTestRun.isNewFailure()) {
         return null;

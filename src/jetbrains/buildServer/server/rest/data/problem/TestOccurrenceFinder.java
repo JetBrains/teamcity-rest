@@ -56,6 +56,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   public static final String MUTED = "muted";
   public static final String CURRENTLY_MUTED = "currentlyMuted";
+  public static final String NEW_FAILURE = "newFailure";
   protected static final String EXPAND_INVOCATIONS = "expandInvocations"; //experimental
   protected static final String INVOCATIONS = "invocations"; //experimental
   protected static final String ORDER = "orderBy"; //highly experimental
@@ -74,7 +75,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull ProjectFinder projectFinder,
                               final @NotNull BuildHistoryEx buildHistory,
                               final @NotNull CurrentProblemsManager currentProblemsManager) {
-    super(DIMENSION_ID, TEST, NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
+    super(DIMENSION_ID, TEST, NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, NEW_FAILURE);
     setHiddenDimensions(EXPAND_INVOCATIONS, INVOCATIONS);
     setHiddenDimensions(ORDER); //highly experiemntal
     myTestFinder = testFinder;
@@ -474,6 +475,11 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       });
     }
 
+    final Boolean newFailure = locator.getSingleDimensionValueAsBoolean(NEW_FAILURE);
+    if (newFailure != null) {
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(newFailure, item.isNewFailure()));
+    }
+
     final Boolean muteDimension = locator.getSingleDimensionValueAsBoolean(MUTED);
     if (muteDimension != null) {
       result.add(new FilterConditionChecker<STestRun>() {
@@ -695,7 +701,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
      .add("duration", Comparator.comparingInt(STestRun::getDuration))
      .add("runOrder", Comparator.comparingInt(STestRun::getOrderId))
      .add("status", Comparator.comparing(tr -> tr.getStatus().getPriority()))
-     .add("isNew", Comparator.comparing(STestRun::isNewFailure)); //even more experimental than entire sorting feature
+     .add("newFailure", Comparator.comparing(STestRun::isNewFailure)); //even more experimental than entire sorting feature
 
   private static class Orders<T> {
     private final Map<String, Comparator<T>> myComparators = new LinkedHashMap<>();
