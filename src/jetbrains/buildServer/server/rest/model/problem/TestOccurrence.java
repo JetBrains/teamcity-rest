@@ -204,7 +204,7 @@ public class TestOccurrence {
       }
       return ValueWithDefault.decideDefault(myFields.isIncluded("nextFixed", false),
                                             () -> Util.resolveNull(myTestRun.getFixedIn(),
-                                                                   (fi) -> new TestOccurrence(getSuccessfulTestRun(fi, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
+                                                                   (fi) -> new TestOccurrence(getSuccessfulTestRun(fi, myTestRun), myBeanContext, myFields.getNestedField("nextFixed"))));
     } catch (IllegalArgumentException | UnsupportedOperationException e) {
       LOG.warnAndDebugDetails("Returning empty nextFixed as there was an error while getting nextFixed for test occurrence \"" + TestOccurrenceFinder.getTestRunLocator(myTestRun) + "\"", e);
       return null;
