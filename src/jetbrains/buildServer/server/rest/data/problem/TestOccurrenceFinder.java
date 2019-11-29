@@ -477,7 +477,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     final Boolean newFailure = locator.getSingleDimensionValueAsBoolean(NEW_FAILURE);
     if (newFailure != null) {
-      result.add(item -> FilterUtil.isIncludedByBooleanFilter(newFailure, item.isNewFailure()));
+      //when newFailure is specified, do not match non-failed tests. This matches the logic of newFailure attribute presence in TestOccurrence
+      result.add(item -> item.getStatus().isFailed() && FilterUtil.isIncludedByBooleanFilter(newFailure, item.isNewFailure()));
     }
 
     final Boolean muteDimension = locator.getSingleDimensionValueAsBoolean(MUTED);
