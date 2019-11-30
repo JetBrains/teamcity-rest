@@ -1655,20 +1655,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return;
     }
 
-    Set<Long> buildIds = new HashSet<>();
-    result.forEach(bp -> {
-      Long buildId = bp.getAssociatedBuildId();
-      if (buildId != null) buildIds.add(buildId);
-    });
-
-    Map<Long, SBuild> resolvedBuildsMap = new HashMap<>();
-    if (!buildIds.isEmpty()) {
-      for (SBuild build: myBuildsManager.findBuildInstances(buildIds)) {
-        resolvedBuildsMap.put(build.getBuildPromotion().getId(), build);
-      }
-    }
-
-    Collections.sort(result, new BuildPromotionComparator(resolvedBuildsMap));
+    BuildPromotionComparator.sort(result, myBuildsManager);
   }
 
   @NotNull
@@ -1711,8 +1698,24 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       myResolvedBuildsMap = null;
     }
 
-    public BuildPromotionComparator(@NotNull Map<Long, SBuild> resolvedBuildsMap) {
+    /**
+     * @param resolvedBuildsMap map of (promotion id -> build) for all the builds which are going to be compared
+     */
+    private BuildPromotionComparator(@NotNull Map<Long, SBuild> resolvedBuildsMap) {
       myResolvedBuildsMap = resolvedBuildsMap;
+    }
+
+    public static void sort(@NotNull final List<BuildPromotion> builds, @NotNull final BuildsManager buildsManager) {
+      Set<Long> buildIds = builds.stream().map(BuildPromotion::getAssociatedBuildId).filter(Objects::nonNull).collect(Collectors.toSet());
+
+      Map<Long, SBuild> resolvedBuildsMap = new HashMap<>();
+      if (!buildIds.isEmpty()) {
+        for (SBuild build: buildsManager.findBuildInstances(buildIds)) {
+          resolvedBuildsMap.put(build.getBuildPromotion().getId(), build);
+        }
+      }
+
+      Collections.sort(builds, new BuildPromotionComparator(resolvedBuildsMap));
     }
 
     public int compare(final BuildPromotion o1, final BuildPromotion o2) {
