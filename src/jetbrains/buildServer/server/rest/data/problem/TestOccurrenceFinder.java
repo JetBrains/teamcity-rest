@@ -567,8 +567,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     //  - compilation errors are not loaded (not necessary)
 
     //ideally, need to check what will be used in the response and request only those details
-    int optionsMask = BuildStatisticsOptions.FIRST_FAILED_IN_BUILD |
-                      BuildStatisticsOptions.FIXED_IN_BUILD;
+    int optionsMask = TeamCityProperties.getInteger("rest.request.testOccurrences.buildStatOpts.default",
+                                                    BuildStatisticsOptions.FIRST_FAILED_IN_BUILD | BuildStatisticsOptions.FIXED_IN_BUILD);
     boolean loadAllTests = TeamCityProperties.getBoolean("rest.request.testOccurrences.loadAllTestsForBuild");
     if (locator == null || loadAllTests || FilterUtil.isIncludingBooleanFilter(locator.lookupSingleDimensionValueAsBoolean(IGNORED))) {
       optionsMask |= BuildStatisticsOptions.IGNORED_TESTS;
@@ -578,7 +578,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       optionsMask |= BuildStatisticsOptions.PASSED_TESTS;
     }
 
-    return build.getBuildStatistics(new BuildStatisticsOptions(optionsMask, 0));
+    return build.getBuildStatistics(new BuildStatisticsOptions(optionsMask, TeamCityProperties.getInteger("rest.request.testOccurrences.buildStatOpts.maxNumberOfTestsStacktracesToLoad", 0)));
   }
 
   @Nullable
