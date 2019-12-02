@@ -236,8 +236,8 @@ public class TestOccurrence {
   private STestRun getFailedTestRun(@NotNull final SBuild build, @NotNull final STestRun sampleTestRun) {
     //this is different from getSuccessfulTestRun to be more performant
     long testNameId = sampleTestRun.getTest().getTestNameId();
-    return build.getShortStatistics().getFailedTests().stream().filter(t -> t.getTest().getTestNameId() == testNameId).findFirst()
-                          .orElseThrow(() -> new IllegalArgumentException("Cannot find test with name \"" + sampleTestRun.getTest().getName() + "\" in build with id " + build.getBuildId()));
+    return build.getShortStatistics().getFailedTestsIncludingMuted().stream().filter(t -> t.getTest().getTestNameId() == testNameId).findFirst()
+                          .orElseThrow(() -> new IllegalArgumentException("Cannot find test with name \"" + sampleTestRun.getTest().getName() + "\" (test name id " + testNameId + ") in build with id " + build.getBuildId()));
   }
 
   /**
