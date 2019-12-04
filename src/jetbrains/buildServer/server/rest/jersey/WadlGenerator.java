@@ -27,6 +27,7 @@ import java.util.List;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.util.StringUtil;
 
 /**
  * @author Yegor.Yarko
@@ -62,7 +63,7 @@ public class WadlGenerator extends WadlGeneratorConfig {
       if (resource != null) {
         String originalPath = resource.getPath();
         if (originalPath != null && originalPath.startsWith(Constants.API_URL) && APIController.ourFirstBindPath != null) {
-          resource.setPath(APIController.ourFirstBindPath + originalPath.substring(Constants.API_URL.length(), originalPath.length()));
+          resource.setPath(StringUtil.removeLeadingSlash(APIController.ourFirstBindPath) + originalPath.substring(Constants.API_URL.length()));
         }
       }
       return resource;
