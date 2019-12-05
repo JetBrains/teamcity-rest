@@ -136,6 +136,7 @@ public class APIController extends BaseController implements ServletContextAware
                        @NotNull final PluginManager pluginManager) {
     super(server);
     LOG = Logger.getInstance(APIController.class.getName() + "/" + pluginDescriptor.getPluginName());
+    myClassloader = getClass().getClassLoader();
     myWebControllerManager = webControllerManager;
     myPluginDescriptor = pluginDescriptor;
     myWebComponent = jerseyWebComponent;
@@ -195,8 +196,6 @@ public class APIController extends BaseController implements ServletContextAware
     LOG.debug("Will use request mapping: " + myRequestPathTransformInfo);
 
     registerController(originalBindPaths);
-
-    myClassloader = getClass().getClassLoader();
 
     initJerseyWebComponentAsync();
   }
