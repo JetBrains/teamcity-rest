@@ -87,6 +87,7 @@ import static jetbrains.buildServer.util.Util.doUnderContextClassLoader;
 public class APIController extends BaseController implements ServletContextAware {
   public static final String REST_COMPATIBILITY_ALLOW_EXTERNAL_ID_AS_INTERNAL = "rest.compatibility.allowExternalIdAsInternal";
   public static final String INCLUDE_INTERNAL_ID_PROPERTY_NAME = "rest.beans.includeInternalId";
+  public static final String LATEST_REST_API_PLUGIN_NAME = "rest-api";
   private Logger LOG = Logger.getInstance(APIController.class.getName());
   public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";
   public static final String REST_PREFER_OWN_BIND_PATHS = "rest.allow.bind.paths.override.for.plugins";
@@ -197,7 +198,10 @@ public class APIController extends BaseController implements ServletContextAware
 
     registerController(originalBindPaths);
 
-    initJerseyWebComponentAsync();
+    if (LATEST_REST_API_PLUGIN_NAME.equals(myPluginDescriptor.getPluginName())) {
+      //initialize on start only the latest plugin; others will be initialized on first request
+      initJerseyWebComponentAsync();
+    }
   }
 
   private void initJerseyWebComponentAsync() {
@@ -242,7 +246,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   private List<String> filterOtherPlugins(final List<String> bindPaths) {
-    final String pluginNames = TeamCityProperties.getProperty(REST_PREFER_OWN_BIND_PATHS, "rest-api"); //by default allow only the latest/main plugin paths to be overriden
+    final String pluginNames = TeamCityProperties.getProperty(REST_PREFER_OWN_BIND_PATHS, LATEST_REST_API_PLUGIN_NAME); //by default allow only the latest/main plugin paths to be overriden
     final String[] pluginNamesList = pluginNames.split(",");
 
     final String ownPluginName = myPluginDescriptor.getPluginName();
