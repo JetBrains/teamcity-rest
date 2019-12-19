@@ -46,13 +46,13 @@ public class BuildTypeOrTemplate implements Loggable {
   @NotNull final private BuildTypeIdentity myBuildTypeIdentity;
   @Nullable private Boolean myInherited = null; //used in template lists only
 
-  public BuildTypeOrTemplate(@SuppressWarnings("NullableProblems") @NotNull SBuildType buildType) {
+  public BuildTypeOrTemplate(@NotNull SBuildType buildType) {
     myBuildType = buildType;
     myTemplate = null;
     myBuildTypeIdentity = buildType;
   }
 
-  public BuildTypeOrTemplate(@SuppressWarnings("NullableProblems") @NotNull BuildTypeTemplate template) {
+  public BuildTypeOrTemplate(@NotNull BuildTypeTemplate template) {
     myTemplate = template;
     myBuildType = null;
     myBuildTypeIdentity = template;
@@ -125,7 +125,8 @@ public class BuildTypeOrTemplate implements Loggable {
 
   @Nullable
   public String getDescription() {
-    return myBuildType!=null ? myBuildType.getDescription() : null;
+    //noinspection ConstantConditions
+    return myBuildType!=null ? myBuildType.getDescription() : myTemplate.getDescription();
   }
 
   @Nullable
@@ -150,8 +151,9 @@ public class BuildTypeOrTemplate implements Loggable {
   public void setDescription(@Nullable final String value) {
     if (myBuildType != null) {
       myBuildType.setDescription(value);
-    }else{
-      throw new BadRequestException("Template does not have description field");
+    } else {
+      //noinspection ConstantConditions
+      myTemplate.setDescription(value);
     }
   }
 
