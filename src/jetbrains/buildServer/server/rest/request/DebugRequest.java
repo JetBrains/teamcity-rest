@@ -80,6 +80,7 @@ import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.OperationRequestor;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -579,14 +580,10 @@ public class DebugRequest {
   @Produces({"text/plain"})
   public String saveMemoryDump(@QueryParam("archived") Boolean archived, @Context HttpServletRequest request) {
     myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
-    final File logsPath = myServiceLocator.getSingletonService(ServerPaths.class).getLogsPath();
+    final File logsPath = myDataProvider.getBean(ServerPaths.class).getLogsPath();
     try {
-      final File memoryDumpFile;
-      if (archived == null || archived){
-        memoryDumpFile = DiagnosticUtil.memoryDumpZipped(new File(logsPath, "memoryDumps"));
-      }else{
-        memoryDumpFile = DiagnosticUtil.memoryDump(new File(logsPath, "memoryDumps"));
-      }
+      final File memoryDumpFile = DiagnosticUtil.memoryDump(new File(logsPath, "memoryDumps"), archived == null || archived,
+                                                            "via REST API by user " + LogUtil.describe(SessionUser.getUser(request)), Loggers.SERVER);
       return memoryDumpFile.getAbsolutePath();
     } catch (Exception e) {
       throw new OperationException("Error saving memory dump", e);
