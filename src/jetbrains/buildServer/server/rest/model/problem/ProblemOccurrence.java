@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import org.jetbrains.annotations.NotNull;
@@ -64,6 +65,10 @@ public class ProblemOccurrence {
    * Experimental
    */
   @XmlAttribute public String logAnchor;
+  /**
+   * Experimental
+   */
+  @XmlAttribute public Boolean newFailure;
 
   @XmlElement public String details;
   @XmlElement public String additionalData;
@@ -109,6 +114,13 @@ public class ProblemOccurrence {
         BuildProblemDataEx buildProblemData = (BuildProblemDataEx)problemP.getBuildProblemData();
         Integer buildLogAnchor = buildProblemData.getBuildLogAnchor();
         return buildLogAnchor == null ? null : buildLogAnchor.toString();
+      } catch (ClassCastException e) {
+        return null;
+      }
+    });
+    newFailure = ValueWithDefault.decideDefault(fields.isIncluded("newFailure", false, false), () -> {
+      try {
+        return ((BuildProblemImpl)problemP).isNew();
       } catch (ClassCastException e) {
         return null;
       }
