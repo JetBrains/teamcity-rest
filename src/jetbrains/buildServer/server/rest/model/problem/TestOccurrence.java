@@ -94,7 +94,7 @@ public class TestOccurrence {
     if (!myTestRun.getStatus().isFailed()) {
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("newFailure", false, false), myTestRun.isNewFailure());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("newFailure", false, false), () -> myTestRun.isNewFailure());
   }
 
   @XmlAttribute

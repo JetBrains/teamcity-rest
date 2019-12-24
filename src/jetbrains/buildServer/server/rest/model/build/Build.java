@@ -1006,8 +1006,7 @@ public class Build {
                                             }
                                             final Fields problemOccurrencesFields = myFields.getNestedField("problemOccurrences");
                                             final List<BuildProblem> problems = ValueWithDefault.decideDefault(problemOccurrencesFields.isIncluded("problemOccurrence", false),
-                                                                                                               () -> ProblemOccurrenceFinder
-                                                                                                                 .getProblemOccurrences(myBuildPromotion));
+                                                                                                               problemOccurrences);
                                             return new ProblemOccurrences(problems,
                                                                           problemOccurrences.size(),
                                                                           null,
