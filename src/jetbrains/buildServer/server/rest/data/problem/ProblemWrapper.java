@@ -26,6 +26,7 @@ import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityFacade;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
@@ -93,7 +94,7 @@ public class ProblemWrapper implements Comparable<ProblemWrapper>{
   @Nullable
   public String getDescription() {
     //see jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl.getTypeDescription
-    return myServiceLocator.getSingletonService(ProblemDetailsProviderService.class).getProviders().get(type).getTypeDescription();
+    return Util.resolveNull(myServiceLocator.getSingletonService(ProblemDetailsProviderService.class).getProviders().get(type), p -> p.getTypeDescription());
   }
 
   @Nullable
