@@ -33,6 +33,7 @@ import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.serverSide.problems.BuildProblemInfo;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
+import jetbrains.buildServer.serverSide.problems.ProblemDetailsProviderService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -87,6 +88,12 @@ public class ProblemWrapper implements Comparable<ProblemWrapper>{
   @Nullable
   public String getType() {
     return type;
+  }
+
+  @Nullable
+  public String getDescription() {
+    //see jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl.getTypeDescription
+    return myServiceLocator.getSingletonService(ProblemDetailsProviderService.class).getProviders().get(type).getTypeDescription();
   }
 
   @Nullable

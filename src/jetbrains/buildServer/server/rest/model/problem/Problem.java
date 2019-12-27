@@ -46,7 +46,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "problem")
 @XmlType(name = "problem", propOrder = {"id", "type", "identity", "href",
-  "mutes", "investigations", "problemOccurrences"})
+  "description"/*experimental*/, "mutes", "investigations", "problemOccurrences"})
 public class Problem {
   @XmlAttribute public String id;
   @XmlAttribute public String type;
@@ -58,6 +58,7 @@ public class Problem {
    */
   @XmlAttribute public String locator;
 
+  @XmlElement public String description;
   @XmlElement public Mutes mutes;
   @XmlElement public Investigations investigations;
   @XmlElement public ProblemOccurrences problemOccurrences;
@@ -72,6 +73,7 @@ public class Problem {
 
     type = ValueWithDefault.decideDefault(fields.isIncluded("type"), problem.getType());
     identity = ValueWithDefault.decideDefault(fields.isIncluded("identity"), problem.getIdentity());
+    description = ValueWithDefault.decideDefault(fields.isIncluded("description", false, false), problem::getDescription);
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(ProblemRequest.getHref(problem)));
 
     mutes = ValueWithDefault.decideDefault(fields.isIncluded("mutes", false), new ValueWithDefault.Value<Mutes>() {
