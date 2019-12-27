@@ -85,6 +85,76 @@ public class ProblemOccurrenceFinderTest extends BaseFinderTest<BuildProblem> {
   }
 
   @Test
+  public void testCurrentlyFailing() {
+    final BuildTypeImpl buildType1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildType2 = registerBuildType("buildConf2", "project");
+    final BuildPromotionEx build10 = (BuildPromotionEx)build().in(buildType1)
+                                                              .withProblem(BuildProblemData.createBuildProblem("id1", "type1", "descr"))
+                                                              .withProblem(BuildProblemData.createBuildProblem("id1", "type2", "descr"))
+                                                              .finish().getBuildPromotion();
+    final BuildPromotionEx build20 = (BuildPromotionEx)build().in(buildType1)
+                                                              .withProblem(BuildProblemData.createBuildProblem("id1", "type1", "descr"))
+                                                              .finish().getBuildPromotion();
+
+    final BuildPromotionEx build30 = (BuildPromotionEx)build().in(buildType2)
+                                                              .withProblem(BuildProblemData.createBuildProblem("id1", "type2", "descr"))
+                                                              .finish().getBuildPromotion();
+
+
+    checkProblem("problem:(id:1)"
+      , pd(1, "id1", "type1", build20.getId())
+      , pd(1, "id1", "type1", build10.getId())
+    );
+    checkProblem("problem:(id:2)"
+      , pd(2, "id1", "type2", build30.getId())
+      , pd(2, "id1", "type2", build10.getId())
+    );
+    checkProblem("build:(id:" + build10.getId() + ")"
+      , pd(1, "id1", "type1", build10.getId())
+      , pd(2, "id1", "type2", build10.getId())
+    );
+    checkProblem("build:(id:" + build20.getId() + ")"
+      , pd(1, "id1", "type1", build20.getId())
+    );
+
+    //documenting current behavior, it might not be right
+
+    checkProblem("currentlyFailing:true"
+      , pd(1, "id1", "type1", build20.getId())
+      , pd(2, "id1", "type2", build30.getId())
+    );
+    checkProblem("currentlyFailing:true,build:(id:" + build10.getId() + ")"
+      , pd(1, "id1", "type1", build10.getId())
+      , pd(2, "id1", "type2", build10.getId())
+    );
+    checkProblem("currentlyFailing:false,build:(id:" + build10.getId() + ")"
+      , pd(1, "id1", "type1", build10.getId())
+      , pd(2, "id1", "type2", build10.getId())
+    );
+    checkProblem("currentlyFailing:true,build:(id:" + build20.getId() + ")"
+      , pd(1, "id1", "type1", build20.getId())
+    );
+    checkProblem("currentlyFailing:false,build:(id:" + build20.getId() + ")"
+      , pd(1, "id1", "type1", build20.getId())
+    );
+    checkProblem("currentlyFailing:true,problem:(id:1)"
+      , pd(1, "id1", "type1", build20.getId())
+    );
+    checkProblem("currentlyFailing:false,problem:(id:1)"
+      , pd(1, "id1", "type1", build20.getId())
+      , pd(1, "id1", "type1", build10.getId())
+    );
+    checkProblem("currentlyFailing:true,problem:(id:2)"
+      , pd(2, "id1", "type2", build30.getId())
+    );
+    checkProblem("currentlyFailing:false,problem:(id:2)"
+      , pd(2, "id1", "type2", build30.getId())
+      , pd(2, "id1", "type2", build10.getId())
+    );
+    checkExceptionOnItemsSearch(BadRequestException.class, "currentlyFailing:false");
+  }
+
+  @Test
   public void testByBuild() throws Exception {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
     final BuildPromotionEx build10 = (BuildPromotionEx)build().in(buildType)
