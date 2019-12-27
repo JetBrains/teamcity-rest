@@ -33,6 +33,7 @@ import jetbrains.buildServer.serverSide.db.DBActionNoResults;
 import jetbrains.buildServer.serverSide.db.DBException;
 import jetbrains.buildServer.serverSide.db.DBFunctions;
 import jetbrains.buildServer.serverSide.db.SQLRunnerEx;
+import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
 import jetbrains.buildServer.util.ItemProcessor;
@@ -302,7 +303,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     if (project == null) {
       project = myProjectManager.getRootProject();
     }
-    return myBuildProblemManager.getCurrentBuildProblemsList(project);
+    return fillIsNew(myBuildProblemManager.getCurrentBuildProblemsList(project), null);
     /*
     final List<BuildProblem> currentBuildProblemsList = myBuildProblemManager.getCurrentBuildProblemsList(project);
 
@@ -379,7 +380,13 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   @NotNull
   public static List<BuildProblem> getProblemOccurrences(@NotNull final BuildPromotion buildPromotion) {
-    return ((BuildPromotionEx)buildPromotion).getBuildProblems();
+    return fillIsNew(((BuildPromotionEx)buildPromotion).getBuildProblems(), buildPromotion);
+  }
+
+  @NotNull private static List<BuildProblem> fillIsNew(@NotNull List<BuildProblem> problems, @Nullable final BuildPromotion buildPromotion) {
+    //partial workaround for https://youtrack.jetbrains.com/issue/TW-63846
+    BuildProblemImpl.fillIsNew(buildPromotion, problems);
+    return problems;
   }
 
   @NotNull
