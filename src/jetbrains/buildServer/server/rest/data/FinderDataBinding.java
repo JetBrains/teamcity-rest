@@ -83,6 +83,9 @@ public interface FinderDataBinding<ITEM> {
     void process(@NotNull final ItemProcessor<P> processor);
   }
 
+  /**
+   * The locator should be fully processed before calling this (i.e. locator should not be captured by the stream passed), otherwise "dimension is known but was ignored" error might be incorrectly  reported
+   */
   @NotNull
   static <P> ItemHolder<P> getItemHolder(@NotNull Stream<? extends P> items) {
     //noinspection ResultOfMethodCallIgnored

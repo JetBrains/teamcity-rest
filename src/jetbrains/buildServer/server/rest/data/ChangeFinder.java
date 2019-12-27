@@ -654,6 +654,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (TeamCityProperties.getBooleanOrTrue("rest.request.changes.legacyChangesInAllBranches")) {
       boolean anyBranch = filterBranches == null || myBranchFinder.isAnyBranch(locator.lookupSingleDimensionValue(BRANCH));
       if (anyBranch && policy == SelectPrevBuildPolicy.SINCE_NULL_BUILD && locator.lookupSingleDimensionValueAsBoolean(SETTINGS_CHANGES) == null) {
+        locator.markUsed(Collections.singleton(SETTINGS_CHANGES)); //in case it was set to "any"
         //todo: This approach has a bug: if includeDependencyChanges==true changes from all branches are returned, if includeDependencyChanges==false - only from the default branch
         if ((includeDependencyChanges != null && !includeDependencyChanges) || (includeDependencyChanges == null && !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES))) {
           return myVcsModificationHistory.getAllModifications(buildType).stream(); // this can be more efficient than buildType.getDetectedChanges below, but returns all branches
@@ -661,13 +662,15 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       }
     }
 
+    Predicate<ChangeDescriptor> changeDescriptorFilter = getChangeDescriptorFilter(locator); //getting this before filtering is important: othrwise it can never be called and dimension reported as ignored
+
     if (filterBranches != null) {
       return filterBranches.stream()
-                           .flatMap(branchData -> branchData.getChanges(policy, includeDependencyChanges).stream().filter(getChangeDescriptorFilter(locator))
+                           .flatMap(branchData -> branchData.getChanges(policy, includeDependencyChanges).stream().filter(changeDescriptorFilter)
                                                             .map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull)).sorted().distinct();
     } else {
       return ((BuildTypeEx)buildType).getDetectedChanges(policy, includeDependencyChanges)
-                                     .stream().filter(getChangeDescriptorFilter(locator)).map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
+                                     .stream().filter(changeDescriptorFilter).map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
     }
   }
 
@@ -680,9 +683,10 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
   private Stream<SVcsModification> getBuildChanges(@NotNull final BuildPromotion buildPromotion, @Nullable final Locator locator) {
     //todo: use fillDetectedChanges instead
+    Predicate<ChangeDescriptor> changeDescriptorFilter = getChangeDescriptorFilter(locator); //getting this before filtering is important: othrwise it can never be called and dimension reported as ignored
     return ((BuildPromotionEx)buildPromotion).getDetectedChanges(getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_LAST_BUILD), getIncludeDependencyChanges(locator),
                                                                  getBuildChangesProcessor(getBuildChangesLimit(locator)))
-                                             .stream().filter(getChangeDescriptorFilter(locator)).map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
+                                             .stream().filter(changeDescriptorFilter).map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
   }
 
   public boolean isCheap(@NotNull final BuildPromotion buildPromotion, @Nullable final String locatorText) {

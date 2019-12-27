@@ -22,18 +22,24 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.change.Change;
 import jetbrains.buildServer.server.rest.model.change.FileChange;
 import jetbrains.buildServer.server.rest.model.change.FileChanges;
+import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.BuildTypeOptions;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.MockVcsModification;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.serverSide.impl.versionedSettings.VersionedSettingsConfig;
 import jetbrains.buildServer.util.Util;
 import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import static jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder.modification;
+import static jetbrains.buildServer.util.Util.map;
+import static jetbrains.buildServer.vcs.RepositoryStateFactory.createRepositoryState;
 
 /**
  * @author Yegor.Yarko
@@ -482,6 +488,48 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     checkCounts("username:user1", 2, 6);
     checkCounts("buildType:(id:" + buildConf2.getExternalId() + ")", 0, 0);
     checkCounts("version:50", 1, 6);
+  }
+
+  @Test
+  public void testVersionedSettings() {
+    ProjectEx project = getRootProject().createProject("project", "project");
+    project.persist();
+
+    final BuildTypeEx buildConf = project.createBuildType("buildConf1");
+    buildConf.persist();
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    SVcsRoot vsRoot = project.createVcsRoot(vcsSupport().withName("vcs1").dagBased(true).register().getName(), "Settings Root", map());
+    VcsRootInstance vsInstance = resolveInProject(vsRoot, project);
+
+    myFixture.getSingletonService(RepositoryStateManager.class).setRepositoryState(vsInstance, createRepositoryState(map("default", "vs10"), "default"));
+
+    VersionedSettingsConfig vsConfig = new VersionedSettingsConfig();
+    vsConfig.setVcsRootExternalId(vsRoot.getExternalId());
+    vsConfig.setEnabled(true);
+    vsConfig.setShowSettingsChanges(true);
+    vsConfig.setBuildSettingsMode(VersionedSettingsConfig.BuildSettingsMode.PREFER_VCS);
+    myFixture.writeVersionedSettingsConfig(project, vsConfig);
+
+    SVcsModification m20 = myFixture.addModification(modification().in(root1).by("user1").version("m20").parentVersions("m10"));
+    SVcsModification vs_m20 = myFixture.addModification(modification().in(vsInstance).version("vs20").parentVersions("vs10"), buildConf, RelationType.SETTINGS_AFFECT_BUILDS);
+
+    myFixture.getSingletonService(RepositoryStateManager.class).setRepositoryState(vsInstance, createRepositoryState(map("default", "vs20"), "default"));
+
+    //myFixture.getVcsModificationChecker().checkForModifications(buildConf.getVcsRootInstances(), OperationRequestor.UNKNOWN);
+    //myFixture.getVcsModificationChecker().checkForModifications(Collections.singleton(vsInstance), OperationRequestor.UNKNOWN);
+
+    check(null, vs_m20, m20);
+    String bt = "buildType:(" + buildConf.getExternalId() + ")";
+    check(bt, vs_m20, m20);
+    check(bt + ",versionedSettings:true", vs_m20);
+    check(bt + ",versionedSettings:false", m20);
+    check(bt + ",versionedSettings:any", vs_m20, m20);
   }
 
   private void check(final FileChange fileChangeToCheck, final String type, final String typeComment, final Boolean isDirectory, final String filePath, final String relativePath) {
