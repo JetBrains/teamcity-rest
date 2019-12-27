@@ -130,13 +130,15 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       affectedProject = myProjectFinder.getRootProject();
     }
 
-    Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
-    if (currentDimension!= null && currentDimension) {
-        return getItemHolder(getCurrentProblemsList(affectedProject));
+    Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
+    if (currentDimension != null && currentDimension) {
+      locator.markUsed(Collections.singleton(CURRENT));
+      return getItemHolder(getCurrentProblemsList(affectedProject));
     }
 
-    Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
+    Boolean currentlyMutedDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null && currentlyMutedDimension) {
+      locator.markUsed(Collections.singleton(CURRENTLY_MUTED));
       return getItemHolder(getCurrentlyMutedProblems(affectedProject));
     }
 
@@ -203,15 +205,11 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       });
     }
 
-    if (locator.getUnusedDimensions().contains(CURRENT)) {
-      final String currentDimension = locator.getSingleDimensionValue(CURRENT);
+    if (locator.isUnused(CURRENT)) {
+      final Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
       if (currentDimension != null) {
         final Set<ProblemWrapper> currentProblems = getCurrentProblemsList(null);
-        result.add(new FilterConditionChecker<ProblemWrapper>() {
-          public boolean isIncluded(@NotNull final ProblemWrapper item) {
-            return currentProblems.contains(item);
-          }
-        });
+        result.add(item -> FilterUtil.isIncludedByBooleanFilter(currentDimension, currentProblems.contains(item)));
       }
     }
 

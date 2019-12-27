@@ -245,8 +245,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
     }
 
-    Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
+    Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
+      locator.markUsed(Collections.singleton(CURRENT));
       return getPossibleExpandedTestsHolder(getCurrentOccurrences(getAffectedProject(locator), myCurrentProblemsManager),
                                             locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
     }
@@ -490,14 +491,11 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       });
     }
 
-    if (locator.getUnusedDimensions().contains(CURRENT)) {
-      final String currentDimension = locator.getSingleDimensionValue(CURRENT);
+    if (locator.isUnused(CURRENT)) {
+      final Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
       if (currentDimension != null) {
-        result.add(new FilterConditionChecker<STestRun>() {
-          public boolean isIncluded(@NotNull final STestRun item) {
-            return !item.isFixed(); //todo: is this the same as the test occurring in current problems???
-          }
-        });
+        //todo: is this the same as the test occurring in current problems???
+        result.add(item -> FilterUtil.isIncludedByBooleanFilter(currentDimension , !item.isFixed()));
       }
     }
 

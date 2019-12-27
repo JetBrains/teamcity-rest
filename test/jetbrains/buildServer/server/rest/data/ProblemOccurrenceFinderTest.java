@@ -82,6 +82,12 @@ public class ProblemOccurrenceFinderTest extends BaseFinderTest<BuildProblem> {
                  pd(2, "id1", "type2", build30.getId()),
                  pd(2, "id1", "type2", build10.getId()),
                  pd(4, "id2", "type1", build30.getId()));
+
+    checkProblem("currentlyFailing:true",
+                 pd(2, "id1", "type2", build40.getId()));
+    checkProblem("currentlyFailing:false,build:(id:" + build10.getId() + ")",
+                 pd(1, "id1", "type1", build10.getId()),
+                 pd(3, "id1", "type3", build10.getId()));
   }
 
   @Test
@@ -117,7 +123,6 @@ public class ProblemOccurrenceFinderTest extends BaseFinderTest<BuildProblem> {
       , pd(1, "id1", "type1", build20.getId())
     );
 
-    //documenting current behavior, it might not be right
 
     checkProblem("currentlyFailing:true"
       , pd(1, "id1", "type1", build20.getId())
@@ -125,30 +130,24 @@ public class ProblemOccurrenceFinderTest extends BaseFinderTest<BuildProblem> {
     );
     checkProblem("currentlyFailing:true,build:(id:" + build10.getId() + ")"
       , pd(1, "id1", "type1", build10.getId())
-      , pd(2, "id1", "type2", build10.getId())
     );
     checkProblem("currentlyFailing:false,build:(id:" + build10.getId() + ")"
-      , pd(1, "id1", "type1", build10.getId())
       , pd(2, "id1", "type2", build10.getId())
     );
     checkProblem("currentlyFailing:true,build:(id:" + build20.getId() + ")"
       , pd(1, "id1", "type1", build20.getId())
     );
     checkProblem("currentlyFailing:false,build:(id:" + build20.getId() + ")"
-      , pd(1, "id1", "type1", build20.getId())
     );
     checkProblem("currentlyFailing:true,problem:(id:1)"
       , pd(1, "id1", "type1", build20.getId())
     );
     checkProblem("currentlyFailing:false,problem:(id:1)"
-      , pd(1, "id1", "type1", build20.getId())
-      , pd(1, "id1", "type1", build10.getId())
     );
     checkProblem("currentlyFailing:true,problem:(id:2)"
       , pd(2, "id1", "type2", build30.getId())
     );
     checkProblem("currentlyFailing:false,problem:(id:2)"
-      , pd(2, "id1", "type2", build30.getId())
       , pd(2, "id1", "type2", build10.getId())
     );
     checkExceptionOnItemsSearch(BadRequestException.class, "currentlyFailing:false");

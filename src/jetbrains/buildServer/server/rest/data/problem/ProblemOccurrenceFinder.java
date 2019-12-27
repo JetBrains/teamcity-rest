@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data.problem;
 import com.intellij.openapi.diagnostic.Logger;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
@@ -49,7 +50,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   private static final String BUILD = "build";
   private static final String IDENTITY = "identity";
-  private static final String CURRENT = "currentlyFailing";
+  private static final String CURRENT = "currentlyFailing"; //this problem occurrence is in the currently failing or, when "build" is present - latest build have the same problem
   private static final String PROBLEM = "problem";
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   public static final String MUTED = "muted";
@@ -156,8 +157,9 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       return result;
     }
 
-    Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
+    Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
+      locator.markUsed(Collections.singleton(CURRENT));
       return getItemHolder(getCurrentProblemOccurences(getAffectedProject(locator)));
     }
 
@@ -166,8 +168,9 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       return getProblemOccurrences(myProblemFinder.getItems(problemDimension).myEntries);
     }
 
-    Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
+    Boolean currentlyMutedDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null && currentlyMutedDimension) {
+      locator.markUsed(Collections.singleton(CURRENTLY_MUTED));
       final SProject affectedProject = getAffectedProject(locator);
       return getProblemOccurrences(myProblemFinder.getCurrentlyMutedProblems(affectedProject));
     }
@@ -262,14 +265,12 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       });
     }
 
-    final Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
-    if (currentlyMutedDimension != null) {
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          //todo: check in affected Project/buildType only, if set
-          return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, item.getCurrentMuteInfo() != null);
-        }
-      });
+    if (locator.isUnused(CURRENTLY_MUTED)) {
+      final Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
+      if (currentlyMutedDimension != null) {
+        //todo: check in affected Project/buildType only, if set
+        result.add(item -> FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, item.getCurrentMuteInfo() != null));
+      }
     }
 
     final Boolean muteDimension = locator.getSingleDimensionValueAsBoolean(MUTED);
@@ -282,17 +283,12 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     }
 
 
-    final String currentDimension = locator.getSingleDimensionValue(CURRENT);
-    if (currentDimension != null) {
-      @NotNull final Set<Integer> currentBuildProblemsList = new TreeSet<Integer>();
-      for (BuildProblem buildProblem : getCurrentProblemOccurences(null)) {
-        currentBuildProblemsList.add(buildProblem.getId());
+    if (locator.isUnused(CURRENT)) {
+      final Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
+      if (currentDimension != null) {
+        @NotNull final Set<BuildProblemId> currentBuildProblemsList = getCurrentProblemOccurences(null).stream().map(BuildProblemId::create).collect(Collectors.toSet());
+        result.add(item -> FilterUtil.isIncludedByBooleanFilter(currentDimension, currentBuildProblemsList.contains(BuildProblemId.create(item))));
       }
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          return currentBuildProblemsList.contains(item.getId());
-        }
-      });
     }
 
     return result;
@@ -402,5 +398,35 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull
   public BuildProblem getProblem(final @NotNull SBuild build, @NotNull final BuildProblemData problemData) {
     return getItem(Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(build)).setDimension(IDENTITY, problemData.getIdentity()).getStringRepresentation());
+  }
+
+  private static class BuildProblemId {
+    private int problemId;
+    private String buildTypeInternalId;
+
+    static BuildProblemId create(@NotNull BuildProblem bp) {
+      BuildProblemId result = new BuildProblemId();
+      result.problemId = bp.getId();
+      result.buildTypeInternalId = bp.getBuildPromotion().getBuildTypeId();
+      return result;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      final BuildProblemId that = (BuildProblemId)o;
+
+      if (problemId != that.problemId) return false;
+      return buildTypeInternalId != null ? buildTypeInternalId.equals(that.buildTypeInternalId) : that.buildTypeInternalId == null;
+    }
+
+    @Override
+    public int hashCode() {
+      int result = problemId;
+      result = 31 * result + (buildTypeInternalId != null ? buildTypeInternalId.hashCode() : 0);
+      return result;
+    }
   }
 }
