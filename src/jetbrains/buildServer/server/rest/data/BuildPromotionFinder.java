@@ -1321,7 +1321,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     // process by build states
 
-    final ArrayList<BuildPromotion> result = new ArrayList<BuildPromotion>();
+    final List<BuildPromotion> result = new ArrayList<BuildPromotion>();
+    Set<Long> includedPromotionIds = new HashSet<>();
     @Nullable Set<SBuildType> buildTypes = getBuildTypes(locator);
 
     String agentName;
@@ -1351,10 +1352,15 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       if (agentName != null) {
         builds = builds.filter(build -> build.getCanRunOnAgents().stream().anyMatch(a -> a.getName().equals(agentName)));
       }
-      result.addAll(builds.map(b -> b.getBuildPromotion()).collect(Collectors.toList()));
+
+      builds.map(b -> b.getBuildPromotion()).forEach(p -> {
+        if (includedPromotionIds.add(p.getId())) {
+          result.add(p);
+        }
+      });
     }
 
-    if (isStateIncluded(stateLocator, STATE_RUNNING)) {  //todo: address an issue when a build can appear twice in the output
+    if (isStateIncluded(stateLocator, STATE_RUNNING)) {
       Stream<SRunningBuild> builds = myBuildsManager.getRunningBuilds().stream();
       if (buildTypes != null) { //make sure buildTypes retrieved from the locator are used
         builds = builds.filter(b -> buildTypes.contains(b.getBuildPromotion().getParentBuildType()));
@@ -1374,7 +1380,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         builds = builds.filter(build -> build.getAgentName().equals(agentName));
       }
 
-      result.addAll(builds.map(qb -> qb.getBuildPromotion()).collect(Collectors.toList()));
+      builds.map(b -> b.getBuildPromotion()).forEach(p -> {
+        if (includedPromotionIds.add(p.getId())) {
+          result.add(p);
+        }
+      });
     }
 
     ItemHolder<BuildPromotion> finishedBuilds = null;
@@ -1448,7 +1458,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         public void process(@NotNull final ItemProcessor<BuildPromotion> processor) {
           myBuildsManager.processBuilds(options, new ItemProcessor<SBuild>() {
             public boolean processItem(SBuild item) {
-              if (!item.isFinished()) return true; //workaround for the running builds which can appear here
+              if (includedPromotionIds.contains(item.getBuildPromotion().getId())) return true; // ignore already added builds
               return processor.processItem(item.getBuildPromotion());
             }
           });
@@ -1465,7 +1475,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         if (finishedBuildsFinal != null) {
           finishedBuildsFinal.process(processor);
         }
-        }
+      }
     };
   }
 
