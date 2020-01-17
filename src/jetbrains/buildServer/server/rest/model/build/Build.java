@@ -36,7 +36,6 @@ import jetbrains.buildServer.controllers.changes.ChangesPopupUtil;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.PasswordParametersFilterCore;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
-import jetbrains.buildServer.problems.BuildProblemTypesEx;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.change.BuildChangeData;
@@ -1029,7 +1028,7 @@ public class Build {
     if (!supported) {
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("problemRootCauses", false),
+    return ValueWithDefault.decideDefault(myFields.isIncluded("problemRootCauses", false, false),
                                           () -> {
                                             BuildPromotionEx bpex = (BuildPromotionEx)myBuildPromotion;
                                             List<BuildProblem> problemOccurrences = bpex.getBuildChainProblems(true).stream().
