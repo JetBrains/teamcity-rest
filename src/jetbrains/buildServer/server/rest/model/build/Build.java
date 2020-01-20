@@ -124,7 +124,7 @@ import org.jetbrains.annotations.Nullable;
     "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
     "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision", "artifactDependencyChanges" /*experimental*/,
     "agent", "compatibleAgents"/*q*/,
-    "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/, "problemRootCauses"/*rf*/  /*experimental*/,
+    "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
     "artifacts"/*rf*/, "issues"/*rf*/,
     "properties", "resultingProperties", "attributes", "statistics", "metadata"/*rf*/,
     "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
@@ -995,45 +995,6 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("problemOccurrences", false),
                                           () -> {
                                             final List<BuildProblem> problemOccurrences = ProblemOccurrenceFinder.getProblemOccurrences(myBuildPromotion);
-                                            if (problemOccurrences.size() == 0) return null;
-
-                                            int newProblemsCount = 0;
-                                            int mutedProblemsCount = 0;
-                                            for (BuildProblem problem : problemOccurrences) {
-                                              if (problem.isMutedInBuild()) mutedProblemsCount++;
-                                              final Boolean isNew = ((BuildProblemImpl)problem).isNew();
-                                              if (isNew != null && isNew) newProblemsCount++;
-                                            }
-                                            final Fields problemOccurrencesFields = myFields.getNestedField("problemOccurrences");
-                                            final List<BuildProblem> problems = ValueWithDefault.decideDefault(problemOccurrencesFields.isIncluded("problemOccurrence", false),
-                                                                                                               problemOccurrences);
-                                            return new ProblemOccurrences(problems,
-                                                                          problemOccurrences.size(),
-                                                                          null,
-                                                                          null,
-                                                                          newProblemsCount,
-                                                                          null,
-                                                                          mutedProblemsCount,
-                                                                          ProblemOccurrenceRequest.getHref(myBuildPromotion),
-                                                                          null,
-                                                                          problemOccurrencesFields, myBeanContext
-                                            );
-                                          });
-  }
-
-  @XmlElement(name = "problemRootCauses")
-  public ProblemOccurrences getProblemRootCauses() {
-
-    final boolean supported = TeamCityProperties.getBooleanOrTrue("teamcity.ui.rootCausesViaRest.enabled");
-    if (!supported) {
-      return null;
-    }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("problemRootCauses", false, false),
-                                          () -> {
-                                            BuildPromotionEx bpex = (BuildPromotionEx)myBuildPromotion;
-                                            List<BuildProblem> problemOccurrences = bpex.getBuildChainProblems(true).stream().
-                                              filter(bp -> bp.getBuildPromotion().getId() != bpex.getId())
-                                            .collect(Collectors.toList());
                                             if (problemOccurrences.size() == 0) return null;
 
                                             int newProblemsCount = 0;

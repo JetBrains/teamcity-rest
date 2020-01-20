@@ -18,23 +18,12 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.io.IOException;
 import java.util.Date;
-import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.MockTimeService;
-import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
-import jetbrains.buildServer.messages.ErrorData;
-import jetbrains.buildServer.messages.Status;
-import jetbrains.buildServer.problems.BuildProblemTypesEx;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.build.Build;
-import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
-import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
-import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.Dates;
@@ -43,7 +32,6 @@ import jetbrains.buildServer.vcs.SVcsRootEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcs.VcsRootInstanceEx;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
-import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -725,42 +713,5 @@ public class BuildFinderTest extends BuildFinderTestBase {
     checkBuilds(null, build30, build20, build10);
     checkBuilds("buildType:(id:" + buildConf.getExternalId() +")", build30, build20, build10);
     checkBuilds("sinceBuild:(id:" + build20.getBuildId() +")", build30);
-  }
-
-
-  @Test
-  public void testRootCauses() throws Exception {
-
-    final BuildTypeImpl buildConf0 = registerBuildType("buildConf0", "project");
-    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
-    final DependencyFactory dependencyFactory = myServer.getSingletonService(DependencyFactory.class);
-    Dependency dep = addDependency(buildConf1, buildConf0);
-    dep.setOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED, DependencyOptions.BuildContinuationMode.RUN_ADD_PROBLEM);
-    final BuildPromotion build1 = build().in(buildConf1).addToQueue().getBuildPromotion();
-    final BuildPromotion build0 = build1.getDependencies().iterator().next().getDependOn();
-    final RunningBuildEx run = BuildBuilder.run(build0.getQueuedBuild(), myFixture);
-
-    final String customerType = "type";
-    run.addBuildProblem(BuildProblemData.createBuildProblem("problem", customerType, "some problem occured"));
-    finishBuild(run, true);
-
-    final SFinishedBuild finishedBuild = finishBuild(BuildBuilder.run(build1.getQueuedBuild(), myFixture), true);
-
-    checkBuilds("buildType:(id:" + buildConf1.getExternalId() +")", finishedBuild);
-
-    final Build build = new Build(finishedBuild, new Fields(
-      "id,number,status,problemOccurrences(problemOccurrence(id,type)),problemRootCauses(problemOccurrence(id,type,build(id)))"),
-                                  getBeanContext(myServer));
-
-    final ProblemOccurrences problems = build.getProblemOccurrences();
-    Assert.assertSame(problems.items.size(), 1);
-
-    Assert.assertEquals(problems.items.get(0).type, ErrorData.SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE);
-
-    final ProblemOccurrences rootCauses = build.getProblemRootCauses();
-    Assert.assertSame(rootCauses.items.size(), 1);
-
-    Assert.assertEquals(rootCauses.items.get(0).type, customerType);
-
   }
 }
