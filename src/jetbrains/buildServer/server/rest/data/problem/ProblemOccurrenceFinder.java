@@ -46,10 +46,11 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 18.11.13
  */
 public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
-  private static Logger LOG = Logger.getInstance(ProblemOccurrenceFinder.class.getName());
+  private static final Logger LOG = Logger.getInstance(ProblemOccurrenceFinder.class.getName());
 
   private static final String BUILD = "build";
   private static final String IDENTITY = "identity";
+  public static final String TYPE = "type";
   private static final String CURRENT = "currentlyFailing"; //this problem occurrence is in the currently failing or, when "build" is present - latest build have the same problem
   private static final String PROBLEM = "problem";
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
@@ -65,13 +66,13 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull private final ProjectManager myProjectManager;
   @NotNull private final jetbrains.buildServer.ServiceLocator myServiceLocator;
 
-  public ProblemOccurrenceFinder(final @NotNull ProjectFinder projectFinder,
-                                 final @NotNull BuildFinder buildFinder,
-                                 final @NotNull ProblemFinder problemFinder,
-                                 final @NotNull BuildProblemManager buildProblemManager,
-                                 final @NotNull ProjectManager projectManager,
-                                 final @NotNull ServiceLocator serviceLocator) {
-    super(new String[]{PROBLEM, IDENTITY, "type", "build", AFFECTED_PROJECT, CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED});
+  public ProblemOccurrenceFinder(@NotNull final ProjectFinder projectFinder,
+                                 @NotNull final BuildFinder buildFinder,
+                                 @NotNull final ProblemFinder problemFinder,
+                                 @NotNull final BuildProblemManager buildProblemManager,
+                                 @NotNull final ProjectManager projectManager,
+                                 @NotNull final ServiceLocator serviceLocator) {
+    super(PROBLEM, IDENTITY, TYPE, BUILD, AFFECTED_PROJECT, CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
     myProjectFinder = projectFinder;
     myBuildFinder = buildFinder;
     myProblemFinder = problemFinder;
@@ -91,7 +92,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     return ProblemOccurrenceFinder.getProblemOccurrenceLocator(buildProblem);
   }
 
-  public static String getProblemOccurrenceLocator(final @NotNull BuildProblem problem) {
+  public static String getProblemOccurrenceLocator(@NotNull final BuildProblem problem) {
     final SBuild build = problem.getBuildPromotion().getAssociatedBuild();
     if (build == null) {
       throw new InvalidStateException("Build problem with id '" + problem.getId() + "' does not have an associated build.");
@@ -100,15 +101,15 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       .getBuildLocator(build)).getStringRepresentation();
   }
 
-  public static String getProblemOccurrenceLocator(final @NotNull SBuild build) {
+  public static String getProblemOccurrenceLocator(@NotNull final SBuild build) {
     return Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(build)).getStringRepresentation();
   }
 
-  public static String getProblemOccurrenceLocator(final @NotNull BuildPromotion buildPromotion) {
+  public static String getProblemOccurrenceLocator(@NotNull final BuildPromotion buildPromotion) {
     return Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(buildPromotion)).getStringRepresentation();
   }
 
-  public static String getProblemOccurrenceLocator(final @NotNull ProblemWrapper problem) {
+  public static String getProblemOccurrenceLocator(@NotNull final ProblemWrapper problem) {
     return Locator.createEmptyLocator().setDimension(PROBLEM, ProblemFinder.getLocator(problem)).getStringRepresentation();
   }
 
@@ -202,66 +203,41 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       String problemDimension = locator.getSingleDimensionValue(PROBLEM);
       if (problemDimension != null) {
         final PagedSearchResult<ProblemWrapper> problems = myProblemFinder.getItems(problemDimension);
-        final HashSet<Integer> problemIds = new HashSet<Integer>();
-        for (ProblemWrapper problem : problems.myEntries) {
-          problemIds.add(problem.getId().intValue());
-        }
-        result.add(new FilterConditionChecker<BuildProblem>() {
-          public boolean isIncluded(@NotNull final BuildProblem item) {
-            return problemIds.contains(item.getId());
-          }
-        });
+        final HashSet<Integer> problemIds = problems.myEntries.stream().map(problem -> problem.getId().intValue()).collect(Collectors.toCollection(HashSet::new));
+        result.add(item -> problemIds.contains(item.getId()));
       }
     }
 
     final String identityDimension = locator.getSingleDimensionValue(IDENTITY);
     if (identityDimension != null) {
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          return identityDimension.equals(item.getBuildProblemData().getIdentity());
-        }
-      });
+      result.add(item -> identityDimension.equals(item.getBuildProblemData().getIdentity()));
     }
 
-    final String typeDimension = locator.getSingleDimensionValue("type");
+    final String typeDimension = locator.getSingleDimensionValue(TYPE);
     if (typeDimension != null) {
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          return typeDimension.equals(item.getBuildProblemData().getType());
-        }
-      });
+      result.add(item -> typeDimension.equals(item.getBuildProblemData().getType()));
     }
 
     if (locator.isUnused(BUILD)) {
       String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
         List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
-        result.add(new FilterConditionChecker<BuildProblem>() {
-          public boolean isIncluded(@NotNull final BuildProblem item) {
-            return builds.contains(item.getBuildPromotion());
-          }
-        });
+        result.add(item -> builds.contains(item.getBuildPromotion()));
       }
     }
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
       @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          return ProjectFinder.isSameOrParent(project, myProjectFinder.getItem(item.getProjectId()));
-        }
-      });
+      result.add(item -> ProjectFinder.isSameOrParent(project, myProjectFinder.getItem(item.getProjectId())));
     }
 
     final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);
     if (currentlyInvestigatedDimension != null) {
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          //todo: check investigation in affected Project/buildType only, if set
-          return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension,
-                                                      !item.getAllResponsibilities().isEmpty());  //todo: TeamCity API (VM): what is the difference with   getResponsibility() ???
-        }
+      result.add(item -> {
+        //todo: check investigation in affected Project/buildType only, if set
+        return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension,
+                                                    !item.getAllResponsibilities().isEmpty());  //todo: TeamCity API (VM): what is the difference with   getResponsibility() ???
       });
     }
 
@@ -275,11 +251,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     final Boolean muteDimension = locator.getSingleDimensionValueAsBoolean(MUTED);
     if (muteDimension != null) {
-      result.add(new FilterConditionChecker<BuildProblem>() {
-        public boolean isIncluded(@NotNull final BuildProblem item) {
-          return FilterUtil.isIncludedByBooleanFilter(muteDimension, item.getMuteInBuildInfo() != null);
-        }
-      });
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(muteDimension, item.getMuteInBuildInfo() != null));
     }
 
 
@@ -315,13 +287,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @Nullable
   private static BuildProblem findProblem(@NotNull final BuildPromotion build, @NotNull final Long problemId) {
     final List<BuildProblem> buildProblems = getProblemOccurrences(build);
-    for (BuildProblem buildProblem : buildProblems) {
-      if (buildProblem.getId() == problemId.intValue()) {
-        //todo: TeamCity API, JavaDoc (VB): add into the JavaDoc that problem with a given id can only occur once in a build
-        return buildProblem;
-      }
-    }
-    return null;
+    //todo: TeamCity API, JavaDoc (VB): add into the JavaDoc that problem with a given id can only occur once in a build
+    return buildProblems.stream().filter(buildProblem -> buildProblem.getId() == problemId.intValue()).findFirst().orElse(null);
   }
 
   @NotNull
@@ -396,7 +363,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   }
 
   @NotNull
-  public BuildProblem getProblem(final @NotNull SBuild build, @NotNull final BuildProblemData problemData) {
+  public BuildProblem getProblem(@NotNull final SBuild build, @NotNull final BuildProblemData problemData) {
     return getItem(Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(build)).setDimension(IDENTITY, problemData.getIdentity()).getStringRepresentation());
   }
 
