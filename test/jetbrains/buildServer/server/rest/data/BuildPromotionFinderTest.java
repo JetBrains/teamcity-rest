@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.Loggable;
@@ -33,7 +34,9 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
+import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
 import jetbrains.buildServer.users.SUser;
@@ -2114,6 +2117,101 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     check("state:any,defaultFilter:false,triggered:(user:user1),user:user2", build40);
     check("state:any,defaultFilter:false,user:user1,not:(triggered:(user:user1))", build50, build20);
     check("state:any,defaultFilter:false,triggered:(type:user)", build40, build30);
+  }
+
+  @Test
+  public void testSnapshotDependenciesProblems() {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConfA = (BuildTypeEx)project.createBuildType("buildConfA", "buildConfA");
+    final BuildTypeEx buildConfB1 = (BuildTypeEx)project.createBuildType("buildConfB1", "buildConfB1");
+    final BuildTypeEx buildConfB2 = (BuildTypeEx)project.createBuildType("buildConfB2", "buildConfB2");
+    final BuildTypeEx buildConfC = (BuildTypeEx)project.createBuildType("buildConfC", "buildConfC");
+    addDependency(buildConfB1, buildConfA).setOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED, DependencyOptions.BuildContinuationMode.RUN_ADD_PROBLEM);
+    addDependency(buildConfB2, buildConfA).setOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED, DependencyOptions.BuildContinuationMode.RUN_ADD_PROBLEM);
+    addDependency(buildConfC, buildConfB1).setOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED, DependencyOptions.BuildContinuationMode.RUN_ADD_PROBLEM);
+    addDependency(buildConfC, buildConfB2).setOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED, DependencyOptions.BuildContinuationMode.RUN_ADD_PROBLEM);
+
+    {
+      BuildPromotion buildA = build().in(buildConfA).withProblem(BuildProblemData.createBuildProblem("problem1", "problemType", "problem descr"))
+                                     .finish().getBuildPromotion();
+      BuildPromotion buildB1 = build().in(buildConfB1).withProblem(BuildProblemData.createBuildProblem("problem21", "problemType", "problem descr2"))
+                                      .snapshotDepends(buildA).finish().getBuildPromotion();
+      BuildPromotion buildB2 = build().in(buildConfB2).withProblem(BuildProblemData.createBuildProblem("problem22", "problemType", "problem descr2"))
+                                      .snapshotDepends(buildA).finish().getBuildPromotion();
+      BuildPromotion buildC = build().in(buildConfC).withProblem(BuildProblemData.createBuildProblem("problem3", "problemType", "problem descr3"))
+                                     .snapshotDepends(buildB1, buildB2).finish().getBuildPromotion();
+
+      check(null, buildC, buildB2, buildB1, buildA);
+      check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB2, buildB1, buildA);
+      check("snapshotDependencyProblem:(from:(id:" + buildB1.getId() + "))", buildC);
+      check("snapshotDependencyProblem:(from:(id:" + buildA.getId() + "))", buildC, buildB2, buildB1);
+      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),snapshotDependencyProblem:false",
+                              "problem22", "problem21", "problem1");
+      buildC.getAssociatedBuild().muteBuildProblems(createUser("u"), true, "");
+      check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))");
+      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),snapshotDependencyProblem:false");
+    }
+
+    {
+      BuildPromotion buildA = build().in(buildConfA).withProblem(BuildProblemData.createBuildProblem("problem1", "problemType", "problem descr"))
+                                     .finish().getBuildPromotion();
+      BuildPromotion buildB1 = build().in(buildConfB1).withProblem(BuildProblemData.createBuildProblem("problem21", "problemType", "problem descr2"))
+                                      .snapshotDepends(buildA).finish().getBuildPromotion();
+      BuildPromotion buildB2 = build().in(buildConfB2).snapshotDepends(buildA).finish().getBuildPromotion();
+      BuildPromotion buildC = build().in(buildConfC).snapshotDepends(buildB1, buildB2).finish().getBuildPromotion();
+
+      check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB2, buildB1, buildA);
+      check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "),includeInitial:true)", buildC, buildB2, buildB1, buildA);
+      check("id:" + buildB2.getId() + ",snapshotDependencyProblem:(to:(id:" + buildC.getId() + "),includeInitial:true)", buildB2);
+      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),snapshotDependencyProblem:false",
+                              "problem21", "problem1");
+    }
+
+    {
+      BuildPromotion buildA = build().in(buildConfA).withProblem(BuildProblemData.createBuildProblem("problem1", "problemType", "problem descr"))
+                                     .finish().getBuildPromotion();
+      BuildPromotion buildB1 = build().in(buildConfB1).snapshotDepends(buildA).finish().getBuildPromotion();
+      BuildPromotion buildB2 = build().in(buildConfB2).snapshotDepends(buildA).finish().getBuildPromotion();
+      BuildPromotion buildC = build().in(buildConfC).snapshotDepends(buildB1, buildB2).finish().getBuildPromotion();
+
+      check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB2, buildB1, buildA);
+      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),snapshotDependencyProblem:false",
+                              "problem1");
+    }
+
+    Dependency depCB2 = buildConfC.getDependencies().stream().filter(d -> buildConfB2.equals(d.getDependOn())).findAny().get();
+    depCB2.setOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED, DependencyOptions.BuildContinuationMode.RUN);
+
+    {
+      BuildPromotion buildA = build().in(buildConfA).withProblem(BuildProblemData.createBuildProblem("problem1", "problemType", "problem descr"))
+                                     .finish().getBuildPromotion();
+      BuildPromotion buildB1 = build().in(buildConfB1).snapshotDepends(buildA).finish().getBuildPromotion();
+      BuildPromotion buildB2 = build().in(buildConfB2).snapshotDepends(buildA).finish().getBuildPromotion();
+      BuildPromotion buildC = build().in(buildConfC).snapshotDepends(buildB1, buildB2).finish().getBuildPromotion();
+
+      check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB1, buildA);
+      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),snapshotDependencyProblem:false",
+                              "problem1");
+    }
+
+    depCB2.setOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED, DependencyOptions.BuildContinuationMode.MAKE_FAILED_TO_START);
+
+    {
+      BuildPromotion buildA = build().in(buildConfA).withProblem(BuildProblemData.createBuildProblem("problem1", "problemType", "problem descr"))
+                                     .finish().getBuildPromotion();
+      BuildPromotion buildB1 = build().in(buildConfB1).snapshotDepends(buildA).finish().getBuildPromotion();
+      BuildPromotion buildB2 = build().in(buildConfB2).snapshotDepends(buildA).finish().getBuildPromotion();
+      BuildPromotion buildC = build().in(buildConfC).snapshotDepends(buildB1, buildB2).finish().getBuildPromotion();
+
+      check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB2, buildB1, buildA);
+      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),snapshotDependencyProblem:false",
+                              "problem1");
+    }
+}
+
+  private void checkProblemOccurrences(final String locator, final String... problemIds) {
+    check(locator, (id, buildProblem) -> id.equals(buildProblem.getBuildProblemData().getIdentity()), myProblemOccurrenceFinder, problemIds);
+
   }
 
   //==================================================

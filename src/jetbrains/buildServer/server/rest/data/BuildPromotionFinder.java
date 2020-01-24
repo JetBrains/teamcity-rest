@@ -24,6 +24,7 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
@@ -96,6 +97,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String COMPOSITE = "composite";
   protected static final String SNAPSHOT_DEP = "snapshotDependency";
   protected static final String ARTIFACT_DEP = "artifactDependency";
+  public static final String SNAPSHOT_PROBLEM = "snapshotDependencyProblem"; /*experimental*/
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
   protected static final String TAGS = "tags"; //legacy support only
   protected static final String TAG = "tag";
@@ -126,6 +128,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String STROB_BUILD_LOCATOR = "locator";
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
   public static final SnapshotDepsTraverser SNAPSHOT_DEPENDENCIES_TRAVERSER = new SnapshotDepsTraverser();
+  public final SnapshotDepProblemsTraverser mySnapshotDepProblemsTraverser;
   private final Finder<TriggeredBy> myTriggerByFinder;
 
   private final BuildPromotionManager myBuildPromotionManager;
@@ -179,7 +182,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                         ORDERED,  //experimental
                         STROB,  //experimental
                         BRANCHED,  //experimental
-                        TRIGGERED  //experimental
+                        TRIGGERED,  //experimental
+                        SNAPSHOT_PROBLEM //experimental
     );
 
     myPermissionChecker = permissionChecker;
@@ -197,6 +201,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     myServiceLocator = serviceLocator;
 
     myTriggerByFinder = getTriggeredByFinder(myTimeCondition, myServiceLocator);
+    mySnapshotDepProblemsTraverser = new SnapshotDepProblemsTraverser(myBuildPromotionManager);
   }
 
   @NotNull
@@ -609,6 +614,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
             return artifactRelatedBuilds.contains(item);
           }
         });
+      }
+    }
+
+    if (locator.isUnused(SNAPSHOT_PROBLEM)) {
+      final String snapshotDepProblem = locator.getSingleDimensionValue(SNAPSHOT_PROBLEM);
+      if (snapshotDepProblem != null) {
+        final Set<BuildPromotion> snapshotDepProblemBuilds = new HashSet<>(getSnapshotDepProblemBuilds(snapshotDepProblem));
+        result.add(item -> snapshotDepProblemBuilds.contains(item));
       }
     }
 
@@ -1234,6 +1247,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return getItemHolder(getArtifactRelatedBuilds(artifactDepDimension, locator));
     }
 
+    final String snapshotDepProblem = locator.getSingleDimensionValue(SNAPSHOT_PROBLEM);
+    if (snapshotDepProblem != null) {
+      return getItemHolder(getSnapshotDepProblemBuilds(snapshotDepProblem));
+    }
+
     final String number = locator.getSingleDimensionValue(NUMBER);
     if (number != null) {
       final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
@@ -1588,7 +1606,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     locator.setDimensionIfNotPresent(PERSONAL, "false");
     locator.setDimensionIfNotPresent(CANCELED, "false");
     locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
-    if (defaultFiltering != null || !locator.isAnyPresent(SNAPSHOT_DEP, EQUIVALENT, ORDERED)) {
+    if (defaultFiltering != null || !locator.isAnyPresent(SNAPSHOT_DEP, EQUIVALENT, ORDERED, SNAPSHOT_PROBLEM)) {
       //do not force branch to default for some locators
       locator.setDimensionIfNotPresent(BRANCH, myBranchFinder.getDefaultBranchLocator());
     }
@@ -1658,6 +1676,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final List<BuildPromotion> result = graphFinder.getItems(depDimension).myEntries;
     sortBuildPromotions(result);
     return result; //todo: patch branch locator, personal, etc.???
+  }
+
+  @NotNull
+  private List<BuildPromotion> getSnapshotDepProblemBuilds(@NotNull final String locator) {
+    final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, mySnapshotDepProblemsTraverser);
+    final List<BuildPromotion> result = graphFinder.getItems(locator).myEntries;
+    sortBuildPromotions(result);
+    return result;
   }
 
   private void sortBuildPromotions(@NotNull final List<BuildPromotion> result) {
@@ -1793,6 +1819,44 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
               });
         }
       };
+    }
+  }
+
+  private static class SnapshotDepProblemsTraverser implements GraphFinder.Traverser<BuildPromotion> {
+    @NotNull private final BuildPromotionManager myBuildPromotionManager;
+
+    public SnapshotDepProblemsTraverser(@NotNull final BuildPromotionManager buildPromotionManager) {
+      myBuildPromotionManager = buildPromotionManager;
+    }
+
+    @NotNull
+    public GraphFinder.LinkRetriever<BuildPromotion> getChildren() {
+      return item -> getFailedDepsIdsStream(item).map(BuildPromotionFinder::getLong).filter(Objects::nonNull)
+                                             .map(promotionId -> BuildFinder.getBuildPromotion(promotionId, myBuildPromotionManager)).collect(Collectors.toList());
+    }
+
+    @NotNull
+    public GraphFinder.LinkRetriever<BuildPromotion> getParents() {
+      return item -> {
+        String id = String.valueOf(item.getId());
+        return item.getDependedOnMe().stream().map(BuildDependency::getDependent).filter(bp -> getFailedDepsIdsStream(bp).anyMatch(id::equals)).collect(Collectors.toList());
+      };
+    }
+
+    @NotNull
+    private Stream<String> getFailedDepsIdsStream(@NotNull final BuildPromotion item) {
+      return ((BuildPromotionEx)item).getBuildProblems().stream().filter(bp -> ErrorData.isSnapshotDependencyError(bp.getBuildProblemData().getType()) && !bp.isMutedInBuild())
+                 .map(bp -> bp.getBuildProblemData().getAdditionalData());
+    }
+  }
+
+  @Nullable
+  private static Long getLong(@Nullable String text) {
+    if (StringUtil.isEmpty(text)) return null;
+    try {
+      return Long.parseLong(text);
+    } catch (NumberFormatException e) {
+      return null;
     }
   }
 
