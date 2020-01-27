@@ -55,7 +55,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   public static final String MUTED = "muted";
   public static final String CURRENTLY_MUTED = "currentlyMuted";
   public static final String AFFECTED_PROJECT = "affectedProject";
-  public static final String SNAPSHOT_DEPENDENCY_PROBLEM = "snapshotDependencyProblem"; //experimental, shortcut for snapshot-dependency-related problem types
 
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final BuildFinder myBuildFinder;
@@ -72,7 +71,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
                                  @NotNull final ProjectManager projectManager,
                                  @NotNull final ServiceLocator serviceLocator) {
     super(PROBLEM, IDENTITY, TYPE, BUILD, AFFECTED_PROJECT, CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
-    setHiddenDimensions(SNAPSHOT_DEPENDENCY_PROBLEM);
     myProjectFinder = projectFinder;
     myBuildFinder = buildFinder;
     myProblemFinder = problemFinder;
@@ -229,14 +227,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       if (buildDimension != null) {
         List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
         result.add(item -> builds.contains(item.getBuildPromotion()));
-      }
-    }
-
-    //todo to be deleted before 2019.2.2
-    if (locator.isUnused(SNAPSHOT_DEPENDENCY_PROBLEM)) {
-      final Boolean dimension = locator.getSingleDimensionValueAsBoolean(SNAPSHOT_DEPENDENCY_PROBLEM);
-      if (dimension != null) {
-        result.add(item -> FilterUtil.isIncludedByBooleanFilter(dimension, ErrorData.isSnapshotDependencyError(item.getBuildProblemData().getType())));
       }
     }
 

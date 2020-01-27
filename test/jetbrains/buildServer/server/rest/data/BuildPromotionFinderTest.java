@@ -2145,7 +2145,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB2, buildB1, buildA);
       check("snapshotDependencyProblem:(from:(id:" + buildB1.getId() + "))", buildC);
       check("snapshotDependencyProblem:(from:(id:" + buildA.getId() + "))", buildC, buildB2, buildB1);
-      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),snapshotDependencyProblem:false",
+      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),type:(snapshotDependencyProblem:false)",
                               "problem22", "problem21", "problem1");
       buildC.getAssociatedBuild().muteBuildProblems(createUser("u"), true, "");
       check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))");
