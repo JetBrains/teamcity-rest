@@ -2149,7 +2149,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
                               "problem22", "problem21", "problem1");
       buildC.getAssociatedBuild().muteBuildProblems(createUser("u"), true, "");
       check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))");
-      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),snapshotDependencyProblem:false");
+      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),type:(snapshotDependencyProblem:false)");
     }
 
     {
@@ -2163,7 +2163,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB2, buildB1, buildA);
       check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "),includeInitial:true)", buildC, buildB2, buildB1, buildA);
       check("id:" + buildB2.getId() + ",snapshotDependencyProblem:(to:(id:" + buildC.getId() + "),includeInitial:true)", buildB2);
-      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),snapshotDependencyProblem:false",
+      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),type:(snapshotDependencyProblem:false)",
                               "problem21", "problem1");
     }
 
@@ -2175,7 +2175,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       BuildPromotion buildC = build().in(buildConfC).snapshotDepends(buildB1, buildB2).finish().getBuildPromotion();
 
       check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB2, buildB1, buildA);
-      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),snapshotDependencyProblem:false",
+      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),type:(snapshotDependencyProblem:false)",
                               "problem1");
     }
 
@@ -2190,7 +2190,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       BuildPromotion buildC = build().in(buildConfC).snapshotDepends(buildB1, buildB2).finish().getBuildPromotion();
 
       check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB1, buildA);
-      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),snapshotDependencyProblem:false",
+      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),type:(snapshotDependencyProblem:false)",
                               "problem1");
     }
 
@@ -2204,7 +2204,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       BuildPromotion buildC = build().in(buildConfC).snapshotDepends(buildB1, buildB2).finish().getBuildPromotion();
 
       check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB2, buildB1, buildA);
-      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),snapshotDependencyProblem:false",
+      checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),type:(snapshotDependencyProblem:false)",
                               "problem1");
     }
 }

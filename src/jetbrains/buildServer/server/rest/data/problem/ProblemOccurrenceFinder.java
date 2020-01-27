@@ -24,10 +24,7 @@ import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.InvalidStateException;
-import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
@@ -51,7 +48,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   private static final String BUILD = "build";
   private static final String IDENTITY = "identity";
-  public static final String TYPE = "type";
+  public static final String TYPE = "type"; //type of the problem (value conditions are supported). Also experimentally supports "snapshotDependencyProblem:false" value
   private static final String CURRENT = "currentlyFailing"; //this problem occurrence is in the currently failing or, when "build" is present - latest build have the same problem
   private static final String PROBLEM = "problem";
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
@@ -218,7 +215,13 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     final String typeDimension = locator.getSingleDimensionValue(TYPE);
     if (typeDimension != null) {
-      result.add(item -> typeDimension.equals(item.getBuildProblemData().getType()));
+      final Boolean snapshotepProblems = getSnapshotDepProblemValue(typeDimension);
+      if (snapshotepProblems != null) {
+        result.add(item -> FilterUtil.isIncludedByBooleanFilter(snapshotepProblems, ErrorData.isSnapshotDependencyError(item.getBuildProblemData().getType())));
+      } else {
+        ValueCondition valueCondition = ParameterCondition.createValueCondition(typeDimension);
+        result.add(item -> valueCondition.matches(item.getBuildProblemData().getType()));
+      }
     }
 
     if (locator.isUnused(BUILD)) {
@@ -229,6 +232,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       }
     }
 
+    //todo to be deleted before 2019.2.2
     if (locator.isUnused(SNAPSHOT_DEPENDENCY_PROBLEM)) {
       final Boolean dimension = locator.getSingleDimensionValueAsBoolean(SNAPSHOT_DEPENDENCY_PROBLEM);
       if (dimension != null) {
@@ -274,6 +278,21 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     }
 
     return result;
+  }
+
+  @Nullable
+  private Boolean getSnapshotDepProblemValue(@NotNull final String text) {
+    //experimental support for "snapshotDependencyProblem:false" in type to filter out snapshot-dependency-related problems
+    final Boolean snapshotepProblems;
+    try {
+      Locator snapshotDepProblemLocator = new Locator(text, "snapshotDependencyProblem");
+      snapshotepProblems = snapshotDepProblemLocator.getSingleDimensionValueAsStrictBoolean("snapshotDependencyProblem", null);
+      snapshotDepProblemLocator.checkLocatorFullyProcessed();
+      return snapshotepProblems;
+    } catch (LocatorProcessException ignore) {
+      // not snapshot dep locator, try regular way
+    }
+    return null;
   }
 
   @NotNull
