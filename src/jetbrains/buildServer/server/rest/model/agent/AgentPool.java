@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.request.AgentRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -51,6 +52,7 @@ public class AgentPool {
   @XmlAttribute public String name;
   @XmlAttribute public String href;
   @XmlAttribute public Integer maxAgents;
+  @XmlElement public Project ownerProject;
   @XmlElement public Projects projects;
   @XmlElement public Agents agents;
   /**
@@ -66,6 +68,18 @@ public class AgentPool {
     name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), agentPool.getName());
 
     final AgentPoolFinder agentPoolFinder = beanContext.getSingletonService(AgentPoolFinder.class);
+
+    ownerProject = !agentPool.isProjectPool() ? null : ValueWithDefault.decideDefault(fields.isIncluded("ownerProject", false, false), //do not add by default as this is being introduced in bugfix release. Can include by default since any major release
+                  () -> {
+                    AgentPoolFinder.PontentiallyInaccessibleProject project = agentPoolFinder.getPoolOwnerProject(agentPool);
+                    if (project == null) { //not existing project
+                      return null;
+                    }
+                    if (project.getProject() == null) { //inaccessible project
+                      return new Project(null, project.getInternalProjectId(), fields.getNestedField("ownerProject"), beanContext);
+                    }
+                    return new Project(project.getProject(), fields.getNestedField("ownerProject"), beanContext);
+                  });
 
     projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
       @Nullable

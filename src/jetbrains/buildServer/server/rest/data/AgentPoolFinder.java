@@ -21,13 +21,16 @@ import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
+import jetbrains.buildServer.serverSide.agentPools.ProjectAgentPoolImpl;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.filters.Filter;
@@ -66,6 +69,8 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
   public static final Dimension<String> NAME = new Dimension<>("name");
   private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
   private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
+  private static final Dimension<Boolean> PROJECT_POOL = new Dimension<>("projectPool");
+  private static final Dimension<List<SProject>> OWNER_PROJECT = new Dimension<>("ownerProject");
 
   private class AgentPoolFinderBuilder extends TypedFinderBuilder<AgentPool> {
     AgentPoolFinderBuilder() {
@@ -74,6 +79,9 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
       dimensionLong(ID).description("agent pool id").toItems(dimension -> Collections.singletonList(getAgentPoolById(dimension))).
         valueForDefaultFilter(agentPool -> (long)agentPool.getAgentPoolId());
       dimensionString(NAME).description("agent pool name").valueForDefaultFilter(agentPool -> agentPool.getName());
+      dimensionBoolean(PROJECT_POOL).description("project pool").hidden().valueForDefaultFilter(agentPool -> agentPool.isProjectPool());  //hidden for now (might want to rethink naming)
+      dimensionProjects(OWNER_PROJECT, myServiceLocator).description("project which defines the project pool").hidden(). //hidden for now (might want to rethink naming)
+        valueForDefaultFilter(agentPool -> Util.resolveNull(getPoolOwnerProject(agentPool), ownerProject -> new HashSet<SProject>(CollectionsUtil.setOf(ownerProject.getProject()))));
       dimensionProjects(PROJECT, myServiceLocator).description("projects associated with the agent pool").
         valueForDefaultFilter(agentPool -> new HashSet<SProject>(getPoolProjects(agentPool)));
       dimensionAgents(AGENT, myServiceLocator).description("agents associated with the agent pool").
@@ -153,6 +161,35 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
       }
     }
     return result;
+  }
+
+  @Nullable
+  public PontentiallyInaccessibleProject getPoolOwnerProject(@NotNull final AgentPool projectAgentPool) {
+    if (!projectAgentPool.isProjectPool()) return null;
+
+    ProjectAgentPoolImpl projectPool;
+    try {
+      projectPool = (ProjectAgentPoolImpl)projectAgentPool;
+    } catch (ClassCastException e) {
+      return null; //should never happen
+    }
+    final ProjectManager projectManager = myServiceLocator.getSingletonService(ProjectManager.class);
+    try {
+      return new PontentiallyInaccessibleProject(projectPool.getProjectId(), projectManager.findProjectById(projectPool.getProjectId()));
+    } catch (AccessDeniedException e) {
+      return new PontentiallyInaccessibleProject(projectPool.getProjectId(), null);
+    }
+  }
+
+  public static class PontentiallyInaccessibleProject{
+    @NotNull private final String myInternalProjectId;
+    @Nullable private final SProject myProject;
+    public PontentiallyInaccessibleProject(@NotNull final String internalProjectId, @Nullable final SProject project) {
+      myInternalProjectId = internalProjectId;
+      myProject = project;
+    }
+    @NotNull public String getInternalProjectId() { return myInternalProjectId;}
+    @Nullable public SProject getProject() { return myProject;}
   }
 
   @NotNull
