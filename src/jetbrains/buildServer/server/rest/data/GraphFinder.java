@@ -48,6 +48,12 @@ public class GraphFinder<T> extends AbstractFinder<T> {
 
   @NotNull
   @Override
+  public String getName() {
+    return myName != null ? myName : getClass().getSimpleName() + " with " + myTraverser.getClass().getSimpleName();
+  }
+
+  @NotNull
+  @Override
   public String getItemLocator(@NotNull final T t) {
     throw new OperationException("getItemLocator is not implemented in GraphFinder");
   }

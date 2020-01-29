@@ -55,7 +55,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   protected static final String CONTEXT_ITEM_DIMENSION_NAME = "$contextItem";
 
   public static final Long NO_COUNT = -1L;
-  @Nullable private String myName;
+  @Nullable protected String myName;
 
   //todo: add set-filtering (filter by collection of items in prefiltering and in filter), e.g. see handling of ProjectFinder.DIMENSION_PROJECT
   private FinderDataBinding<ITEM> myDataBinding;
