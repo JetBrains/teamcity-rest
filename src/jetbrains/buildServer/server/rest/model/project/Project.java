@@ -152,23 +152,21 @@ public class Project {
   }
 
   public Project(@NotNull final SProject project, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
-    id = ValueWithDefault.decideDefault(fields.isIncluded("id"), project.getExternalId());
+    id = ValueWithDefault.decideDefault(fields.isIncluded("id"), project::getExternalId);
     final boolean includeInternal = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
-    internalId = ValueWithDefault.decideDefault(fields.isIncluded("internalId", includeInternal, includeInternal), project.getProjectId());
-    if (beanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, project.getProjectId())) {
-      uuid = ValueWithDefault.decideDefault(fields.isIncluded("uuid", false, false), ((ProjectEx)project).getId().getConfigId());
-    }
-    name = ValueWithDefault.decideDefault(fields.isIncluded("name"), project.getName());
+    internalId = ValueWithDefault.decideDefault(fields.isIncluded("internalId", includeInternal, includeInternal), project::getProjectId);
+    uuid = ValueWithDefault.decideDefault(fields.isIncluded("uuid", false, false), () ->
+      beanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, project.getProjectId()) ? ((ProjectEx)project).getId().getConfigId() : null);
+    name = ValueWithDefault.decideDefault(fields.isIncluded("name"), project::getName);
 
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), () -> beanContext.getApiUrlBuilder().getHref(project));
     webUrl = ValueWithDefault.decideDefault(fields.isIncluded("webUrl"), () -> beanContext.getSingletonService(WebLinks.class).getProjectPageUrl(project.getExternalId()));
 
     links = getLinks(project, fields, beanContext);
 
-    final String descriptionText = project.getDescription();
-    description = ValueWithDefault.decideDefault(fields.isIncluded("description"), StringUtil.isEmpty(descriptionText) ? null : descriptionText);
-    archived = ValueWithDefault.decideDefault(fields.isIncluded("archived"), () -> project.isArchived());
-    readOnlyUI = StateField.create(project.isReadOnly(), ((ProjectEx)project).isCustomSettingsFormatUsed() ? false : null, fields.getNestedField("readOnlyUI"));
+    description = ValueWithDefault.decideDefault(fields.isIncluded("description"), () -> Util.resolveNull(project.getDescription(), d -> StringUtil.isEmpty(d) ? null : d));
+    archived = ValueWithDefault.decideDefault(fields.isIncluded("archived"), project::isArchived);
+    readOnlyUI = ValueWithDefault.decideDefault(fields.isIncluded("readOnlyUI"), () -> StateField.create(project.isReadOnly(), ((ProjectEx)project).isCustomSettingsFormatUsed() ? false : null, fields.getNestedField("readOnlyUI")));
 
     final BuildTypeFinder buildTypeFinder = beanContext.getSingletonService(BuildTypeFinder.class);
     buildTypes = ValueWithDefault.decideDefault(fields.isIncluded("buildTypes", false), new ValueWithDefault.Value<BuildTypes>() {
@@ -247,12 +245,12 @@ public class Project {
         }
       });
 
-      parentProjectId = ValueWithDefault.decideDefault(fields.isIncluded("parentProjectId"), actualParentProject.getExternalId());
+      parentProjectId = ValueWithDefault.decideDefault(fields.isIncluded("parentProjectId"), actualParentProject::getExternalId);
 
       final boolean forceParentAttributes = TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes");
-      parentProjectName = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectName", false, false), actualParentProject.getFullName());
+      parentProjectName = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectName", false, false), actualParentProject::getFullName);
       parentProjectInternalId = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectInternalId", includeInternal, includeInternal),
-                                                               actualParentProject.getProjectId());
+                                                               actualParentProject::getProjectId);
     }
   }
 
