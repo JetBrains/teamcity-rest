@@ -1592,7 +1592,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     if (defaultFiltering == null) { // if it is set, then use the value ("true" if we got there)
       if (TeamCityProperties.getBooleanOrTrue("rest.buildPromotionFinder.varyingDefaults")) {
-        if (locator.isAnyPresent(AGENT, AGENT_NAME, USER, HANGING, EQUIVALENT, TRIGGERED)) {
+        if (locator.isAnyPresent(AGENT, AGENT_NAME, USER, HANGING, EQUIVALENT, TRIGGERED, SNAPSHOT_PROBLEM)) {
           // users usually expect that any build will be returned for such locators, see TW-45140
           return;
         }
@@ -1606,7 +1606,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     locator.setDimensionIfNotPresent(PERSONAL, "false");
     locator.setDimensionIfNotPresent(CANCELED, "false");
     locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
-    if (defaultFiltering != null || !locator.isAnyPresent(SNAPSHOT_DEP, EQUIVALENT, ORDERED, SNAPSHOT_PROBLEM)) {
+    if (defaultFiltering != null || !locator.isAnyPresent(SNAPSHOT_DEP, EQUIVALENT, ORDERED)) {
       //do not force branch to default for some locators
       locator.setDimensionIfNotPresent(BRANCH, myBranchFinder.getDefaultBranchLocator());
     }
