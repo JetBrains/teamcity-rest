@@ -194,13 +194,14 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (buildDimension != null) {
       List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
 
+      Boolean expandInvocations = locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS);  //getting the dimension early in order not to get "dimension is unknown" for it in case of early exit
       String testDimension = locator.getSingleDimensionValue(TEST);
       if (testDimension == null) {
         AggregatingItemHolder<STestRun> result = new AggregatingItemHolder<>();
         for (BuildPromotion build : builds) {
           SBuild associatedBuild = build.getAssociatedBuild();
           if (associatedBuild != null) {
-            result.add(getPossibleExpandedTestsHolder(getBuildStatistics(associatedBuild, locator).getAllTests(), locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS)));
+            result.add(getPossibleExpandedTestsHolder(getBuildStatistics(associatedBuild, locator).getAllTests(), expandInvocations));
           }
         }
         return result;
@@ -220,7 +221,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
           }
         }
       }
-      return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+      return getPossibleExpandedTestsHolder(result, expandInvocations);
     }
 
     String testDimension = locator.getSingleDimensionValue(TEST);
@@ -568,7 +569,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     int optionsMask = TeamCityProperties.getInteger("rest.request.testOccurrences.buildStatOpts.default",
                                                     BuildStatisticsOptions.FIRST_FAILED_IN_BUILD | BuildStatisticsOptions.FIXED_IN_BUILD);
     boolean loadAllTests = TeamCityProperties.getBoolean("rest.request.testOccurrences.loadAllTestsForBuild");
-    if (locator == null || loadAllTests || FilterUtil.isIncludingBooleanFilter(locator.lookupSingleDimensionValueAsBoolean(IGNORED))) {
+    if (locator == null || loadAllTests || FilterUtil.isIncludingBooleanFilter(locator.lookupSingleDimensionValueAsBoolean(IGNORED))) { //todo: consider not loading ignored tests if only failed are requested via status:FAILURE (if that does not change the result)
       optionsMask |= BuildStatisticsOptions.IGNORED_TESTS;
     }
 

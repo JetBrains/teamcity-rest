@@ -355,6 +355,18 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     check("build:(id:" + build10.getBuildId() + "),invocations:(search:(count:100),match:(status:SUCCESS))", TEST_MATCHER,
           t("bbb", Status.NORMAL, 3),
           t("ddd", Status.NORMAL, 8));
+
+    STestRun testRun = getFinder().getItem("build:(id:" + build10.getBuildId() + ")");
+    check("build:(id:" + build10.getBuildId() + "),id:"+ testRun.getTestRunId() + "", TEST_MATCHER,
+          t(testRun.getTest().getName().toString(), testRun.getStatus(), testRun.getOrderId()));
+
+    check("id:404,build:(id:" + build10.getBuildId() + ")", TEST_MATCHER);
+    check("id:404,build:(id:" + build10.getBuildId() + "),expandInvocations:true", TEST_MATCHER);
+    check("id:404,build:(id:404)", TEST_MATCHER); //documenting current behavior: no error, can be useful for "get test runs from such builds
+    check("id:404,build:(id:404),expandInvocations:true", TEST_MATCHER);
+
+    check("build:(id:" + build10.getBuildId() + "),test:(name:missing)", TEST_MATCHER); //documenting current behavior: no error, can be useful for "get test runs for the currently investigated tests, or alike
+    check("test:(name:missing)", TEST_MATCHER); //documenting current behavior: no error
   }
 
   @Test
