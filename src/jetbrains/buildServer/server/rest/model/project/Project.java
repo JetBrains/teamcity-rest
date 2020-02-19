@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.project;
 
 import java.util.List;
+import java.util.function.Function;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -38,9 +39,7 @@ import jetbrains.buildServer.server.rest.model.cloud.CloudProfiles;
 import jetbrains.buildServer.server.rest.request.CloudRequest;
 import jetbrains.buildServer.server.rest.request.ProjectRequest;
 import jetbrains.buildServer.server.rest.request.VcsRootRequest;
-import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.server.rest.util.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -168,55 +167,52 @@ public class Project {
     archived = ValueWithDefault.decideDefault(fields.isIncluded("archived"), project::isArchived);
     readOnlyUI = ValueWithDefault.decideDefault(fields.isIncluded("readOnlyUI"), () -> StateField.create(project.isReadOnly(), ((ProjectEx)project).isCustomSettingsFormatUsed() ? false : null, fields.getNestedField("readOnlyUI")));
 
-    final BuildTypeFinder buildTypeFinder = beanContext.getSingletonService(BuildTypeFinder.class);
+    final CachingValue<BuildTypeFinder> buildTypeFinder = CachingValue.simple(() -> beanContext.getSingletonService(BuildTypeFinder.class));
     buildTypes = ValueWithDefault.decideDefault(fields.isIncluded("buildTypes", false), new ValueWithDefault.Value<BuildTypes>() {
       public BuildTypes get() {
         final Fields buildTypesFields = fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG);
         final String buildTypesLocator = buildTypesFields.getLocator();
-        final List<BuildTypeOrTemplate> buildTypes = buildTypeFinder.getBuildTypesPaged(project, buildTypesLocator, true).myEntries;
+        final List<BuildTypeOrTemplate> buildTypes = buildTypeFinder.get().getBuildTypesPaged(project, buildTypesLocator, true).myEntries;
         return new BuildTypes(buildTypes, null, buildTypesFields, beanContext);
       }
     });
 
-    final PermissionChecker permissionChecker = beanContext.getServiceLocator().findSingletonService(PermissionChecker.class);
-    assert permissionChecker != null;
-    if (!shouldRestrictSettingsViewing(project, permissionChecker)) {
-      templates = ValueWithDefault.decideDefault(fields.isIncluded("templates", false), new ValueWithDefault.Value<BuildTypes>() {
-        public BuildTypes get() {
-          final Fields templateFields = fields.getNestedField("templates", Fields.NONE, Fields.LONG);
-          final String templatesLocator = templateFields.getLocator();
-          final List<BuildTypeOrTemplate> templates = buildTypeFinder.getBuildTypesPaged(project, templatesLocator, false).myEntries;
-          return new BuildTypes(templates, null, templateFields, beanContext);
-        }
-      });
+    CachingValue<Boolean> canViewSettings = CachingValue.simple(() -> {
+      final PermissionChecker permissionChecker = beanContext.getServiceLocator().findSingletonService(PermissionChecker.class);
+      assert permissionChecker != null;
+      return !shouldRestrictSettingsViewing(project, permissionChecker); //use lazy calculation in order not to have performance impact when no related fields are retrieved
+    });
 
-      defaultTemplate = ValueWithDefault.decideDefault(fields.isIncluded("defaultTemplate", false),
-                                                       () -> getDefaultTemplate(project, fields.getNestedField("defaultTemplate", Fields.NONE, Fields.SHORT), beanContext));
+    templates = ValueWithDefault.decideDefault(fields.isIncluded("templates", false), new ValueWithDefault.Value<BuildTypes>() {
+      public BuildTypes get() {
+        if (!canViewSettings.get()) return null;
+        final Fields templateFields = fields.getNestedField("templates", Fields.NONE, Fields.LONG);
+        final String templatesLocator = templateFields.getLocator();
+        final List<BuildTypeOrTemplate> templates = buildTypeFinder.get().getBuildTypesPaged(project, templatesLocator, false).myEntries;
+        return new BuildTypes(templates, null, templateFields, beanContext);
+      }
+    });
 
-      parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false), new ValueWithDefault.Value<Properties>() {
-        public Properties get() {
-          return new Properties(createEntity(project), ProjectRequest.getParametersHref(project),
-                                null, fields.getNestedField("parameters", Fields.NONE, Fields.LONG), beanContext);
-        }
-      });
-      vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false), new ValueWithDefault.Value<VcsRoots>() {
-        public VcsRoots get() {
-          return new VcsRoots(project.getOwnVcsRoots(), //consistent with VcsRootFinder
-                              new PagerData(VcsRootRequest.getHref(project)), fields.getNestedField("vcsRoots"), beanContext);
-        }
-      });
-      projectFeatures = ValueWithDefault.decideDefault(fields.isIncluded("projectFeatures", false),
-                                                () -> {
-                                                  Fields nestedFields = fields.getNestedField("projectFeatures", Fields.NONE, Fields.LONG);
-                                                  return new PropEntitiesProjectFeature(project, nestedFields.getLocator(), nestedFields, beanContext);
-                                                });
-    } else {
-      templates = null;
-      defaultTemplate = null;
-      parameters = null;
-      vcsRoots = null;
-      projectFeatures = null;
-    }
+    defaultTemplate = ValueWithDefault.decideDefault(fields.isIncluded("defaultTemplate", false),
+                                                     () -> !canViewSettings.get()
+                                                           ? null
+                                                           : getDefaultTemplate(project, fields.getNestedField("defaultTemplate", Fields.NONE, Fields.SHORT), beanContext));
+
+    parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false),
+                                                () -> !canViewSettings.get() ? null : new Properties(createEntity(project), ProjectRequest.getParametersHref(project),
+                                                                                                     null, fields.getNestedField("parameters", Fields.NONE, Fields.LONG),
+                                                                                                     beanContext));
+    vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false),
+                                              () -> !canViewSettings.get() ? null : new VcsRoots(project.getOwnVcsRoots(), //consistent with VcsRootFinder
+                                                                                                 new PagerData(VcsRootRequest.getHref(project)), fields.getNestedField("vcsRoots"),
+                                                                                                 beanContext));
+    projectFeatures = ValueWithDefault.decideDefault(fields.isIncluded("projectFeatures", false),
+                                                     () -> {
+                                                       if (!canViewSettings.get()) return null;
+                                                       Fields nestedFields = fields.getNestedField("projectFeatures", Fields.NONE, Fields.LONG);
+                                                       return new PropEntitiesProjectFeature(project, nestedFields.getLocator(), nestedFields, beanContext);
+                                                     });
+
 
     projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
       public Projects get() {
@@ -237,21 +233,33 @@ public class Project {
       return new CloudProfiles(items, new PagerData(CloudRequest.getProfilesHref(nestedFields.getLocator(), project)), nestedFields, beanContext);
     });
 
-    final SProject actualParentProject = project.getParentProject();
-    if (actualParentProject != null) {
-      parentProject = ValueWithDefault.decideDefault(fields.isIncluded("parentProject", false), new ValueWithDefault.Value<Project>() {
-        public Project get() {
-          return new Project(actualParentProject, fields.getNestedField("parentProject"), beanContext);
-        }
-      });
+    final CachingValueNullable<SProject> actualParentProject = CachingValueNullable.simple(project::getParentProject); //use lazy calculation in order not to have performance impact when no related fields are retrieved
+    parentProject = ValueWithDefault.decideDefault(fields.isIncluded("parentProject", false),
+                                                   () -> Util.resolveNull(actualParentProject.get(), (v) -> new Project(v, fields.getNestedField("parentProject"), beanContext)));
 
-      parentProjectId = ValueWithDefault.decideDefault(fields.isIncluded("parentProjectId"), actualParentProject::getExternalId);
+    parentProjectId = ValueWithDefault.decideDefault(fields.isIncluded("parentProjectId"),
+                                                     () -> Util.resolveNull(actualParentProject.get(), new Function<SProject, String>() {
+                                                       @Override
+                                                       public String apply(final SProject v) {
+                                                         return v.getExternalId();
+                                                       }
+                                                     }));
 
-      final boolean forceParentAttributes = TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes");
-      parentProjectName = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectName", false, false), actualParentProject::getFullName);
-      parentProjectInternalId = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectInternalId", includeInternal, includeInternal),
-                                                               actualParentProject::getProjectId);
-    }
+    final boolean forceParentAttributes = TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes");
+    parentProjectName = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectName", false, false),
+                                                       () -> Util.resolveNull(actualParentProject.get(), new Function<SProject, String>() {
+                                                         @Override
+                                                         public String apply(final SProject v) {
+                                                           return v.getFullName();
+                                                         }
+                                                       }));
+    parentProjectInternalId = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectInternalId", includeInternal, includeInternal),
+                                                             () -> Util.resolveNull(actualParentProject.get(), new Function<SProject, String>() {
+                                                               @Override
+                                                               public String apply(final SProject v) {
+                                                                 return v.getProjectId();
+                                                               }
+                                                             }));
   }
 
   @Nullable
