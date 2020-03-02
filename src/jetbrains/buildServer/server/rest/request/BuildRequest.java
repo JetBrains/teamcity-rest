@@ -1311,7 +1311,7 @@ public class BuildRequest {
     });
   }
 
-  private Response processIconRequest(final String stateName, final @PathParam("suffix") String suffix, final @Context HttpServletRequest request) {
+  private Response processIconRequest(final String stateName, final String suffix, final @Context HttpServletRequest request) {
     final String iconFileName = IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/" + stateName + (StringUtil.isEmpty(suffix) ? ".png" : suffix);
     final String resultIconFileName;
     try {

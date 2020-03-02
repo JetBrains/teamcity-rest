@@ -59,7 +59,7 @@ public class JerseyWebComponent extends SpringServlet {
       }
       wa.initiate(rc, new ExtensionHolderProviderFactory(myExtensionHolder, myPluginName));
     } catch (RuntimeException e) {
-      LOG.error("Exception occurred during REST API initialization", e);
+      LOG.error("Exception occurred during REST API initialization: " + ExceptionMapperBase.getMessageWithCauses(e), e);
       throw e;
     }
   }

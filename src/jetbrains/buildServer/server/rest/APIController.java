@@ -471,7 +471,7 @@ public class APIController extends BaseController implements ServletContextAware
 
       patchThread(requestDump, internalRequest, () -> {
         // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-        doUnderContextClassLoader(getClass().getClassLoader(), new FuncThrow<Void, Throwable>() {
+        doUnderContextClassLoader(myClassloader, new FuncThrow<Void, Throwable>() {
           public Void apply() throws Throwable {
             return new RestContext(name -> request.getAttribute(CONTEXT_REQUEST_ARGUMENTS_PREFIX + name))
               .run(() -> {

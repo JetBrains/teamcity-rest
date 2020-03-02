@@ -39,6 +39,7 @@ import org.joda.time.format.ISODateTimeFormat;
  */
 public class TimeWithPrecision {
   private static Logger LOG = Logger.getInstance(TimeWithPrecision.class.getName());
+  public static final String SUPPORTED_HINT = "Supported format example: '-4w2d5h30m5s'";
 
   @NotNull private final Date myTime;
   private final boolean mySecondsPrecision;
@@ -53,6 +54,9 @@ public class TimeWithPrecision {
     return myTime;
   }
 
+  /**
+   * @return true, if the stored time has precision of seconds, that is milliseconds part is always 0
+   */
   public boolean isSecondsPrecision() {
     return mySecondsPrecision;
   }
@@ -185,7 +189,7 @@ public class TimeWithPrecision {
     result.processTimeValue("s", 1000);
     result.processTimeValue("ms", 1);
     if (!result.isFullyParsed()) {
-      throw new BadRequestException("Unsupported relative time for the remaining text '" + result.myTimeText + "': supported format example: '-4w2d5h30m5s'");
+      throw new BadRequestException("Unsupported relative time for the remaining text '" + result.myTimeText + "'. " + SUPPORTED_HINT);
     }
     return result.myTimeMs;
   }
@@ -253,10 +257,10 @@ public class TimeWithPrecision {
           myNextUnitStartIndex++;
         }
       } catch (IndexOutOfBoundsException e) {
-        throw new BadRequestException("Could not parse remaining text '" + myTimeText + "': does not end with a textual unit");
+        throw new BadRequestException("Could not parse remaining text '" + myTimeText + "': does not end with a textual unit. " + SUPPORTED_HINT);
       }
       if (myNextUnitStartIndex == 0) {
-        throw new BadRequestException("Could not parse remaining text '" + myTimeText + "': does not start with pattern <digits><letters>");
+        throw new BadRequestException("Could not parse remaining text '" + myTimeText + "': does not start with pattern <digits><letters>. " + SUPPORTED_HINT);
       }
       myNextUnitEndIndex = myNextUnitStartIndex;
       try {
@@ -267,7 +271,7 @@ public class TimeWithPrecision {
         //ignore
       }
       if (myNextUnitEndIndex == myNextUnitStartIndex) {
-        throw new BadRequestException("Could not parse remaining text '" + myTimeText + "': does not start with pattern <digits><letters>");
+        throw new BadRequestException("Could not parse remaining text '" + myTimeText + "': does not start with pattern <digits><letters>. " + SUPPORTED_HINT);
       }
     }
 

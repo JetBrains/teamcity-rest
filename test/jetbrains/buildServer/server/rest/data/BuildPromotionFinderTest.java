@@ -2041,6 +2041,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final BuildPromotion build20 = build().in(buildConf1).tag("text(aaa)").finish().getBuildPromotion();
 
     check("tag:(name:$base64:" + Base64.getEncoder().encodeToString("text(aaa)".getBytes("UTF-8")) + ")", build20);
+    check("tag:(name:(text(aaa)))", build20);
+    checkExceptionOnItemsSearch(LocatorProcessException.class, "tag:(text(aaa))"); //documenting current beahvior. Fixing this is hard as
   }
 
   @Test
