@@ -75,6 +75,7 @@ import jetbrains.buildServer.serverSide.impl.BuildPromotionReplacementLog;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.dependency.GraphOptimizer;
 import jetbrains.buildServer.serverSide.impl.history.DBBuildHistory;
+import jetbrains.buildServer.serverSide.mute.ProblemMutingServiceImpl;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.filters.Filter;
@@ -821,6 +822,32 @@ public class DebugRequest {
       }
     }, null);
     return new Builds(itemsRetriever, new Fields(fields), myBeanContext);
+  }
+
+  /* relies on making several cache methods public
+  @GET
+  @Path("/caches/buildChanges/{buildLocator}")
+  @Produces({"text/plain"})
+  public String getCachedBuildsStat(@PathParam("buildLocator") final String buildLocator, @QueryParam("fields") final String fields) {
+    myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
+    PagedSearchResult<BuildPromotion> builds = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItems(buildLocator);
+    StringBuilder result = new StringBuilder();
+    for (BuildPromotion build : builds.myEntries) {
+      result.append("build: ").append(build.getId()).append("\n");
+      VcsChangesCache vcsChangesCache = ((BuildPromotionImpl)build).myVcsChangesCache;
+      vcsChangesCache.processCached((key, changes) -> result.append("  ").append(key.toString()).append(changes.stream().map(change -> String.valueOf(change.getId())).collect(Collectors.joining("\n    "))));
+    }
+    return result.toString();
+  }
+  */
+
+  @DELETE
+  @Path("/caches/projectMutes")
+  @Produces({"application/xml", "application/json"})
+  public void resetCacheProjectMutes(@QueryParam("project") final String projectLocator) {
+    myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
+    ProblemMutingServiceImpl problemMutingService = myServiceLocator.getSingletonService(ProblemMutingServiceImpl.class);
+    myServiceLocator.getSingletonService(ProjectFinder.class).getItems(projectLocator).myEntries.forEach(problemMutingService::invalidateProjectMutesCache);
   }
 
   /**
