@@ -17,13 +17,16 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Stopwatch;
 import com.google.common.hash.Hashing;
+import com.intellij.execution.configurations.GeneralCommandLine;
 import io.swagger.annotations.Api;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -39,7 +42,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import jetbrains.buildServer.ExecResult;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.SimpleCommandLineProcessRunner;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.diagnostic.ThreadDumpDataProvider;
 import jetbrains.buildServer.diagnostic.web.ThreadDumpsController;
@@ -679,6 +684,37 @@ public class DebugRequest {
     Loggers.SERVER.warn("Thread is interrupted via REST request by user " + myPermissionChecker.getCurrentUserDescription() + ". Thread name: " + LogUtil.quote(thread.getName()));
     thread.interrupt();
     return String.valueOf(thread.isInterrupted());
+  }
+
+  /**
+   * Experimental use only!
+   */
+  @POST
+  @Path("/processes")
+  @Consumes({"text/plain"})
+  @Produces({"text/plain"})
+  public String runProcess(@QueryParam("exePath") String exePath, @QueryParam("params") List<String> params,
+                           @QueryParam("idleTimeSeconds") Integer idleTimeSeconds, @QueryParam("maxOutputBytes") Integer maxOutputBytes, @QueryParam("charset") String charset, String input) {
+    if (!TeamCityProperties.getBoolean("rest.debug.processes.enable")) {
+      throw new BadRequestException("This server is not configured to allow process debug launch via " + LogUtil.quote("rest.debug.processes.enable") + " internal property");
+    }
+    myDataProvider.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
+    GeneralCommandLine cmd = new GeneralCommandLine();
+    cmd.setExePath(exePath);
+    cmd.addParameters(params);
+    Loggers.ACTIVITIES.info("External process is launched by user " + myPermissionChecker.getCurrentUserDescription() + ". Command line: " + cmd.getCommandLineString());
+    Stopwatch action = new Stopwatch().start();
+    final ExecResult execResult = SimpleCommandLineProcessRunner.runCommand(cmd, input.getBytes(Charset.forName(charset != null ? charset : "UTF-8")), new SimpleCommandLineProcessRunner.RunCommandEventsAdapter() {
+      @Override public Integer getOutputIdleSecondsTimeout() {return idleTimeSeconds;}
+      @Override public Integer getMaxAcceptedOutputSize() {return maxOutputBytes != null && maxOutputBytes != null && maxOutputBytes > 0 ? maxOutputBytes : 1024*1024;}
+    });
+    action.stop();
+    StringBuffer result = new StringBuffer();
+    result.append("StdOut:").append(execResult.getStdout()).append("\n");
+    result.append("StdErr: ").append(execResult.getStderr()).append("\n");
+    result.append("Exit code: ").append(execResult.getExitCode()).append("\n");
+    result.append("Time: ").append(TimePrinter.createMillisecondsFormatter().formatTime(action.elapsedMillis()));
+    return result.toString();
   }
 
   @NotNull
