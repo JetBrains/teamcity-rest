@@ -154,6 +154,7 @@ public class APIController extends BaseController implements ServletContextAware
       @Override
       public void pluginsLoaded() {
         initializeController();
+        //todo: check if REST plugin is actually loaded and throw dedicated error otherwise
       }
     });
 

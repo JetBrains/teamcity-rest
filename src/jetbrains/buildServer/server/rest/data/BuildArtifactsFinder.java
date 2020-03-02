@@ -64,6 +64,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   public static final String DIMENSION_PATTERNS = "pattern";
   public static final String DIMENSION_MODIFIED = "modified";
   public static final String DIMENSION_SIZE = "size";
+  //todo: add "path" dimension to specify full path to a file or directory, including archives
 
   static final Comparator<ArtifactTreeElement> ARTIFACT_COMPARATOR = new ArtifactsComparator();
   private static final Pattern SLASHES_OR_SPACE_PATTERN = Pattern.compile("[\\/ ]", Pattern.LITERAL);

@@ -1440,7 +1440,7 @@ public class Build {
     final SBuildType submittedBuildType = getSubmittedBuildType(serviceLocator, personalChangeToUse, user);
     final BuildCustomizer customizer = serviceLocator.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(submittedBuildType, user);
     if (changeToUse != null) {
-      customizer.setChangesUpTo(changeToUse);
+      customizer.setChangesUpTo(changeToUse); //might need to rework after comparison to code in jetbrains.buildServer.controllers.RunBuildBean.setupBuildCustomizer: customizer.setNodeRevisions, etc.
     }
     if (submittedComment != null) {
       if (submittedComment.text != null) {
@@ -1453,7 +1453,7 @@ public class Build {
       customizer.setParameters(submittedProperties.getMap());
     }
 
-    if (submittedBranchName != null) customizer.setDesiredBranchName(submittedBranchName);
+    if (submittedBranchName != null) customizer.setDesiredBranchName(submittedBranchName); //this should ideally be used only when defaultBranc flag is not set. If set to false, should use customizer.setDesiredBranchName(submittedBranchName, false)
     if (submittedPersonal != null) customizer.setPersonal(submittedPersonal);
 
     if (submittedBuildDependencies != null) {

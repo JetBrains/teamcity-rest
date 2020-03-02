@@ -1548,6 +1548,12 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkBuilds("item:(id:" + build20.getId() + "),item:(id:" + build10.getId() + "),start:1", build10);
     checkBuilds("item:(status:SUCCESS),item:(status:FAILURE)", build20, build10, build30);
     checkBuilds("item:(status:SUCCESS),item:(status:FAILURE),item:(id:" + build10.getId() + "),unique:true", build20, build10, build30);
+
+    /* todo: improve performance of count and item processing
+    checkBuilds("count:1,item:(id:" + build20.getId() + "),item:(id:" + build10.getId() + ")", 1, new BuildPromotion[]{build20});
+    checkBuilds("count:1,item:(parameter:(b)),item:(id:" + build10.getId() + ")", 1, new BuildPromotion[]{build20});
+    checkBuilds("count:2,item:(id:" + build10.getId() + "),item:(parameter:(b))", 2, new BuildPromotion[]{build10, build20});
+    */
   }
 
   @Test

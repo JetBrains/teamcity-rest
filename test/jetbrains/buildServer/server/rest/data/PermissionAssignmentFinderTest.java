@@ -186,7 +186,7 @@ public class PermissionAssignmentFinderTest extends BaseFinderTest<PermissionAss
       if (items.length == 0) {
         assertExceptionThrown(singleResultSupplier::get, NotFoundException.class);
       } else {
-        assertContains(Arrays.asList(items), singleResultSupplier.get());
+        assertContains(Arrays.asList(items), singleResultSupplier.get()); //this is some strange logic defeating the purpose of the signle item search test
       }
     }
   }

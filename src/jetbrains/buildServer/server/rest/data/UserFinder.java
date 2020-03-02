@@ -64,7 +64,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
   private static final Dimension<TimeCondition.ParsedTimeCondition> LAST_LOGIN_TIME = new Dimension<>("lastLogin");
   private static final Dimension<RoleEntryDatas> ROLE = new Dimension<>("role");
   private static final Dimension<ItemFilter<SUser>> PERMISSION = new Dimension<>("permission");
-
+  //todo: add filtering by changes (authors), builds (triggering), audit events, etc?
   @NotNull private final UserModel myUserModel;
   @NotNull private final UserGroupFinder myGroupFinder;
   @NotNull private final ProjectFinder myProjectFinder;

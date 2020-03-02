@@ -105,6 +105,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String HISTORY = "history";
   protected static final String TEST_OCCURRENCE = "testOccurrence";
   protected static final String TEST = "test";
+  //todo: add problem* filtering; filtering by statusText;
   protected static final String SINCE_BUILD = "sinceBuild"; //use startDate:(build:(<locator>),condition:after) instead
   protected static final String SINCE_DATE = "sinceDate"; //use startDate:(date:<date>,condition:after) instead
   protected static final String UNTIL_BUILD = "untilBuild"; //use startDate:(build:(<locator>),condition:before) instead
@@ -124,6 +125,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String METADATA = "metadata"; /*experimental*/
 
   public static final String REVISION = "revision"; /*experimental*/
+  //todo: filter by modId/chainModId (including null) - before(up to)/after filtering
 
   protected static final String STROB_BUILD_LOCATOR = "locator";
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
@@ -771,7 +773,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       if (revision != null) {
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
-            final List<BuildRevision> buildRevisions = item.getRevisions();
+            final List<BuildRevision> buildRevisions = item.getRevisions(); //use getAllrevisions map??
             for (BuildRevision rev : buildRevisions) {
               if (revision.equals(rev.getRevisionDisplayName())) {
                 return true;
@@ -789,7 +791,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         if (vcsRoot != null || versionCondition != null || internalVersionCondition != null) {
           result.add(new FilterConditionChecker<BuildPromotion>() {
             public boolean isIncluded(@NotNull final BuildPromotion item) {
-              final List<BuildRevision> revisions = item.getRevisions();
+              final List<BuildRevision> revisions = item.getRevisions();  //use getAllrevisions map??
               for (BuildRevision rev : revisions) {
                 if ((vcsRoot == null || vcsRoot.getId() == rev.getRoot().getParent().getId()) &&
                     (versionCondition == null || versionCondition.matches(rev.getRevisionDisplayName())) &&
@@ -981,7 +983,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    final Boolean pinned = locator.getSingleDimensionValueAsBoolean(PINNED);
+    final Boolean pinned = locator.getSingleDimensionValueAsBoolean(PINNED); //todo: add to build options when prefiltering
     if (pinned != null) {
       result.add(new FilterConditionChecker<SBuild>() {
         public boolean isIncluded(@NotNull final SBuild item) {
@@ -1457,7 +1459,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
               options.setBranch(Branch.DEFAULT_BRANCH_NAME);
             }
             if (branchFilterDetails.getBranchName() != null) {
-              options.setMatchAllBranches(false);
+              options.setMatchAllBranches(false); //causes a bug in certain cases, see https://youtrack.jetbrains.com/issue/TW-61530 however, no performant fix is possible so far
               options.setBranch(branchFilterDetails.getBranchName());
             }
           }

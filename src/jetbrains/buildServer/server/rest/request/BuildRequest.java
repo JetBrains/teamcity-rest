@@ -477,6 +477,7 @@ public class BuildRequest {
 
   /*
   //this seems to have no sense as there is no way to retrieve a list of values without registered value provider
+  //can also add delete to workaround issues like https://youtrack.jetbrains.com/issue/TW-61084
   @PUT
   @Path("/{buildLocator}/statistics/{name}")
   @Consumes("text/plain")
@@ -726,7 +727,7 @@ public class BuildRequest {
     build.addBuildProblem(problemDetails);
     return new ProblemOccurrence(myBeanContext.getSingletonService(ProblemOccurrenceFinder.class).getProblem(build, problemDetails), myBeanContext, new Fields(fields));
   }
-  
+
   @GET
   @Path("/{buildLocator}/" + TESTS)
   @Produces({"application/xml", "application/json"})
@@ -759,6 +760,7 @@ public class BuildRequest {
     return Build.getArtifactDependencyChangesNode(build, new Fields(fields), myBeanContext);
   }
 
+  // todo: depricate in favor of posting to .../canceledInfo
   @POST
   @Path("/{buildLocator}")
   @Consumes({"application/xml", "application/json"})

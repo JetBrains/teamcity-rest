@@ -183,7 +183,7 @@ public class TestFinder extends AbstractFinder<STest> {
         result.addAll(CollectionsUtil.convertCollection(associatedBuild.getBuildStatistics(BuildStatisticsOptions.ALL_TESTS_NO_DETAILS).getAllTests(), source -> source.getTest()));
       }
     }
-    return result;
+    return result; //todo: use BuildStatistics.getTests to get unsorted, then sort
   }
 
   Set<STest> getCurrentlyMutedTests(final SProject affectedProject) {

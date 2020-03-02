@@ -283,6 +283,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
       unfilteredItems = locatorDataBinding.getPrefilteredItems();
       Set<ITEM> containerSet = myDataBinding.createContainerSet();
       if (containerSet != null) {
+        //get the dimension only for supporting finders so that unused dimension is reported otherwise
         boolean deduplicate = locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_UNIQUE, locator.isAnyPresent(DIMENSION_ITEM));
         if (deduplicate) {
           unfilteredItems = new FinderDataBinding.DeduplicatingItemHolder<>(unfilteredItems, containerSet);

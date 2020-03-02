@@ -213,6 +213,7 @@ public class Agent {
             }
           });
 
+          //TODO: review, if it should return all parameters on agent, use #getDefinedParameters()
           properties = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
             @Nullable
             public Properties get() {
@@ -349,9 +350,11 @@ public class Agent {
     SUser currentUser = serviceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     if ("enabled".equals(name)) {
       agent.setEnabled(Boolean.valueOf(value), currentUser, getActualActionComment(null));
+      //todo (TeamCity) why not use current user by default?
       return;
     } else if ("authorized".equals(name)) {
       agent.setAuthorized(Boolean.valueOf(value), currentUser, getActualActionComment(null));
+      //todo (TeamCity) why not use current user by default?
       return;
     } else if ("enabledInfoCommentText".equals(name)) {
       agent.setEnabled(agent.isEnabled(), currentUser, value);

@@ -61,7 +61,7 @@ public class TagFinder extends AbstractFinder<TagData> {
   }
 
   public static boolean isIncluded(@NotNull final BuildPromotion item, @Nullable final String singleTag, @NotNull final UserFinder userFinder) {
-    return new TagFinder(userFinder, item).getItems(singleTag, getDefaultLocator()).myEntries.size() > 0;
+    return new TagFinder(userFinder, item).getItems(singleTag, getDefaultLocator()).myEntries.size() > 0; //the code should correspond to locator.isSingleValue() case processing in getFilter method
   }
 
   @NotNull
@@ -118,7 +118,7 @@ public class TagFinder extends AbstractFinder<TagData> {
       final MultiCheckerFilter<TagData> result = new MultiCheckerFilter<TagData>();
       result.add(new FilterConditionChecker<TagData>() {
         public boolean isIncluded(@NotNull final TagData item) {
-          return item.isPublic() && item.getLabel().equals(singleValue);
+          return item.isPublic() && item.getLabel().equals(singleValue); //the code should correspond to TagFinder.isIncluded method
         }
       });
       return result;
@@ -196,6 +196,8 @@ public class TagFinder extends AbstractFinder<TagData> {
 
   @Nullable
   public static FilterOptions getFilterOptions(@NotNull final List<String> tagLocators, @NotNull final ServiceLocator serviceLocator) {
+    //todo: try to optimize performance by filtering by the one with exact match before others (if present)
+    //todo: consider making "tag" locator case sensitive by default
     if (tagLocators.size() != 1) return null; //so far supporting only single tag filter
 
     String tagLocator = tagLocators.get(0);

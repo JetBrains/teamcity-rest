@@ -79,6 +79,7 @@ public class Tests implements DefaultValueAware {
 
   @NotNull
   public List<STest> getFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    //todo: support locator here like in build to allow muting for many tests at once
     if (items == null){
       throw new BadRequestException("Invalid 'tests' entity: tests should not be empty");
     }

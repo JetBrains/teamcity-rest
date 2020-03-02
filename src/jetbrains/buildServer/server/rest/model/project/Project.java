@@ -146,6 +146,7 @@ public class Project {
   }
 
   public Project(@Nullable final String externalId, @Nullable final String internalId, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    //todo: check usages: externalId should actually be NotNull and internal id should never be necessary
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), externalId);
     this.internalId = ValueWithDefault.decideDefault(fields.isIncluded("internalId"), internalId);
   }
@@ -360,6 +361,7 @@ public class Project {
 
   @NotNull
   public String getLocatorFromPosted() {
+    //todo: support posted parentProject fields here
     String locatorText = "";
     if (internalId != null) locatorText = "internalId:" + internalId;
     if (id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + id;

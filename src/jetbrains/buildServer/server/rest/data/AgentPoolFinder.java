@@ -98,7 +98,7 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
             @Override
             public boolean shouldStop(@NotNull final AgentPool item) {
               return false;
-            }
+            } //should return true?
 
             @Override
             public boolean isIncluded(@NotNull final AgentPool item) {
