@@ -266,6 +266,46 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
   }
 
   @Test
+  public void testBranchFiltering() throws Exception {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    BuildBuilder.TestData test10, test20, test30, test40, test50, test60;
+    final SFinishedBuild build10 = build().in(buildType).withTest(test10 = BuildBuilder.TestData.test("test").duration(10)).finish();
+    final SFinishedBuild build20 = build().in(buildType).withBranch("branch1").withTest(test20 = BuildBuilder.TestData.test("test").duration(20)).finish();
+    final SFinishedBuild build30 = build().in(buildType).withDefaultBranch().withTest(test30 = BuildBuilder.TestData.test("test").duration(30)).finish();
+    final SFinishedBuild build40 = build().in(buildType).personalForUser("user").withTest(test40 = BuildBuilder.TestData.test("test").duration(40)).finish();
+    final SFinishedBuild build50 = build().in(buildType).withTest(test50 = BuildBuilder.TestData.test("test").duration(50)).cancel(null);
+    final SFinishedBuild build60 = build().in(buildType).withBranch("branch3:(a)").withTest(test60 = BuildBuilder.TestData.test("test").duration(60)).finish();
+
+    Matcher<BuildBuilder.TestData, STestRun> matcher = (testData, sTestRun) -> testData.duration == sTestRun.getDuration();
+    check("buildType:(id:" + buildType.getExternalId() + "),test:(name:test)", matcher, test60, test50, test30, test20, test10);
+
+    //comparing the branch filtering with behavior while filtering builds
+    String locatorPartTests__ = "buildType:(id:" + buildType.getExternalId() + "),test:(name:test),";
+    String locatorPartBuilds = "buildType:(id:" + buildType.getExternalId() + "),build:(defaultFilter:false,personal:false,buildType:(id:" + buildType.getExternalId() + "),";
+
+    check(locatorPartTests__ + "branch:(default:true)", matcher);
+    check(locatorPartBuilds + "branch:(default:true))", matcher, test50, test30, test10);
+
+    check(locatorPartTests__ + "branch:(<default>)", matcher); //the build is not branched in this test
+    check(locatorPartBuilds + "branch:(<default>))", matcher);
+
+    check(locatorPartTests__ + "branch:(branch1)", matcher, test20);
+    check(locatorPartBuilds + "branch:(branch1))", matcher, test20);
+
+    check(locatorPartTests__ + "branch:(Branch1)", matcher);
+    check(locatorPartBuilds + "branch:(Branch1))", matcher, test20);
+
+    check(locatorPartTests__ + "branch:(name:(branch1))", matcher);
+    check(locatorPartBuilds + "branch:(name:(branch1)))", matcher, test20);
+
+    check(locatorPartTests__ + "branch:(branch3:(a))", matcher, test60);
+    checkExceptionOnItemsSearch(jetbrains.buildServer.server.rest.errors.BadRequestException.class,"buildType:(id:" + buildType.getExternalId() + "),build:(buildType:(id:" + buildType.getExternalId() + "),branch:(branch3:(a)))");
+
+    check(locatorPartTests__ + "branch:missing", matcher);
+    check("buildType:(id:" + buildType.getExternalId() + "),build:(buildType:(id:" + buildType.getExternalId() + "),branch:missing)", matcher);
+  }
+
+  @Test
   public void testSameTestInDifferentBuilds() throws Exception {
     final BuildTypeImpl buildType1 = registerBuildType("buildConf1", "project1");
     final BuildTypeImpl buildType2 = registerBuildType("buildConf2", "project2");
