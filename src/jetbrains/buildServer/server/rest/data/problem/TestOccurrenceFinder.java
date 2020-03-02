@@ -23,6 +23,7 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
@@ -34,6 +35,7 @@ import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.NamedThreadFactory;
+import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -68,13 +70,15 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @NotNull private final BuildHistoryEx myBuildHistory;
   @NotNull private final CurrentProblemsManager myCurrentProblemsManager;
+  @NotNull private final BranchFinder myBranchFinder;
 
   public TestOccurrenceFinder(final @NotNull TestFinder testFinder,
                               final @NotNull BuildFinder buildFinder,
                               final @NotNull BuildTypeFinder buildTypeFinder,
                               final @NotNull ProjectFinder projectFinder,
                               final @NotNull BuildHistoryEx buildHistory,
-                              final @NotNull CurrentProblemsManager currentProblemsManager) {
+                              final @NotNull CurrentProblemsManager currentProblemsManager,
+                              final @NotNull BranchFinder branchFinder) {
     super(DIMENSION_ID, TEST, NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, NEW_FAILURE);
     setHiddenDimensions(EXPAND_INVOCATIONS, INVOCATIONS);
     setHiddenDimensions(ORDER); //highly experiemntal
@@ -84,6 +88,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     myProjectFinder = projectFinder;
     myBuildHistory = buildHistory;
     myCurrentProblemsManager = currentProblemsManager;
+    myBranchFinder = branchFinder;
   }
 
   @Override
@@ -233,7 +238,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension, false);
         final ArrayList<STestRun> result = new ArrayList<STestRun>();
         for (STest test : tests.myEntries) {
-          result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), 0, getBranch(locator))); //no personal builds
+          result.addAll(getTestHistory(test, buildType, locator));
         }
         return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
       }
@@ -241,7 +246,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       final ArrayList<STestRun> result = new ArrayList<STestRun>();
       final SProject affectedProject = getAffectedProject(locator);
       for (STest test : tests.myEntries) {
-        result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, getBranch(locator))); //no personal builds
+        result.addAll(getTestHistory(test, affectedProject, locator));
       }
       return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
     }
@@ -259,7 +264,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       final Set<STest> currentlyMutedTests = myTestFinder.getCurrentlyMutedTests(affectedProject);
       final ArrayList<STestRun> result = new ArrayList<STestRun>();
       for (STest test : currentlyMutedTests) {
-        result.addAll(myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, 0, getBranch(locator)));  //no personal builds
+        result.addAll(getTestHistory(test, affectedProject, locator));
       }
       return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
     }
@@ -271,6 +276,50 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
     throw new BadRequestException("Unsupported test occurrence locator '" + locator.getStringRepresentation() + "'. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
+  }
+
+  @NotNull
+  private List<STestRun> getTestHistory(final STest test, final SProject affectedProject, @NotNull final Locator locator) {
+    return myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, getBranchFilter(locator.getSingleDimensionValue(BRANCH)));
+    //consider reporting not found if no tests found and the branch does not exist
+  }
+
+  @NotNull
+  private List<STestRun> getTestHistory(final STest test, final SBuildType buildType, @NotNull final Locator locator) {
+    return myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), getBranchFilter(locator.getSingleDimensionValue(BRANCH)));
+    //consider reporting not found if no tests found and the branch does not exist
+  }
+
+  @NotNull
+  private Filter<STestRun> getBranchFilter(@Nullable  final String branchLocator) {
+    //do not include personal builds to match original logic
+    Filter<STestRun> defaultFilter = testRun -> {
+      SBuild build = testRun.getBuild();
+      return !build.isPersonal();
+    };
+
+    if (branchLocator == null) {
+      return defaultFilter;
+    }
+    BranchFinder.BranchFilterDetails branchFilterDetails;
+    try {
+      branchFilterDetails = myBranchFinder.getBranchFilterDetails(branchLocator);
+    } catch (LocatorProcessException e) {
+      // unparsable locator - support previous behavior with simple equals matching, just match in case-insensitive way
+      return testRun -> {
+        SBuild build = testRun.getBuild();
+        //do not include personal builds to match original logic
+        Branch branch = build.getBuildPromotion().getBranch();
+        return branch != null && !build.isPersonal() && branchLocator.equalsIgnoreCase(branch.getName());
+      };
+    }
+    if (branchFilterDetails.isAnyBranch()) {
+      return defaultFilter;
+    }
+    return testRun -> {
+      SBuild build = testRun.getBuild();
+      return !build.isPersonal() && branchFilterDetails.isIncluded(build.getBuildPromotion());
+    };
   }
 
   @NotNull
@@ -307,11 +356,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         }
       }
     };
-  }
-
-  @Nullable
-  private String getBranch(@NotNull final Locator locator) {
-    return locator.getSingleDimensionValue(BRANCH);
   }
 
   @NotNull
@@ -436,12 +480,20 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (locator.isUnused(BUILD)) {
       String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
-        List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+        List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries; //todo: use buildPromotionFinder, use filter; drop personal builds filtering in test history
         result.add(new FilterConditionChecker<STestRun>() {
           public boolean isIncluded(@NotNull final STestRun item) {
             return builds.contains(item.getBuild().getBuildPromotion());
           }
         });
+      }
+    }
+
+    if (locator.isUnused(BRANCH)) {
+      String branchDimension = locator.getSingleDimensionValue(BRANCH);
+      if (branchDimension != null) {
+        Filter<STestRun> branchFilter = getBranchFilter(branchDimension);
+        result.add(branchFilter::accept);
       }
     }
 

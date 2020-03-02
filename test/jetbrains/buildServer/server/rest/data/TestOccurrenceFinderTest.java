@@ -283,7 +283,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     String locatorPartTests__ = "buildType:(id:" + buildType.getExternalId() + "),test:(name:test),";
     String locatorPartBuilds = "buildType:(id:" + buildType.getExternalId() + "),build:(defaultFilter:false,personal:false,buildType:(id:" + buildType.getExternalId() + "),";
 
-    check(locatorPartTests__ + "branch:(default:true)", matcher);
+    check(locatorPartTests__ + "branch:(default:true)", matcher, test50, test30, test10);
     check(locatorPartBuilds + "branch:(default:true))", matcher, test50, test30, test10);
 
     check(locatorPartTests__ + "branch:(<default>)", matcher); //the build is not branched in this test
@@ -292,11 +292,14 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     check(locatorPartTests__ + "branch:(branch1)", matcher, test20);
     check(locatorPartBuilds + "branch:(branch1))", matcher, test20);
 
-    check(locatorPartTests__ + "branch:(Branch1)", matcher);
+    check(locatorPartTests__ + "branch:(Branch1)", matcher, test20);
     check(locatorPartBuilds + "branch:(Branch1))", matcher, test20);
 
-    check(locatorPartTests__ + "branch:(name:(branch1))", matcher);
+    check(locatorPartTests__ + "branch:(name:(branch1))", matcher, test20);
     check(locatorPartBuilds + "branch:(name:(branch1)))", matcher, test20);
+
+    check(locatorPartTests__ + "branch:(name:Branch1,unknown:false)", matcher);
+    checkExceptionOnItemsSearch(jetbrains.buildServer.server.rest.errors.BadRequestException.class, "buildType:(id:" + buildType.getExternalId() + "),build:(buildType:(id:" + buildType.getExternalId() + "),branch:(name:Branch1,unknown:false))");
 
     check(locatorPartTests__ + "branch:(branch3:(a))", matcher, test60);
     checkExceptionOnItemsSearch(jetbrains.buildServer.server.rest.errors.BadRequestException.class,"buildType:(id:" + buildType.getExternalId() + "),build:(buildType:(id:" + buildType.getExternalId() + "),branch:(branch3:(a)))");

@@ -160,7 +160,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myFixture.addService(myTestFinder);
 
     final CurrentProblemsManager currentProblemsManager = myServer.getSingletonService(CurrentProblemsManager.class);
-    myTestOccurrenceFinder = new TestOccurrenceFinder(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myServer.getHistory(), currentProblemsManager);
+    myTestOccurrenceFinder = new TestOccurrenceFinder(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myServer.getHistory(), currentProblemsManager, myBranchFinder);
     myFixture.addService(myTestOccurrenceFinder);
 
     final BuildProblemManager buildProblemManager = myFixture.getSingletonService(BuildProblemManager.class);
