@@ -207,13 +207,15 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       });
     }
 
-    final String username = locator.getSingleDimensionValue(USERNAME);
-    if (username != null) {
-      result.add(new FilterConditionChecker<SVcsModification>() {
-        public boolean isIncluded(@NotNull final SVcsModification item) {
-          return username.equalsIgnoreCase(item.getUserName()); //todo: is ignoreCase is right here?
-        }
-      });
+    if (locator.isUnused(USERNAME)) {
+      final String username = locator.getSingleDimensionValue(USERNAME);
+      if (username != null) {
+        result.add(new FilterConditionChecker<SVcsModification>() {
+          public boolean isIncluded(@NotNull final SVcsModification item) {
+            return username.equalsIgnoreCase(item.getUserName()); //todo: is ignoreCase is right here?
+          }
+        });
+      }
     }
 
     if (locator.getUnusedDimensions().contains(USER)) {
@@ -289,7 +291,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE); //todo: support multiple buildTypes here
       if (buildTypeLocator != null) {
         SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
-        result.add(item -> item.getRelatedConfigurations().contains(buildType));
+        result.add(item -> item.getRelatedConfigurations().contains(buildType)); //todo: this does not include "show changes from dependencies", relates to https://youtrack.jetbrains.com/issue/TW-63704
       }
     }
 
@@ -515,6 +517,11 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     if (userLocator != null) {
       final SUser user = myUserFinder.getItem(userLocator);
       return getItemHolder(myServiceLocator.getSingletonService(UserChangesFacade.class).getAllVcsModifications(user));
+    }
+
+    final String username = locator.getSingleDimensionValue(USERNAME);
+    if (username != null) {
+      return getItemHolder(myServiceLocator.getSingletonService(VcsModificationsStorage.class).findModificationsByUsername(username));
     }
 
     Long sinceChangeId = null;
