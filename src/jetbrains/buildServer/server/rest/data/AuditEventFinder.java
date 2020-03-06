@@ -46,7 +46,7 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
   private static final Dimension<Long> ID = new Dimension<>("id");
   private static final Dimension<List<SUser>> USER = new Dimension<>("user");
   private static final Dimension<Boolean> SYSTEM_ACTION = new Dimension<>("systemAction");
-  private static final Dimension<Set<ActionType>> ACTION = new Dimension<>("action");
+  private static final Dimension<Set<ActionType>> ACTION = new Dimension<>("action");  //todo: consider supporting ActionTypeSet by supporting actions locator
   private static final Dimension<List<BuildTypeOrTemplate>> BUILD_TYPE = new Dimension<>("buildType");
   private static final Dimension<List<SProject>> PROJECT = new Dimension<>("affectedProject");
   private static final Dimension<Set<String>> OBJECT_ID = new Dimension<>("entityInternalId");
@@ -55,6 +55,11 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
   private static final Dimension<Long> COUNT = new Dimension<>(PagerData.COUNT);
   private static final Dimension<Long> START = new Dimension<>(PagerData.START);
   private static final Dimension<Long> LOOKUP_LIMIT = new Dimension<>(FinderImpl.DIMENSION_LOOKUP_LIMIT);
+  //todo: add filter by event type (flexible/multiple include/exclude, patterns?)
+  //todo: add filters for all the object types: builds, buildTypes, project, agent, test, problem, user (not difference with "performer"), userGroup, etc.
+  //todo: allow to filter by main object and also additional ones?
+  //todo: allow to filter by date/time
+  //todo: add all possible from AuditLogFilter
 
   public static final Set<ActionType> HIDDEN_ACTION_TYPES = ActionType.getHiddenActionTypes();
 

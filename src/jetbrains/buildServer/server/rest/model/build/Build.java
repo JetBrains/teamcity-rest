@@ -1221,7 +1221,7 @@ public class Build {
    * Experimental
    */
   @XmlElement
-  public Related getRelated() {
+  public Related getRelated() { //todo: try to use something like RelatedEntities here?
     return ValueWithDefault.decideDefault(myFields.isIncluded("related", false, false),
                                           () -> {
                                             Fields nestedField = myFields.getNestedField("related", Fields.LONG, Fields.LONG);

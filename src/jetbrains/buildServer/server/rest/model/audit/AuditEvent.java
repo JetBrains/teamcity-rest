@@ -67,6 +67,7 @@ public class AuditEvent {
   public AuditEvent() {
   }
 
+  //todo: add href attribute here
   public AuditEvent(@NotNull final AuditLogAction actionP, @NotNull final Fields fields, @NotNull final BeanContext context) {
     final Comment comment = actionP.getComment();
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), () -> String.valueOf(comment.getCommentId()));

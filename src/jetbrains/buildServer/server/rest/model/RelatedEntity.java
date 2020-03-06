@@ -183,11 +183,12 @@ public class RelatedEntity { //see also Related
       result.unknown = false;
 
       if (!ObjectType.STRING.equals(objectType) && object instanceof String) {
-        result.text = (String)object;
+        //todo: investigate when this can happen
+        result.text = (String)object; //todo: is this a due approach?
         result.type = "text";
       } else if (object != null) {
         switch (objectType) {
-          case STRING:              result.text = (String)object; break;
+          case STRING:              result.text = (String)object; break;  //todo: check where it is used
           case BUILD_PROMOTION:     result.build = (BuildPromotion)object; break;
           case BUILD:               result.build = ((SBuild)object).getBuildPromotion();  break;
           case BUILD_TYPE:          result.buildType = new BuildTypeOrTemplate((SBuildType)object);  break;
@@ -204,9 +205,23 @@ public class RelatedEntity { //see also Related
 
           case SERVER:              //this is usually used as "nop" and if present, affects the indexes in the pattern, so cannot be ignored
                                     result.internalId = null; break;
-
-          case UNKNOWN_OBJECT:
+          case UNKNOWN_OBJECT:  //todo: check usages
           default:                  result.unknown = true;
+
+          /*
+          still unsupported:
+          case USER_ROLE: result.role = (new UserRoleHelper()).getObject(object);  break;
+          case AGENT_TYPE: result.agent = (new AgentTypeHelper()).getObject(object);  break;
+          case CONFIG_MODIFICATION: result.config_modification = (new ConfigModificationHelper()).getObject(object);  break;
+          case HEALTH_STATUS_ITEM: result.healthItem = (new HealthStatusItemHelper()).getObject(object);  break;
+          case RUN_TYPE: result.run_type = (new RunTypeItemHelper()).getObject(object);  break;
+          case TOOL: result.tool = (new ToolHelper()).getObject(object);  break;
+          */
+
+          //todo: add test that we support here all the types from ObjectType
+          //todo: special case when object is String (can have any type)
+          //todo: handle exceptions from helpers / on casts
+          //todo: need to check permissions?
         }
       }
       return result;
@@ -218,7 +233,7 @@ public class RelatedEntity { //see also Related
    */
   @NotNull
   private static String getType(@NotNull ObjectType objectType) {
-    switch (objectType) {
+    switch (objectType) { //todo: add a test to assert the full set of the types
        case STRING:              return "text";
        case BUILD_PROMOTION:     return "build";
        case BUILD:               return "build";

@@ -34,14 +34,22 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "auditAction")
 @XmlType(name = "auditAction")
 public class AuditAction {
+  /**
+   * Note that name can change from one TeamCity version to another
+   */
   @XmlAttribute
   public String name;
 
   @XmlAttribute
   public String id;
 
+  /**
+   * This is a text pattern which can be used to render human-friendly text. It regularly contains "{N}" strings to be replaces with human-friendly details of corresponding entity from auditEvent relatedEntities
+   */
   @XmlElement
   public String pattern;
+
+  /*@XmlElement public String text; //consider adding this with custom plain-text rendering of the entities*/
 
   public AuditAction() {
   }
@@ -51,5 +59,26 @@ public class AuditAction {
     id = ValueWithDefault.decideDefault(fields.isIncluded("id", false, false), () -> String.valueOf(actionType.getDBId()));
     name = ValueWithDefault.decideDefault(fields.isIncluded("name"), () -> actionType.name().toLowerCase()); //todo: add a test that no action names are changed
     pattern = ValueWithDefault.decideDefault(fields.isIncluded("pattern", false, true), actionType::getDescription);
+
+    /*
+    text = ValueWithDefault.decideDefault(fields.isIncluded("text", false, false),
+                                          () -> AuditUtil.formatAdditionalObjects(getLog4jObjectDescription(action),
+                                                                                  actionType,
+                                                                                  Stream.of(action.getObjects()).skip(1).map(ObjectWrapper::getObject).toArray()));
+    */
   }
+
+  /*
+  @NotNull
+  private String getLog4jObjectDescription(@NotNull final AuditLogAction action) {
+    Object object = action.getObject();
+    if (object == null) {
+      return action.getObjectType().getLog4jDescriptionById(action.getObjectId());
+    }
+    else {
+      return action.getObjectType().getLog4jDescription(object);
+    }
+  }
+
+  */
 }
