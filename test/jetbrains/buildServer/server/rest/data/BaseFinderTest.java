@@ -42,6 +42,7 @@ import jetbrains.buildServer.serverSide.CurrentProblemsManager;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TestName2IndexImpl;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
+import jetbrains.buildServer.serverSide.healthStatus.HealthStatusProvider;
 import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -185,6 +186,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myChangeFinder = new ChangeFinder(myProjectFinder, myBuildFinder, myBuildPromotionFinder, myBuildTypeFinder, myVcsRootFinder, myVcsRootInstanceFinder, myUserFinder,
                                       myVcsManager, myFixture.getVcsHistory(), myBranchFinder, myFixture, myPermissionChecker);
     myFixture.addService(myChangeFinder);
+    myFixture.addService(new HealthItemFinder(myFixture.getSingletonService(HealthStatusProvider.class), myFixture));
   }
 
   public void setFinder(@NotNull Finder<T> finder){

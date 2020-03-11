@@ -18,32 +18,42 @@ package jetbrains.buildServer.server.rest.util;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.BaseStream;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
  * Date: 20/10/2017
  */
 public class StreamUtil {
+  public static <T> void forEachNullableFlattened(@Nullable List<List<T>> items, @NotNull final Consumer<? super T> action) {
+    if (items != null) {
+      items.stream().filter(Objects::nonNull).flatMap(Collection::stream).filter(Objects::nonNull).forEach(action);
+    }
+  }
 
   /**
    * Combines the elements of the passed streams (already ordered by comparator), into resulting stream ordered by comparator
    */
   public static <T> Stream<T> merge(@NotNull Stream<Stream<T>> streams, @NotNull Comparator<T> comparator) {
-    return StreamSupport.stream(new MergingSpliterator<T>(streams, comparator), false);
+    return StreamSupport.stream(new MergingSpliterator<>(streams, comparator), false);
   }
 
-  private static class MergingSpliterator<T> extends Spliterators.AbstractSpliterator <T> {
+  private static class MergingSpliterator<T> extends Spliterators.AbstractSpliterator<T> {
     @NotNull private final SortedMap<T, Iterator<T>> myElements;
 
     MergingSpliterator(@NotNull final Stream<Stream<T>> streams, @NotNull final Comparator<T> comparator) {
       super(Long.MAX_VALUE, 0);
       Set<Iterator<T>> duplicating = new HashSet<>();
-      myElements = streams.map(stream -> stream.iterator()).filter(it -> it.hasNext())
-                          .collect(Collectors.toMap(it -> it.next(), it -> it, (o, o2) -> {duplicating.add(o2); return o;}, () -> new TreeMap<T, Iterator<T>>(comparator)));
+      myElements = streams.map(BaseStream::iterator).filter(Iterator::hasNext)
+                          .collect(Collectors.toMap(Iterator::next, it -> it, (o, o2) -> {
+                            duplicating.add(o2);
+                            return o;
+                          }, () -> new TreeMap<>(comparator)));
       duplicating.forEach(it -> add(myElements, it));
     }
 
