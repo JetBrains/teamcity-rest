@@ -25,24 +25,32 @@ import jetbrains.buildServer.serverSide.healthStatus.ItemSeverity;
 import org.jetbrains.annotations.NotNull;
 
 @XmlRootElement(name = "healthItem")
-@XmlType(name = "healthItem", propOrder = {"severity", "healthCategory"})
+@XmlType(name = "healthItem", propOrder = {"identity", "severity", "healthCategory"})
 public class HealthItem {
   static final String NAME = "healthItem";
+  private final String identity;
   private final ItemSeverity severity;
   private final HealthCategory healthCategory;
 
   @SuppressWarnings({"ConstantConditions", "unused"})
   public HealthItem() {
+    this.identity = null;
     this.severity = null;
     this.healthCategory = null;
   }
 
   public HealthItem(@NotNull final jetbrains.buildServer.serverSide.healthStatus.HealthStatusItem healthStatusItem,
                     @NotNull final Fields fields) {
-    this.severity = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("severity"), healthStatusItem::getSeverity);
-    this.healthCategory = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("healthCategory"),
-                                                                  () -> new HealthCategory(healthStatusItem.getCategory(),
-                                                                                           fields.getNestedField("healthCategory", Fields.SHORT, Fields.SHORT)));
+    this.identity = ValueWithDefault.decideDefault(fields.isIncluded("identity"), healthStatusItem::getIdentity);
+    this.severity = ValueWithDefault.decideDefault(fields.isIncluded("severity"), healthStatusItem::getSeverity);
+    this.healthCategory = ValueWithDefault.decideDefault(fields.isIncluded("healthCategory"),
+                                                         () -> new HealthCategory(healthStatusItem.getCategory(),
+                                                                                  fields.getNestedField("healthCategory", Fields.NONE, Fields.SHORT)));
+  }
+
+  @XmlElement
+  public String getIdentity() {
+    return identity;
   }
 
   @XmlElement

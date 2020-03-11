@@ -41,8 +41,8 @@ public class HealthCategory {
   }
 
   public HealthCategory(@NotNull final ItemCategory category, @NotNull final Fields fields) {
-    this.id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), category.getId());
-    this.name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), category.getName());
+    this.id = ValueWithDefault.decideDefault(fields.isIncluded("id"), category.getId());
+    this.name = ValueWithDefault.decideDefault(fields.isIncluded("name"), category.getName());
     this.description = ValueWithDefault.decideDefault(fields.isIncluded("description"), category.getDescription());
     this.helpUrl = ValueWithDefault.decideDefault(fields.isIncluded("helpUrl"), category.getHelpUrl());
   }
