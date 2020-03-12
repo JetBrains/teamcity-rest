@@ -27,7 +27,6 @@ import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.responsibility.ResponsibilityFacadeEx;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.mutes.MuteFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
@@ -43,6 +42,7 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TestName2IndexImpl;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.healthStatus.HealthStatusProvider;
+import jetbrains.buildServer.serverSide.healthStatus.HealthStatusReportLocator;
 import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -88,11 +88,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected TimeCondition myTimeCondition;
 
   static public BeanContext getBeanContext(final ServiceLocator serviceLocator) {
-    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
-      public String transform(final String path) {
-        return path;
-      }
-    });
+    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(path -> path);
     final BeanFactory beanFactory = new BeanFactory(null);
 
     return new BeanContext(beanFactory, serviceLocator, apiUrlBuilder);
@@ -186,7 +182,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myChangeFinder = new ChangeFinder(myProjectFinder, myBuildFinder, myBuildPromotionFinder, myBuildTypeFinder, myVcsRootFinder, myVcsRootInstanceFinder, myUserFinder,
                                       myVcsManager, myFixture.getVcsHistory(), myBranchFinder, myFixture, myPermissionChecker);
     myFixture.addService(myChangeFinder);
-    myFixture.addService(new HealthItemFinder(myFixture.getSingletonService(HealthStatusProvider.class), myFixture));
+    myFixture.addService(new HealthItemFinder(myFixture.getSingletonService(HealthStatusProvider.class), myFixture.getSingletonService(HealthStatusReportLocator.class), myFixture));
   }
 
   public void setFinder(@NotNull Finder<T> finder){
@@ -203,15 +199,10 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
 
   @NotNull
   public<S> Matcher<S, S> getEqualsMatcher() {
-    return new Matcher<S, S>() {
-      @Override
-      public boolean matches(@NotNull final S o1, @NotNull final S o2) {
-        return o1.equals(o2);
-      }
-    };
+    return Object::equals;
   }
 
-  public <S> void checkCounts(@Nullable final String locator, int resultsCount, int maxProcessedCounts) {
+  public void checkCounts(@Nullable final String locator, int resultsCount, int maxProcessedCounts) {
     PagedSearchResult<T> result = getFinder().getItems(locator);
     assertEquals("Wrong number of found items", resultsCount, result.myActualCount);
     if (result.myActuallyProcessedCount != null && result.myActuallyProcessedCount > maxProcessedCounts) {
@@ -228,7 +219,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   }
 
   public <S, R> void check(@Nullable final String locator, @NotNull Matcher<S, R> matcher, @NotNull final Finder<R> finder, S... items) {
-    check(locator, matcher, r -> getDescription(r), r -> getDescription(r), finder, items);
+    check(locator, matcher, BaseFinderTest::getDescription, BaseFinderTest::getDescription, finder, items);
   }
 
   public <S, R> void check(@Nullable final String locator, @NotNull Matcher<S, R> matcher,
@@ -274,11 +265,11 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     return dep;
   }
 
-  public static interface Matcher<S, T> {
+  public interface Matcher<S, T> {
     boolean matches(@NotNull S s, @NotNull T t);
   }
 
-  public static interface DescriptionProvider<S> {
+  public interface DescriptionProvider<S> {
     String describe(@NotNull S s);
   }
 
@@ -286,9 +277,9 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected <S, R> OrderedMatcherStrategy<S, R> getDefaultMatchStrategy(@Nullable final String locator,
                                                                         @NotNull final Matcher<S, R> equalsMatcher,
                                                                         @NotNull final S[] items) {
-    return new OrderedMatcherStrategy<S, R>(equalsMatcher, p -> "Wrong item found for locator \"" + locator + "\" at position " + (p.getSecond() + 1) + "/" + items.length + "\n" +
-                                                                "Expected:\n" + Arrays.toString(items) + "\n" +
-                                                                "\nActual:\n" + p.first
+    return new OrderedMatcherStrategy<>(equalsMatcher, p -> "Wrong item found for locator \"" + locator + "\" at position " + (p.getSecond() + 1) + "/" + items.length + "\n" +
+                                                            "Expected:\n" + Arrays.toString(items) + "\n" +
+                                                            "\nActual:\n" + p.first
       , p -> {
       if (p.first == null) {
         return "No items should be found by locator \"" + locator + "\", but found: " + ((DescriptionProvider<R>)BaseFinderTest::getDescription).describe(p.second);
@@ -308,19 +299,11 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   }
 
   public <E extends Throwable> void checkExceptionOnItemsSearch(final Class<E> exception, final String multipleSearchLocator) {
-    checkException(exception, new Runnable() {
-      public void run() {
-        myFinder.getItems(multipleSearchLocator);
-      }
-    }, "searching for itemS with locator \"" + multipleSearchLocator + "\"");
+    checkException(exception, () -> myFinder.getItems(multipleSearchLocator), "searching for itemS with locator \"" + multipleSearchLocator + "\"");
   }
 
   public <E extends Throwable> void checkExceptionOnItemSearch(final Class<E> exception, final String singleSearchLocator) {
-    checkException(exception, new Runnable() {
-      public void run() {
-        myFinder.getItem(singleSearchLocator);
-      }
-    }, "searching for item with locator \"" + singleSearchLocator + "\"");
+    checkException(exception, () -> myFinder.getItem(singleSearchLocator), "searching for item with locator \"" + singleSearchLocator + "\"");
   }
 
   @NotNull
@@ -344,7 +327,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   }
 
   public static <S> String getDescription(final List<S> result) {
-    return getDescription(result, s -> getDescription(s));
+    return getDescription(result, BaseFinderTest::getDescription);
   }
 
   public static <S> String getDescription(final List<S> result, @NotNull DescriptionProvider <S> logger) {
@@ -357,7 +340,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     while(it.hasNext()) {
       S item = it.next();
       if (item != null) {
-        result1.append("").append(logger.describe(item)).append("");
+        result1.append(logger.describe(item));
         if (it.hasNext()) {
           result1.append("\n");
         }
@@ -367,9 +350,9 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   }
 
   public interface CollectionsMatchStrategy<S, R> {
-    public void matchCollection(@NotNull final S[] items, @NotNull final List<R> result);
+    void matchCollection(@NotNull final S[] items, @NotNull final List<R> result);
 
-    public void matchSingle(final S[] items, final Supplier<R> singleResultSupplier);
+    void matchSingle(final S[] items, final Supplier<R> singleResultSupplier);
   }
 
   public static class OrderedMatcherStrategy<S, R> implements CollectionsMatchStrategy<S, R> {

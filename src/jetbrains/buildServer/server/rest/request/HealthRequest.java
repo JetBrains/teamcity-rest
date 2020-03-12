@@ -26,9 +26,12 @@ import jetbrains.buildServer.server.rest.data.HealthItemFinder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.health.HealthCategories;
+import jetbrains.buildServer.server.rest.model.health.HealthCategory;
 import jetbrains.buildServer.server.rest.model.health.HealthItem;
 import jetbrains.buildServer.server.rest.model.health.HealthItems;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.healthStatus.ItemCategory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,19 +48,39 @@ public class HealthRequest {
   private BeanContext myBeanContext;
 
   @GET
+  @Path("/category/{locator}")
+  public HealthCategory getSingleCategory(@PathParam("locator") @Nullable final String locator,
+                                          @QueryParam("fields") @Nullable final String fields) {
+    return new HealthCategory(myHealthItemFinder.getCategory(locator), new Fields(fields));
+  }
+
+  @GET
+  @Path("/category")
+  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  public HealthCategories getCategories(@QueryParam("locator") @Nullable final String locator,
+                                        @QueryParam("fields") @Nullable final String fields,
+                                        @Context @NotNull final UriInfo uriInfo,
+                                        @Context @NotNull final HttpServletRequest request) {
+    final PagedSearchResult<ItemCategory> pagedItems = myHealthItemFinder.getCategories(locator);
+    final PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedItems, locator, "locator");
+    return new HealthCategories(pagedItems.myEntries, pagerData, new Fields(fields), myBeanContext);
+  }
+
+  @GET
   @Path("/{locator}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public HealthItem getSingleItem(@PathParam("locator") @Nullable final String locator,
-                                  @QueryParam("fields") @Nullable final String fields) {
+  public HealthItem getSingleHealthItem(@PathParam("locator") @Nullable final String locator,
+                                        @QueryParam("fields") @Nullable final String fields) {
     return new HealthItem(myHealthItemFinder.getItem(locator), new Fields(fields));
   }
 
   @GET
+  @Path("/")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  public HealthItems getItems(@QueryParam("locator") @Nullable final String locator,
-                              @QueryParam("fields") @Nullable final String fields,
-                              @Context @NotNull final UriInfo uriInfo,
-                              @Context @NotNull final HttpServletRequest request) {
+  public HealthItems getHealthItems(@QueryParam("locator") @Nullable final String locator,
+                                    @QueryParam("fields") @Nullable final String fields,
+                                    @Context @NotNull final UriInfo uriInfo,
+                                    @Context @NotNull final HttpServletRequest request) {
     final PagedSearchResult<jetbrains.buildServer.serverSide.healthStatus.HealthStatusItem> pagedItems = myHealthItemFinder.getItems(locator);
     final PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedItems, locator, "locator");
     return new HealthItems(pagedItems.myEntries, pagerData, new Fields(fields), myBeanContext);

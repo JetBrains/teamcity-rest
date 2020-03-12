@@ -41,7 +41,7 @@ public class HealthRequestTest extends BaseFinderTest<HealthStatusItem> {
   public void smoky_test_get_global_item() {
     createReport();
 
-    final HealthItem item = myRequest.getSingleItem("global:true", "healthCategory:$long,severity:$long");
+    final HealthItem item = myRequest.getSingleHealthItem("global:true", "healthCategory:$long,severity:$long");
     assertNotNull(item);
     assertEquals(ItemSeverity.INFO, item.getSeverity());
     assertNotNull(item.getHealthCategory());

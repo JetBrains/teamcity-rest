@@ -26,17 +26,19 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.healthStatus.HealthStatusItem;
+import jetbrains.buildServer.serverSide.healthStatus.ItemCategory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-@XmlRootElement(name = "healthStatusItems")
-@XmlType(name = "healthStatusItems", propOrder = {"count", "healthItems", "href", "nextHref", "prevHref"})
-public class HealthItems {
-  @Nullable
-  private final List<HealthItem> healthItems;
+@XmlRootElement(name = "healthCategories")
+@XmlType(name = "healthCategories", propOrder = {"count", "healthCategories", "href", "nextHref", "prevHref"})
+public class HealthCategories {
+  @NotNull
+  static final String NAME = "healthCategory";
   @Nullable
   private final Integer count;
+  @Nullable
+  private final List<HealthCategory> healthCategories;
   @Nullable
   private final String href;
   @Nullable
@@ -45,21 +47,21 @@ public class HealthItems {
   private final String prevHref;
 
   @SuppressWarnings("unused")
-  public HealthItems() {
-    this.healthItems = null;
+  public HealthCategories() {
     this.count = null;
+    this.healthCategories = null;
+    this.href = null;
     this.nextHref = null;
     this.prevHref = null;
-    this.href = null;
   }
 
-  public HealthItems(@NotNull final List<jetbrains.buildServer.serverSide.healthStatus.HealthStatusItem> items,
-                     @NotNull final PagerData pagerData,
-                     @NotNull final Fields fields,
-                     @NotNull final BeanContext context) {
-    this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), items::size);
-    this.healthItems = ValueWithDefault.decideDefault(fields.isIncluded(HealthItem.NAME, false, true),
-                                                      () -> items.stream().map(i -> mapFunction(fields, i)).collect(Collectors.toList()));
+  public HealthCategories(@NotNull final List<ItemCategory> items,
+                          @NotNull final PagerData pagerData,
+                          @NotNull final Fields fields,
+                          @NotNull final BeanContext context) {
+    this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), items.size());
+    this.healthCategories = ValueWithDefault.decideDefault(fields.isIncluded(NAME, false, true),
+                                                           () -> items.stream().map(i -> mapFunction(fields, i)).collect(Collectors.toList()));
     if (pagerData != null) {
       this.href = ValueWithDefault.decideDefault(fields.isIncluded("href", true), () -> generateHref(context, pagerData.getHref()));
       this.nextHref = ValueWithDefault
@@ -73,26 +75,16 @@ public class HealthItems {
     }
   }
 
-  @NotNull
-  private HealthItem mapFunction(@NotNull final Fields fields, final HealthStatusItem item) {
-    return new HealthItem(item, fields.getNestedField(HealthItem.NAME, Fields.SHORT, Fields.LONG));
-  }
-
-  @NotNull
-  private String generateHref(@NotNull final BeanContext context, final String href) {
-    return context.getApiUrlBuilder().transformRelativePath(href);
-  }
-
-  @Nullable
-  @XmlElement(name = HealthItem.NAME)
-  public List<HealthItem> getHealthItems() {
-    return healthItems;
-  }
-
-  @Nullable
   @XmlAttribute
+  @Nullable
   public Integer getCount() {
     return count;
+  }
+
+  @XmlElement(name = NAME)
+  @Nullable
+  public List<HealthCategory> getHealthCategories() {
+    return healthCategories;
   }
 
   @Nullable
@@ -111,5 +103,15 @@ public class HealthItems {
   @XmlAttribute
   public String getPrevHref() {
     return prevHref;
+  }
+
+  @NotNull
+  private String generateHref(@NotNull final BeanContext context, final String href) {
+    return context.getApiUrlBuilder().transformRelativePath(href);
+  }
+
+  @NotNull
+  private HealthCategory mapFunction(@NotNull final Fields fields, final ItemCategory item) {
+    return new HealthCategory(item, fields.getNestedField(NAME, Fields.SHORT, Fields.LONG));
   }
 }
