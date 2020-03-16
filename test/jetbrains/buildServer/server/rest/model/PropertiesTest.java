@@ -92,6 +92,6 @@ public class PropertiesTest extends BaseServerTestCase {
           }
         };
       }
-    }), false, "\n", "", "");
+    }), "\n", "", "");
   }
 }

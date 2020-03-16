@@ -144,7 +144,7 @@ public class BuildFinderTestBase extends BaseFinderTest<SBuild> {
           }
         };
       }
-    }), false, "\n", "", "");
+    }), "\n", "", "");
   }
 
   public <E extends Throwable> void checkExceptionOnBuildSearch(final Class<E> exception, final String singleBuildLocator) {
