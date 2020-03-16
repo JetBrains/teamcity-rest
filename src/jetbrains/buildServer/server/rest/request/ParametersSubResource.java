@@ -63,7 +63,7 @@ public class ParametersSubResource {
   @Produces({"application/xml", "application/json"})
   public Property setParameter(Property parameter, @QueryParam("fields") String fields) {
     addParameter(parameter);
-    myEntityWithParameters.persist();
+    myEntityWithParameters.persist("Parameter with name " + parameter.name + " changed");
     return Property.createFrom(parameter.name, myEntityWithParameters, new Fields(fields), myBeanContext.getServiceLocator());
   }
 
@@ -77,14 +77,14 @@ public class ParametersSubResource {
   @Produces({"application/xml", "application/json"})
   public Properties setParameters(Properties properties, @QueryParam("fields") String fields) {
     properties.setTo(myEntityWithParameters, myBeanContext.getServiceLocator());
-    myEntityWithParameters.persist();
+    myEntityWithParameters.persist("Parameters changed");
     return new Properties(myEntityWithParameters, myParametersHref, null, new Fields(fields), myBeanContext);
   }
 
   @DELETE
   public void deleteAllParameters() {
     BuildTypeUtil.removeAllParameters(myEntityWithParameters);
-    myEntityWithParameters.persist();
+    myEntityWithParameters.persist("Parameters removed");
   }
 
   @GET
@@ -107,7 +107,7 @@ public class ParametersSubResource {
   @Produces("text/plain")
   public String setParameterValueLong(@PathParam("name") String parameterName, String newValue) {
     BuildTypeUtil.changeParameter(parameterName, newValue, myEntityWithParameters, myBeanContext.getServiceLocator());
-    myEntityWithParameters.persist();
+    myEntityWithParameters.persist("Value of the parameter " + parameterName + " changed");
     return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, false, false, myBeanContext.getServiceLocator());
   }
 
@@ -132,7 +132,7 @@ public class ParametersSubResource {
   @ApiOperation(hidden = true, value = "Use setParameter instead")
   public String setParameterValue(@PathParam("name") String parameterName, String newValue) {
     BuildTypeUtil.changeParameter(parameterName, newValue, myEntityWithParameters, myBeanContext.getServiceLocator());
-    myEntityWithParameters.persist();
+    myEntityWithParameters.persist("Value of the parameter " + parameterName + " changed");
     return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, false, false, myBeanContext.getServiceLocator());
   }
 
@@ -143,7 +143,7 @@ public class ParametersSubResource {
   public Property setParameter(@PathParam("name") String parameterName, Property parameter, @QueryParam("fields") String fields) {
     parameter.name = parameterName; //overriding name in the entity with the value from URL
     addParameter(parameter);
-    myEntityWithParameters.persist();
+    myEntityWithParameters.persist("Parameter with name " + parameterName + " added");
     return Property.createFrom(parameter.name, myEntityWithParameters, new Fields(fields), myBeanContext.getServiceLocator());
   }
 
@@ -151,6 +151,6 @@ public class ParametersSubResource {
   @Path("/{name}")
   public void deleteParameter(@PathParam("name") String parameterName) {
     BuildTypeUtil.deleteParameter(parameterName, myEntityWithParameters);
-    myEntityWithParameters.persist();
+    myEntityWithParameters.persist("Parameter with name " + parameterName + " removed");
   }
 }

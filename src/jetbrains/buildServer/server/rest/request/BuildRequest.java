@@ -246,7 +246,7 @@ public class BuildRequest {
       }
 
       @Override
-      public void persist() {
+      public void persist(@NotNull String description) {
         //should not need a separate action
       }
     }, getBuildHref(build) + "/attributes");

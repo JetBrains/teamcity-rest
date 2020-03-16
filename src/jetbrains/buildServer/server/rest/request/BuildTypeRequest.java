@@ -1517,7 +1517,7 @@ public class BuildTypeRequest {
     }
 
     @Override
-    public void persist() {
+    public void persist(@NotNull String description) {
       myBuildType.get().persist();
     }
 

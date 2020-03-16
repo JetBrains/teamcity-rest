@@ -424,7 +424,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}" + PARAMETERS)
   public TypedParametersSubResource getParametersSubResource(@PathParam("projectLocator") String projectLocator){
     SProject project = myProjectFinder.getItem(projectLocator, true);
-    return new TypedParametersSubResource(myBeanContext, Project.createEntity(project), getParametersHref(project));
+    return new TypedParametersSubResource(myBeanContext, Project.createEntity(project, myServiceLocator.getSingletonService(ConfigActionFactory.class)), getParametersHref(project));
   }
 
   @GET
@@ -879,7 +879,7 @@ public class ProjectRequest {
     }
 
     @Override
-    public void persist() {
+    public void persist(@NotNull String description) {
       myProject.persist();
     }
   }

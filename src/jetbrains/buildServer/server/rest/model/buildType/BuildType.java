@@ -1075,7 +1075,7 @@ public class BuildType {
       myBuildType = buildType;
     }
 
-    public void persist() {
+    public void persist(@NotNull String description) {
       myBuildType.persist();
     }
 

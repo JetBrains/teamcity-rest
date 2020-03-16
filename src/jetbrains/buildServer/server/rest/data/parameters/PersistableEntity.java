@@ -16,10 +16,12 @@
 
 package jetbrains.buildServer.server.rest.data.parameters;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * @author Yegor.Yarko
  *         Date: 07/07/2016
  */
 public interface PersistableEntity {
-  void persist();
+  void persist(@NotNull String description);
 }

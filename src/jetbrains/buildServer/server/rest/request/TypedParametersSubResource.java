@@ -50,7 +50,7 @@ public class TypedParametersSubResource extends ParametersSubResource{
   @Produces({"application/xml", "application/json"})
   public ParameterType setParameterType(@PathParam("name") String parameterName, ParameterType parameterType) {
     BuildTypeUtil.changeParameterType(parameterName, parameterType.rawValue, myEntityWithParameters, myBeanContext.getServiceLocator());
-    myEntityWithParameters.persist();
+    myEntityWithParameters.persist("The type of the parameter with name " + parameterName + " changed");
     return Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myBeanContext.getServiceLocator()).type;
   }
 
@@ -68,7 +68,7 @@ public class TypedParametersSubResource extends ParametersSubResource{
   @Produces("text/plain")
   public String setParameterTypeRawValue(@PathParam("name") String parameterName, String parameterTypeRawValue) {
     BuildTypeUtil.changeParameterType(parameterName, parameterTypeRawValue, myEntityWithParameters, myBeanContext.getServiceLocator());
-    myEntityWithParameters.persist();
+    myEntityWithParameters.persist("The type of the parameter with name " + parameterName + " changed");
     final ParameterType type = Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myBeanContext.getServiceLocator()).type;
     return type == null ? null : type.rawValue;
   }
