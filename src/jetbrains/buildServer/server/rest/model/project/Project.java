@@ -200,7 +200,7 @@ public class Project {
                                                            : getDefaultTemplate(project, fields.getNestedField("defaultTemplate", Fields.NONE, Fields.SHORT), beanContext));
 
     parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false),
-                                                () -> !canViewSettings.get() ? null : new Properties(createEntity(project, beanContext.getServiceLocator().getSingletonService(ConfigActionFactory.class)), ProjectRequest.getParametersHref(project),
+                                                () -> !canViewSettings.get() ? null : new Properties(createEntity(project), ProjectRequest.getParametersHref(project),
                                                                                                      null, fields.getNestedField("parameters", Fields.NONE, Fields.LONG),
                                                                                                      beanContext));
     vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false),
@@ -326,13 +326,12 @@ public class Project {
   public static void setFieldValueAndPersist(final SProject project,
                                              final String field,
                                              final String value, @NotNull final ServiceLocator serviceLocator) {
-    ConfigActionFactory caf = serviceLocator.getSingletonService(ConfigActionFactory.class);
     if ("name".equals(field)) {
       if (StringUtil.isEmpty(value)){
         throw new BadRequestException("Project name cannot be empty.");
       }
       project.setName(value);
-      ((ProjectEx)project).persistLater(caf.createAction("Project name changed"));
+      ((ProjectEx)project).schedulePersisting("Project name changed");
       return;
     } else if ("id".equals(field)) {
       if (StringUtil.isEmpty(value)){
@@ -342,7 +341,7 @@ public class Project {
       return;
     } else if ("description".equals(field)) {
       project.setDescription(value);
-      ((ProjectEx)project).persistLater(caf.createAction("Project description changed"));
+      ((ProjectEx)project).schedulePersisting("Project description changed");
       return;
     } else if ("archived".equals(field)) {
       project.setArchived(Boolean.parseBoolean(value), serviceLocator.getSingletonService(UserFinder.class).getCurrentUser());
@@ -350,7 +349,7 @@ public class Project {
     } else if ("readOnlyUI".equals(field) && TeamCityProperties.getBoolean("rest.projectRequest.allowSetReadOnlyUI")) {
       boolean editable = !Boolean.parseBoolean(value);
       ((ProjectEx)project).setEditable(editable);
-      ((ProjectEx)project).persistLater(caf.createAction("Project editing is " + (editable ? "enabled" : "disabled")));
+      ((ProjectEx)project).schedulePersisting("Project editing is " + (editable ? "enabled" : "disabled"));
       return;
     }
     throw new BadRequestException("Setting field '" + field + "' is not supported. Supported are: name, description, archived");
@@ -392,22 +391,20 @@ public class Project {
     return false;
   }
 
-  public static ParametersPersistableEntity createEntity(@NotNull final SProject project, @NotNull ConfigActionFactory configActionFactory) {
-    return new ProjectEntityWithParameters(project, configActionFactory);
+  public static ParametersPersistableEntity createEntity(@NotNull final SProject project) {
+    return new ProjectEntityWithParameters(project);
   }
 
   private static class ProjectEntityWithParameters extends InheritableUserParametersHolderEntityWithParameters implements ParametersPersistableEntity {
     private final ProjectEx myProject;
-    private final ConfigActionFactory myConfigActionFactory;
 
-    public ProjectEntityWithParameters(@NotNull final SProject project, @NotNull ConfigActionFactory configActionFactory) {
+    public ProjectEntityWithParameters(@NotNull final SProject project) {
       super(project);
       myProject = (ProjectEx)project;
-      myConfigActionFactory = configActionFactory;
     }
 
     public void persist(@NotNull String description) {
-      myProject.persistLater(myConfigActionFactory.createAction(description));
+      myProject.schedulePersisting(description);
     }
  }
 }

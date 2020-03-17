@@ -424,7 +424,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}" + PARAMETERS)
   public TypedParametersSubResource getParametersSubResource(@PathParam("projectLocator") String projectLocator){
     SProject project = myProjectFinder.getItem(projectLocator, true);
-    return new TypedParametersSubResource(myBeanContext, Project.createEntity(project, myServiceLocator.getSingletonService(ConfigActionFactory.class)), getParametersHref(project));
+    return new TypedParametersSubResource(myBeanContext, Project.createEntity(project), getParametersHref(project));
   }
 
   @GET
