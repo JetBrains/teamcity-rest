@@ -88,7 +88,7 @@ public abstract class BaseFinderTest<T extends Loggable> extends BaseServerTestC
   }
 
   public String getDescription(final List<T> result) {
-    return LogUtil.describe(result, false, "\n", "", "");
+    return LogUtil.describe(result, "\n", "", "");
   }
 
 }

@@ -503,7 +503,7 @@ public class BuildPromotionFinderTest extends BaseServerTestCase {
           }
         };
       }
-    }), false, "\n", "", "");
+    }),  "\n", "", "");
   }
 
   public static <E extends Throwable> void checkException(final Class<E> exception, final Runnable runnnable, final String operationDescription) {
