@@ -1919,7 +1919,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
           }
         };
       }
-    }), false, "\n", "", "");
+    }), "\n", "", "");
   }
 
   public <E extends Throwable> void checkExceptionOnBuildSearch(final Class<E> exception, final String singleBuildLocator) {
