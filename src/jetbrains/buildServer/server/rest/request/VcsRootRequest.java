@@ -95,7 +95,7 @@ public class VcsRootRequest {
     //todo: TeamCity openAPI: not consistent methods for creating VCS root with/without id
     final SVcsRoot newVcsRoot = getVcsRootProject(vcsRootDescription, ctx).createVcsRoot(
       vcsRootDescription.vcsName,
-      vcsRootDescription.name != null ? vcsRootDescription.name : null,
+      vcsRootDescription.name,
       vcsRootDescription.properties.getMap());
     if (vcsRootDescription.id != null) {
       newVcsRoot.setExternalId(vcsRootDescription.id);
@@ -103,7 +103,7 @@ public class VcsRootRequest {
     if (vcsRootDescription.modificationCheckInterval != null) {
       newVcsRoot.setModificationCheckInterval(vcsRootDescription.modificationCheckInterval);
     }
-    newVcsRoot.persist();
+    newVcsRoot.schedulePersisting("A new VCS root created");
     return new VcsRoot(newVcsRoot, new Fields(fields), myBeanContext);
   }
 
@@ -193,7 +193,7 @@ public class VcsRootRequest {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     myVcsRootInstanceFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
     VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myBeanContext);
-    rootInstance.getParent().persist();
+    rootInstance.getParent().schedulePersisting("VCS root changed");
     return VcsRootInstance.getFieldValue(rootInstance, fieldName, myDataProvider);
   }
 
@@ -213,7 +213,7 @@ public class VcsRootRequest {
   public Properties changeProperties(@PathParam("vcsRootLocator") String vcsRootLocator, Properties properties, @QueryParam("fields") String fields) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
     vcsRoot.setProperties(properties.getMap());
-    vcsRoot.persist();
+    vcsRoot.schedulePersisting("VCS root changed");
     return new Properties(vcsRoot.getProperties(), null, new Fields(fields), myBeanContext);
   }
 
@@ -222,7 +222,7 @@ public class VcsRootRequest {
   public void deleteAllProperties(@PathParam("vcsRootLocator") String vcsRootLocator) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
     vcsRoot.setProperties(new HashMap<String, String>());
-    vcsRoot.persist();
+    vcsRoot.schedulePersisting("All VCS root properties removed");
   }
 
   @GET
@@ -243,7 +243,7 @@ public class VcsRootRequest {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
     BuildTypeUtil.changeParameter(parameterName, newValue, VcsRoot.getEntityWithParameters(vcsRoot),
                                   myServiceLocator);
-    vcsRoot.persist();
+    vcsRoot.schedulePersisting("New property with name " + parameterName + " added to VCS root");
     return BuildTypeUtil.getParameter(parameterName, VcsRoot.getEntityWithParameters(vcsRoot), false, true, myServiceLocator);
   }
 
@@ -253,7 +253,7 @@ public class VcsRootRequest {
                                        @PathParam("name") String parameterName) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
     BuildTypeUtil.deleteParameter(parameterName, VcsRoot.getEntityWithParameters(vcsRoot));
-    vcsRoot.persist();
+    vcsRoot.schedulePersisting("Property with name " + parameterName + " deleted from VCS root");
   }
 
   @GET
@@ -270,8 +270,8 @@ public class VcsRootRequest {
   @Produces("text/plain")
   public String setField(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("field") String fieldName, String newValue) {
     @NotNull final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
-    VcsRoot.setFieldValue(vcsRoot, fieldName, newValue, myDataProvider, myProjectFinder);
-    vcsRoot.persist();
+    VcsRoot.setFieldValue(vcsRoot, fieldName, newValue, myProjectFinder);
+    vcsRoot.schedulePersisting("Field with name " + fieldName + " changed in VCS root");
     return VcsRoot.getFieldValue(vcsRoot, fieldName, myDataProvider);
   }
 

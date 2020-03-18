@@ -122,7 +122,7 @@ public class VcsRootInstanceRequest {
     final jetbrains.buildServer.vcs.VcsRootInstance rootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
     myVcsRootInstanceFinder.checkPermission(Permission.EDIT_PROJECT, rootInstance);
     VcsRootInstance.setFieldValue(rootInstance, fieldName, newValue, myBeanContext);
-    rootInstance.getParent().persist();
+    rootInstance.getParent().schedulePersisting("VCS root changed");
     return VcsRootInstance.getFieldValue(rootInstance, fieldName, myDataProvider);
   }
 

@@ -252,7 +252,6 @@ public class VcsRoot {
   public static void setFieldValue(@NotNull final SVcsRoot vcsRoot,
                                    @Nullable final String field,
                                    @Nullable final String newValue,
-                                   @NotNull final DataProvider dataProvider,
                                    @NotNull final ProjectFinder projectFinder) {
     if ("id".equals(field)) {
       if (newValue != null){
@@ -274,8 +273,8 @@ public class VcsRoot {
       } else {
         int newInterval = 0;
         try {
-          newInterval = Integer.valueOf(newValue);
-        } catch (NumberFormatException e) {
+          newInterval = Integer.parseInt(newValue);
+        } catch (Exception e) {
           throw new BadRequestException(
             "Field 'modificationCheckInterval' should be an integer value. Error during parsing: " + e.getMessage());
         }
@@ -283,7 +282,7 @@ public class VcsRoot {
       }
       return;
     } else if ("defaultModificationCheckIntervalInUse".equals(field)){
-      boolean newUseDefault = Boolean.valueOf(newValue);
+      boolean newUseDefault = Boolean.parseBoolean(newValue);
       if (newUseDefault) {
         vcsRoot.restoreDefaultModificationCheckInterval();
         return;
