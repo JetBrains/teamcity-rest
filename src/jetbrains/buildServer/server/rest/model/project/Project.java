@@ -331,7 +331,7 @@ public class Project {
         throw new BadRequestException("Project name cannot be empty.");
       }
       project.setName(value);
-      ((ProjectEx)project).schedulePersisting("Project name changed");
+      project.schedulePersisting("Project name changed");
       return;
     } else if ("id".equals(field)) {
       if (StringUtil.isEmpty(value)){
@@ -341,7 +341,7 @@ public class Project {
       return;
     } else if ("description".equals(field)) {
       project.setDescription(value);
-      ((ProjectEx)project).schedulePersisting("Project description changed");
+      project.schedulePersisting("Project description changed");
       return;
     } else if ("archived".equals(field)) {
       project.setArchived(Boolean.parseBoolean(value), serviceLocator.getSingletonService(UserFinder.class).getCurrentUser());
@@ -349,7 +349,7 @@ public class Project {
     } else if ("readOnlyUI".equals(field) && TeamCityProperties.getBoolean("rest.projectRequest.allowSetReadOnlyUI")) {
       boolean editable = !Boolean.parseBoolean(value);
       ((ProjectEx)project).setEditable(editable);
-      ((ProjectEx)project).schedulePersisting("Project editing is " + (editable ? "enabled" : "disabled"));
+      project.schedulePersisting("Project editing is " + (editable ? "enabled" : "disabled"));
       return;
     }
     throw new BadRequestException("Setting field '" + field + "' is not supported. Supported are: name, description, archived");
@@ -396,11 +396,11 @@ public class Project {
   }
 
   private static class ProjectEntityWithParameters extends InheritableUserParametersHolderEntityWithParameters implements ParametersPersistableEntity {
-    private final ProjectEx myProject;
+    private final SProject myProject;
 
     public ProjectEntityWithParameters(@NotNull final SProject project) {
       super(project);
-      myProject = (ProjectEx)project;
+      myProject = project;
     }
 
     public void persist(@NotNull String description) {

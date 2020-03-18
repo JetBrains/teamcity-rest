@@ -134,7 +134,7 @@ public class ProjectRequest {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Project name cannot be empty.");
     }
-    final ProjectEx project = (ProjectEx)myDataProvider.getServer().getProjectManager().createProject(name);
+    final SProject project = myDataProvider.getServer().getProjectManager().createProject(name);
     project.schedulePersisting("A new project was created");
     return new Project(project, Fields.LONG, myBeanContext);
   }
@@ -146,12 +146,12 @@ public class ProjectRequest {
     if (StringUtil.isEmpty(descriptor.name)) {
       throw new BadRequestException("Project name cannot be empty.");
     }
-    ProjectEx resultingProject;
+    SProject resultingProject;
     @Nullable SProject sourceProject = descriptor.getSourceProject(myServiceLocator);
     final ProjectManager projectManager = myDataProvider.getServer().getProjectManager();
     final SProject parentProject = descriptor.getParentProject(myServiceLocator);
     if (sourceProject == null) {
-      resultingProject = (ProjectEx)parentProject.createProject(descriptor.getId(myServiceLocator), descriptor.name);
+      resultingProject = parentProject.createProject(descriptor.getId(myServiceLocator), descriptor.name);
     } else {
       final CopyOptions copyOptions = descriptor.getCopyOptions();
       //see also getExampleNewProjectDescription which prepares NewProjectDescription
@@ -159,7 +159,7 @@ public class ProjectRequest {
       copyOptions.setGenerateExternalIdsBasedOnOriginalExternalIds(ID_GENERATION_FLAG);
       if (descriptor.name != null) copyOptions.setNewProjectName(descriptor.name);
       try {
-        resultingProject = (ProjectEx)projectManager.copyProject(sourceProject, parentProject, copyOptions);
+        resultingProject = projectManager.copyProject(sourceProject, parentProject, copyOptions);
       } catch (MaxNumberOfBuildTypesReachedException e) {
         throw new BadRequestException("Build configurations number limit is reached", e);
       } catch (NotAllIdentifiersMappedException e) {
@@ -507,7 +507,7 @@ public class ProjectRequest {
 
   @Path("/{projectLocator}" + FEATURES)
   public ProjectFeatureSubResource getFeatures(@PathParam("projectLocator") String projectLocator) {
-    final ProjectEx project = (ProjectEx)myProjectFinder.getItem(projectLocator, true);
+    final SProject project = myProjectFinder.getItem(projectLocator, true);
     return new ProjectFeatureSubResource(myBeanContext, new FeatureSubResource.Entity<PropEntitiesProjectFeature, PropEntityProjectFeature>() {
 
         @Override
@@ -852,9 +852,9 @@ public class ProjectRequest {
   }
 
   private class ProjectFeatureDescriptionUserParametersHolder extends MapBackedEntityWithModifiableParameters implements ParametersPersistableEntity {
-    @NotNull private final ProjectEx myProject;
+    @NotNull private final SProject myProject;
 
-    public ProjectFeatureDescriptionUserParametersHolder(@NotNull final ProjectEx project, @NotNull final String featureLocator) {
+    public ProjectFeatureDescriptionUserParametersHolder(@NotNull final SProject project, @NotNull final String featureLocator) {
       super(new PropProxy() {
         @Override
         public Map<String, String> get() {
