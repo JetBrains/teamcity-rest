@@ -54,7 +54,6 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.CyclicDependencyFoundException;
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
-import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -135,8 +134,8 @@ public class ProjectRequest {
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Project name cannot be empty.");
     }
-    final SProject project = myDataProvider.getServer().getProjectManager().createProject(name);
-    project.persist();
+    final ProjectEx project = (ProjectEx)myDataProvider.getServer().getProjectManager().createProject(name);
+    project.schedulePersisting("A new project was created");
     return new Project(project, Fields.LONG, myBeanContext);
   }
 
@@ -147,12 +146,12 @@ public class ProjectRequest {
     if (StringUtil.isEmpty(descriptor.name)) {
       throw new BadRequestException("Project name cannot be empty.");
     }
-    SProject resultingProject;
+    ProjectEx resultingProject;
     @Nullable SProject sourceProject = descriptor.getSourceProject(myServiceLocator);
     final ProjectManager projectManager = myDataProvider.getServer().getProjectManager();
     final SProject parentProject = descriptor.getParentProject(myServiceLocator);
     if (sourceProject == null) {
-      resultingProject = parentProject.createProject(descriptor.getId(myServiceLocator), descriptor.name);
+      resultingProject = (ProjectEx)parentProject.createProject(descriptor.getId(myServiceLocator), descriptor.name);
     } else {
       final CopyOptions copyOptions = descriptor.getCopyOptions();
       //see also getExampleNewProjectDescription which prepares NewProjectDescription
@@ -160,7 +159,7 @@ public class ProjectRequest {
       copyOptions.setGenerateExternalIdsBasedOnOriginalExternalIds(ID_GENERATION_FLAG);
       if (descriptor.name != null) copyOptions.setNewProjectName(descriptor.name);
       try {
-        resultingProject = projectManager.copyProject(sourceProject, parentProject, copyOptions);
+        resultingProject = (ProjectEx)projectManager.copyProject(sourceProject, parentProject, copyOptions);
       } catch (MaxNumberOfBuildTypesReachedException e) {
         throw new BadRequestException("Build configurations number limit is reached", e);
       } catch (NotAllIdentifiersMappedException e) {
@@ -182,7 +181,7 @@ public class ProjectRequest {
     }
 
     try {
-      resultingProject.persist();
+      resultingProject.schedulePersisting("A new project was created");
     } catch (PersistFailedException e) {
       processCreatiedProjectFinalizationError(resultingProject, projectManager, e);
     }
@@ -389,7 +388,7 @@ public class ProjectRequest {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   public BuildType setDefaultTemplate(@PathParam("projectLocator") String projectLocator, BuildType defaultTemplate, @QueryParam("fields") String fields) {
-    SProject project = myProjectFinder.getItem(projectLocator, true);
+    ProjectEx project = (ProjectEx)myProjectFinder.getItem(projectLocator, true);
     if (defaultTemplate == null) throw new BadRequestException("No payload found while template is expected");
     BuildTypeOrTemplate newDefaultTemplate = defaultTemplate.getBuildTypeFromPosted(myBuildTypeFinder);
 
@@ -401,11 +400,11 @@ public class ProjectRequest {
     BuildTypeTemplate currentDefaultTemplate = project.getDefaultTemplate();
     if (inherited == null || !inherited || (currentDefaultTemplate != null && !currentDefaultTemplate.getInternalId().equals(newDefaultTemplate.getInternalId()))) {
       try {
-        ((ProjectImpl)project).setDefaultTemplate(result);
+        project.setDefaultTemplate(result);
       } catch (CyclicDependencyFoundException e) {
         throw new BadRequestException(e.getMessage());
       }
-      project.persist();
+      project.schedulePersisting("Default template changed");
     }
     BuildType template = Project.getDefaultTemplate(project, new Fields(fields), myBeanContext);
     if (template == null) throw new NotFoundException("No default template present");
@@ -415,10 +414,10 @@ public class ProjectRequest {
   @DELETE
   @Path("/{projectLocator}/defaultTemplate")
   public void removeDefaultTemplate(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
-    SProject project = myProjectFinder.getItem(projectLocator, true);
+    ProjectEx project = (ProjectEx)myProjectFinder.getItem(projectLocator, true);
     if (project.getOwnDefaultTemplate() == null) throw new NotFoundException("No own default template present");
-    ((ProjectImpl)project).setDefaultTemplate(null);
-    project.persist();
+    project.setDefaultTemplate(null);
+    project.schedulePersisting("Default template removed");
   }
 
   @Path("/{projectLocator}" + PARAMETERS)
@@ -508,7 +507,7 @@ public class ProjectRequest {
 
   @Path("/{projectLocator}" + FEATURES)
   public ProjectFeatureSubResource getFeatures(@PathParam("projectLocator") String projectLocator) {
-    final SProject project = myProjectFinder.getItem(projectLocator, true);
+    final ProjectEx project = (ProjectEx)myProjectFinder.getItem(projectLocator, true);
     return new ProjectFeatureSubResource(myBeanContext, new FeatureSubResource.Entity<PropEntitiesProjectFeature, PropEntityProjectFeature>() {
 
         @Override
@@ -518,7 +517,7 @@ public class ProjectRequest {
 
         @Override
         public void persist() {
-          project.persist();
+          project.schedulePersisting("Project features changed");
         }
 
         @NotNull
@@ -591,7 +590,6 @@ public class ProjectRequest {
   public Project setParentProject(@PathParam("projectLocator") String projectLocator, Project parentProject, @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     project.moveToProject(parentProject.getProjectFromPosted(myProjectFinder));
-    project.persist();
     return new Project(project, new Fields(fields), myBeanContext);
   }
 
@@ -854,9 +852,9 @@ public class ProjectRequest {
   }
 
   private class ProjectFeatureDescriptionUserParametersHolder extends MapBackedEntityWithModifiableParameters implements ParametersPersistableEntity {
-    @NotNull private final SProject myProject;
+    @NotNull private final ProjectEx myProject;
 
-    public ProjectFeatureDescriptionUserParametersHolder(@NotNull final SProject project, @NotNull final String featureLocator) {
+    public ProjectFeatureDescriptionUserParametersHolder(@NotNull final ProjectEx project, @NotNull final String featureLocator) {
       super(new PropProxy() {
         @Override
         public Map<String, String> get() {
@@ -880,7 +878,7 @@ public class ProjectRequest {
 
     @Override
     public void persist(@NotNull String description) {
-      myProject.persist();
+      myProject.schedulePersisting(description);
     }
   }
 
