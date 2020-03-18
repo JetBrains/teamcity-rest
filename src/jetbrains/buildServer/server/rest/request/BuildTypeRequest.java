@@ -266,7 +266,7 @@ public class BuildTypeRequest {
       throw new BadRequestException("Nothing is posted as payload while list of templates is expected");
     }
     BuildTypeOrTemplate.setTemplates(buildType, templates.getFromPosted(myBuildTypeFinder), optimizeSettings != null ? optimizeSettings : false);
-    buildType.persist();
+    buildType.schedulePersisting("Build configuration templates changed");
     return BuildType.getTemplates(buildType, new Fields(fields), myBeanContext);
   }
 
@@ -289,7 +289,7 @@ public class BuildTypeRequest {
     } catch (CannotAttachToTemplateException e) {
       throw new BadRequestException(e.getMessage());
     }
-    buildType.persist();
+    buildType.schedulePersisting("Build configuration attached to a template");
     return new BuildType(getTemplateById(buildType, result.getExternalId(), true), new Fields(fields), myBeanContext);
   }
 
@@ -298,7 +298,7 @@ public class BuildTypeRequest {
   public void removeAllTemplates(@PathParam("btLocator") String buildTypeLocator, @QueryParam("inlineSettings") Boolean inlineSettings) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     buildType.removeTemplates(buildType.getOwnTemplates(), inlineSettings != null ? inlineSettings : false);
-    buildType.persist();
+    buildType.schedulePersisting("Build configuration detached from all of the templates");
   }
 
   @GET
@@ -317,7 +317,7 @@ public class BuildTypeRequest {
     BuildTypeTemplate template = myBuildTypeFinder.getBuildTemplate(null, templateLocator, true);
     BuildTypeTemplate foundTemplate = getTemplateById(buildType, template.getExternalId(), true).getTemplate();
     buildType.removeTemplates(Collections.singleton(foundTemplate), inlineSettings != null ? inlineSettings : false);
-    buildType.persist();
+    buildType.schedulePersisting("Build configuration detached from a template");
   }
 
   @NotNull
@@ -376,7 +376,7 @@ public class BuildTypeRequest {
     } catch (CannotAttachToTemplateException e) {
       throw new BadRequestException(e.getMessage());
     }
-    buildType.persist();
+    buildType.schedulePersisting("Build configuration templates changed");
     return new BuildType(new BuildTypeOrTemplate(template),  new Fields(fields), myBeanContext);
   }
 //todo: allow also to post back the XML from GET request (http://devnet.jetbrains.net/message/5466528#5466528)
@@ -390,7 +390,7 @@ public class BuildTypeRequest {
   public void deleteTemplateAssociation(@PathParam("btLocator") String buildTypeLocator, @QueryParam("inlineSettings") Boolean inlineSettings) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     buildType.removeTemplates(buildType.getOwnTemplates(), inlineSettings != null ? inlineSettings : true); //using "true" as default here to replicate pre-2017.2 behavior
-    buildType.persist();
+    buildType.schedulePersisting("Build configuration detached from all of the templates");
   }
 
 

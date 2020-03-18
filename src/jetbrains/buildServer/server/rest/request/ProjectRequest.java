@@ -267,7 +267,7 @@ public class ProjectRequest {
       throw new BadRequestException("Build type name cannot be empty.");
     }
     final SBuildType buildType = project.createBuildType(name);
-    buildType.persist();
+    buildType.schedulePersisting("A new build configuration is created");
     return new BuildType(new BuildTypeOrTemplate(buildType),  new Fields(fields), myBeanContext);
   }
 
@@ -297,7 +297,7 @@ public class ProjectRequest {
         throw new BadRequestException("Could not create build type as a copy of a template.");
       }
     }
-    resultingBuildType.persist();
+    resultingBuildType.schedulePersisting("A new build configuration is created");
     return new BuildType(new BuildTypeOrTemplate(resultingBuildType),  new Fields(fields), myBeanContext);
   }
 
@@ -329,7 +329,7 @@ public class ProjectRequest {
       throw new BadRequestException("Build type template name cannot be empty.");
     }
     final BuildTypeTemplate buildType = project.createBuildTypeTemplate(name);
-    buildType.persist();
+    buildType.schedulePersisting("A new build configuration template is created");
     return new BuildType(new BuildTypeOrTemplate(buildType),  new Fields(fields), myBeanContext);
   }
 
@@ -360,7 +360,7 @@ public class ProjectRequest {
           project.copyBuildTypeTemplate(sourceBuildType.getTemplate(), descriptor.getId(myServiceLocator, project), descriptor.getName());
       }
     }
-    resultingBuildType.persist();
+    resultingBuildType.schedulePersisting("A new build configuration template is created");
     return new BuildType(new BuildTypeOrTemplate(resultingBuildType),  new Fields(fields), myBeanContext);
   }
 

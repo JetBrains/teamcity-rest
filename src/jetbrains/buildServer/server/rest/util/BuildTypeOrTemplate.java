@@ -214,27 +214,27 @@ public class BuildTypeOrTemplate implements Loggable {
         throw new BadRequestException("Build type with UUID '" + value + "' already exists");
       }
       serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).modifyConfigId(((BuildTypeIdentityEx)myBuildTypeIdentity).getEntityId(), value, null);
-      myBuildTypeIdentity.persist();
+      myBuildTypeIdentity.schedulePersisting("UUID changed");
       return;
     } else if ("name".equals(field)) {
       if (value != null){
         setName(value);
-        myBuildTypeIdentity.persist();
+        myBuildTypeIdentity.schedulePersisting("Name changed");
       }else{
         throw new BadRequestException("Name cannot be empty");
       }
       return;
     } else if ("description".equals(field)) {
       setDescription(value);
-      myBuildTypeIdentity.persist();
+      myBuildTypeIdentity.schedulePersisting("Description changed");
       return;
     }
     if (myBuildType!=null){
       if ("paused".equals(field)){
         //TeamCity API: why not use current user by default?
-        myBuildType.setPaused(Boolean.valueOf(value), serviceLocator.getSingletonService(UserFinder.class).getCurrentUser(),
+        myBuildType.setPaused(Boolean.parseBoolean(value), serviceLocator.getSingletonService(UserFinder.class).getCurrentUser(),
                               TeamCityProperties.getProperty("rest.defaultActionComment"));
-        myBuildType.persist();
+        myBuildType.schedulePersisting("Build configuration paused");
         return;
       }
     }
