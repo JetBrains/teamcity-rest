@@ -442,7 +442,7 @@ public class BuildType {
     return myBuildType == null ? null : ValueWithDefault
       .decideIncludeByDefault(myFields.isIncluded("parameters", false), check(new ValueWithDefault.Value<Properties>() {
         public Properties get() {
-          return new Properties(createEntity(myBuildType.get()), BuildTypeRequest.getParametersHref(myBuildType), null,
+          return new Properties(createEntity(myBuildType), BuildTypeRequest.getParametersHref(myBuildType), null,
                                 myFields.getNestedField("parameters", Fields.NONE, Fields.LONG), myBeanContext);
         }
       }));
@@ -980,7 +980,7 @@ public class BuildType {
       result = result || updated;
     }
     if (submittedParameters != null) {
-      boolean updated = submittedParameters.setTo(buildTypeSettings, serviceLocator);
+      boolean updated = submittedParameters.setTo(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), serviceLocator);
       result = result || updated;
     }
     if (submittedSteps != null) {
@@ -1062,21 +1062,21 @@ public class BuildType {
   }
 
   @NotNull
-  public static ParametersPersistableEntity createEntity(@NotNull final BuildTypeSettings buildType) {
+  public static ParametersPersistableEntity createEntity(@NotNull final BuildTypeOrTemplate buildType) {
     return new BuildTypeEntityWithParameters(buildType);
   }
 
   private static class BuildTypeEntityWithParameters extends InheritableUserParametersHolderEntityWithParameters
     implements ParametersPersistableEntity {
-    @NotNull private final BuildTypeSettings myBuildType;
+    @NotNull private final BuildTypeOrTemplate myBuildType;
 
-    public BuildTypeEntityWithParameters(@NotNull final BuildTypeSettings buildType) {
-      super(buildType);
+    public BuildTypeEntityWithParameters(@NotNull final BuildTypeOrTemplate buildType) {
+      super(buildType.getSettingsEx());
       myBuildType = buildType;
     }
 
     public void persist(@NotNull String description) {
-      myBuildType.persist();
+      myBuildType.persist(description);
     }
 
     @Nullable

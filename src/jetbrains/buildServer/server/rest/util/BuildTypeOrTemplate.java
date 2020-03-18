@@ -287,6 +287,15 @@ public class BuildTypeOrTemplate implements Loggable {
       return isBuildType() ? LogUtil.describe(myBuildType) : LogUtil.describe(myTemplate);
   }
 
+  public void persist(@NotNull String reason) {
+    if (myBuildType != null) {
+      myBuildType.schedulePersisting(reason);
+    } else {
+      assert myTemplate != null;
+      myTemplate.schedulePersisting(reason);
+    }
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) return true;
