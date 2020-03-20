@@ -27,10 +27,9 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
-import jetbrains.buildServer.vcs.VcsRootScope;
-import org.jetbrains.annotations.NotNull;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
@@ -67,10 +66,20 @@ public class VcsRootRequest {
   @Produces({"application/xml", "application/json"})
   public VcsRoot addRoot(VcsRoot vcsRootDescription) {
     checkVcsRootDescription(vcsRootDescription);
-    final SVcsRoot newVcsRoot = myDataProvider.getVcsManager()
-      .createNewVcsRoot(vcsRootDescription.vcsName, vcsRootDescription.name != null ? vcsRootDescription.name : null,
-                        vcsRootDescription.properties.getMap(), createScope(vcsRootDescription));
-    myDataProvider.getVcsManager().persistVcsRoots();
+
+    SProject targetProject;
+    if (vcsRootDescription.shared != null && vcsRootDescription.shared){
+      if (vcsRootDescription.project != null){
+        throw new BadRequestException("Project should not be specified if the VCS root is shared.");
+      }
+      targetProject = myDataProvider.getProjectById(SProject.ROOT_PROJECT_ID);
+    } else{
+      targetProject = myDataProvider.getProject(getProjectLocator(vcsRootDescription), true);
+    }
+
+    final SVcsRoot newVcsRoot = targetProject.createVcsRoot(vcsRootDescription.vcsName, vcsRootDescription.name, vcsRootDescription.properties.getMap());
+    newVcsRoot.persist();
+
     return new VcsRoot(newVcsRoot, myDataProvider, myApiUrlBuilder);
   }
 
@@ -82,18 +91,6 @@ public class VcsRootRequest {
     }
     if (description.properties == null) {
       throw new BadRequestException("Element 'properties' must be specified when creating VCS root.");
-    }
-  }
-
-  @NotNull
-  private VcsRootScope createScope(final VcsRoot vcsRootDescription) {
-    if (vcsRootDescription.shared != null && vcsRootDescription.shared){
-      if (vcsRootDescription.project != null){
-        throw new BadRequestException("Project should not be specified if the VCS root is shared.");
-      }
-      return VcsRootScope.globalScope();
-    }else{
-      return VcsRootScope.projectScope(myDataProvider.getProject(getProjectLocator(vcsRootDescription), true));
     }
   }
 
@@ -128,8 +125,7 @@ public class VcsRootRequest {
   @Produces({"application/xml", "application/json"})
   public void deleteRoot(@PathParam("vcsRootLocator") String vcsRootLocator) {
     final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
-    myDataProvider.getVcsManager().removeVcsRoot(vcsRoot.getId());
-    myDataProvider.getVcsManager().persistVcsRoots();
+    vcsRoot.remove();
   }
 
   @GET
@@ -154,7 +150,7 @@ public class VcsRootRequest {
   @Produces("text/plain")
   public String serveProperty(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("name") String parameterName) {
     final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
-    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot, myDataProvider.getVcsManager()));
+    return BuildTypeUtil.getParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot));
   }
 
   @PUT
@@ -164,8 +160,8 @@ public class VcsRootRequest {
                                     @PathParam("name") String parameterName,
                                     String newValue) {
     final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
-    BuildTypeUtil.changeParameter(parameterName, newValue, VcsRoot.getUserParametersHolder(vcsRoot, myDataProvider.getVcsManager()), myServiceLocator);
-    myDataProvider.getVcsManager().persistVcsRoots();
+    BuildTypeUtil.changeParameter(parameterName, newValue, VcsRoot.getUserParametersHolder(vcsRoot), myServiceLocator);
+    vcsRoot.persist();
   }
 
   @DELETE
@@ -174,8 +170,8 @@ public class VcsRootRequest {
   public void deleteParameter(@PathParam("vcsRootLocator") String vcsRootLocator,
                                        @PathParam("name") String parameterName) {
     final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
-    BuildTypeUtil.deleteParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot, myDataProvider.getVcsManager()));
-    myDataProvider.getVcsManager().persistVcsRoots();
+    BuildTypeUtil.deleteParameter(parameterName, VcsRoot.getUserParametersHolder(vcsRoot));
+    vcsRoot.persist();
   }
 
   @GET
@@ -192,7 +188,7 @@ public class VcsRootRequest {
   public void seteField(@PathParam("vcsRootLocator") String vcsRootLocator, @PathParam("field") String fieldName, String newValue) {
     final SVcsRoot vcsRoot = myDataProvider.getVcsRoot(vcsRootLocator);
     VcsRoot.setFieldValue(vcsRoot, fieldName, newValue, myDataProvider);
-    myDataProvider.getVcsManager().persistVcsRoots();
+    vcsRoot.persist();
   }
 
 }
