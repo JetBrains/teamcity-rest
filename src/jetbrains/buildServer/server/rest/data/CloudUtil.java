@@ -22,10 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.clouds.CloudClientEx;
-import jetbrains.buildServer.clouds.CloudImage;
-import jetbrains.buildServer.clouds.CloudInstance;
-import jetbrains.buildServer.clouds.CloudProfile;
+import jetbrains.buildServer.clouds.*;
 import jetbrains.buildServer.clouds.server.CloudInstancesProviderExtendedCallback;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -124,7 +121,7 @@ public class CloudUtil {
   private CloudInstancesProviderExtendedCallback callback(@NotNull final ItemProcessor<CloudInstanceData> processor) {
     return new CloudInstancesProviderExtendedCallback() {
       @Override public void processNotReady(@NotNull final CloudProfile profile) {}
-      @Override public void processClientError(@NotNull final CloudProfile profile) {}
+      @Override public void processClientError(@NotNull final CloudProfile profile, @NotNull CloudErrorInfo errorInfo) {}
       @Override public void processImageError(@NotNull final CloudProfile profile, @NotNull final CloudImage image) {}
       @Override public void processInstanceError(@NotNull final CloudProfile profile, @NotNull final CloudInstance instance) {}
       @Override public void processInstanceExpired(@NotNull final CloudProfile profile, @NotNull final CloudClientEx client, @NotNull final CloudInstance instance) {}
