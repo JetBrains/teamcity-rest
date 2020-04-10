@@ -115,7 +115,8 @@ public class AgentFinderTest extends BaseFinderTest<SBuildAgent> {
     checkAgents("id:" + myAgent3.getId(), myAgent3);
 
     checkAgents("parameter:(name:a)", agent10);
-    checkAgents("parameter:(name:(matchType:any),value:1,matchType:does-not-equal,matchScope:all)"); //not sure if this is right
+
+    checkAgents("parameter:(name:zzz,value:1,matchType:does-not-equal,matchScope:all)", myAgent1, myAgent2, agent10);
 
     myAgent2.addConfigParameter("x", "3");
     myAgent2.pushAgentTypeData();
