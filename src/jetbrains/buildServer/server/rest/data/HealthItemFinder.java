@@ -69,12 +69,6 @@ public class HealthItemFinder extends DelegatingFinder<jetbrains.buildServer.ser
 
   @NotNull
   @Override
-  public PagedSearchResult<HealthStatusItem> getItems(@Nullable final String locatorText) {
-    return super.getItems(locatorText);
-  }
-
-  @NotNull
-  @Override
   public HealthStatusItem getItem(@Nullable final String locatorText) {
     return super.getItem(locatorText);
   }
@@ -139,11 +133,7 @@ public class HealthItemFinder extends DelegatingFinder<jetbrains.buildServer.ser
           scopeBuilder.setMinSeverity(ItemSeverity.min(itemSeverities));
         }
         final List<Boolean> global = dimensions.get(GLOBAL);
-        if (global != null && global.contains(true)) {
-          scopeBuilder.setGlobalItems(true);
-        } else {
-          scopeBuilder.setGlobalItems(false);
-        }
+        scopeBuilder.setGlobalItems(global != null && global.contains(true));
         @Nullable final HealthStatusProfile profile;
         final List<String> reportTypes = dimensions.get(REPORT_TYPE);
         if (!CollectionUtils.isEmpty(reportTypes)) {
