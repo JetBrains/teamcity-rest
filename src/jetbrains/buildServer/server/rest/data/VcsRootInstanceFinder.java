@@ -38,6 +38,7 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.versionedSettings.VersionedSettingsManager;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.*;
+import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -344,7 +345,13 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     final String build = locator.getSingleDimensionValue(BUILD);
     if (build != null) {
-      return FinderDataBinding.getItemHolder(getVcsRootInstancesByBuilds(build));
+      Stream<VcsRootInstance> vcsRootInstancesByBuilds = getVcsRootInstancesByBuilds(build);
+      if (BooleanUtils.isTrue(versionedSettingsUsagesOnly)) {
+        vcsRootInstancesByBuilds = vcsRootInstancesByBuilds.filter(vcsRootInstance -> vcsRootInstance.equals(myVersionedSettingsManager.getVersionedSettingsVcsRootInstance(vcsRootInstance.getParent().getProject())));
+      } else if (BooleanUtils.isFalse(versionedSettingsUsagesOnly)) {
+        vcsRootInstancesByBuilds = vcsRootInstancesByBuilds.filter(vcsRootInstance -> !vcsRootInstance.equals(myVersionedSettingsManager.getVersionedSettingsVcsRootInstance(vcsRootInstance.getParent().getProject())));
+      }
+      return FinderDataBinding.getItemHolder(vcsRootInstancesByBuilds);
     }
 
     final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
