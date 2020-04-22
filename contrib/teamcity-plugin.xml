@@ -8,7 +8,7 @@
     <description>Additionals for TeamCity API REST-like protocol</description>
 
     <vendor>
-      <name>JetBrains, s.r.o.</name>
+      <name>JetBrains</name>
       <url>http://www.jetbrains.com</url>
     </vendor>
   </info>
