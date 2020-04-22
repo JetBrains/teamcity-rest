@@ -12,7 +12,7 @@
       <url>http://www.jetbrains.com</url>
     </vendor>
   </info>
-  <deployment use-separate-classloader="true"/>
+  <deployment use-separate-classloader="true" node-responsibilities-aware="true"/>
   <parameters>
     <parameter name="api.path">/app/rest/2018.1,/app/rest,/app/rest/latest,/app/rest/ui,/api</parameter>
     <parameter name="api.version">2018.1</parameter>
