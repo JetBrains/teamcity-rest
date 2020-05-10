@@ -244,7 +244,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     if (locator.isUnused(DIMENSION_UUID)) {
       final String uuid = locator.getSingleDimensionValue(DIMENSION_UUID);
       if (uuid != null) {
-        result.add(item -> uuid.equals(((BuildTypeIdentityEx)item).getEntityId().getConfigId()));
+        result.add(item -> uuid.equals(((BuildTypeIdentityEx)item.getIdentity()).getEntityId().getConfigId()));
       }
     }
 
