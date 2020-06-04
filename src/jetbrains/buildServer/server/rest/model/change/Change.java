@@ -38,6 +38,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.RelationType;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.impl.VcsModificationEx;
@@ -104,7 +105,7 @@ public class Change {
     } else if ("personal".equals(field)) {
       return String.valueOf(vcsModification.isPersonal());
     } else if ("comment".equals(field)) {
-      return vcsModification.getDescription();
+      return escapeNonPrintedCharacters(vcsModification.getDescription());
     } else if ("registrationDate".equals(field)) { //not documented
       return Util.formatTime(vcsModification.getRegistrationDate());
     } else if ("versionControlName".equals(field)) { //not documented
@@ -183,7 +184,13 @@ public class Change {
 
   @XmlElement
   public String getComment() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("comment", false), myModification.getDescription());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("comment", false), () -> escapeNonPrintedCharacters(myModification.getDescription()));
+  }
+
+  @NotNull
+  private static String escapeNonPrintedCharacters(final String str) {
+    // Super-quick temporary workaround for TW-65005
+    return StringUtil.replaceInvalidXmlChars(str);
   }
 
   @XmlElement(name = "user")
