@@ -282,10 +282,12 @@ public class BuildTypeUtil {
     if (parameter == null){
       throw new NotFoundException("Parameter with name '" + parameterName + "' not found");
     }
+    final ParameterFactory parameterFactory = getParameterFactory(serviceLocator);
+    final String newValue = parameterFactory.isSecureParameter(parameter.getControlDescription()) ? "" : parameter.getValue();
     if (newRawTypeValue != null) {
-      parametrizedEntity.addParameter(getParameterFactory(serviceLocator).createTypedParameter(parameterName, parameter.getValue(), newRawTypeValue));
+      parametrizedEntity.addParameter(parameterFactory.createTypedParameter(parameterName, newValue, newRawTypeValue));
     } else {
-      parametrizedEntity.addParameter(getParameterFactory(serviceLocator).createSimpleParameter(parameterName, parameter.getValue()));
+      parametrizedEntity.addParameter(parameterFactory.createSimpleParameter(parameterName, newValue));
     }
   }
 
