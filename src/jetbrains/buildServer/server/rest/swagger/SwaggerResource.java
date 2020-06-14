@@ -32,19 +32,10 @@ import io.swagger.jaxrs.Reader;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.config.ReaderConfig;
 import io.swagger.models.Model;
-import io.swagger.models.SecurityRequirement;
 import io.swagger.models.Swagger;
 import io.swagger.models.Tag;
-import io.swagger.models.auth.BasicAuthDefinition;
 import io.swagger.util.Json;
 import io.swagger.util.Yaml;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.*;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.jersey.JacksonObjectMapperResolver;
 import jetbrains.buildServer.server.rest.request.Constants;
@@ -54,15 +45,27 @@ import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.*;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+
 @Path(Constants.API_URL + "/swagger.{type:json|yaml}")
 @Singleton
 @Api(hidden = true)
 public class SwaggerResource {
 
-  @Context private SwaggerConfig mySwaggerConfig;
-  @Context private DataProvider myDataProvider;
-  @Context private ReaderConfig myReaderConfig;
-  @Context private Application myApplication;
+  @Context
+  private SwaggerConfig mySwaggerConfig;
+  @Context
+  private DataProvider myDataProvider;
+  @Context
+  private ReaderConfig myReaderConfig;
+  @Context
+  private Application myApplication;
 
   @GET
   @Produces({MediaType.APPLICATION_JSON, AdditionalMediaTypes.APPLICATION_YAML})
@@ -108,9 +111,11 @@ public class SwaggerResource {
       final Reader reader = new Reader(swagger, myReaderConfig);
       swagger = reader.read(classes);
 
-      // Add default 'Basic' authorization, so all api methods would require it
-      swagger.addSecurityDefinition("Basic", new BasicAuthDefinition());
-      swagger.addSecurity(new SecurityRequirement().requirement("Basic"));
+      // Set common properties of this API
+      swagger.setBasePath(Constants.API_URL);
+      List<String> apiMIMETypes = Arrays.asList("application/xml", "application/json", "text/plain");
+      swagger.setConsumes(apiMIMETypes);
+      swagger.setProduces(apiMIMETypes);
 
       // Sort output maps and lists
       swagger.setPaths(SwaggerUtil.getOrderedMap(swagger.getPaths()));

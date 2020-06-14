@@ -20,12 +20,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.Function;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import java.util.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
@@ -47,6 +41,13 @@ import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
+import java.util.*;
 
 /**
  * @author Yegor.Yarko
@@ -265,7 +266,7 @@ public class BuildQueueRequest {
   @GET
   @Path("/{buildLocator}/example/buildCancelRequest")
   @Produces({"application/xml", "application/json"})
-  public BuildCancelRequest cancelBuild(@PathParam("buildLocator") String buildLocator) {
+  public BuildCancelRequest getCancelBuild(@PathParam("buildLocator") String buildLocator) {
     return new BuildCancelRequest("example build cancel comment", false);
   }
 
@@ -438,7 +439,7 @@ public class BuildQueueRequest {
   @Path("/order/{queuePosition}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Build setBuildQueuePosition(@PathParam("queuePosition") String queuePosition, @QueryParam("fields") String fields) {
+  public Build getBuildQueuePosition(@PathParam("queuePosition") String queuePosition, @QueryParam("fields") String fields) {
     int queuePositionNumber;
     queuePositionNumber = getQueuePositionNumber(queuePosition);
     if (queuePositionNumber < 1) {

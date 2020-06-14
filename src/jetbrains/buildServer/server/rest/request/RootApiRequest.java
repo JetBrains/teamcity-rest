@@ -17,29 +17,28 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import io.swagger.annotations.Authorization;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfo;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 
 /**
  * @author Yegor.Yarko
  *         Date: 22.07.2009
  */
 @Path(Constants.API_URL)
-@Api(authorizations = @Authorization("none"))
+@Api("Root")
 public class RootApiRequest {
   public static final String API_VERSION = "/apiVersion";
   public static final String VERSION = "/version";
@@ -80,17 +79,4 @@ public class RootApiRequest {
     return new PluginInfo(myDataProvider.getPluginInfo(), new Fields(fields), myBeanContext);
   }
 
-  @GET
-  @Path("/{projectLocator}/{btLocator}/{buildLocator}/{field}")
-  @Produces("text/plain")
-  public String serveBuildFieldShort(@PathParam("projectLocator") String projectLocator,
-                                     @PathParam("btLocator") String buildTypeLocator,
-                                     @PathParam("buildLocator") String buildLocator,
-                                     @PathParam("field") String field) {
-    SProject project = myProjectFinder.getItem(projectLocator);
-    SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator, false);
-    final BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(buildType, buildLocator);
-
-    return Build.getFieldValue(buildPromotion, field, new BeanContext(myDataProvider.getBeanFactory(), myDataProvider.getServer(), myApiUrlBuilder));
-  }
 }

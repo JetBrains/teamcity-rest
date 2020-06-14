@@ -19,13 +19,6 @@ package jetbrains.buildServer.server.rest.request;
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import java.util.*;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.log.LogUtil;
@@ -65,6 +58,14 @@ import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /*
  * User: Yegor Yarko
@@ -215,7 +216,7 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/buildTags")
   @Produces({"application/xml", "application/json"})
-  public Tags serveBuildTypeBuildsTags(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String field) {
+  public Tags serveBuildTypeBuildsTags(@PathParam("btLocator") String buildTypeLocator, @QueryParam("field") String field) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
 
     return new Tags(CollectionsUtil.convertCollection(buildType.getTags(), new Converter<TagData, String>() {
@@ -231,7 +232,7 @@ public class BuildTypeRequest {
   @GET
   @Path("/{btLocator}/aliases")
   @Produces({"application/xml", "application/json"})
-  public Items getAliases(@PathParam("btLocator") String buildTypeLocator, @PathParam("field") String field) {
+  public Items getAliases(@PathParam("btLocator") String buildTypeLocator, @QueryParam("field") String field) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, true);
     return new Items(myBeanContext.getSingletonService(BuildTypeIdentifiersManager.class).getAllExternalIds(buildType.getInternalId()));
   }

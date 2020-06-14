@@ -19,12 +19,6 @@ package jetbrains.buildServer.server.rest.request;
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import java.io.File;
-import java.util.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -58,6 +52,13 @@ import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
+import java.io.File;
+import java.util.*;
 
 /*
  * User: Yegor Yarko
@@ -694,7 +695,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/order/projects")
   @Produces({"application/xml", "application/json"})
-  public Projects getProjectsOrder(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fields) {
+  public Projects getProjectsOrder(@PathParam("projectLocator") String projectLocator, @QueryParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     return new Projects(((ProjectEx)project).getOwnProjectsOrder(), null, new Fields(fields), myBeanContext);
   }
@@ -706,7 +707,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/order/projects")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Projects setProjectsOrder(@PathParam("projectLocator") String projectLocator, Projects projects, @PathParam("field") String fields) {
+  public Projects setProjectsOrder(@PathParam("projectLocator") String projectLocator, Projects projects, @QueryParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     LinkedHashSet<String> ids = new LinkedHashSet<>();
     if (projects.projects != null) {
@@ -732,7 +733,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/order/buildTypes")
   @Produces({"application/xml", "application/json"})
-  public BuildTypes getBuildTypesOrder(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fields) {
+  public BuildTypes getBuildTypesOrder(@PathParam("projectLocator") String projectLocator, @QueryParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     return new BuildTypes(BuildTypes.fromBuildTypes(((ProjectEx)project).getOwnBuildTypesOrder()), null, new Fields(fields), myBeanContext);
   }
@@ -744,7 +745,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/order/buildTypes")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public BuildTypes setBuildTypesOrder(@PathParam("projectLocator") String projectLocator, BuildTypes buildTypes, @PathParam("field") String fields) {
+  public BuildTypes setBuildTypesOrder(@PathParam("projectLocator") String projectLocator, BuildTypes buildTypes, @QueryParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     LinkedHashSet<String> ids = new LinkedHashSet<>();
     if (buildTypes.buildTypes != null) {

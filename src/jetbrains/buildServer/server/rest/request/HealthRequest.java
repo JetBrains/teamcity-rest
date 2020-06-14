@@ -17,11 +17,6 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.data.HealthItemFinder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -35,8 +30,14 @@ import jetbrains.buildServer.serverSide.healthStatus.ItemCategory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriInfo;
+
 @Path(HealthRequest.API_SUB_URL)
-@Api("health")
+@Api(value = "health", hidden = true)
 public class HealthRequest {
   @NotNull
   public static final String API_SUB_URL = Constants.API_URL + "/health";
