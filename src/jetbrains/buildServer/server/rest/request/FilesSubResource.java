@@ -19,17 +19,6 @@ package jetbrains.buildServer.server.rest.request;
 import com.google.common.base.Stopwatch;
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.text.ParseException;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
 import jetbrains.buildServer.controllers.HttpDownloadProcessor;
 import jetbrains.buildServer.server.rest.data.ArchiveElement;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
@@ -54,11 +43,23 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.ParseException;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
 /**
  * @author Yegor.Yarko
  *         Date: 04/07/2015
  */
-@Api(hidden = true) // To prevent appearing in Swagger#definitions
+@Api
 public class FilesSubResource {
   private static Logger LOG = Logger.getInstance(FilesSubResource.class.getName());
 

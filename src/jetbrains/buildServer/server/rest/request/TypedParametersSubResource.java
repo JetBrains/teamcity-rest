@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import javax.ws.rs.*;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.ParameterType;
@@ -26,11 +25,13 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import org.jetbrains.annotations.NotNull;
 
+import javax.ws.rs.*;
+
 /**
  * @author Yegor.Yarko
  *         Date: 04/06/2016
  */
-@Api(hidden = true) // To prevent appearing in Swagger#definitions
+@Api
 public class TypedParametersSubResource extends ParametersSubResource{
   public TypedParametersSubResource(@NotNull final BeanContext beanContext,
                                     @NotNull final ParametersPersistableEntity entityWithParameters, @NotNull final String parametersHref) {

@@ -40,7 +40,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 06/06/2016
  */
-@Api(hidden = true) // To prevent appearing in Swagger#definitions
+@Api
 public class ProjectFeatureSubResource extends FeatureSubResource<PropEntitiesProjectFeature, PropEntityProjectFeature>{
   public ProjectFeatureSubResource(@NotNull final BeanContext beanContext,
                                    @NotNull final Entity<PropEntitiesProjectFeature, PropEntityProjectFeature> entity) {

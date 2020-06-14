@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import javax.ws.rs.*;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -30,11 +29,13 @@ import jetbrains.buildServer.serverSide.Parameter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.ws.rs.*;
+
 /**
  * @author Yegor.Yarko
  *         Date: 16.03.2015
  */
-@Api(hidden = true) // To prevent appearing in Swagger#definitions
+@Api
 public class ParametersSubResource {
 
   @NotNull protected final BeanContext myBeanContext;
