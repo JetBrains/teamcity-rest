@@ -61,15 +61,15 @@
   <!-- Project Libraries -->
   
   <path id="library.jackson.classpath">
-    <pathelement location="${basedir}/lib/jackson-annotations-2.6.6.jar"/>
-    <pathelement location="${basedir}/lib/jackson-core-2.6.6.jar"/>
-    <pathelement location="${basedir}/lib/jackson-databind-2.6.6.jar"/>
-    <pathelement location="${basedir}/lib/jackson-dataformat-xml-2.6.6.jar"/>
-    <pathelement location="${basedir}/lib/jackson-dataformat-yaml-2.6.6.jar"/>
-    <pathelement location="${basedir}/lib/jackson-datatype-joda-2.6.6.jar"/>
-    <pathelement location="${basedir}/lib/jackson-jaxrs-base-2.6.6.jar"/>
-    <pathelement location="${basedir}/lib/jackson-jaxrs-json-provider-2.6.6.jar"/>
-    <pathelement location="${basedir}/lib/jackson-module-jaxb-annotations-2.6.6.jar"/>
+    <pathelement location="${basedir}/lib/jackson-annotations-2.10.4.jar"/>
+    <pathelement location="${basedir}/lib/jackson-core-2.10.4.jar"/>
+    <pathelement location="${basedir}/lib/jackson-databind-2.10.4.jar"/>
+    <pathelement location="${basedir}/lib/jackson-dataformat-xml-2.10.4.jar"/>
+    <pathelement location="${basedir}/lib/jackson-dataformat-yaml-2.10.4.jar"/>
+    <pathelement location="${basedir}/lib/jackson-datatype-joda-2.10.4.jar"/>
+    <pathelement location="${basedir}/lib/jackson-jaxrs-base-2.10.4.jar"/>
+    <pathelement location="${basedir}/lib/jackson-jaxrs-json-provider-2.10.4.jar"/>
+    <pathelement location="${basedir}/lib/jackson-module-jaxb-annotations-2.10.4.jar"/>
     <pathelement location="${basedir}/lib/snakeyaml-1.15.jar"/>
     <pathelement location="${basedir}/lib/stax2-api-3.1.4.jar"/>
   </path>
@@ -91,11 +91,11 @@
     <pathelement location="${basedir}/lib/commons-lang3-3.2.1.jar"/>
     <pathelement location="${basedir}/lib/javassist-3.18.2-GA.jar"/>
     <pathelement location="${basedir}/lib/reflections-0.9.10.jar"/>
-    <pathelement location="${basedir}/lib/swagger-annotations-1.5.4.jar"/>
-    <pathelement location="${basedir}/lib/swagger-core-1.5.4.jar"/>
-    <pathelement location="${basedir}/lib/swagger-jaxrs-1.5.4.jar"/>
-    <pathelement location="${basedir}/lib/swagger-jersey-jaxrs-1.5.4.jar"/>
-    <pathelement location="${basedir}/lib/swagger-models-1.5.4.jar"/>
+    <pathelement location="${basedir}/lib/swagger-annotations-1.6.1.jar"/>
+    <pathelement location="${basedir}/lib/swagger-core-1.6.1.jar"/>
+    <pathelement location="${basedir}/lib/swagger-jaxrs-1.6.1.jar"/>
+    <pathelement location="${basedir}/lib/swagger-jersey-jaxrs-1.6.1.jar"/>
+    <pathelement location="${basedir}/lib/swagger-models-1.6.1.jar"/>
     <pathelement location="${basedir}/lib/validation-api-1.1.0.Final.jar"/>
   </path>
   

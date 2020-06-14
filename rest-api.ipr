@@ -3198,29 +3198,29 @@
   <component name="libraryTable">
     <library name="Jackson">
       <CLASSES>
-        <root url="jar://$PROJECT_DIR$/lib/jackson-annotations-2.6.6.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackson-core-2.6.6.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackson-databind-2.6.6.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackson-dataformat-xml-2.6.6.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackson-dataformat-yaml-2.6.6.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackson-datatype-joda-2.6.6.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackson-jaxrs-base-2.6.6.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackson-jaxrs-json-provider-2.6.6.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackson-module-jaxb-annotations-2.6.6.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/jackson-annotations-2.10.4.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/jackson-core-2.10.4.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/jackson-databind-2.10.4.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/jackson-dataformat-xml-2.10.4.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/jackson-dataformat-yaml-2.10.4.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/jackson-datatype-joda-2.10.4.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/jackson-jaxrs-base-2.10.4.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/jackson-jaxrs-json-provider-2.10.4.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/jackson-module-jaxb-annotations-2.10.4.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/stax2-api-3.1.4.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/snakeyaml-1.15.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES>
-        <root url="jar://$PROJECT_DIR$/lib/src/jackson-annotations-2.6.6-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/jackson-core-2.6.6-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/jackson-databind-2.6.6-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/jackson-dataformat-xml-2.6.6-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/jackson-dataformat-yaml-2.6.6-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/jackson-datatype-joda-2.6.6-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/jackson-jaxrs-base-2.6.6-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/jackson-jaxrs-json-provider-2.6.6-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/jackson-module-jaxb-annotations-2.6.6-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/jackson-annotations-2.10.4-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/jackson-core-2.10.4-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/jackson-databind-2.10.4-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/jackson-dataformat-xml-2.10.4-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/jackson-dataformat-yaml-2.10.4-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/jackson-datatype-joda-2.10.4-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/jackson-jaxrs-base-2.10.4-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/jackson-jaxrs-json-provider-2.10.4-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/jackson-module-jaxb-annotations-2.10.4-sources.jar!/" />
       </SOURCES>
     </library>
     <library name="Jersey">
@@ -3252,21 +3252,21 @@
         <root url="jar://$PROJECT_DIR$/lib/commons-lang3-3.2.1.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/javassist-3.18.2-GA.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/reflections-0.9.10.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/swagger-annotations-1.5.4.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/swagger-core-1.5.4.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/swagger-jaxrs-1.5.4.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/swagger-jersey-jaxrs-1.5.4.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/swagger-models-1.5.4.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/swagger-annotations-1.6.1.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/swagger-core-1.6.1.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/swagger-jaxrs-1.6.1.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/swagger-jersey-jaxrs-1.6.1.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/swagger-models-1.6.1.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/validation-api-1.1.0.Final.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES>
         <root url="jar://$PROJECT_DIR$/lib/annotations-2.0.1.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/swagger-annotations-1.5.4-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/swagger-core-1.5.4-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/swagger-jaxrs-1.5.4-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/swagger-jersey-jaxrs-1.5.4-sources.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/src/swagger-models-1.5.4-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/swagger-annotations-1.6.1-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/swagger-core-1.6.1-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/swagger-jaxrs-1.6.1-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/swagger-jersey-jaxrs-1.6.1-sources.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/src/swagger-models-1.6.1-sources.jar!/" />
       </SOURCES>
     </library>
     <library name="TeamCity Closed API server">
