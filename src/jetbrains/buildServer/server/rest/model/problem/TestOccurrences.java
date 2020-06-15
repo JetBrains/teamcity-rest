@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -35,18 +34,23 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
- *         Date: 16.11.13
+ * Date: 16.11.13
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "testOccurrences")
-@XmlType(name = "testOccurrences", propOrder = {"count", "href", "nextHref", "prevHref",
-  "items"})
+@XmlType(name = "testOccurrences", propOrder = {
+  "count",
+  "href",
+  "nextHref",
+  "prevHref",
+  "items"
+})
 public class TestOccurrences extends OccurrencesSummary {
   @XmlElement(name = "testOccurrence") public List<TestOccurrence> items;
   @XmlAttribute public Integer count;
   @XmlAttribute(name = "href") public String href;
-  @XmlAttribute(required = false) @Nullable public String nextHref;
-  @XmlAttribute(required = false) @Nullable public String prevHref;
+  @XmlAttribute @Nullable public String nextHref;
+  @XmlAttribute @Nullable public String prevHref;
 
   public TestOccurrences() {
   }
@@ -66,17 +70,19 @@ public class TestOccurrences extends OccurrencesSummary {
                          @Nullable final Integer ignored,
                          @Nullable final Integer muted,
                          @Nullable final String shortHref,
-                         @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+                         @Nullable final PagerData pagerData,
+                         @NotNull final Fields fields,
+                         @NotNull final BeanContext beanContext) {
     super(passed, failed, newFailed, ignored, muted, fields);
     if (itemsP != null) {
       items = ValueWithDefault.decideDefault(isTestOccurrenceIncluded(fields), new ValueWithDefault.Value<List<TestOccurrence>>() {
         @Nullable
         public List<TestOccurrence> get() {
-          final List<STestRun> sortedItems = new ArrayList<STestRun>(itemsP);
-          if (TeamCityProperties.getBoolean("rest.beans.testOccurrences.sortByNameAndNew")){
-            Collections.sort(sortedItems, STestRun.NEW_FIRST_NAME_COMPARATOR); //if we are to support customizable order, this should be done in the TestOccurrenceFinder
+          final List<STestRun> sortedItems = new ArrayList<>(itemsP);
+          if (TeamCityProperties.getBoolean("rest.beans.testOccurrences.sortByNameAndNew")) {
+            sortedItems.sort(STestRun.NEW_FIRST_NAME_COMPARATOR); //if we are to support customizable order, this should be done in the TestOccurrenceFinder
           }
-          final ArrayList<TestOccurrence> result = new ArrayList<TestOccurrence>(sortedItems.size());
+          final ArrayList<TestOccurrence> result = new ArrayList<>(sortedItems.size());
           for (STestRun item : sortedItems) {
             result.add(new TestOccurrence(item, beanContext, fields.getNestedField("testOccurrence")));
           }

@@ -37,17 +37,16 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
- *         Date: 16.11.13
+ * Date: 16.11.13
  */
 @Path(TestOccurrenceRequest.API_SUB_URL)
 @Api("TestOccurrence")
 public class TestOccurrenceRequest {
+  public static final String API_SUB_URL = Constants.API_URL + "/testOccurrences";
+  @Context @NotNull public BeanContext myBeanContext;
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private TestOccurrenceFinder myTestOccurrenceFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
-  @Context @NotNull public BeanContext myBeanContext;
-
-  public static final String API_SUB_URL = Constants.API_URL + "/testOccurrences";
 
   public static String getHref() {
     return API_SUB_URL;
@@ -58,7 +57,7 @@ public class TestOccurrenceRequest {
   }
 
   public static String getHref(final @NotNull STest test) {
-    return API_SUB_URL + "?locator=" +  TestOccurrenceFinder.getTestRunLocator(test);
+    return API_SUB_URL + "?locator=" + TestOccurrenceFinder.getTestRunLocator(test);
   }
 
   public static String getHref(final @NotNull STestRun testRun) {
@@ -93,8 +92,7 @@ public class TestOccurrenceRequest {
   @Path("/{testLocator}")
   @Produces({"application/xml", "application/json"})
   public TestOccurrence serveInstance(@PathParam("testLocator") String locatorText, @QueryParam("fields") String fields) {
-    return new TestOccurrence(myTestOccurrenceFinder.getItem(locatorText), myBeanContext,
-                               new Fields(fields));
+    return new TestOccurrence(myTestOccurrenceFinder.getItem(locatorText), myBeanContext, new Fields(fields));
   }
 
   void initForTests(@NotNull final BeanContext beanContext) {

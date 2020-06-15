@@ -21,11 +21,11 @@ import org.jetbrains.annotations.NotNull;
 
 public final class PagerDimensions {
   @NotNull
-  private static final TypedFinderBuilder.Dimension<Long> COUNT = new TypedFinderBuilder.Dimension<>(PagerData.COUNT);
+  private static final TypedFinderBuilder.Dimension<Long> COUNT = new TypedFinderBuilder.Dimension<>(count());
   @NotNull
-  private static final TypedFinderBuilder.Dimension<Long> START = new TypedFinderBuilder.Dimension<>(PagerData.START);
+  private static final TypedFinderBuilder.Dimension<Long> START = new TypedFinderBuilder.Dimension<>(start());
   @NotNull
-  private static final TypedFinderBuilder.Dimension<Long> LOOKUP_LIMIT = new TypedFinderBuilder.Dimension<>(FinderImpl.DIMENSION_LOOKUP_LIMIT);
+  private static final TypedFinderBuilder.Dimension<Long> LOOKUP_LIMIT = new TypedFinderBuilder.Dimension<>(lookupLimit());
 
   @NotNull
   public static TypedFinderBuilder.Dimension<Long> dimensionCount() {
@@ -40,5 +40,20 @@ public final class PagerDimensions {
   @NotNull
   public static TypedFinderBuilder.Dimension<Long> dimensionLookupLimit() {
     return LOOKUP_LIMIT;
+  }
+
+  @NotNull
+  public static String start() {
+    return PagerData.START;
+  }
+
+  @NotNull
+  public static String count() {
+    return PagerData.COUNT;
+  }
+
+  @NotNull
+  public static String lookupLimit() {
+    return FinderImpl.DIMENSION_LOOKUP_LIMIT;
   }
 }

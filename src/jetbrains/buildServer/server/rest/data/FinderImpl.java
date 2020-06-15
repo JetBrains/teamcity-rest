@@ -27,7 +27,6 @@ import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
-import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.NamedThreadFactory;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TimePrinter;
@@ -226,18 +225,18 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
 
       //so far do not support additional filtering or other dimensions if context item is used
       locator.checkLocatorFullyProcessed();
-      return new PagedSearchResult<ITEM>(contextObjects, null, null);
+      return new PagedSearchResult<>(contextObjects, null, null);
     }
 
     if (!locator.isEmpty()) {
-      ITEM singleItem = null;
+      final ITEM singleItem;
       try {
         singleItem = myDataBinding.findSingleItem(locator);
       } catch (NotFoundException e) {
         if (multipleItemsQuery && !isReportErrorOnNothingFound(locator)) {
           //consider adding comment/warning messages to PagedSearchResult, return it as a header in the response
           //returning empty collection for multiple items query
-          return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
+          return new PagedSearchResult<>(Collections.emptyList(), null, null);
         }
         throw e;
       }
@@ -249,7 +248,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
           locator.markUnused(PagerData.START);
         }
 
-        ItemFilter<ITEM> filter = null;
+        ItemFilter<ITEM> filter;
         try {
           filter = getDataBindingWithLogicOpsSupport(locator, myDataBinding).getFilter();
         } catch (NotFoundException e) {
@@ -266,13 +265,13 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
                                  ", but that was filtered out using the entire locator '" + locator + "'";
           if (multipleItemsQuery && !isReportErrorOnNothingFound(locator)) {
             LOG.debug(message);
-            return new PagedSearchResult<ITEM>(Collections.<ITEM>emptyList(), null, null);
+            return new PagedSearchResult<>(Collections.emptyList(), null, null);
           } else {
             throw new NotFoundException(message);
           }
         }
 
-        return new PagedSearchResult<ITEM>(Collections.singletonList(singleItem), null, null);
+        return new PagedSearchResult<>(Collections.singletonList(singleItem), null, null);
       }
       locator.markAllUnused(); // nothing found - no dimensions should be marked as used then
     }
@@ -295,7 +294,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
       locator.markUsed(Collections.singleton(PagerData.COUNT));
       final Long lookupLimit = getLookupLimit(locator);
 
-      pagingFilter = new PagingItemFilter<ITEM>(locatorDataBinding.getFilter(), start, count == null ? null : count.intValue(), lookupLimit);
+      pagingFilter = new PagingItemFilter<>(locatorDataBinding.getFilter(), start, count == null ? null : count.intValue(), lookupLimit);
     } catch (LocatorProcessException | BadRequestException | IllegalArgumentException e) {
       if (!locator.isHelpRequested()) {
         throw e;
@@ -315,7 +314,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     if (o instanceof List) {
       return (List)o;  //this never produces ClassCastException as generics are lost on run-time
     }
-    return Arrays.asList((ITEM)o);  //this never produces ClassCastException as generics are lost on run-time
+    return Collections.singletonList((ITEM)o);  //this never produces ClassCastException as generics are lost on run-time
   }
 
   @Nullable
@@ -349,7 +348,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
                                            final @NotNull FinderDataBinding.ItemHolder<ITEM> unfilteredItems,
                                            @NotNull final Locator locator, final long startTime) {
     final long filteringStartTime = System.nanoTime();
-    final FilterItemProcessor<ITEM> filterItemProcessor = new FilterItemProcessor<ITEM>(filter);
+    final FilterItemProcessor<ITEM> filterItemProcessor = new FilterItemProcessor<>(filter);
     unfilteredItems.process(filterItemProcessor);
     final ArrayList<ITEM> result = filterItemProcessor.getResult();
     final long finishTime = System.nanoTime();
@@ -372,16 +371,16 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
                totalItemsProcessed + " items were processed and " + result.size() + " items were returned, took " + TimePrinter
                  .createMillisecondsFormatter().formatTime(processingTimeMs));
     }
-    if (result.isEmpty() && isReportErrorOnNothingFound(locator)){
+    if (result.isEmpty() && isReportErrorOnNothingFound(locator)) {
       throw new NotFoundException("Nothing is found by " + getLocatorDetailsForMessage(locator) + ".");
     }
-    return new PagedSearchResult<ITEM>(result, filter.getStart(), filter.getCount(), totalItemsProcessed,
-                                       filter.getLookupLimit(), filter.isLookupLimitReached(), filter.getLastProcessedItem());
+    return new PagedSearchResult<>(result, filter.getStart(), filter.getCount(), totalItemsProcessed,
+                                   filter.getLookupLimit(), filter.isLookupLimitReached(), filter.getLastProcessedItem());
   }
 
   @NotNull
   private ItemFilter<ITEM> getFilterWithLogicOpsSupport(@NotNull final Locator locator, @NotNull final FinderDataBinding.LocatorDataBinding<ITEM> dataBinding) {
-    AndFilterBuilder<ITEM> result = new AndFilterBuilder<ITEM>();
+    AndFilterBuilder<ITEM> result = new AndFilterBuilder<>();
     result.add(dataBinding.getFilter());
 
     final String orDimension = locator.getSingleDimensionValue(LOGIC_OP_OR); //consider adding for multiple support here, use getItemsAnd()
@@ -503,18 +502,27 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
 
   @NotNull
   private ItemFilter<ITEM> getFilterOr(@NotNull final List<String> itemsDimension) {
-    OrFilterBuilder<ITEM> result = new OrFilterBuilder<ITEM>();
+    OrFilterBuilder<ITEM> result = new OrFilterBuilder<>();
     for (String itemLocator : itemsDimension) {
       result.add(getFilter(itemLocator));
     }
     return result.build();
   }
 
+  @NotNull
+  private FinderDataBinding.ItemHolder<ITEM> getItemsOr(@NotNull final List<String> itemsDimension) {
+    return processor -> {
+      for (String itemLocator : itemsDimension) {
+        FinderDataBinding.getItemHolder(getItems(itemLocator).myEntries).process(processor);  //todo: rework APIs to add itemHolders instead of serialized collection
+      }
+    };
+  }
+
   private static class OrFilterBuilder<T> {
     @NotNull private final List<ItemFilter<T>> myCheckers;
 
     OrFilterBuilder() {
-      myCheckers = new ArrayList<ItemFilter<T>>();
+      myCheckers = new ArrayList<>();
     }
 
     public OrFilterBuilder<T> add(ItemFilter<T> checker) {
@@ -550,7 +558,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     @NotNull private final List<ItemFilter<T>> myCheckers;
 
     AndFilterBuilder() {
-      myCheckers = new ArrayList<ItemFilter<T>>();
+      myCheckers = new ArrayList<>();
     }
 
     public AndFilterBuilder<T> add(ItemFilter<T> checker) {
@@ -581,18 +589,6 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         }
       };
     }
-  }
-
-  @NotNull
-  private FinderDataBinding.ItemHolder<ITEM> getItemsOr(@NotNull final List<String> itemsDimension) {
-    return new FinderDataBinding.ItemHolder<ITEM>() {
-      @Override
-      public void process(@NotNull final ItemProcessor<ITEM> processor) {
-        for (String itemLocator : itemsDimension) {
-          FinderDataBinding.getItemHolder(getItems(itemLocator).myEntries).process(processor);  //todo: rework APIs to add itemHolders instead of serialized collection
-        }
-      }
-    };
   }
 
   /*

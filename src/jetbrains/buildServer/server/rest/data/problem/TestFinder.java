@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -187,21 +188,13 @@ public class TestFinder extends AbstractFinder<STest> {
   }
 
   Set<STest> getCurrentlyMutedTests(final SProject affectedProject) {
-    final Map<Long,CurrentMuteInfo> currentMutes = myProblemMutingService.getTestsCurrentMuteInfo(affectedProject);
-    final TreeSet<STest> result = new TreeSet<STest>();
-    for (Map.Entry<Long, CurrentMuteInfo> mutedTestData : currentMutes.entrySet()) {
-      result.add(findTest(mutedTestData.getKey()));
-    }
-    return result;
+    final Map<Long, CurrentMuteInfo> currentMutes = myProblemMutingService.getTestsCurrentMuteInfo(affectedProject);
+    return currentMutes.keySet().stream().map(this::findTest).collect(Collectors.toSet());
   }
 
   private Set<STest> getCurrentlyFailingTests(@NotNull final SProject affectedProject) {
     final Set<STestRun> failingTestOccurrences = TestOccurrenceFinder.getCurrentOccurrences(affectedProject, myCurrentProblemsManager);
-    final TreeSet<STest> result = new TreeSet<STest>();
-    for (STestRun testOccurrence : failingTestOccurrences) {
-      result.add(testOccurrence.getTest());
-    }
-    return result;
+    return failingTestOccurrences.stream().map(STestRun::getTest).collect(Collectors.toSet());
   }
 
   @NotNull
