@@ -17,13 +17,13 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.*;
-import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.RelatedEntity;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.audit.*;
@@ -37,24 +37,28 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 import static jetbrains.buildServer.server.rest.data.FinderDataBinding.getItemHolder;
 import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 
+@LocatorResource("AuditLocator")
 public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
   private static final Logger LOG = Logger.getInstance(AuditEventFinder.class.getName());
 
-  private static final Dimension<Long> ID = new Dimension<>("id");
-  private static final Dimension<List<SUser>> USER = new Dimension<>("user");
-  private static final Dimension<Boolean> SYSTEM_ACTION = new Dimension<>("systemAction");
-  private static final Dimension<Set<ActionType>> ACTION = new Dimension<>("action");  //todo: consider supporting ActionTypeSet by supporting actions locator
-  private static final Dimension<List<BuildTypeOrTemplate>> BUILD_TYPE = new Dimension<>("buildType");
-  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("affectedProject");
+  @LocatorDimension("id") private static final Dimension<Long> ID = new Dimension<>("id");
+  @LocatorDimension("user") private static final Dimension<List<SUser>> USER = new Dimension<>("user");
+  @LocatorDimension("systemAction") private static final Dimension<Boolean> SYSTEM_ACTION = new Dimension<>("systemAction");
+  @LocatorDimension("action") private static final Dimension<Set<ActionType>> ACTION = new Dimension<>("action");  //todo: consider supporting ActionTypeSet by supporting actions locator
+  @LocatorDimension("buildType") private static final Dimension<List<BuildTypeOrTemplate>> BUILD_TYPE = new Dimension<>("buildType");
+  @LocatorDimension("affectedProject") private static final Dimension<List<SProject>> PROJECT = new Dimension<>("affectedProject");
   private static final Dimension<Set<String>> OBJECT_ID = new Dimension<>("entityInternalId");
   private static final Dimension<Set<ObjectType>> OBJECT_TYPE = new Dimension<>("entityType");
   private static final Dimension<Boolean> HIDDEN_ACTIONS = new Dimension<>("hidden");
-  private static final Dimension<Long> COUNT = new Dimension<>(PagerData.COUNT);
-  private static final Dimension<Long> START = new Dimension<>(PagerData.START);
-  private static final Dimension<Long> LOOKUP_LIMIT = new Dimension<>(FinderImpl.DIMENSION_LOOKUP_LIMIT);
+  @LocatorDimension(PagerData.COUNT) private static final Dimension<Long> COUNT = new Dimension<>(PagerData.COUNT);
+  @LocatorDimension(PagerData.START) private static final Dimension<Long> START = new Dimension<>(PagerData.START);
+  @LocatorDimension(FinderImpl.DIMENSION_LOOKUP_LIMIT) private static final Dimension<Long> LOOKUP_LIMIT = new Dimension<>(FinderImpl.DIMENSION_LOOKUP_LIMIT);
   //todo: add filter by event type (flexible/multiple include/exclude, patterns?)
   //todo: add filters for all the object types: builds, buildTypes, project, agent, test, problem, user (not difference with "performer"), userGroup, etc.
   //todo: allow to filter by main object and also additional ones?

@@ -18,11 +18,6 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.collect.ComparisonChain;
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.*;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.parameters.ParametersProvider;
@@ -39,6 +34,8 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.server.rest.util.StreamUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
@@ -56,66 +53,73 @@ import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /**
  * @author Yegor.Yarko
  *         Date: 20.08.2014
  */
+@LocatorResource(value = "BuildLocator", extraDimensions = {FinderImpl.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT, FinderImpl.DIMENSION_LOOKUP_LIMIT})
 public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private static final Logger LOG = Logger.getInstance(BuildPromotionFinder.class.getName());
 
   //DIMENSION_ID - id of a build or id of build promotion which will get associated build with the id
-  public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
+  @LocatorDimension(BuildFinder.PROMOTION_ID) public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
   protected static final String PROMOTION_ID_ALIAS = "promotionId";
   protected static final String BUILD_ID = "buildId"; //this is experimental, for debug purposes only
-  public static final String BUILD_TYPE = "buildType";
-  public static final String PROJECT = "project"; // BuildFinder (used prior to 9.0) treats "project" as "affectedProject" and thus this behavior is different from BuildFinder
-  private static final String AFFECTED_PROJECT = "affectedProject";
-  public static final String AGENT = "agent";
-  public static final String AGENT_NAME = "agentName";
-  public static final String AGENT_TYPE_ID = "agentTypeId";
-  public static final String PERSONAL = "personal";
-  public static final String USER = "user";
+  @LocatorDimension("buildType") public static final String BUILD_TYPE = "buildType";
+  @LocatorDimension("project") public static final String PROJECT = "project"; // BuildFinder (used prior to 9.0) treats "project" as "affectedProject" and thus this behavior is different from BuildFinder
+  @LocatorDimension("affectedProject") private static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension("agent") public static final String AGENT = "agent";
+  @LocatorDimension("agentName") public static final String AGENT_NAME = "agentName";
+  @LocatorDimension("agentTypeId") public static final String AGENT_TYPE_ID = "agentTypeId";
+  @LocatorDimension("personal") public static final String PERSONAL = "personal";
+  @LocatorDimension("user") public static final String USER = "user";
   public static final String TRIGGERED = "triggered"; //experimental
-  protected static final String BRANCH = "branch";
+  @LocatorDimension("branch") protected static final String BRANCH = "branch";
   protected static final String BRANCHED = "branched"; //experimental
-  protected static final String PROPERTY = "property";
+  @LocatorDimension("property") protected static final String PROPERTY = "property";
   protected static final String STATISTIC_VALUE = "statisticValue";
 
-  public static final String STATE = "state";
-  public static final String STATE_QUEUED = "queued";
-  public static final String STATE_RUNNING = "running";
-  public static final String STATE_FINISHED = "finished";
-  protected static final String STATE_ANY = "any";
+  @LocatorDimension("state") public static final String STATE = "state";
+  @LocatorDimension("queued") public static final String STATE_QUEUED = "queued";
+  @LocatorDimension("running") public static final String STATE_RUNNING = "running";
+  @LocatorDimension("finished") public static final String STATE_FINISHED = "finished";
+  @LocatorDimension("any") protected static final String STATE_ANY = "any";
 
-  protected static final String NUMBER = "number";
-  protected static final String STATUS = "status";
-  protected static final String CANCELED = "canceled";
-  protected static final String FAILED_TO_START = "failedToStart";
-  protected static final String PINNED = "pinned";
+  @LocatorDimension("number") protected static final String NUMBER = "number";
+  @LocatorDimension("status") protected static final String STATUS = "status";
+  @LocatorDimension("canceled") protected static final String CANCELED = "canceled";
+  @LocatorDimension("failedToStart") protected static final String FAILED_TO_START = "failedToStart";
+  @LocatorDimension("pinned") protected static final String PINNED = "pinned";
   protected static final String RUNNING = "running";
-  protected static final String HANGING = "hanging";
-  protected static final String COMPOSITE = "composite";
-  protected static final String SNAPSHOT_DEP = "snapshotDependency";
-  protected static final String ARTIFACT_DEP = "artifactDependency";
+  @LocatorDimension("hanging") protected static final String HANGING = "hanging";
+  @LocatorDimension("composite") protected static final String COMPOSITE = "composite";
+  @LocatorDimension("snapshotDependency") protected static final String SNAPSHOT_DEP = "snapshotDependency";
+  @LocatorDimension("artifactDependency") protected static final String ARTIFACT_DEP = "artifactDependency";
   public static final String SNAPSHOT_PROBLEM = "snapshotDependencyProblem"; /*experimental*/
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
   protected static final String TAGS = "tags"; //legacy support only
-  protected static final String TAG = "tag";
-  protected static final String COMPATIBLE_AGENT = "compatibleAgent";
-  protected static final String HISTORY = "history";
+  @LocatorDimension("tag") protected static final String TAG = "tag";
+  @LocatorDimension("compatibleAgent") protected static final String COMPATIBLE_AGENT = "compatibleAgent";
+  @LocatorDimension("history") protected static final String HISTORY = "history";
   protected static final String TEST_OCCURRENCE = "testOccurrence";
   protected static final String TEST = "test";
   //todo: add problem* filtering; filtering by statusText;
-  protected static final String SINCE_BUILD = "sinceBuild"; //use startDate:(build:(<locator>),condition:after) instead
-  protected static final String SINCE_DATE = "sinceDate"; //use startDate:(date:<date>,condition:after) instead
-  protected static final String UNTIL_BUILD = "untilBuild"; //use startDate:(build:(<locator>),condition:before) instead
-  protected static final String UNTIL_DATE = "untilDate"; //use startDate:(date:<date>,condition:before) instead
+  @LocatorDimension("sinceBuild") protected static final String SINCE_BUILD = "sinceBuild"; //use startDate:(build:(<locator>),condition:after) instead
+  @LocatorDimension("sinceDate") protected static final String SINCE_DATE = "sinceDate"; //use startDate:(date:<date>,condition:after) instead
+  @LocatorDimension("untilBuild") protected static final String UNTIL_BUILD = "untilBuild"; //use startDate:(build:(<locator>),condition:before) instead
+  @LocatorDimension("untilDate") protected static final String UNTIL_DATE = "untilDate"; //use startDate:(date:<date>,condition:before) instead
 
-  protected static final String QUEUED_TIME = "queuedDate";
-  protected static final String STARTED_TIME = "startDate";
-  protected static final String FINISHED_TIME = "finishDate";
+  @LocatorDimension("queuedDate") protected static final String QUEUED_TIME = "queuedDate";
+  @LocatorDimension("startDate") protected static final String STARTED_TIME = "startDate";
+  @LocatorDimension("finishDate") protected static final String FINISHED_TIME = "finishDate";
 
-  protected static final String DEFAULT_FILTERING = "defaultFilter";
+  @LocatorDimension("defaultFilter") protected static final String DEFAULT_FILTERING = "defaultFilter";
   protected static final String SINCE_BUILD_ID_LOOK_AHEAD_COUNT = "sinceBuildIdLookAheadCount";  /*experimental*/
   public static final String ORDERED = "ordered"; /*experimental*/
   public static final String STROB = "strob"; /*experimental*/  //might need a better name

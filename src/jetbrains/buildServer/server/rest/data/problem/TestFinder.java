@@ -21,6 +21,9 @@ import java.util.stream.Collectors;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
@@ -29,17 +32,20 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+
 /**
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
+@LocatorResource(value = "TestLocator", extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME})
 public class TestFinder extends AbstractFinder<STest> {
-  private static final String NAME = "name";
-  public static final String AFFECTED_PROJECT = "affectedProject";
-  private static final String CURRENT = "currentlyFailing";
-  public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
-  public static final String CURRENTLY_MUTED = "currentlyMuted";
-  public static final String MUTE_AFFECTED = "muteAffected";
+  @LocatorDimension("name") private static final String NAME = "name";
+  @LocatorDimension("affectedProject") public static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension("currentlyFailing") private static final String CURRENT = "currentlyFailing";
+  @LocatorDimension("currentlyInvestigated") public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
+  @LocatorDimension("currentlyMuted") public static final String CURRENTLY_MUTED = "currentlyMuted";
+  @LocatorDimension("muteAffected") public static final String MUTE_AFFECTED = "muteAffected";
   public static final String BUILD = "build";
 
   @NotNull private final ProjectFinder myProjectFinder;

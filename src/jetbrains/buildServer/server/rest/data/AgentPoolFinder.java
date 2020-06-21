@@ -17,11 +17,12 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.collect.ComparisonChain;
-import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
@@ -37,14 +38,19 @@ import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+
 /**
  * @author Yegor.Yarko
  *         Date: 07.11.13
  */
+@LocatorResource("AgentPoolLocator")
 public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
   @NotNull private final AgentPoolManager myAgentPoolManager;
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final AgentFinder myAgentFinder;
+
+  public static final String ID_DIMENSION = "id";
 
   public AgentPoolFinder(@NotNull final AgentPoolManager agentPoolManager,
                          @NotNull final AgentFinder agentFinder,
@@ -65,10 +71,10 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
     return Locator.getStringLocator(PROJECT.name, ProjectFinder.getLocator(project));
   }
 
-  public static final Dimension<Long> ID = new Dimension<>("id");
-  public static final Dimension<String> NAME = new Dimension<>("name");
-  private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
-  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
+  @LocatorDimension(ID_DIMENSION) public static final Dimension<Long> ID = new Dimension<>(ID_DIMENSION);
+  @LocatorDimension("name") public static final Dimension<String> NAME = new Dimension<>("name");
+  @LocatorDimension("agent") private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
+  @LocatorDimension("project") private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
   private static final Dimension<Boolean> PROJECT_POOL = new Dimension<>("projectPool");
   private static final Dimension<List<SProject>> OWNER_PROJECT = new Dimension<>("ownerProject");
 

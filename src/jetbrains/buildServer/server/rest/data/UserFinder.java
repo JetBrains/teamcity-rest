@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.Function;
-import java.util.*;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.SUserGroup;
@@ -28,6 +27,8 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.*;
@@ -41,6 +42,8 @@ import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+
 import static jetbrains.buildServer.server.rest.data.FinderDataBinding.getItemHolder;
 import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 
@@ -48,21 +51,22 @@ import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimensio
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
+@LocatorResource("UserLocator")
 public class UserFinder extends DelegatingFinder<SUser> {
   private static final Logger LOG = Logger.getInstance(jetbrains.buildServer.serverSide.impl.audit.finders.UserFinder.class.getName());
   public static final String REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS = "rest.request.checkAdditionalPermissionsForUsersAndGroups";
 
-  private static final Dimension<Long> ID = new Dimension<>("id");
-  private static final Dimension<String> USERNAME = new Dimension<>("username");
-  private static final Dimension<SUserGroup> GROUP = new Dimension<>("group");
-  private static final Dimension<SUserGroup> AFFECTED_GROUP = new Dimension<>("affectedGroup");
-  private static final Dimension<ParameterCondition> PROPERTY = new Dimension<>("property");
-  private static final Dimension<ValueCondition> EMAIL = new Dimension<>("email");
-  private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
+  @LocatorDimension("id") private static final Dimension<Long> ID = new Dimension<>("id");
+  @LocatorDimension("username") private static final Dimension<String> USERNAME = new Dimension<>("username");
+  @LocatorDimension("group") private static final Dimension<SUserGroup> GROUP = new Dimension<>("group");
+  @LocatorDimension("affectedGroup") private static final Dimension<SUserGroup> AFFECTED_GROUP = new Dimension<>("affectedGroup");
+  @LocatorDimension("property") private static final Dimension<ParameterCondition> PROPERTY = new Dimension<>("property");
+  @LocatorDimension("email") private static final Dimension<ValueCondition> EMAIL = new Dimension<>("email");
+  @LocatorDimension("name") private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
   private static final Dimension<Boolean> HAS_PASSWORD = new Dimension<>("hasPassword");
   private static final Dimension<String> PASSWORD = new Dimension<>("password");
-  private static final Dimension<TimeCondition.ParsedTimeCondition> LAST_LOGIN_TIME = new Dimension<>("lastLogin");
-  private static final Dimension<RoleEntryDatas> ROLE = new Dimension<>("role");
+  @LocatorDimension("lastLogin") private static final Dimension<TimeCondition.ParsedTimeCondition> LAST_LOGIN_TIME = new Dimension<>("lastLogin");
+  @LocatorDimension("role") private static final Dimension<RoleEntryDatas> ROLE = new Dimension<>("role");
   private static final Dimension<ItemFilter<SUser>> PERMISSION = new Dimension<>("permission");
   //todo: add filtering by changes (authors), builds (triggering), audit events, etc?
   @NotNull private final UserModel myUserModel;

@@ -18,9 +18,6 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.collect.ComparisonChain;
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import jetbrains.buildServer.AgentRestrictor;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.CloudInstance;
@@ -29,8 +26,11 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.Compatibility;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentTypes.AgentType;
@@ -40,25 +40,30 @@ import jetbrains.buildServer.serverSide.impl.buildDistribution.restrictors.Singl
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /**
  * @author Yegor.Yarko
  *         Date: 25.12.13
  */
+@LocatorResource(value = "AgentLocator", extraDimensions = {FinderImpl.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT})
 public class AgentFinder extends AbstractFinder<SBuildAgent> {
   private static final Logger LOG = Logger.getInstance(AgentFinder.class.getName());
 
-  protected static final String NAME = "name";
+  @LocatorDimension("name") public static final String NAME = "name";
   protected static final String AGENT_TYPE_ID = "typeId";  //"imageId" might suiite better, but "typeId" is already used in Agent
-  public static final String CONNECTED = "connected";
-  public static final String AUTHORIZED = "authorized";
-  public static final String PARAMETER = "parameter";
-  public static final String ENABLED = "enabled";
-  protected static final String IP = "ip";
+  @LocatorDimension("connected") public static final String CONNECTED = "connected";
+  @LocatorDimension("authorized") public static final String AUTHORIZED = "authorized";
+  @LocatorDimension("parameter") public static final String PARAMETER = "parameter";
+  @LocatorDimension("enabled") public static final String ENABLED = "enabled";
+  @LocatorDimension("ip") protected static final String IP = "ip";
   protected static final String PROTOCOL = "protocol";
   protected static final String DEFAULT_FILTERING = "defaultFilter";
-  protected static final String POOL = "pool";
-  protected static final String BUILD = "build";
-  protected static final String COMPATIBLE = "compatible";
+  @LocatorDimension("pool") protected static final String POOL = "pool";
+  @LocatorDimension("build") protected static final String BUILD = "build";
+  @LocatorDimension("compatible") protected static final String COMPATIBLE = "compatible";
   protected static final String INCOMPATIBLE = "incompatible";
   protected static final String COMPATIBLE_BUILD_TYPE = "buildType";
   protected static final String COMPATIBLE_BUILD = "build";

@@ -17,15 +17,16 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.*;
-import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.PropEntityProjectFeature;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
@@ -38,30 +39,34 @@ import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 /**
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
+@LocatorResource(value = "ProjectLocator", extraDimensions = {Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT})
 public class ProjectFinder extends AbstractFinder<SProject> {
   private static final Logger LOG = Logger.getInstance(ProjectFinder.class.getName());
 
-  public static final String DIMENSION_ID = AbstractFinder.DIMENSION_ID;
-  public static final String DIMENSION_INTERNAL_ID = "internalId";
-  public static final String DIMENSION_UUID = "uuid";
-  public static final String DIMENSION_PROJECT = "project";
+  @LocatorDimension(AbstractFinder.DIMENSION_ID) public static final String DIMENSION_ID = AbstractFinder.DIMENSION_ID;
+  @LocatorDimension("internalId") public static final String DIMENSION_INTERNAL_ID = "internalId";
+  @LocatorDimension("uuid") public static final String DIMENSION_UUID = "uuid";
+  @LocatorDimension("project") public static final String DIMENSION_PROJECT = "project";
   public static final String DIMENSION_PARENT_PROJECT = "parentProject";
-  private static final String DIMENSION_AFFECTED_PROJECT = "affectedProject";
-  public static final String DIMENSION_NAME = "name";
-  public static final String DIMENSION_ARCHIVED = "archived";
+  @LocatorDimension("affectedProject") private static final String DIMENSION_AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension("name") public static final String DIMENSION_NAME = "name";
+  @LocatorDimension("archived") public static final String DIMENSION_ARCHIVED = "archived";
   public static final String DIMENSION_READ_ONLY_UI = "readOnlyUI";
   protected static final String DIMENSION_PARAMETER = "parameter";
   protected static final String DIMENSION_SELECTED = "selectedByUser";
-  public static final String BUILD = "build";
-  public static final String BUILD_TYPE = "buildType";
-  public static final String DEFAULT_TEMPLATE = "defaultTemplate";
-  public static final String VCS_ROOT = "vcsRoot";
-  public static final String AGENT_POOL = "pool";
-  public static final String FEATURE = "projectFeature";
+  @LocatorDimension("build") public static final String BUILD = "build";
+  @LocatorDimension("buildType") public static final String BUILD_TYPE = "buildType";
+  @LocatorDimension("defaultTemplate") public static final String DEFAULT_TEMPLATE = "defaultTemplate";
+  @LocatorDimension("vcsRoot") public static final String VCS_ROOT = "vcsRoot";
+  @LocatorDimension("pool") public static final String AGENT_POOL = "pool";
+  @LocatorDimension("projectFeature") public static final String FEATURE = "projectFeature";
   public static final String USER_PERMISSION = "userPermission";
 
   @NotNull private final ProjectManager myProjectManager;

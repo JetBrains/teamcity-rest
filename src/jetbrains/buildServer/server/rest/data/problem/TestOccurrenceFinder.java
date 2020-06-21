@@ -17,18 +17,19 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
 import com.google.common.collect.ComparisonChain;
-import java.util.*;
-import java.util.stream.Collectors;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.tests.TestName;
@@ -39,26 +40,30 @@ import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_NO_DETAILS;
 
 /**
  * @author Yegor.Yarko
  *         Date: 17.11.13
  */
+@LocatorResource(value = "TestOccurrenceLocator", extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT})
 public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
-  private static final String BUILD = "build";
-  private static final String TEST = "test";
-  private static final String NAME = "name"; //value condition for the test's name
-  private static final String BUILD_TYPE = "buildType";
-  public static final String AFFECTED_PROJECT = "affectedProject";
-  private static final String CURRENT = "currentlyFailing";
-  private static final String STATUS = "status";
-  private static final String BRANCH = "branch";
-  private static final String IGNORED = "ignored";
-  public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
-  public static final String MUTED = "muted";
-  public static final String CURRENTLY_MUTED = "currentlyMuted";
-  public static final String NEW_FAILURE = "newFailure";
+  @LocatorDimension("build") private static final String BUILD = "build";
+  @LocatorDimension("test") private static final String TEST = "test";
+  @LocatorDimension("name") private static final String NAME = "name"; //value condition for the test's name
+  @LocatorDimension("buildType") private static final String BUILD_TYPE = "buildType";
+  @LocatorDimension("affectedProject") public static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension("currentlyFailing") private static final String CURRENT = "currentlyFailing";
+  @LocatorDimension("status") private static final String STATUS = "status";
+  @LocatorDimension("branch") private static final String BRANCH = "branch";
+  @LocatorDimension("ignored") private static final String IGNORED = "ignored";
+  @LocatorDimension("currentlyInvestigated") public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
+  @LocatorDimension("muted") public static final String MUTED = "muted";
+  @LocatorDimension("currentlyMuted") public static final String CURRENTLY_MUTED = "currentlyMuted";
+  @LocatorDimension("newFailure") public static final String NEW_FAILURE = "newFailure";
   protected static final String EXPAND_INVOCATIONS = "expandInvocations"; //experimental
   protected static final String INVOCATIONS = "invocations"; //experimental
   protected static final String ORDER = "orderBy"; //highly experimental

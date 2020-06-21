@@ -27,6 +27,8 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
@@ -45,28 +47,34 @@ import jetbrains.buildServer.vcs.impl.VcsModificationEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /**
  * @author Yegor.Yarko
  *         Date: 12.05.13
  */
+@LocatorResource(value = "ChangeLocator", extraDimensions = {AbstractFinder.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT})
 public class ChangeFinder extends AbstractFinder<SVcsModification> {
   public static final String IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION = "rest.ignoreChangesFromDependenciesOption";
 
   public static final String PERSONAL = "personal";
-  public static final String PROJECT = "project";
-  public static final String BUILD_TYPE = "buildType";
-  public static final String BUILD = "build";
+  @LocatorDimension("project") public static final String PROJECT = "project";
+  @LocatorDimension("buildType") public static final String BUILD_TYPE = "buildType";
+  @LocatorDimension("build") public static final String BUILD = "build";
   public static final String PROMOTION = BuildFinder.PROMOTION_ID;
-  public static final String VCS_ROOT = "vcsRoot";
-  public static final String VCS_ROOT_INSTANCE = "vcsRootInstance";
-  public static final String USERNAME = "username";
-  public static final String USER = "user";
-  public static final String VERSION = "version";
-  public static final String INTERNAL_VERSION = "internalVersion";
-  public static final String COMMENT = "comment";
-  public static final String FILE = "file";
-  public static final String SINCE_CHANGE = "sinceChange";
-  public static final String PENDING = "pending";
+  @LocatorDimension("vcsRoot") public static final String VCS_ROOT = "vcsRoot";
+  @LocatorDimension("vcsRootInstance") public static final String VCS_ROOT_INSTANCE = "vcsRootInstance";
+  @LocatorDimension("username") public static final String USERNAME = "username";
+  @LocatorDimension("user") public static final String USER = "user";
+  @LocatorDimension("version") public static final String VERSION = "version";
+  @LocatorDimension("internalVersion") public static final String INTERNAL_VERSION = "internalVersion";
+  @LocatorDimension("comment") public static final String COMMENT = "comment";
+  @LocatorDimension("file") public static final String FILE = "file";
+  @LocatorDimension("sinceChange") public static final String SINCE_CHANGE = "sinceChange";
+  @LocatorDimension("pending") public static final String PENDING = "pending";
   public static final String BRANCH = "branch";
   public static final String CHILD_CHANGE = "childChange";
   public static final String PARENT_CHANGE = "parentChange";

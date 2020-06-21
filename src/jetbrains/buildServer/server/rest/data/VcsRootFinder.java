@@ -17,16 +17,17 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.*;
-import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
@@ -44,20 +45,24 @@ import jetbrains.vcs.api.services.tc.VcsMappingElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 /**
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
+@LocatorResource(value = "VcsRootLocator", extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME})
 public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
   private static final Logger LOG = Logger.getInstance(VcsRootFinder.class.getName());
-  public static final String REPOSITORY_ID_STRING = "repositoryIdString";
-  protected static final String INTERNAL_ID = "internalId";
-  protected static final String UUID = "uuid";
-  protected static final String NAME = "name";
-  protected static final String TYPE = "type";
-  protected static final String PROJECT = "project";
-  protected static final String AFFECTED_PROJECT = "affectedProject";
-  protected static final String PROPERTY = "property";
+  @LocatorDimension("repositoryIdString") public static final String REPOSITORY_ID_STRING = "repositoryIdString";
+  @LocatorDimension("internalId") protected static final String INTERNAL_ID = "internalId";
+  @LocatorDimension("uuid") protected static final String UUID = "uuid";
+  @LocatorDimension("name") protected static final String NAME = "name";
+  @LocatorDimension("type") protected static final String TYPE = "type";
+  @LocatorDimension("project") protected static final String PROJECT = "project";
+  @LocatorDimension("affectedProject") protected static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension("property") protected static final String PROPERTY = "property";
 
   @NotNull private final VcsManager myVcsManager;
   @NotNull private final ProjectFinder myProjectFinder;

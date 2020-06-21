@@ -16,9 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data.mutes;
 
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
@@ -31,6 +28,8 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -40,23 +39,28 @@ import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 
 /**
  * @author Yegor.Yarko
  *         Date: 09.08.17
  */
+@LocatorResource("MuteLocator")
 public class MuteFinder extends DelegatingFinder<MuteInfo> {
-  private static final Dimension<Long> ID = new Dimension<>("id");
-  private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
-  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project"); //differs from investigation: assignmentProject
-  private static final Dimension<TimeCondition.ParsedTimeCondition> CREATION_DATE = new Dimension<>("creationDate");  //differs from investigation: sinceDate
-  private static final Dimension<TimeCondition.ParsedTimeCondition> UNMUTE_DATE = new Dimension<>("unmuteDate");  //differs from investigation: sinceDate
-  private static final Dimension<List<SUser>> REPORTER = new Dimension<>("reporter"); //todo: review naming?
-  private static final Dimension<String> TYPE = new Dimension<>("type"); // target
-  private static final Dimension<String> RESOLUTION = new Dimension<>("resolution");
-  private static final Dimension<List<STest>> TEST = new Dimension<>("test");
-  private static final Dimension<List<ProblemWrapper>> PROBLEM = new Dimension<>("problem");
+  @LocatorDimension("id") private static final Dimension<Long> ID = new Dimension<>("id");
+  @LocatorDimension("affectedProject") private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
+  @LocatorDimension("project") private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project"); //differs from investigation: assignmentProject
+  @LocatorDimension("creationDate") private static final Dimension<TimeCondition.ParsedTimeCondition> CREATION_DATE = new Dimension<>("creationDate");  //differs from investigation: sinceDate
+  @LocatorDimension("unmuteDate") private static final Dimension<TimeCondition.ParsedTimeCondition> UNMUTE_DATE = new Dimension<>("unmuteDate");  //differs from investigation: sinceDate
+  @LocatorDimension("reporter") private static final Dimension<List<SUser>> REPORTER = new Dimension<>("reporter"); //todo: review naming?
+  @LocatorDimension("type") private static final Dimension<String> TYPE = new Dimension<>("type"); // target
+  @LocatorDimension("resolution") private static final Dimension<String> RESOLUTION = new Dimension<>("resolution");
+  @LocatorDimension("test") private static final Dimension<List<STest>> TEST = new Dimension<>("test");
+  @LocatorDimension("problem") private static final Dimension<List<ProblemWrapper>> PROBLEM = new Dimension<>("problem");
 
 
   //private static final String BUILD_TYPE = "buildType"; //todo: add assignmentBuildType

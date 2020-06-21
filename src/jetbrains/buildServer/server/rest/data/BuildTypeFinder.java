@@ -17,8 +17,6 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.*;
-import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.APIController;
@@ -30,6 +28,8 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
@@ -46,25 +46,29 @@ import jetbrains.buildServer.vcs.VcsRootInstanceEntry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 /**
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
+@LocatorResource(value = "BuildTypeLocator", extraDimensions = {Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT})
 public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   private static final Logger LOG = Logger.getInstance(BuildTypeFinder.class.getName());
 
   public static final String TEMPLATE_ID_PREFIX = "template:"; //used for old ids parsing
 
-  public static final String DIMENSION_ID = AbstractFinder.DIMENSION_ID;
-  public static final String DIMENSION_INTERNAL_ID = "internalId";
-  public static final String DIMENSION_UUID = "uuid";
-  public static final String DIMENSION_PROJECT = "project";
-  private static final String AFFECTED_PROJECT = "affectedProject";
-  public static final String DIMENSION_NAME = "name";
-  public static final String TEMPLATE_DIMENSION_NAME = "template";
-  public static final String TEMPLATE_FLAG_DIMENSION_NAME = "templateFlag";
+  @LocatorDimension(AbstractFinder.DIMENSION_ID) public static final String DIMENSION_ID = AbstractFinder.DIMENSION_ID;
+  @LocatorDimension("internalId") public static final String DIMENSION_INTERNAL_ID = "internalId";
+  @LocatorDimension("uuid") public static final String DIMENSION_UUID = "uuid";
+  @LocatorDimension("project") public static final String DIMENSION_PROJECT = "project";
+  @LocatorDimension("affectedProject") private static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension("name") public static final String DIMENSION_NAME = "name";
+  @LocatorDimension("template") public static final String TEMPLATE_DIMENSION_NAME = "template";
+  @LocatorDimension("templateFlag") public static final String TEMPLATE_FLAG_DIMENSION_NAME = "templateFlag";
   public static final String TYPE = "type";
-  public static final String PAUSED = "paused";
+  @LocatorDimension("paused") public static final String PAUSED = "paused";
   protected static final String COMPATIBLE_AGENT = "compatibleAgent";
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
   protected static final String PARAMETER = "parameter";
@@ -73,9 +77,9 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   protected static final String SNAPSHOT_DEPENDENCY = "snapshotDependency";
   protected static final String ARTIFACT_DEPENDENCY = "artifactDependency";
   protected static final String DIMENSION_SELECTED = "selectedByUser";
-  public static final String VCS_ROOT_DIMENSION = "vcsRoot";
-  public static final String VCS_ROOT_INSTANCE_DIMENSION = "vcsRootInstance";
-  public static final String BUILD = "build";
+  @LocatorDimension("vcsRoot") public static final String VCS_ROOT_DIMENSION = "vcsRoot";
+  @LocatorDimension("vcsRootInstance") public static final String VCS_ROOT_INSTANCE_DIMENSION = "vcsRootInstance";
+  @LocatorDimension("build") public static final String BUILD = "build";
 
   private final ProjectFinder myProjectFinder;
   @NotNull private final AgentFinder myAgentFinder;

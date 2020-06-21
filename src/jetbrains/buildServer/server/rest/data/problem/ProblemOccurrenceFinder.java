@@ -17,16 +17,16 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.io.IOException;
-import java.util.*;
-import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.*;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.db.DBActionNoResults;
 import jetbrains.buildServer.serverSide.db.DBException;
@@ -39,22 +39,27 @@ import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
+
 /**
  * @author Yegor.Yarko
  *         Date: 18.11.13
  */
+@LocatorResource(value = "ProblemOccurrenceLocator", extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT})
 public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   private static final Logger LOG = Logger.getInstance(ProblemOccurrenceFinder.class.getName());
 
-  private static final String BUILD = "build";
-  private static final String IDENTITY = "identity";
-  public static final String TYPE = "type"; //type of the problem (value conditions are supported). Also experimentally supports "snapshotDependencyProblem:false" value
-  private static final String CURRENT = "currentlyFailing"; //this problem occurrence is in the currently failing or, when "build" is present - latest build have the same problem
-  private static final String PROBLEM = "problem";
-  public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
-  public static final String MUTED = "muted";
-  public static final String CURRENTLY_MUTED = "currentlyMuted";
-  public static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension("build") private static final String BUILD = "build";
+  @LocatorDimension("identity") private static final String IDENTITY = "identity";
+  @LocatorDimension("type") public static final String TYPE = "type"; //type of the problem (value conditions are supported). Also experimentally supports "snapshotDependencyProblem:false" value
+  @LocatorDimension("currentlyFailing") private static final String CURRENT = "currentlyFailing"; //this problem occurrence is in the currently failing or, when "build" is present - latest build have the same problem
+  @LocatorDimension("problem") private static final String PROBLEM = "problem";
+  @LocatorDimension("currentlyInvestigated") public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
+  @LocatorDimension("muted") public static final String MUTED = "muted";
+  @LocatorDimension("currentlyMuted") public static final String CURRENTLY_MUTED = "currentlyMuted";
+  @LocatorDimension("affectedProject") public static final String AFFECTED_PROJECT = "affectedProject";
 
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final BuildFinder myBuildFinder;

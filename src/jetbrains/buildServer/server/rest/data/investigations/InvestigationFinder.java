@@ -17,10 +17,6 @@
 package jetbrains.buildServer.server.rest.data.investigations;
 
 import com.intellij.openapi.util.text.StringUtil;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.responsibility.*;
@@ -31,8 +27,11 @@ import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
@@ -42,22 +41,28 @@ import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+
 /**
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
+@LocatorResource(value = "InvestigationLocator", extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT})
 public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
-  private static final String PROBLEM_DIMENSION = "problem";
-  private static final String TEST_DIMENSION = "test";
-  private static final String ASSIGNMENT_PROJECT = "assignmentProject";
-  private static final String AFFECTED_PROJECT = "affectedProject";
-  private static final String ASSIGNEE = "assignee";
-  private static final String SINCE_DATE = "sinceDate";
-  private static final String STATE = "state";
-  private static final String RESOLUTION = "resolution";
-  private static final String TYPE = "type";
-  private static final String REPORTER = "reporter";
-  private static final String BUILD_TYPE = "buildType";
+  @LocatorDimension("problem") private static final String PROBLEM_DIMENSION = "problem";
+  @LocatorDimension("test") private static final String TEST_DIMENSION = "test";
+  @LocatorDimension("assignmentProject") private static final String ASSIGNMENT_PROJECT = "assignmentProject";
+  @LocatorDimension("affectedProject") private static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension("assignee") private static final String ASSIGNEE = "assignee";
+  @LocatorDimension("sinceDate") private static final String SINCE_DATE = "sinceDate";
+  @LocatorDimension("state") private static final String STATE = "state";
+  @LocatorDimension("resolution") private static final String RESOLUTION = "resolution";
+  @LocatorDimension("type") private static final String TYPE = "type";
+  @LocatorDimension("reporter") private static final String REPORTER = "reporter";
+  @LocatorDimension("buildType") private static final String BUILD_TYPE = "buildType";
   //todo: add removeMethod
 
   private final ProjectFinder myProjectFinder;

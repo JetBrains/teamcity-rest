@@ -17,10 +17,6 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.*;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
@@ -28,8 +24,11 @@ import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -42,24 +41,30 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /**
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
+@LocatorResource(value = "VcsRootInstanceLocator", extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME})
 public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   private static final Logger LOG = Logger.getInstance(VcsRootInstanceFinder.class.getName());
-  public static final String VCS_ROOT_DIMENSION = "vcsRoot";
-  public static final String REPOSITORY_ID_STRING = "repositoryIdString";
-  protected static final String TYPE = "type";
-  protected static final String PROJECT = "project";
-  protected static final String AFFECTED_PROJECT = "affectedProject";
-  protected static final String PROPERTY = "property";
-  protected static final String BUILD_TYPE = "buildType";
-  protected static final String BUILD = "build";
+  @LocatorDimension("vcsRoot") public static final String VCS_ROOT_DIMENSION = "vcsRoot";
+  @LocatorDimension("repositoryIdString") public static final String REPOSITORY_ID_STRING = "repositoryIdString";
+  @LocatorDimension("type") protected static final String TYPE = "type";
+  @LocatorDimension("project") protected static final String PROJECT = "project";
+  @LocatorDimension("affectedProject") protected static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension("property") protected static final String PROPERTY = "property";
+  @LocatorDimension("buildType") protected static final String BUILD_TYPE = "buildType";
+  @LocatorDimension("build") protected static final String BUILD = "build";
   protected static final String STATUS = "status";
   protected static final String FINISH_VCS_CHECKING_FOR_CHANGES = "checkingForChangesFinishDate";  // experimental
   protected static final String REPOSITORY_STATE = "repositoryState";  // experimental
-  protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //whether to include usages in project's versioned settings or not. By default "false" if "buildType" dimension is present and "any" otherwise
+  @LocatorDimension("versionedSettings") protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //whether to include usages in project's versioned settings or not. By default "false" if "buildType" dimension is present and "any" otherwise
   protected static final String COMMIT_HOOK_MODE = "commitHookMode"; // experimental
   protected static final Comparator<VcsRootInstance> VCS_ROOT_INSTANCE_COMPARATOR = new Comparator<VcsRootInstance>() {
     public int compare(final VcsRootInstance o1, final VcsRootInstance o2) {

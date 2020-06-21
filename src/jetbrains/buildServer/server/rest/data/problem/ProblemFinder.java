@@ -16,10 +16,12 @@
 
 package jetbrains.buildServer.server.rest.data.problem;
 
-import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
@@ -32,18 +34,21 @@ import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
+
 /**
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
+@LocatorResource(value = "ProblemLocator", extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME})
 public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
-  private static final String CURRENT = "currentlyFailing";
-  public static final String IDENTITY = "identity";
-  public static final String TYPE = "type";
-  public static final String AFFECTED_PROJECT = "affectedProject";
-  public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
-  public static final String CURRENTLY_MUTED = "currentlyMuted";
-  public static final String BUILD = "build";
+  @LocatorDimension("currentlyFailing") private static final String CURRENT = "currentlyFailing";
+  @LocatorDimension("identity") public static final String IDENTITY = "identity";
+  @LocatorDimension("type") public static final String TYPE = "type";
+  @LocatorDimension("affectedProject") public static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension("currentlyInvestigated") public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
+  @LocatorDimension("currentlyMuted") public static final String CURRENTLY_MUTED = "currentlyMuted";
+  @LocatorDimension("build") public static final String BUILD = "build";
 
   @NotNull private final ProjectFinder myProjectFinder;
 
