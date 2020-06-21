@@ -23,16 +23,19 @@ import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
 import com.sun.jersey.spi.container.ReloadListener;
 import com.sun.jersey.spi.scanning.AnnotationScannerListener;
 import com.sun.jersey.spi.scanning.PathProviderScannerListener;
-import java.lang.annotation.Annotation;
-import java.util.*;
-import javax.ws.rs.Path;
-import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.RESTControllerExtension;
+import jetbrains.buildServer.server.rest.swagger.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.LocatorResourceListener;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import javax.ws.rs.Path;
+import javax.ws.rs.ext.Provider;
+import java.lang.annotation.Annotation;
+import java.util.*;
 
 /**
  * Based on {@link com.sun.jersey.api.core.ScanningResourceConfig}
@@ -79,9 +82,11 @@ public class ExtensionsAwareResourceConfig extends DefaultResourceConfig impleme
     final Set<Class<?>> classes = getClasses();
     for (Pair<String[], ClassLoader> pair : getScanningInfo()) {
       final AnnotationScannerListener asl = new PathProviderScannerListener(pair.second);
+      final LocatorResourceListener lrl = new LocatorResourceListener(pair.second);
       final PackageNamesScanner scanner = new PackageNamesScanner(pair.second, pair.first);
       try {
         scanner.scan(asl);
+        scanner.scan(lrl);
       } catch (Throwable e) {
         String message = "Error initializing REST component while scanning for resources for " + myController.getPluginIdentifyingText() +
                          " for packages " + Arrays.toString(pair.first) + " via classloader '" + pair.second.toString() + "'.";
@@ -95,6 +100,7 @@ public class ExtensionsAwareResourceConfig extends DefaultResourceConfig impleme
         Loggers.SERVER.error(message);
       }
       classes.addAll(asl.getAnnotatedClasses());
+      classes.addAll(lrl.getAnnotatedClasses());
     }
 
     if (!classes.isEmpty()) {
@@ -110,6 +116,13 @@ public class ExtensionsAwareResourceConfig extends DefaultResourceConfig impleme
         LOG.info("No provider classes found.");
       } else {
         logClasses("Provider classes found:", providerClasses);
+      }
+
+      final Set<Class> locatorClasses = get(LocatorResource.class);
+      if (locatorClasses.isEmpty()) {
+        LOG.info("No locator classes found.");
+      } else {
+        logClasses("Locator classes found:", locatorClasses);
       }
 
     }

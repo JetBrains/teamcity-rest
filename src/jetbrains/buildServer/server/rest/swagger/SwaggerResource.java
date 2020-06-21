@@ -28,7 +28,6 @@ import io.swagger.converter.ModelConverters;
 import io.swagger.core.filter.SpecFilter;
 import io.swagger.core.filter.SwaggerSpecFilter;
 import io.swagger.jackson.ModelResolver;
-import io.swagger.jaxrs.Reader;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.config.ReaderConfig;
 import io.swagger.models.Model;
@@ -108,8 +107,11 @@ public class SwaggerResource {
       Set<Class<?>> classes = scanner.classesFromContext(myApplication, null);
       if (classes == null) classes = Collections.emptySet();
 
-      final Reader reader = new Reader(swagger, myReaderConfig);
+      final LocatorAwareReader reader = new LocatorAwareReader(swagger, myReaderConfig);
       swagger = reader.read(classes);
+
+      // Process LocatorResource classes
+
 
       // Set common properties of this API
       swagger.setBasePath(Constants.API_URL);

@@ -23,18 +23,6 @@ import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.core.util.FeaturesAndProperties;
 import com.sun.jersey.spi.container.WebApplication;
 import com.sun.jersey.spi.container.servlet.WebComponent;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.ext.ExceptionMapper;
 import jetbrains.buildServer.controllers.AuthorizationInterceptor;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.interceptors.PathSet;
@@ -77,6 +65,19 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
+
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.ext.ExceptionMapper;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static jetbrains.buildServer.util.Util.doUnderContextClassLoader;
 
@@ -646,6 +647,7 @@ public class APIController extends BaseController implements ServletContextAware
     return new String[]{
       "org.fasterxml.jackson.jaxrs",
       "jetbrains.buildServer.server.rest.request",
+      "jetbrains.buildServer.server.rest.data",
       "jetbrains.buildServer.server.rest.swagger",
     };
   }
