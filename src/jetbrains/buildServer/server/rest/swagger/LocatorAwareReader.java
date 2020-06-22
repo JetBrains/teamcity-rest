@@ -23,11 +23,13 @@ import io.swagger.models.Swagger;
 import io.swagger.models.properties.StringProperty;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Set;
 
 public class LocatorAwareReader extends Reader {
-  private static final String ENTITY_DEFINITION_NAME = "Entity";
-  private static final String LOCATOR_DEFINITION_NAME = "Locator";
+  private static final String ENTITY_DEFINITION_NAME = "Entity"; //possible usage with v3 as a type for the definitions
+  private static final String LOCATOR_DEFINITION_NAME = "Locator"; //same
 
   public LocatorAwareReader(Swagger swagger, ReaderConfig config) {
     super(swagger, config);
@@ -37,32 +39,28 @@ public class LocatorAwareReader extends Reader {
   public Swagger read(Set<Class<?>> classes) {
     Swagger swagger = super.read(classes);
 
-    /*ModelImpl entityDefinition = new ModelImpl();
-    entityDefinition.setName(ENTITY_DEFINITION_NAME);
-    entityDefinition.setType(ModelImpl.OBJECT);
-    swagger.addDefinition(ENTITY_DEFINITION_NAME, entityDefinition);*/
-
-    ModelImpl locatorDefinition = new ModelImpl();
-    locatorDefinition.setName(LOCATOR_DEFINITION_NAME);
-    locatorDefinition.setType(ModelImpl.OBJECT);
-    swagger.addDefinition(LOCATOR_DEFINITION_NAME, locatorDefinition);
-
     for (Class<?> cls : classes) {
-      if (cls.isAnnotationPresent(LocatorResource.class)) {
+      if (cls.isAnnotationPresent(LocatorResource.class)) { //iterate through the annotated classes
         LocatorResource annotation = cls.getAnnotation(LocatorResource.class);
         ModelImpl definition = new ModelImpl();
-        definition.setType(LOCATOR_DEFINITION_NAME);
+        definition.setType(ModelImpl.OBJECT);
         definition.setName(annotation.value());
 
-        for (String dimension : annotation.extraDimensions()) {
-          definition.addProperty(dimension, new StringProperty());
+        ArrayList<String> dimensions = new ArrayList<String>();
+        for (String dimension : annotation.extraDimensions()) { //iterate through the annotation fields
+          dimensions.add(dimension);
         }
 
-        for (Field field : cls.getDeclaredFields()) {
+        for (Field field : cls.getDeclaredFields()) { //iterate through the class fields
           if (field.isAnnotationPresent(LocatorDimension.class)) {
-            String locatorDimension = field.getAnnotation(LocatorDimension.class).value();
-            definition.addProperty(locatorDimension, new StringProperty());
+            String dimension = field.getAnnotation(LocatorDimension.class).value();
+            dimensions.add(dimension);
           }
+        }
+
+        Collections.sort(dimensions);
+        for (String dimension : dimensions) {
+          definition.addProperty(dimension, new StringProperty());
         }
 
         swagger.addDefinition(annotation.value(), definition);

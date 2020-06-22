@@ -110,15 +110,6 @@ public class SwaggerResource {
       final LocatorAwareReader reader = new LocatorAwareReader(swagger, myReaderConfig);
       swagger = reader.read(classes);
 
-      // Process LocatorResource classes
-
-
-      // Set common properties of this API
-      swagger.setBasePath(Constants.API_URL);
-      List<String> apiMIMETypes = Arrays.asList("application/xml", "application/json", "text/plain");
-      swagger.setConsumes(apiMIMETypes);
-      swagger.setProduces(apiMIMETypes);
-
       // Sort output maps and lists
       swagger.setPaths(SwaggerUtil.getOrderedMap(swagger.getPaths()));
       swagger.setDefinitions(SwaggerUtil.getOrderedMap(swagger.getDefinitions()));

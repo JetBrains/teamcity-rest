@@ -35,7 +35,7 @@ import javax.ws.rs.*;
  * @author Yegor.Yarko
  *         Date: 16.03.2015
  */
-@Api
+@Api(hidden = true)
 public class ParametersSubResource {
 
   @NotNull protected final BeanContext myBeanContext;

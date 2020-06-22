@@ -20,12 +20,14 @@ import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.config.SwaggerConfig;
 import io.swagger.models.Info;
 import io.swagger.models.Swagger;
-import java.net.MalformedURLException;
-import java.net.URL;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 
 public class SwaggerConfigImpl implements SwaggerConfig {
   private final DataProvider myDataProvider;
@@ -47,7 +49,7 @@ public class SwaggerConfigImpl implements SwaggerConfig {
     try {
       final URL url = new URL(server.getRootUrl());
       swagger.setHost(getHostAndPort(url));
-      swagger.setBasePath(url.getPath());
+      swagger.setBasePath(Constants.API_URL);
     } catch (MalformedURLException e) {
       LOG.warnAndDebugDetails("Failed to configure swagger with server url", e);
     }
