@@ -100,7 +100,7 @@ import org.joda.time.format.DateTimeFormatter;
  * These should never be used for non-debug purposes and the API here can change in future versions of TeamCity without any notice.
  */
 @Path(Constants.API_URL + "/debug")
-@Api("Debug")
+@Api(value = "Debug", hidden = true)
 public class DebugRequest {
   public static final String REST_VALID_QUERY_PROPERTY_NAME = "rest.debug.database.allow.query.prefixes";
 

@@ -17,8 +17,6 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.federation.ConnectedServers;
 import jetbrains.buildServer.federation.TeamCityServer;
@@ -30,10 +28,13 @@ import jetbrains.buildServer.server.rest.model.federation.FederationServer;
 import jetbrains.buildServer.server.rest.model.federation.FederationServers;
 import jetbrains.buildServer.util.StringUtil;
 
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+
 import static java.util.stream.Collectors.toList;
 
 @Path(FederationRequest.API_FEDERATION_URL)
-@Api("Federation")
+@Api(value = "Federation", hidden = true)
 public class FederationRequest {
   public static final String API_FEDERATION_URL = Constants.API_URL + "/federation";
   @Context private ServiceLocator myServiceLocator;

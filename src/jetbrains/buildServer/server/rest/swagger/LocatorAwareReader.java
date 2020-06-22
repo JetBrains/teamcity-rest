@@ -18,14 +18,11 @@ package jetbrains.buildServer.server.rest.swagger;
 
 import io.swagger.jaxrs.Reader;
 import io.swagger.jaxrs.config.ReaderConfig;
-import io.swagger.models.ModelImpl;
-import io.swagger.models.Swagger;
+import io.swagger.models.*;
 import io.swagger.models.properties.StringProperty;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 
 public class LocatorAwareReader extends Reader {
   private static final String ENTITY_DEFINITION_NAME = "Entity"; //possible usage with v3 as a type for the definitions
@@ -39,6 +36,29 @@ public class LocatorAwareReader extends Reader {
   public Swagger read(Set<Class<?>> classes) {
     Swagger swagger = super.read(classes);
 
+    // Set empty Example Objects for each MIME-Type involved in each response to handle TW-56270
+
+    for (Path path : swagger.getPaths().values()) {
+      for (Operation operation : path.getOperations()) {
+        List<String> produces = operation.getProduces(); // Returns a list of MIME-Type strings (specification expects one example per type)
+        if (produces == null || produces.isEmpty() || operation.getResponses().isEmpty() || operation.getResponses() == null) {
+          continue;
+        }
+        for (Response response : operation.getResponses().values()) {
+          Map<String, Object> examples = new HashMap<String, Object>();
+          for (String mimeType : produces) {
+            if (response.getExamples() != null && response.getExamples().containsKey(mimeType)) { // Preserve existing Example Objects if any
+              examples.put(mimeType, response.getExamples().get(mimeType));
+            }
+            else {
+              examples.put(mimeType, "");
+            }
+          }
+          response.setExamples(examples);
+        }
+      }
+    }
+
     for (Class<?> cls : classes) {
       if (cls.isAnnotationPresent(LocatorResource.class)) { //iterate through the annotated classes
         LocatorResource annotation = cls.getAnnotation(LocatorResource.class);
@@ -47,9 +67,7 @@ public class LocatorAwareReader extends Reader {
         definition.setName(annotation.value());
 
         ArrayList<String> dimensions = new ArrayList<String>();
-        for (String dimension : annotation.extraDimensions()) { //iterate through the annotation fields
-          dimensions.add(dimension);
-        }
+        Collections.addAll(dimensions, annotation.extraDimensions());
 
         for (Field field : cls.getDeclaredFields()) { //iterate through the class fields
           if (field.isAnnotationPresent(LocatorDimension.class)) {
