@@ -17,8 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
+import io.swagger.annotations.ApiOperation;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -34,14 +33,17 @@ import jetbrains.buildServer.server.rest.model.user.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
 
 @Path(UserRequest.API_USERS_URL)
 @Api("User")
@@ -236,6 +238,7 @@ public class UserRequest {
    */
   @Deprecated
   @POST
+  @ApiOperation(value = "addRoleSimplePost", hidden = true)
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   public void addRoleSimplePost(@PathParam("userLocator") String userLocator,
                                 @PathParam("roleId") String roleId,

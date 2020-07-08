@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.log.LogUtil;
@@ -1302,18 +1303,18 @@ public class BuildTypeRequest {
   @Path("/{btLocator}/builds")
   @Produces({"application/xml", "application/json"})
   public Builds serveBuilds(@PathParam("btLocator") String buildTypeLocator,
-                            @QueryParam("status") String status,
-                            @QueryParam("triggeredByUser") String userLocator,
-                            @QueryParam("includePersonal") boolean includePersonal,
-                            @QueryParam("includeCanceled") boolean includeCanceled,
-                            @QueryParam("onlyPinned") boolean onlyPinned,
-                            @QueryParam("tag") List<String> tags,
-                            @QueryParam("agentName") String agentName,
-                            @QueryParam("sinceBuild") String sinceBuildLocator,
-                            @QueryParam("sinceDate") String sinceDate,
-                            @QueryParam("start") Long start,
-                            @QueryParam("count") Integer count,
-                            @QueryParam("locator") String locator,
+                            @ApiParam(hidden = true) @QueryParam("status") String status,
+                            @ApiParam(hidden = true) @QueryParam("triggeredByUser") String userLocator,
+                            @ApiParam(hidden = true) @QueryParam("includePersonal") boolean includePersonal,
+                            @ApiParam(hidden = true) @QueryParam("includeCanceled") boolean includeCanceled,
+                            @ApiParam(hidden = true) @QueryParam("onlyPinned") boolean onlyPinned,
+                            @ApiParam(hidden = true) @QueryParam("tag") List<String> tags,
+                            @ApiParam(hidden = true) @QueryParam("agentName") String agentName,
+                            @ApiParam(hidden = true) @QueryParam("sinceBuild") String sinceBuildLocator,
+                            @ApiParam(hidden = true) @QueryParam("sinceDate") String sinceDate,
+                            @ApiParam(hidden = true) @QueryParam("start") Long start,
+                            @ApiParam(hidden = true) @QueryParam("count") Integer count,
+                            @ApiParam(hidden = true) @QueryParam("locator") String locator,
                             @QueryParam("fields") String fields,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
@@ -1368,6 +1369,7 @@ public class BuildTypeRequest {
    * @deprecated VCS labeling configuration is moved to build features settings.
    */
   @GET
+  @ApiOperation(value = "getVCSLabelingOptions", hidden = true)
   @Path("/{btLocator}/vcsLabeling")
   @Produces({"application/xml", "application/json"})
   public VCSLabelingOptions getVCSLabelingOptions(@PathParam("btLocator") String buildTypeLocator) {
@@ -1443,6 +1445,7 @@ public class BuildTypeRequest {
    * @deprecated VCS labeling configuration is moved to build features settings.
    */
   @PUT
+  @ApiOperation(value = "setVCSLabelingOptions", hidden = true)
   @Path("/{btLocator}/vcsLabeling")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})

@@ -18,12 +18,8 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.util.text.StringUtil;
 import io.swagger.annotations.Api;
-import java.util.ArrayList;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriInfo;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildFinder;
@@ -46,6 +42,13 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
+import java.util.ArrayList;
 
 @Path(ChangeRequest.API_CHANGES_URL)
 @Api("Change")
@@ -84,13 +87,13 @@ public class ChangeRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public Changes serveChanges(@QueryParam("project") String projectLocator,
-                              @QueryParam("buildType") String buildTypeLocator,
-                              @QueryParam("build") String buildLocator,
-                              @QueryParam("vcsRoot") String vcsRootInstanceLocator,
-                              @QueryParam("sinceChange") String sinceChangeLocator,
-                              @QueryParam("start") Long start,
-                              @QueryParam("count") Integer count,
+  public Changes serveChanges(@ApiParam(hidden = true) @QueryParam("project") String projectLocator,
+                              @ApiParam(hidden = true) @QueryParam("buildType") String buildTypeLocator,
+                              @ApiParam(hidden = true) @QueryParam("build") String buildLocator,
+                              @ApiParam(hidden = true) @QueryParam("vcsRoot") String vcsRootInstanceLocator,
+                              @ApiParam(hidden = true) @QueryParam("sinceChange") String sinceChangeLocator,
+                              @ApiParam(hidden = true) @QueryParam("start") Long start,
+                              @ApiParam(hidden = true) @QueryParam("count") Integer count,
                               @QueryParam("locator") String locator,
                               @QueryParam("fields") String fields,
                               @Context UriInfo uriInfo, @Context HttpServletRequest request) {
@@ -180,6 +183,7 @@ public class ChangeRequest {
    * @deprecated see getChangeVCSRootInstance
    */
   @GET
+  @ApiOperation(value = "getChangeVCSRoot", hidden = true)
   @Path("/{changeLocator}/vcsRoot")
   @Produces({"application/xml", "application/json"})
   public VcsRootInstance getChangeVCSRoot(@PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {

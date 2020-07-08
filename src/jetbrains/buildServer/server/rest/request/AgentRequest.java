@@ -18,11 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.util.text.StringUtil;
 import io.swagger.annotations.Api;
-import java.util.Date;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
+import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
@@ -39,6 +35,12 @@ import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
+import java.util.Date;
 
 /**
  * @author Yegor.Yarko
@@ -77,8 +79,8 @@ public class AgentRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public Agents serveAgents(@QueryParam("includeDisconnected") Boolean includeDisconnected,
-                            @QueryParam("includeUnauthorized") Boolean includeUnauthorized,
+  public Agents serveAgents(@ApiParam(hidden = true) @QueryParam("includeDisconnected") Boolean includeDisconnected,
+                            @ApiParam(hidden = true) @QueryParam("includeUnauthorized") Boolean includeUnauthorized,
                             @QueryParam("locator") String locator,
                             @QueryParam("fields") String fields,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {

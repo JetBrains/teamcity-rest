@@ -19,16 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import java.io.*;
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.agent.ServerProvidedProperties;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
@@ -80,6 +71,17 @@ import jetbrains.buildServer.web.util.WebAuthUtil;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
+import java.io.*;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /*
  * User: Yegor Yarko
@@ -171,18 +173,18 @@ public class BuildRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public Builds serveAllBuilds(@QueryParam("buildType") String buildTypeLocator,
-                               @QueryParam("status") String status,
-                               @QueryParam("triggeredByUser") String userLocator,
-                               @QueryParam("includePersonal") boolean includePersonal,
-                               @QueryParam("includeCanceled") boolean includeCanceled,
-                               @QueryParam("onlyPinned") boolean onlyPinned,
-                               @QueryParam("tag") List<String> tags,
-                               @QueryParam("agentName") String agentName,
-                               @QueryParam("sinceBuild") String sinceBuildLocator,
-                               @QueryParam("sinceDate") String sinceDate,
-                               @QueryParam("start") Long start,
-                               @QueryParam("count") Integer count,
+  public Builds serveAllBuilds(@ApiParam(hidden = true) @QueryParam("buildType") String buildTypeLocator,
+                               @ApiParam(hidden = true) @QueryParam("status") String status,
+                               @ApiParam(hidden = true) @QueryParam("triggeredByUser") String userLocator,
+                               @ApiParam(hidden = true) @QueryParam("includePersonal") boolean includePersonal,
+                               @ApiParam(hidden = true) @QueryParam("includeCanceled") boolean includeCanceled,
+                               @ApiParam(hidden = true) @QueryParam("onlyPinned") boolean onlyPinned,
+                               @ApiParam(hidden = true) @QueryParam("tag") List<String> tags,
+                               @ApiParam(hidden = true) @QueryParam("agentName") String agentName,
+                               @ApiParam(hidden = true) @QueryParam("sinceBuild") String sinceBuildLocator,
+                               @ApiParam(hidden = true) @QueryParam("sinceDate") String sinceDate,
+                               @ApiParam(hidden = true) @QueryParam("start") Long start,
+                               @ApiParam(hidden = true) @QueryParam("count") Integer count,
                                @QueryParam("locator") String locator,
                                @QueryParam("fields") String fields,
                                @Context UriInfo uriInfo, @Context HttpServletRequest request) {
@@ -196,6 +198,7 @@ public class BuildRequest {
    * @deprecated Use DELETE request to .../app/rest/builds/multiple/{locator}
    */
   @DELETE
+  @ApiOperation(value = "deleteBuilds", hidden = true)
   @Produces({"application/xml", "application/json"})
   public void deleteBuilds(@QueryParam("locator") String locator, @Context HttpServletRequest request) {
     if (locator == null){
@@ -389,6 +392,7 @@ public class BuildRequest {
    * @return
    */
   @GET
+  @ApiOperation(value = "serveBuildRelatedIssuesOld", hidden = true)
   @Path("/{buildLocator}/related-issues")
   @Produces({"application/xml", "application/json"})
   public IssueUsages serveBuildRelatedIssuesOld(@PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
@@ -597,6 +601,7 @@ public class BuildRequest {
    * @return "true" is the build is pinned, "false" otherwise
    */
   @GET
+  @ApiOperation(value = "getPinned", hidden = true)
   @Path("/{buildLocator}/pin/")
   @Produces({"text/plain"})
   public String getPinned(@PathParam("buildLocator") String buildLocator, @Context HttpServletRequest request) {
@@ -610,6 +615,7 @@ public class BuildRequest {
    * @param buildLocator build locator
    */
   @PUT
+  @ApiOperation(value = "pinBuild", hidden = true)
   @Path("/{buildLocator}/pin/")
   @Consumes({"text/plain"})
   public void pinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
@@ -631,6 +637,7 @@ public class BuildRequest {
    * @param buildLocator build locator
    */
   @DELETE
+  @ApiOperation(value = "unpinBuild", hidden = true)
   @Path("/{buildLocator}/pin/")
   @Consumes({"text/plain"})
   public void unpinBuild(@PathParam("buildLocator") String buildLocator, String comment, @Context HttpServletRequest request) {
