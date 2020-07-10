@@ -27,6 +27,9 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.impl.RemoteBuildType;
 import jetbrains.buildServer.serverSide.userChanges.UserChangesFacade;
 import jetbrains.buildServer.users.SUser;
@@ -566,7 +569,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     if (projectLocator != null) {
-      return getItemHolder(getProjectChanges(myVcsModificationHistory, myProjectFinder.getItem(projectLocator), sinceChangeId));
+      return getItemHolder(getProjectChanges(myProjectFinder.getItem(projectLocator), sinceChangeId));
     }
 
     if (sinceChangeId != null) {
@@ -764,20 +767,27 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     }
   }
 
-  static private List<SVcsModification> getProjectChanges(@NotNull final VcsModificationHistory vcsHistory,
-                                                          @NotNull final SProject project,
-                                                          @Nullable final Long sinceChangeId) {
+  @NotNull
+  private List<SVcsModification> getProjectChanges(@NotNull final SProject project, @Nullable final Long sinceChangeId) {
     final List<VcsRootInstance> vcsRoots = project.getVcsRootInstances();
     final List<SVcsModification> result = new ArrayList<SVcsModification>();
-    for (VcsRootInstance root : vcsRoots) {
-      if (sinceChangeId != null) {
-        result.addAll(vcsHistory.getModificationsInRange(root, sinceChangeId, null));
-      } else {
-        //todo: highly inefficient!
-        result.addAll(vcsHistory.getAllModifications(root));
+
+    Set<Long> interestingRootIds = vcsRoots.stream().map(r -> r.getId()).collect(Collectors.toSet());
+
+    VcsModificationsStorage vcsModificationsStorage = myServiceLocator.getSingletonService(VcsModificationsStorage.class);
+    SecurityContext securityContext = myServiceLocator.getSingletonService(SecurityContext.class);
+    final AuthorityHolder authorityHolder = securityContext.getAuthorityHolder();
+
+    vcsModificationsStorage.processModifications(m -> {
+      if (sinceChangeId != null && m.getId() < sinceChangeId) return false;
+
+      if (interestingRootIds.contains(m.getVcsRoot().getId()) && AuthUtil.hasReadAccessTo(authorityHolder, m)) {
+        result.add(m);
       }
-    }
-    Collections.sort(result);
+
+      return true;
+    });
+
     return result;
   }
 }
