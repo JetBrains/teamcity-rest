@@ -26,6 +26,7 @@ import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.clouds.server.StartInstanceReason;
 import jetbrains.buildServer.server.rest.data.CloudInstanceData;
 import jetbrains.buildServer.server.rest.data.CloudUtil;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -122,7 +123,7 @@ public class CloudInstance {
   @Nullable
   public jetbrains.buildServer.clouds.CloudInstance startInstance(@NotNull final SUser user, @NotNull final ServiceLocator serviceLocator) {
     if (submittedImage == null) {
-
+      throw new BadRequestException("Cloud Instance should contain image");
     }
     CloudUtil util = serviceLocator.getSingletonService(CloudUtil.class);
     jetbrains.buildServer.clouds.CloudImage image = submittedImage.getFromPosted(serviceLocator);
