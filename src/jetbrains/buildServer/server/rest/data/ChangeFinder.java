@@ -31,6 +31,7 @@ import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.impl.RemoteBuildType;
+import jetbrains.buildServer.serverSide.impl.RemoteBuildTypeIdUtil;
 import jetbrains.buildServer.serverSide.userChanges.UserChangesFacade;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -41,6 +42,7 @@ import jetbrains.buildServer.util.graph.BFSVisitorAdapter;
 import jetbrains.buildServer.util.graph.DAG;
 import jetbrains.buildServer.util.graph.DAGIterator;
 import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.vcs.impl.VcsModificationEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -301,9 +303,18 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     if (projectLocator != null) {
       final SProject project = myProjectFinder.getItem(projectLocator);
+      Set<String> btIds = project.getOwnBuildTypes().stream().map(bt -> bt.getBuildTypeId()).collect(Collectors.toSet());
       result.add(new FilterConditionChecker<SVcsModification>() {
         public boolean isIncluded(@NotNull final SVcsModification item) {
-          return item.getRelatedProjects().contains(project);
+          List<String> itemBtIds = ((VcsModificationEx)item).getRelatedConfigurationIds(false);
+          for (String itemBtId: itemBtIds) {
+            String finalId = RemoteBuildTypeIdUtil.isValidRemoteBuildTypeId(itemBtId) ? RemoteBuildTypeIdUtil.getParentBuildTypeId(itemBtId) : itemBtId;
+            if (btIds.contains(finalId)) {
+              return true;
+            }
+          }
+
+          return false;
         }
       });
     }
