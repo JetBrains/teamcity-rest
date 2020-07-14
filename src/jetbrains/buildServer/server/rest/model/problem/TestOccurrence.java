@@ -35,7 +35,9 @@ import jetbrains.buildServer.serverSide.MultiTestRun;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.TestRunEx;
+import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_NO_DETAILS;
 
@@ -178,9 +180,13 @@ public class TestOccurrence {
     return ValueWithDefault.decideDefault(myFields.isIncluded("build", false), () -> new Build(myTestRun.getBuild(), myFields.getNestedField("build"), myBeanContext));
   }
 
+  @Nullable
   @XmlElement
   public TestOccurrence getFirstFailed() {
-    //can use FirstFailedInFixedInCalculator#calculateFFIData instead, but since 2019.2 TestRun.getFirstFailed() should always return good data
+    if (BooleanUtils.isNotTrue(myFields.isIncluded("firstFailed", false))) {
+      return null;
+    }
+
     try {
       if (myTestRun.isNewFailure()) {
         return null;
@@ -188,7 +194,8 @@ public class TestOccurrence {
 
       return ValueWithDefault.decideDefault(myFields.isIncluded("firstFailed", false),
                                             () -> Util.resolveNull(myTestRun.getFirstFailed(),
-                                                                   (ff) -> new TestOccurrence(getFailedTestRun(ff, myTestRun), myBeanContext, myFields.getNestedField("firstFailed"))));
+                                                                   (ff) -> new TestOccurrence(getFailedTestRun(ff, myTestRun), myBeanContext,
+                                                                                              myFields.getNestedField("firstFailed"))));
     } catch (IllegalArgumentException | UnsupportedOperationException e) {
       // can be thrown by getFailedTestRun
       LOG.warnAndDebugDetails("Returning empty firstFailed as there was an error while getting firstFailed for test occurrence \"" + TestOccurrenceFinder.getTestRunLocator(myTestRun) + "\"", e);
