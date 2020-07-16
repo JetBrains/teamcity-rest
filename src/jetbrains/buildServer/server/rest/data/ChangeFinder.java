@@ -501,26 +501,13 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
         @NotNull
         @Override
         public GraphFinder.LinkRetriever<SVcsModification> getChildren() {
-          return new GraphFinder.LinkRetriever<SVcsModification>() {
-            @NotNull
-            @Override
-            public List<SVcsModification> getLinked(@NotNull final SVcsModification item) {
-              return new ArrayList<SVcsModification>(item.getParentModifications());
-            }
-          };
+          return item -> new ArrayList<>(item.getParentModifications());
         }
 
         @NotNull
         @Override
         public GraphFinder.LinkRetriever<SVcsModification> getParents() {
-          return new GraphFinder.LinkRetriever<SVcsModification>() {
-            @NotNull
-            @Override
-            public List<SVcsModification> getLinked(@NotNull final SVcsModification item) {
-              final List<Long> resultIds = ((VcsRootInstanceEx)item.getVcsRoot()).getDag().getChildren(item.getId());
-              return getModificationsByIds(resultIds, myVcsManager);
-            }
-          };
+          return item -> getModificationsByIds(((VcsRootInstanceEx)item.getVcsRoot()).getDag().getChildren(item.getId()), myVcsManager);
         }
       });
       graphFinder.setDefaultLookupLimit(1000L);
