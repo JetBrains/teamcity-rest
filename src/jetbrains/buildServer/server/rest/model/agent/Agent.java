@@ -72,7 +72,7 @@ public class Agent {
   @XmlAttribute public String lastActivityTime; //experimental
   @XmlAttribute public String idleSinceTime; //experimental
   @XmlAttribute public String disconnectionComment;  //experimental
-  @XmlAttribute public String connectedSince; //experimental
+  @XmlAttribute public String registrationTimestamp; //experimental
   @XmlAttribute public String href;
   @XmlAttribute public String webUrl;
 
@@ -201,8 +201,8 @@ public class Agent {
           disconnectionComment = ValueWithDefault.decideDefault(fields.isIncluded("disconnectionComment", false, false),
                                                                 agent::getUnregistrationComment);
 
-          connectedSince = ValueWithDefault.decideDefault(fields.isIncluded("connectedSince", false, false),
-                                                          () -> Util.formatTime(agent.getRegistrationTimestamp()));
+          registrationTimestamp = ValueWithDefault.decideDefault(fields.isIncluded("registrationTimestamp", false, false),
+                                                                 () -> Util.formatTime(agent.getRegistrationTimestamp()));
 
           enabledInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabledInfo", false), new ValueWithDefault.Value<AgentEnabledInfo>() {
             @Nullable
