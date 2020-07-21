@@ -72,6 +72,7 @@ public class Agent {
   @XmlAttribute public String lastActivityTime; //experimental
   @XmlAttribute public String idleSinceTime; //experimental
   @XmlAttribute public String disconnectionComment;  //experimental
+  @XmlAttribute public String connectedSince; //experimental
   @XmlAttribute public String href;
   @XmlAttribute public String webUrl;
 
@@ -132,6 +133,7 @@ public class Agent {
       connected = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("connected", false), agent.isRegistered());
       enabled = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabled", false), agent.isEnabled());
       authorized = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorized", false), agent.isAuthorized());
+
 
       build = ValueWithDefault.decideDefault(fields.isIncluded("build", false), () -> {
         SRunningBuild runningBuild = agent.getRunningBuild();
@@ -197,7 +199,10 @@ public class Agent {
                                                          });
 
           disconnectionComment = ValueWithDefault.decideDefault(fields.isIncluded("disconnectionComment", false, false),
-                                                                () -> agent.getUnregistrationComment());
+                                                                agent::getUnregistrationComment);
+
+          connectedSince = ValueWithDefault.decideDefault(fields.isIncluded("connectedSince", false, false),
+                                                          () -> Util.formatTime(agent.getRegistrationTimestamp()));
 
           enabledInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabledInfo", false), new ValueWithDefault.Value<AgentEnabledInfo>() {
             @Nullable
