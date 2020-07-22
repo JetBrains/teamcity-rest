@@ -52,13 +52,16 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
- *         Date: 01.08.2009
+ * Date: 01.08.2009
  */
 @XmlRootElement(name = "agent")
-@SuppressWarnings("PublicField")
+@SuppressWarnings({"PublicField", "WeakerAccess"})
 public class Agent {
 
   public static final int UNKNOWN_AGENT_ID = -1;
+  public static final String COMPATIBILITY_POLICY = "compatibilityPolicy";
+  public static final String COMPATIBLE_BUILD_TYPES = "compatibleBuildTypes";
+  public static final String INCOMPATIBLE_BUILD_TYPES = "incompatibleBuildTypes";
   @XmlAttribute public Integer id;
   @XmlAttribute public String name;
   @XmlAttribute public Integer typeId;
@@ -73,9 +76,12 @@ public class Agent {
   @XmlAttribute public String idleSinceTime; //experimental
   @XmlAttribute public String disconnectionComment;  //experimental
   @XmlAttribute public String registrationTimestamp; //experimental
+  @XmlAttribute public String host;
+  @XmlAttribute public String os;
+  @XmlAttribute public Integer cpuRank;
+  @XmlAttribute public Integer port;
   @XmlAttribute public String href;
   @XmlAttribute public String webUrl;
-
   @XmlElement public Build build;
   @XmlElement public Links links;
   @XmlElement public AgentEnabledInfo enabledInfo;
@@ -91,10 +97,6 @@ public class Agent {
   @XmlElement public BuildTypes compatibleBuildTypes;
   @XmlElement public Compatibilities incompatibleBuildTypes;
   @XmlElement public Builds builds;
-
-  public static final String COMPATIBILITY_POLICY = "compatibilityPolicy";
-  public static final String COMPATIBLE_BUILD_TYPES = "compatibleBuildTypes";
-  public static final String INCOMPATIBLE_BUILD_TYPES = "incompatibleBuildTypes";
   /**
    * This is used only when posting a link to an agent.
    */
@@ -104,20 +106,16 @@ public class Agent {
   }
 
   /**
-   *  Used only for build triggering
+   * Used only for build triggering
    */
   public Agent(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
-    pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", true), new ValueWithDefault.Value<AgentPool>() {
-      @Nullable
-      public AgentPool get() {
-        return new AgentPool(agentPool, fields.getNestedField("pool", Fields.SHORT, Fields.SHORT), beanContext);
-      }
-    });
+    pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", true), () -> new AgentPool(agentPool, fields.getNestedField("pool", Fields.SHORT, Fields.SHORT), beanContext));
   }
 
   /**
-   *  Used only for build triggering
+   * Used only for build triggering
    */
+  @SuppressWarnings("unused")
   public Agent(@NotNull final SAgentType agentType, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     typeId = ValueWithDefault.decideDefault(fields.isIncluded("typeId", true), agentType.getAgentTypeId());
   }
@@ -137,12 +135,13 @@ public class Agent {
 
       build = ValueWithDefault.decideDefault(fields.isIncluded("build", false), () -> {
         SRunningBuild runningBuild = agent.getRunningBuild();
-        if (runningBuild == null ) return null;
+        if (runningBuild == null) return null;
         try {
           beanContext.getSingletonService(PermissionChecker.class).checkPermission(Permission.VIEW_PROJECT, runningBuild.getBuildPromotion());
           return new Build(runningBuild, fields.getNestedField("build"), beanContext);
         } catch (AuthorizationFailedException e) {
-          return Build.getNoPermissionsBuild(runningBuild, fields.getNestedField("build"), beanContext); //should probably include "empty" build node instead so that it's clear some build is running
+          return Build.getNoPermissionsBuild(runningBuild, fields.getNestedField("build"),
+                                             beanContext); //should probably include "empty" build node instead so that it's clear some build is running
         }
       });
     }
@@ -151,21 +150,17 @@ public class Agent {
                                 !(((BuildAgentEx)agent).getAgentType() instanceof DummyAgentType); //agent type is still in the system
     //check permission to match UI
     if (hasMeaningfulData) {
-      if(AuthUtil.canViewAgentDetails(beanContext.getSingletonService(PermissionChecker.class).getCurrent(), agent)){
+      if (AuthUtil.canViewAgentDetails(beanContext.getSingletonService(PermissionChecker.class).getCurrent(), agent)) {
         WebLinks webLinks = beanContext.getSingletonService(WebLinks.class);
         webUrl = ValueWithDefault.decideDefault(fields.isIncluded("webUrl", true), () -> webLinks.getAgentUrl(agent, agent.getAgentTypeId()));
-        links = ValueWithDefault.decideDefault(fields.isIncluded("links", false, false), new ValueWithDefault.Value<Links>() {
-          @Nullable
-          @Override
-          public Links get() {
-            Links.LinksBuilder builder = new Links.LinksBuilder();
-            String absoluteUrl = webLinks.getAgentUrl(agent, agent.getAgentTypeId());
-            String relativeUrl = new RelativeWebLinks().getAgentUrl(agent, agent.getAgentTypeId());
-            if (absoluteUrl != null && relativeUrl != null) {
-              builder.add(Link.WEB_VIEW_TYPE, absoluteUrl, relativeUrl);
-            }
-            return builder.build(fields.getNestedField("links"));
+        links = ValueWithDefault.decideDefault(fields.isIncluded("links", false, false), () -> {
+          Links.LinksBuilder builder = new Links.LinksBuilder();
+          String absoluteUrl = webLinks.getAgentUrl(agent, agent.getAgentTypeId());
+          String relativeUrl = new RelativeWebLinks().getAgentUrl(agent, agent.getAgentTypeId());
+          if (absoluteUrl != null && relativeUrl != null) {
+            builder.add(Link.WEB_VIEW_TYPE, absoluteUrl, relativeUrl);
           }
+          return builder.build(fields.getNestedField("links"));
         });
         environment = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("environment", false, false),
                                                                          () -> new Environment(agent, fields.getNestedField("environment", Fields.NONE, Fields.LONG), beanContext)
@@ -173,21 +168,17 @@ public class Agent {
 
         if (!unknownAgent) {
           uptodate = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("uptodate", false), !agent.isOutdated() && !agent.isPluginsOutdated());
-          ip = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("ip", false), new ValueWithDefault.Value<String>() {
-            @Nullable
-            public String get() {
-              final String hostAddress = agent.getHostAddress();
-              return DeadAgent.NA.equals(hostAddress) ? null : hostAddress;
-            }
+          host = ValueWithDefault.decideDefault(fields.isIncluded("host", false), agent::getHostName);
+          cpuRank = ValueWithDefault.decideDefault(fields.isIncluded("cpuRank", false), agent::getCpuBenchmarkIndex);
+          port = ValueWithDefault.decideDefault(fields.isIncluded("port", false), agent::getPort);
+          os = ValueWithDefault.decideDefault(fields.isIncluded("os", false), agent::getOperatingSystemName);
+          ip = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("ip", false), () -> {
+            final String hostAddress = agent.getHostAddress();
+            return DeadAgent.NA.equals(hostAddress) ? null : hostAddress;
           });
-          protocol = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("protocol", false, false), new ValueWithDefault.Value<String>() {  //hide by default for now
-            @Nullable
-            public String get() {
-              return getAgentProtocol(agent);
-            }
-          });
+          protocol = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("protocol", false, false), () -> getAgentProtocol(agent));
 
-          version = ValueWithDefault.decideDefault(fields.isIncluded("version", false, false), () -> agent.getVersion());
+          version = ValueWithDefault.decideDefault(fields.isIncluded("version", false, false), agent::getVersion);
 
           lastActivityTime = ValueWithDefault.decideDefault(fields.isIncluded("lastActivityTime", false, false),
                                                             () -> Util.formatTime(agent.getLastCommunicationTimestamp()));
@@ -204,57 +195,43 @@ public class Agent {
           registrationTimestamp = ValueWithDefault.decideDefault(fields.isIncluded("registrationTimestamp", false, false),
                                                                  () -> Util.formatTime(agent.getRegistrationTimestamp()));
 
-          enabledInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabledInfo", false), new ValueWithDefault.Value<AgentEnabledInfo>() {
-            @Nullable
-            public AgentEnabledInfo get() {
-              return new AgentEnabledInfo(agent, fields.getNestedField("enabledInfo", Fields.NONE, Fields.LONG), beanContext);
-            }
-          });
+          enabledInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabledInfo", false),
+                                                                () -> new AgentEnabledInfo(agent, fields.getNestedField("enabledInfo", Fields.NONE, Fields.LONG), beanContext));
 
-          authorizedInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorizedInfo", false), new ValueWithDefault.Value<AgentAuthorizedInfo>() {
-            @Nullable
-            public AgentAuthorizedInfo get() {
-              return new AgentAuthorizedInfo(agent, fields.getNestedField("authorizedInfo", Fields.NONE, Fields.LONG), beanContext);
-            }
-          });
+          authorizedInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorizedInfo", false),
+                                                                   () -> new AgentAuthorizedInfo(agent, fields.getNestedField("authorizedInfo", Fields.NONE, Fields.LONG),
+                                                                                                 beanContext));
 
           //TODO: review, if it should return all parameters on agent, use #getDefinedParameters()
-          properties = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
-            @Nullable
-            public Properties get() {
-              return new Properties(agent.getAvailableParameters(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG), beanContext);
-            }
-          });
+          properties = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("properties", false), () -> new Properties(agent.getAvailableParameters(), null, fields
+            .getNestedField("properties", Fields.NONE, Fields.LONG), beanContext));
 
           cloudInstance = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("cloudInstance", false, false),
-                                                     () -> {
-                                                       try {
-                                                         return new CloudInstance(
-                                                           beanContext.getSingletonService(CloudInstanceFinder.class).getItem(CloudInstanceFinder.getLocator(agent)),
-                                                           fields.getNestedField("cloudInstance"), beanContext);
-                                                       } catch (NotFoundException e) {
-                                                         //no cloud instance found
-                                                         return null;
-                                                       }
-                                                     });
+                                                                             () -> {
+                                                                               try {
+                                                                                 return new CloudInstance(
+                                                                                   beanContext.getSingletonService(CloudInstanceFinder.class)
+                                                                                              .getItem(CloudInstanceFinder.getLocator(agent)),
+                                                                                   fields.getNestedField("cloudInstance"), beanContext);
+                                                                               } catch (NotFoundException e) {
+                                                                                 //no cloud instance found
+                                                                                 return null;
+                                                                               }
+                                                                             });
 
           compatibilityPolicy = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded(COMPATIBILITY_POLICY, false, false),
-                                           () -> CompatibilityPolicy.getCompatibilityPolicy(agent, fields.getNestedField(COMPATIBILITY_POLICY), beanContext));
+                                                                                   () -> CompatibilityPolicy
+                                                                                     .getCompatibilityPolicy(agent, fields.getNestedField(COMPATIBILITY_POLICY), beanContext));
 
           compatibleBuildTypes =
-            ValueWithDefault.decideDefault(fields.isIncluded(COMPATIBLE_BUILD_TYPES, false, false), new ValueWithDefault.Value<BuildTypes>() {
-              @Nullable
-              public BuildTypes get() {
-                BuildTypeFinder buildTypeFinder = beanContext.getSingletonService(BuildTypeFinder.class);
-                return new BuildTypes(buildTypeFinder.getItems(BuildTypeFinder.getLocatorCompatible(agent)).myEntries, null, fields.getNestedField(COMPATIBLE_BUILD_TYPES), beanContext);
-              }
+            ValueWithDefault.decideDefault(fields.isIncluded(COMPATIBLE_BUILD_TYPES, false, false), () -> {
+              BuildTypeFinder buildTypeFinder = beanContext.getSingletonService(BuildTypeFinder.class);
+              return new BuildTypes(buildTypeFinder.getItems(BuildTypeFinder.getLocatorCompatible(agent)).myEntries, null, fields.getNestedField(COMPATIBLE_BUILD_TYPES),
+                                    beanContext);
             });
-          incompatibleBuildTypes = ValueWithDefault.decideDefault(fields.isIncluded(INCOMPATIBLE_BUILD_TYPES, false, false), new ValueWithDefault.Value<Compatibilities>() {
-            @Nullable
-            public Compatibilities get() {
-              return new Compatibilities(AgentFinder.getIncompatible(agent, null, beanContext.getServiceLocator()), agent, null, fields.getNestedField(INCOMPATIBLE_BUILD_TYPES), beanContext);
-            }
-          });
+          incompatibleBuildTypes = ValueWithDefault.decideDefault(fields.isIncluded(INCOMPATIBLE_BUILD_TYPES, false, false),
+                                                                  () -> new Compatibilities(AgentFinder.getIncompatible(agent, null, beanContext.getServiceLocator()), agent, null,
+                                                                                            fields.getNestedField(INCOMPATIBLE_BUILD_TYPES), beanContext));
         }
       }
 
@@ -268,13 +245,10 @@ public class Agent {
                                                   new PagerData(BuildRequest.getHref(locator)), fields, beanContext);
                                               });
 
-      if(!unknownAgent){
-        pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", false), new ValueWithDefault.Value<AgentPool>() {
-          @Nullable
-          public AgentPool get() {
-            return new AgentPool(beanContext.getSingletonService(AgentPoolFinder.class).getAgentPool(agent), fields.getNestedField("pool"), beanContext);
-          }
-        });
+      if (!unknownAgent) {
+        pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", false),
+                                              () -> new AgentPool(beanContext.getSingletonService(AgentPoolFinder.class).getAgentPool(agent), fields.getNestedField("pool"),
+                                                                  beanContext));
       }
     }
   }
@@ -330,7 +304,7 @@ public class Agent {
       return String.valueOf(agent.isAuthorized());
     } else if ("authToken".equals(name)) {
       serviceLocator.getSingletonService(AccessChecker.class).checkHasPermissionForPool(agent.getAgentPool(), Permission.AUTHORIZE_AGENT, Permission.AUTHORIZE_AGENT_FOR_PROJECT);
-      return String.valueOf(agent.getAuthorizationToken());
+      return agent.getAuthorizationToken();
     }
 
     if ("enabledInfoCommentText".equals(name)) {
@@ -354,11 +328,11 @@ public class Agent {
     }
     SUser currentUser = serviceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     if ("enabled".equals(name)) {
-      agent.setEnabled(Boolean.valueOf(value), currentUser, getActualActionComment(null));
+      agent.setEnabled(Boolean.parseBoolean(value), currentUser, getActualActionComment(null));
       //todo (TeamCity) why not use current user by default?
       return;
     } else if ("authorized".equals(name)) {
-      agent.setAuthorized(Boolean.valueOf(value), currentUser, getActualActionComment(null));
+      agent.setAuthorized(Boolean.parseBoolean(value), currentUser, getActualActionComment(null));
       //todo (TeamCity) why not use current user by default?
       return;
     } else if ("enabledInfoCommentText".equals(name)) {
@@ -387,7 +361,7 @@ public class Agent {
         throw new BadRequestException("Both 'locator' and 'id' attributes are specified. Only one should be present.");
       }
     }
-    if (StringUtil.isEmpty(locatorText)){
+    if (StringUtil.isEmpty(locatorText)) {
       throw new BadRequestException("No agent specified. Either 'id' or 'locator' attribute should be present.");
     }
     return agentFinder.getItem(locatorText);
