@@ -77,7 +77,6 @@ public class Agent {
   @XmlAttribute public String disconnectionComment;  //experimental
   @XmlAttribute public String registrationTimestamp; //experimental
   @XmlAttribute public String host;
-  @XmlAttribute public String os;
   @XmlAttribute public Integer cpuRank;
   @XmlAttribute public Integer port;
   @XmlAttribute public String href;
@@ -171,7 +170,6 @@ public class Agent {
           host = ValueWithDefault.decideDefault(fields.isIncluded("host", false), agent::getHostName);
           cpuRank = ValueWithDefault.decideDefault(fields.isIncluded("cpuRank", false), agent::getCpuBenchmarkIndex);
           port = ValueWithDefault.decideDefault(fields.isIncluded("port", false), agent::getPort);
-          os = ValueWithDefault.decideDefault(fields.isIncluded("os", false), agent::getOperatingSystemName);
           ip = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("ip", false), () -> {
             final String hostAddress = agent.getHostAddress();
             return DeadAgent.NA.equals(hostAddress) ? null : hostAddress;

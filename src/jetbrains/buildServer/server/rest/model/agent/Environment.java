@@ -35,11 +35,14 @@ import org.jetbrains.annotations.NotNull;
 public class Environment {
   @XmlAttribute
   public String osType;
+  @XmlAttribute
+  public String osName;
 
   public Environment() {
   }
 
   public Environment(@NotNull final SBuildAgent agent, @NotNull final Fields fields, final @NotNull BeanContext beanContext) {
     osType = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("osType"), () -> Agent.getAgentOsType(agent));
+    osName = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("osName"), agent::getOperatingSystemName);
   }
 }
