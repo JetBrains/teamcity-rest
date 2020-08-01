@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.agent.*;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
@@ -44,17 +45,27 @@ import java.util.Date;
 
 /**
  * @author Yegor.Yarko
- *         Date: 01.08.2009
+ * Date: 01.08.2009
  */
 @Path(AgentRequest.API_AGENTS_URL)
 @Api("Agent")
 public class AgentRequest {
-  @Context private DataProvider myDataProvider;
-  @Context private ApiUrlBuilder myApiUrlBuilder;
-  @Context @NotNull private AgentPoolFinder myAgentPoolFinder;
-  @Context @NotNull private AgentFinder myAgentFinder;
-  @Context @NotNull private ServiceLocator myServiceLocator;
-  @Context @NotNull private BeanContext myBeanContext;
+  @Context
+  private DataProvider myDataProvider;
+  @Context
+  private ApiUrlBuilder myApiUrlBuilder;
+  @Context
+  @NotNull
+  private AgentPoolFinder myAgentPoolFinder;
+  @Context
+  @NotNull
+  private AgentFinder myAgentFinder;
+  @Context
+  @NotNull
+  private ServiceLocator myServiceLocator;
+  @Context
+  @NotNull
+  private BeanContext myBeanContext;
 
   public static final String API_AGENTS_URL = Constants.API_URL + "/agents";
 
@@ -72,6 +83,7 @@ public class AgentRequest {
 
   /**
    * Returns list of agents
+   *
    * @param includeDisconnected Deprecated, use "locator" parameter instead
    * @param includeUnauthorized Deprecated, use "locator" parameter instead
    * @param locator
@@ -81,13 +93,13 @@ public class AgentRequest {
   @Produces({"application/xml", "application/json"})
   public Agents serveAgents(@ApiParam(hidden = true) @QueryParam("includeDisconnected") Boolean includeDisconnected,
                             @ApiParam(hidden = true) @QueryParam("includeUnauthorized") Boolean includeUnauthorized,
-                            @QueryParam("locator") String locator,
+                            @ApiParam(format = LocatorName.AGENT) @QueryParam(LocatorName.AGENT) String locator,
                             @QueryParam("fields") String fields,
                             @Context UriInfo uriInfo, @Context HttpServletRequest request) {
-    if (locator != null && includeDisconnected != null){
+    if (locator != null && includeDisconnected != null) {
       throw new BadRequestException("Both 'includeDisconnected' URL parameter and '" + AgentFinder.CONNECTED + "' locator dimension are specified. Please use locator only.");
     }
-    if (locator != null && includeUnauthorized != null){
+    if (locator != null && includeUnauthorized != null) {
       throw new BadRequestException("Both 'includeUnauthorized' URL parameter and '" + AgentFinder.AUTHORIZED + "' locator dimension are specified. Please use locator only.");
     }
 
@@ -106,19 +118,20 @@ public class AgentRequest {
     final PagedSearchResult<SBuildAgent> result = myAgentFinder.getItems(locatorToUse);
 
     final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorToUse, "locator");
-    return new Agents(result.myEntries, pager,  new Fields(fields), myBeanContext);
+    return new Agents(result.myEntries, pager, new Fields(fields), myBeanContext);
   }
 
   @GET
   @Path("/{agentLocator}")
   @Produces({"application/xml", "application/json"})
-  public Agent serveAgent(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+  public Agent serveAgent(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                          @QueryParam("fields") String fields) {
     return new Agent(myAgentFinder.getItem(agentLocator), new Fields(fields), myBeanContext);
   }
 
   @DELETE
   @Path("/{agentLocator}")
-  public void deleteAgent(@PathParam("agentLocator") String agentLocator) {
+  public void deleteAgent(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     myServiceLocator.getSingletonService(BuildAgentManager.class).removeAgent(agent, myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser());
   }
@@ -126,17 +139,20 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/pool")
   @Produces({"application/xml", "application/json"})
-  public AgentPool getAgentPool(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+  public AgentPool getAgentPool(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                                @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getAgentPool(agent);
-    return agentPool == null ? null : new AgentPool(agentPool,  new Fields(fields),myBeanContext);
+    return agentPool == null ? null : new AgentPool(agentPool, new Fields(fields), myBeanContext);
   }
 
   @PUT
   @Path("/{agentLocator}/pool")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public AgentPool setAgentPool(@PathParam("agentLocator") String agentLocator, AgentPool agentPool, @QueryParam("fields") String fields) {
+  public AgentPool setAgentPool(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                                AgentPool agentPool,
+                                @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     myDataProvider.addAgentToPool(agentPool.getAgentPoolFromPosted(myAgentPoolFinder), agent.getAgentTypeId());
     final jetbrains.buildServer.serverSide.agentPools.AgentPool foundPool = myAgentPoolFinder.getAgentPool(agent);
@@ -146,7 +162,8 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/enabledInfo")
   @Produces({"application/xml", "application/json"})
-  public AgentEnabledInfo getEnabledInfo(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+  public AgentEnabledInfo getEnabledInfo(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                                         @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     return new AgentEnabledInfo(agent, new Fields(fields), myBeanContext);
   }
@@ -155,17 +172,20 @@ public class AgentRequest {
   @Path("/{agentLocator}/enabledInfo")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public AgentEnabledInfo setEnabledInfo(@PathParam("agentLocator") String agentLocator, AgentEnabledInfo enabledInfo, @QueryParam("fields") String fields) {
+  public AgentEnabledInfo setEnabledInfo(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                                         AgentEnabledInfo enabledInfo,
+                                         @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     if (enabledInfo == null) throw new BadRequestException("No data is sent as payload.");
     String commentText = enabledInfo.getCommentTextFromPosted();
     Boolean value = enabledInfo.getStatusFromPosted();
-    if (value == null && commentText == null) throw new BadRequestException("Neither value nor comment are provided, nothing to change");
+    if (value == null && commentText == null)
+      throw new BadRequestException("Neither value nor comment are provided, nothing to change");
     Date switchTime = enabledInfo.getStatusSwitchTimeFromPosted(myServiceLocator);
     SUser currentUser = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
-    if (switchTime == null){
+    if (switchTime == null) {
       agent.setEnabled(value != null ? value : agent.isEnabled(), currentUser, Agent.getActualActionComment(commentText));
-    } else{
+    } else {
       agent.setEnabled(value != null ? value : agent.isEnabled(), currentUser, Agent.getActualActionComment(commentText), switchTime.getTime());
     }
 
@@ -175,7 +195,8 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/authorizedInfo")
   @Produces({"application/xml", "application/json"})
-  public AgentAuthorizedInfo getAuthorizedInfo(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+  public AgentAuthorizedInfo getAuthorizedInfo(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                                               @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     return new AgentAuthorizedInfo(agent, new Fields(fields), myBeanContext);
   }
@@ -184,12 +205,15 @@ public class AgentRequest {
   @Path("/{agentLocator}/authorizedInfo")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public AgentAuthorizedInfo setAuthorizedInfo(@PathParam("agentLocator") String agentLocator, AgentAuthorizedInfo authorizedInfo, @QueryParam("fields") String fields) {
+  public AgentAuthorizedInfo setAuthorizedInfo(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                                               AgentAuthorizedInfo authorizedInfo,
+                                               @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     if (authorizedInfo == null) throw new BadRequestException("No data is sent as payload.");
     String commentText = authorizedInfo.getCommentTextFromPosted();
     Boolean value = authorizedInfo.getStatusFromPosted();
-    if (value == null && commentText == null) throw new BadRequestException("Neither value nor comment are provided, nothing to change");
+    if (value == null && commentText == null)
+      throw new BadRequestException("Neither value nor comment are provided, nothing to change");
     agent.setAuthorized(value != null ? value : agent.isAuthorized(), myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser(), Agent.getActualActionComment(commentText));
 
     return new AgentAuthorizedInfo(agent, new Fields(fields), myBeanContext);
@@ -198,7 +222,8 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/{field}")
   @Produces("text/plain")
-  public String serveAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName) {
+  public String serveAgentField(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                                @PathParam("field") String fieldName) {
     return Agent.getFieldValue(myAgentFinder.getItem(agentLocator), fieldName, myServiceLocator);
   }
 
@@ -208,9 +233,10 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/compatibleBuildTypes")
   @Produces({"application/xml", "application/json"})
-  public BuildTypes getCompatibleBuildTypes(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+  public BuildTypes getCompatibleBuildTypes(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                                            @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    if (!AuthUtil.canViewAgentDetails(myBeanContext.getServiceLocator().getSingletonService(SecurityContext.class).getAuthorityHolder(), agent)){
+    if (!AuthUtil.canViewAgentDetails(myBeanContext.getServiceLocator().getSingletonService(SecurityContext.class).getAuthorityHolder(), agent)) {
       throw new AuthorizationFailedException("No permission to view agent details");
     }
     Fields fieldsDefinition = new Fields(Agent.COMPATIBLE_BUILD_TYPES + "(" + (StringUtil.isEmpty(fields) ? "$long" : fields) + ")");
@@ -223,9 +249,10 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/incompatibleBuildTypes")
   @Produces({"application/xml", "application/json"})
-  public Compatibilities geIncompatibleBuildTypes(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+  public Compatibilities geIncompatibleBuildTypes(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                                                  @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-    if (!AuthUtil.canViewAgentDetails(myBeanContext.getServiceLocator().getSingletonService(SecurityContext.class).getAuthorityHolder(), agent)){
+    if (!AuthUtil.canViewAgentDetails(myBeanContext.getServiceLocator().getSingletonService(SecurityContext.class).getAuthorityHolder(), agent)) {
       throw new AuthorizationFailedException("No permission to view agent details");
     }
     Fields fieldsDefinition = new Fields(Agent.INCOMPATIBLE_BUILD_TYPES + "(" + (StringUtil.isEmpty(fields) ? "$long" : fields) + ")");
@@ -238,7 +265,8 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/compatibilityPolicy")
   @Produces({"application/xml", "application/json"})
-  public CompatibilityPolicy getAllowedRunConfigurations(@PathParam("agentLocator") String agentLocator, @QueryParam("fields") String fields) {
+  public CompatibilityPolicy getAllowedRunConfigurations(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                                                         @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     return CompatibilityPolicy.getCompatibilityPolicy(agent, new Fields(fields), myBeanContext);
   }
@@ -250,7 +278,9 @@ public class AgentRequest {
   @Path("/{agentLocator}/compatibilityPolicy")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public CompatibilityPolicy setAllowedRunConfigurations(@PathParam("agentLocator") String agentLocator, CompatibilityPolicy payload, @QueryParam("fields") String fields) {
+  public CompatibilityPolicy setAllowedRunConfigurations(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                                                         CompatibilityPolicy payload,
+                                                         @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     payload.applyTo(agent, myServiceLocator);
     return CompatibilityPolicy.getCompatibilityPolicy(agent, new Fields(fields), myBeanContext);
@@ -260,7 +290,9 @@ public class AgentRequest {
   @Path("/{agentLocator}/{field}")
   @Consumes("text/plain")
   @Produces("text/plain")
-  public String setAgentField(@PathParam("agentLocator") String agentLocator, @PathParam("field") String fieldName, String value) {
+  public String setAgentField(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
+                              @PathParam("field") String fieldName,
+                              String value) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     Agent.setFieldValue(agent, fieldName, value, myServiceLocator);
     return Agent.getFieldValue(agent, fieldName, myServiceLocator);

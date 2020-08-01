@@ -28,8 +28,9 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
 import jetbrains.buildServer.server.rest.request.Constants;
-import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
-import jetbrains.buildServer.server.rest.swagger.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -49,7 +50,7 @@ import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimensio
  * @author Yegor.Yarko
  *         Date: 09.08.17
  */
-@LocatorResource("MuteLocator")
+@LocatorResource(LocatorName.MUTE)
 public class MuteFinder extends DelegatingFinder<MuteInfo> {
   @LocatorDimension("id") private static final Dimension<Long> ID = new Dimension<>("id");
   @LocatorDimension("affectedProject") private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");

@@ -25,8 +25,9 @@ import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
-import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
-import jetbrains.buildServer.server.rest.swagger.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.db.DBActionNoResults;
 import jetbrains.buildServer.serverSide.db.DBException;
@@ -47,7 +48,7 @@ import java.util.stream.Collectors;
  * @author Yegor.Yarko
  *         Date: 18.11.13
  */
-@LocatorResource(value = "ProblemOccurrenceLocator", extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT})
+@LocatorResource(value = LocatorName.PROBLEM_OCCURRENCE, extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT})
 public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   private static final Logger LOG = Logger.getInstance(ProblemOccurrenceFinder.class.getName());
 

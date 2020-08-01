@@ -30,8 +30,9 @@ import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
-import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
-import jetbrains.buildServer.server.rest.swagger.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
@@ -50,7 +51,7 @@ import java.util.List;
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
-@LocatorResource(value = "InvestigationLocator", extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT})
+@LocatorResource(value = LocatorName.INVESTIGATION, extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT})
 public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   @LocatorDimension("problem") private static final String PROBLEM_DIMENSION = "problem";
   @LocatorDimension("test") private static final String TEST_DIMENSION = "test";

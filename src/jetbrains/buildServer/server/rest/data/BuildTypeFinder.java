@@ -28,8 +28,9 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
-import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
-import jetbrains.buildServer.server.rest.swagger.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
@@ -53,7 +54,7 @@ import java.util.stream.Collectors;
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
-@LocatorResource(value = "BuildTypeLocator", extraDimensions = {Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT})
+@LocatorResource(value = LocatorName.BUILD_TYPE, extraDimensions = {Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT})
 public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   private static final Logger LOG = Logger.getInstance(BuildTypeFinder.class.getName());
 

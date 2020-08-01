@@ -22,8 +22,9 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.RelatedEntity;
 import jetbrains.buildServer.server.rest.request.Constants;
-import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
-import jetbrains.buildServer.server.rest.swagger.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.audit.*;
@@ -43,7 +44,7 @@ import java.util.stream.Collectors;
 import static jetbrains.buildServer.server.rest.data.FinderDataBinding.getItemHolder;
 import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 
-@LocatorResource("AuditLocator")
+@LocatorResource(LocatorName.AUDIT)
 public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
   private static final Logger LOG = Logger.getInstance(AuditEventFinder.class.getName());
 

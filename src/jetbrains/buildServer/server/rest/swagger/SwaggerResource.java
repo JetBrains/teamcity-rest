@@ -27,7 +27,6 @@ import io.swagger.config.SwaggerConfig;
 import io.swagger.converter.ModelConverters;
 import io.swagger.core.filter.SpecFilter;
 import io.swagger.core.filter.SwaggerSpecFilter;
-import io.swagger.jackson.ModelResolver;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.config.ReaderConfig;
 import io.swagger.models.Model;
@@ -96,7 +95,7 @@ public class SwaggerResource {
       Yaml.mapper().registerModule(new JaxbAnnotationModule());
       final JacksonObjectMapperResolver resolver = myDataProvider.getBean(JacksonObjectMapperResolver.class);
       final ObjectMapper mapper = resolver.getContext(ObjectMapper.class);
-      ModelConverters.getInstance().addConverter(new ModelResolver(mapper));
+      ModelConverters.getInstance().addConverter(new ExtensionModelResolver(mapper));
 
       // Let's create swagger and populate it
 

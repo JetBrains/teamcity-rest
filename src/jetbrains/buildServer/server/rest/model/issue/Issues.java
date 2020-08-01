@@ -16,17 +16,23 @@
 
 package jetbrains.buildServer.server.rest.model.issue;
 
+import io.swagger.annotations.ExtensionProperty;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
 @XmlRootElement(name = "issues")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
 public class Issues {
   @XmlElement(name = "issue")
   public List<Issue> issues;

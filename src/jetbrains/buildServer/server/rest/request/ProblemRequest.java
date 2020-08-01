@@ -17,10 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
+import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
@@ -30,8 +27,14 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.Problem;
 import jetbrains.buildServer.server.rest.model.problem.Problems;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import org.jetbrains.annotations.NotNull;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 
 /**
  * @author Yegor.Yarko
@@ -65,7 +68,10 @@ public class ProblemRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public Problems getProblems(@QueryParam("locator") String locatorText, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public Problems getProblems(@ApiParam(format = LocatorName.PROBLEM) @QueryParam("locator") String locatorText,
+                              @QueryParam("fields") String fields,
+                              @Context UriInfo uriInfo,
+                              @Context HttpServletRequest request) {
     final PagedSearchResult<ProblemWrapper> result = myProblemFinder.getItems(locatorText);
 
     return new Problems(result.myEntries,
@@ -77,7 +83,8 @@ public class ProblemRequest {
   @GET
   @Path("/{problemLocator}")
   @Produces({"application/xml", "application/json"})
-  public Problem serveInstance(@PathParam("problemLocator") String locatorText, @QueryParam("fields") String fields) {
+  public Problem serveInstance(@ApiParam(format = LocatorName.PROBLEM) @PathParam("problemLocator") String locatorText,
+                               @QueryParam("fields") String fields) {
     return new Problem(myProblemFinder.getItem(locatorText), new Fields(fields), myBeanContext);
   }
 }

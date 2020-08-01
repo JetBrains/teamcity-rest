@@ -16,14 +16,12 @@
 
 package jetbrains.buildServer.server.rest.data.build;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.TagData;
@@ -33,15 +31,22 @@ import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Stream;
+
 /**
  * @author Yegor.Yarko
  *         Date: 26.11.2014
  */
+@LocatorResource(LocatorName.TAG)
 public class TagFinder extends AbstractFinder<TagData> {
 
-  public static final String NAME = "name";
-  public static final String PRIVATE = "private";
-  public static final String OWNER = "owner";
+  @LocatorDimension("name") public static final String NAME = "name";
+  @LocatorDimension("private") public static final String PRIVATE = "private";
+  @LocatorDimension("owner") public static final String OWNER = "owner";
   protected static final String CONDITION = "condition";
 
   @NotNull private final UserFinder myUserFinder;

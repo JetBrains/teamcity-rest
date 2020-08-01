@@ -16,10 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.agent;
 
-import java.util.Date;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.agent.OSKind;
@@ -49,6 +45,11 @@ import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Date;
 
 /**
  * @author Yegor.Yarko

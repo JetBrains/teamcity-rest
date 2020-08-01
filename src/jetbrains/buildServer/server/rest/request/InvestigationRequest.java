@@ -17,11 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import java.util.List;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
+import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
@@ -33,10 +29,17 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.STest;
 import org.jetbrains.annotations.NotNull;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
+import java.util.List;
 
 /**
  *  Experimental, the requests and results returned will change in future versions!
@@ -100,7 +103,8 @@ public class InvestigationRequest {
   @GET
   @Path("/{investigationLocator}")
   @Produces({"application/xml", "application/json"})
-  public Investigation serveInstance(@PathParam("investigationLocator") String locatorText, @QueryParam("fields") String fields) {
+  public Investigation serveInstance(@ApiParam(format = LocatorName.INVESTIGATION) @PathParam("investigationLocator") String locatorText,
+                                     @QueryParam("fields") String fields) {
     return new Investigation(myInvestigationFinder.getItem(locatorText), new Fields(fields),
                              myBeanContext);
   }
@@ -108,7 +112,7 @@ public class InvestigationRequest {
   @DELETE
   @Path("/{investigationLocator}")
   @Produces({"application/xml", "application/json"})
-  public void deleteInstance(@PathParam("investigationLocator") String locatorText) {
+  public void deleteInstance(@ApiParam(format = LocatorName.INVESTIGATION) @PathParam("investigationLocator") String locatorText) {
     InvestigationWrapper item = myInvestigationFinder.getItem(locatorText);
     item.remove(myServiceLocator);
   }
@@ -117,7 +121,9 @@ public class InvestigationRequest {
   @Path("/{investigationLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Investigation replaceInstance(@PathParam("investigationLocator") String locatorText, Investigation investigation, @QueryParam("fields") String fields) {
+  public Investigation replaceInstance(@ApiParam(format = LocatorName.INVESTIGATION) @PathParam("investigationLocator") String locatorText,
+                                       Investigation investigation,
+                                       @QueryParam("fields") String fields) {
     InvestigationWrapper item = myInvestigationFinder.getItem(locatorText);
     item.remove(myServiceLocator);
     return createInstance(investigation, fields);

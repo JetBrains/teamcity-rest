@@ -21,8 +21,9 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.server.rest.swagger.LocatorDimension;
-import jetbrains.buildServer.server.rest.swagger.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
@@ -44,7 +45,7 @@ import java.util.*;
  * @author Yegor.Yarko
  *         Date: 07.11.13
  */
-@LocatorResource("AgentPoolLocator")
+@LocatorResource(LocatorName.AGENT_POOL)
 public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
   @NotNull private final AgentPoolManager myAgentPoolManager;
   @NotNull private final ServiceLocator myServiceLocator;

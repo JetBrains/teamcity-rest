@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.swagger;
+package jetbrains.buildServer.server.rest.swagger.annotations;
 
-import com.sun.jersey.spi.scanning.AnnotationScannerListener;
-import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import io.swagger.annotations.ExtensionProperty;
 
-public final class LocatorResourceListener extends AnnotationScannerListener {
-  public LocatorResourceListener() {
-    super(LocatorResource.class);
-  }
+import java.lang.annotation.*;
 
-  public LocatorResourceListener(ClassLoader classloader) {
-    super(classloader, LocatorResource.class);
-  }
+@Target({ElementType.TYPE, ElementType.PARAMETER})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Extension {
+  ExtensionProperty[] properties();
 }

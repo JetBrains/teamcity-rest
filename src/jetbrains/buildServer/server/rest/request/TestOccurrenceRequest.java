@@ -17,10 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
+import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
@@ -29,11 +26,17 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 
 /**
  * @author Yegor.Yarko
@@ -74,7 +77,7 @@ public class TestOccurrenceRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public TestOccurrences getTestOccurrences(@QueryParam("locator") String locatorText,
+  public TestOccurrences getTestOccurrences(@ApiParam(format = LocatorName.TEST_OCCURRENCE) @QueryParam("locator") String locatorText,
                                             @QueryParam("fields") String fields,
                                             @Context UriInfo uriInfo,
                                             @Context HttpServletRequest request) {
@@ -91,7 +94,8 @@ public class TestOccurrenceRequest {
   @GET
   @Path("/{testLocator}")
   @Produces({"application/xml", "application/json"})
-  public TestOccurrence serveInstance(@PathParam("testLocator") String locatorText, @QueryParam("fields") String fields) {
+  public TestOccurrence serveInstance(@ApiParam(format = LocatorName.TEST_OCCURRENCE) @PathParam("testLocator") String locatorText,
+                                      @QueryParam("fields") String fields) {
     return new TestOccurrence(myTestOccurrenceFinder.getItem(locatorText), myBeanContext, new Fields(fields));
   }
 

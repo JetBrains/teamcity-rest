@@ -16,20 +16,23 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SimpleParameter;
 import org.jetbrains.annotations.NotNull;
+
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Yegor.Yarko
@@ -38,6 +41,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "testRunMetadata")
 @XmlType(name = "testRunMetadata", propOrder = {"count", "typedValues"})
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = ObjectType.LIST)
 public class TestRunMetadata implements DefaultValueAware {
   @XmlElement(name = "typedValues") public List<TypedValue> typedValues;
   @XmlAttribute public Integer count;

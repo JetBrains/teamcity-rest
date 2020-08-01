@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -30,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.model.user.*;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -88,13 +90,14 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
-  public User serveUser(@PathParam("userLocator") String userLocator, @QueryParam("fields") String fields) {
+  public User serveUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                        @QueryParam("fields") String fields) {
     return new User(myUserFinder.getItem(userLocator, true), new Fields(fields), myBeanContext);
   }
 
   @DELETE
   @Path("/{userLocator}")
-  public void deleteUser(@PathParam("userLocator") String userLocator) {
+  public void deleteUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
     final SUser user = myUserFinder.getItem(userLocator, true);
     myDataProvider.getServer().getSingletonService(UserModel.class).removeUserAccount(user.getId());
   }
@@ -103,7 +106,9 @@ public class UserRequest {
   @Path("/{userLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public User updateUser(@PathParam("userLocator") String userLocator, User userData, @QueryParam("fields") String fields) {
+  public User updateUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                         User userData,
+                         @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
     myDataUpdater.modify(user, userData, myBeanContext.getServiceLocator());
     return new User(user,  new Fields(fields), myBeanContext);
@@ -112,7 +117,8 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/{field}")
   @Produces("text/plain")
-  public String serveUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName) {
+  public String serveUserField(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                               @PathParam("field") String fieldName) {
     return User.getFieldValue(myUserFinder.getItem(userLocator, true), fieldName, myBeanContext.getServiceLocator());
   }
 
@@ -120,14 +126,17 @@ public class UserRequest {
   @Path("/{userLocator}/{field}")
   @Consumes("text/plain")
   @Produces("text/plain")
-  public String setUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName, String value) {
+  public String setUserField(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                             @PathParam("field") String fieldName,
+                             String value) {
     final SUser user = myUserFinder.getItem(userLocator, true);
     return User.setFieldValue(user, fieldName, value, myBeanContext.getServiceLocator());
   }
 
   @DELETE
   @Path("/{userLocator}/{field}")
-  public void deleteUserField(@PathParam("userLocator") String userLocator, @PathParam("field") String fieldName) {
+  public void deleteUserField(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                              @PathParam("field") String fieldName) {
     final SUser user = myUserFinder.getItem(userLocator, true);
     User.deleteField(user, fieldName);
   }
@@ -136,7 +145,8 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/properties")
   @Produces({"application/xml", "application/json"})
-  public Properties serveUserProperties(@PathParam("userLocator") String userLocator, @QueryParam("fields") String fields) {
+  public Properties serveUserProperties(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                                        @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
 
     return new Properties(User.getProperties(user), null, new Fields(fields), myBeanContext);
@@ -145,7 +155,8 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/properties/{name}")
   @Produces("text/plain")
-  public String serveUserProperty(@PathParam("userLocator") String userLocator, @PathParam("name") String parameterName) {
+  public String serveUserProperty(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                                  @PathParam("name") String parameterName) {
     return BuildTypeUtil.getParameter(parameterName, User.getProperties(myUserFinder.getItem(userLocator, true)), true, true, myBeanContext.getServiceLocator());
   }
 
@@ -153,9 +164,9 @@ public class UserRequest {
   @Path("/{userLocator}/properties/{name}")
   @Consumes("text/plain")
   @Produces("text/plain")
-  public String putUserProperty(@PathParam("userLocator") String userLocator,
-                              @PathParam("name") String name,
-                              String newValue) {
+  public String putUserProperty(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                                @PathParam("name") String name,
+                                String newValue) {
     SUser user = myUserFinder.getItem(userLocator, true);
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Property name cannot be empty.");
@@ -167,7 +178,7 @@ public class UserRequest {
 
   @DELETE
   @Path("/{userLocator}/properties/{name}")
-  public void removeUserProperty(@PathParam("userLocator") String userLocator,
+  public void removeUserProperty(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                  @PathParam("name") String name) {
     SUser user = myUserFinder.getItem(userLocator, true);
     if (StringUtil.isEmpty(name)) {
@@ -181,7 +192,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/roles")
   @Produces({"application/xml", "application/json"})
-  public RoleAssignments listRoles(@PathParam("userLocator") String userLocator) {
+  public RoleAssignments listRoles(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
     SUser user = myUserFinder.getItem(userLocator, true);
     return new RoleAssignments(user.getRoles(), user, myBeanContext);
   }
@@ -194,7 +205,8 @@ public class UserRequest {
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public RoleAssignments replaceRoles(@PathParam("userLocator") String userLocator, RoleAssignments roleAssignments) {
+  public RoleAssignments replaceRoles(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                                      RoleAssignments roleAssignments) {
     SUser user = myUserFinder.getItem(userLocator, true);
     for (RoleEntry roleEntry : user.getRoles()) {
       user.removeRole(roleEntry.getScope(), roleEntry.getRole());
@@ -209,7 +221,8 @@ public class UserRequest {
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public RoleAssignment addRole(@PathParam("userLocator") String userLocator, RoleAssignment roleAssignment) {
+  public RoleAssignment addRole(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                                RoleAssignment roleAssignment) {
     SUser user = myUserFinder.getItem(userLocator, true);
     user.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleAssignment.roleId, myBeanContext.getServiceLocator()));
     return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleAssignment.roleId, roleAssignment.scope, myBeanContext), user, myBeanContext);
@@ -218,7 +231,8 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   @Produces({"application/xml", "application/json"})
-  public RoleAssignment listRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
+  public RoleAssignment listRole(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                                 @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getItem(userLocator, true);
     return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleId, scopeValue, myBeanContext), user, myBeanContext);
@@ -226,7 +240,8 @@ public class UserRequest {
 
   @DELETE
   @Path("/{userLocator}/roles/{roleId}/{scope}")
-  public void deleteRole(@PathParam("userLocator") String userLocator, @PathParam("roleId") String roleId,
+  public void deleteRole(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                         @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getItem(userLocator, true);
     user.removeRole(RoleAssignment.getScope(scopeValue, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleId, myBeanContext.getServiceLocator()));
@@ -240,7 +255,7 @@ public class UserRequest {
   @POST
   @ApiOperation(value = "addRoleSimplePost", hidden = true)
   @Path("/{userLocator}/roles/{roleId}/{scope}")
-  public void addRoleSimplePost(@PathParam("userLocator") String userLocator,
+  public void addRoleSimplePost(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                 @PathParam("roleId") String roleId,
                                 @PathParam("scope") String scopeValue) {
     addRoleSimple(userLocator, roleId, scopeValue);
@@ -249,9 +264,9 @@ public class UserRequest {
   @PUT
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   @Produces({"application/xml", "application/json"})
-  public RoleAssignment addRoleSimple(@PathParam("userLocator") String userLocator,
-                            @PathParam("roleId") String roleId,
-                            @PathParam("scope") String scopeValue) {
+  public RoleAssignment addRoleSimple(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                                      @PathParam("roleId") String roleId,
+                                      @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getItem(userLocator, true);
     user.addRole(RoleAssignment.getScope(scopeValue, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleId, myBeanContext.getServiceLocator()));
     return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleId, scopeValue, myBeanContext), user, myBeanContext);
@@ -260,7 +275,8 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/groups")
   @Produces({"application/xml", "application/json"})
-  public Groups getGroups(@PathParam("userLocator") String userLocator, @QueryParam("fields") String fields) {
+  public Groups getGroups(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                          @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
     return new Groups(user.getUserGroups(),  new Fields(fields), myBeanContext);
   }
@@ -272,7 +288,9 @@ public class UserRequest {
   @Path("/{userLocator}/groups")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Groups replaceGroups(@PathParam("userLocator") String userLocator, Groups groups, @QueryParam("fields") String fields) {
+  public Groups replaceGroups(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                              Groups groups,
+                              @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
     myDataUpdater.replaceUserGroups(user, groups.getFromPosted(myDataProvider.getServer()));
     return new Groups(user.getUserGroups(),  new Fields(fields), myBeanContext);
@@ -282,7 +300,9 @@ public class UserRequest {
   @Path("/{userLocator}/groups")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Group addGroup(@PathParam("userLocator") String userLocator, Group group, @QueryParam("fields") String fields) {
+  public Group addGroup(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                        Group group,
+                        @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
     SUserGroup userGroup = group.getFromPosted(myBeanContext.getServiceLocator());
     userGroup.addUser(user);
@@ -292,7 +312,9 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/groups/{groupLocator}")
   @Produces({"application/xml", "application/json"})
-  public Group getGroup(@PathParam("userLocator") String userLocator, @PathParam("groupLocator") String groupLocator, @QueryParam("fields") String fields) {
+  public Group getGroup(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                        @PathParam("groupLocator") String groupLocator,
+                        @QueryParam("fields") String fields) {
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
       myUserFinder.checkViewAllUsersPermission();
     }
@@ -306,7 +328,9 @@ public class UserRequest {
 
   @DELETE
   @Path("/{userLocator}/groups/{groupLocator}")
-  public void removeGroup(@PathParam("userLocator") String userLocator, @PathParam("groupLocator") String groupLocator, @QueryParam("fields") String fields) {
+  public void removeGroup(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                          @PathParam("groupLocator") String groupLocator,
+                          @QueryParam("fields") String fields) {
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
       myUserFinder.checkViewAllUsersPermission();
     }
@@ -321,7 +345,7 @@ public class UserRequest {
   @POST
   @Path("/{userLocator}/tokens/{name}")
   @Produces({"application/xml", "application/json"})
-  public Token createToken(@PathParam("userLocator") String userLocator,
+  public Token createToken(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                            @PathParam("name") @NotNull final String name,
                            @QueryParam("fields") String fields) {
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
@@ -340,7 +364,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/tokens")
   @Produces({"application/xml", "application/json"})
-  public Tokens getTokens(@PathParam("userLocator") String userLocator,
+  public Tokens getTokens(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                           @QueryParam("fields") String fields,
                           @Context @NotNull final BeanContext beanContext) {
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
@@ -353,7 +377,7 @@ public class UserRequest {
 
   @DELETE
   @Path("/{userLocator}/tokens/{name}")
-  public void deleteToken(@PathParam("userLocator") String userLocator,
+  public void deleteToken(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                           @PathParam("name") @NotNull final String name,
                           @Context @NotNull final BeanContext beanContext) {
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
@@ -374,7 +398,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/debug/permissions")
   @Produces({"text/plain"})
-  public String getPermissions(@PathParam("userLocator") String userLocator) {
+  public String getPermissions(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
     if (!TeamCityProperties.getBoolean("rest.debug.permissionsList.enable")) {
       throw new BadRequestException("Request is not enabled. Set \"rest.debug.permissionsList.enable\" internal property to enable.");
     }
@@ -392,7 +416,9 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/permissions")
   @Produces({"application/xml", "application/json"})
-  public PermissionAssignments getPermissions(@PathParam("userLocator") String userLocator, @QueryParam("locator") String permissionLocator, @QueryParam("fields") String fields) {
+  public PermissionAssignments getPermissions(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                                              @QueryParam("locator") String permissionLocator,
+                                              @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
     PermissionChecker permissionChecker = myBeanContext.getSingletonService(PermissionChecker.class);
     permissionChecker.getServerActionChecker().checkCanViewUserProfile(user);
@@ -405,7 +431,7 @@ public class UserRequest {
   @DELETE
   @Path("/{userLocator}/debug/rememberMe")
   @Produces({"text/plain"})
-  public void deleteRememberMe(@PathParam("userLocator") String userLocator) {
+  public void deleteRememberMe(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
     SUser user = myUserFinder.getItem(userLocator, true);
     PermissionChecker permissionChecker = myBeanContext.getSingletonService(PermissionChecker.class);
     jetbrains.buildServer.users.User currentUser = permissionChecker.getCurrent().getAssociatedUser();

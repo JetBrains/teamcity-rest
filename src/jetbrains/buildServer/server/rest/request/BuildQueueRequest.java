@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.Function;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
@@ -32,6 +33,7 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.tags.TagsManager;
@@ -86,7 +88,10 @@ public class BuildQueueRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public Builds getBuilds(@QueryParam("locator") String locator, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public Builds getBuilds(@ApiParam(format = LocatorName.BUILD_QUEUE) @QueryParam("locator") String locator,
+                          @QueryParam("fields") String fields,
+                          @Context UriInfo uriInfo,
+                          @Context HttpServletRequest request) {
     final PagedSearchResult<SQueuedBuild> result = myQueuedBuildFinder.getItems(locator);
 
     final List<BuildPromotion> builds = CollectionsUtil.convertCollection(result.myEntries, new Converter<BuildPromotion, SQueuedBuild>() {
@@ -107,7 +112,10 @@ public class BuildQueueRequest {
    * @return
    */
   @DELETE
-  public void deleteBuildsExperimental(@QueryParam("locator") String locator, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public void deleteBuildsExperimental(@ApiParam(format = LocatorName.BUILD_QUEUE) @QueryParam("locator") String locator,
+                                       @QueryParam("fields") String fields,
+                                       @Context UriInfo uriInfo,
+                                       @Context HttpServletRequest request) {
     final PagedSearchResult<SQueuedBuild> result = myQueuedBuildFinder.getItems(locator);
     final List<Throwable> errors = new ArrayList<Throwable>();
 
@@ -242,7 +250,10 @@ public class BuildQueueRequest {
   @GET
   @Path("/{queuedBuildLocator}")
   @Produces({"application/xml", "application/json"})
-  public Build getBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletResponse response) {
+  public Build getBuild(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("queuedBuildLocator") String queuedBuildLocator,
+                        @QueryParam("fields") String fields,
+                        @Context UriInfo uriInfo,
+                        @Context HttpServletResponse response) {
     //also find already started builds
     BuildPromotion buildPromotion = myQueuedBuildFinder.getBuildPromotionByBuildQueueLocator(queuedBuildLocator);
     //todo: handle build merges in the queue (TW-33260)
@@ -251,7 +262,7 @@ public class BuildQueueRequest {
 
   @DELETE
   @Path("/{queuedBuildLocator}")
-  public void deleteBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator) {
+  public void deleteBuild(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("queuedBuildLocator") String queuedBuildLocator) {
     SQueuedBuild build = myQueuedBuildFinder.getItem(queuedBuildLocator);
     cancelQueuedBuild(build, null);
 
@@ -266,7 +277,7 @@ public class BuildQueueRequest {
   @GET
   @Path("/{buildLocator}/example/buildCancelRequest")
   @Produces({"application/xml", "application/json"})
-  public BuildCancelRequest getCancelBuild(@PathParam("buildLocator") String buildLocator) {
+  public BuildCancelRequest getCancelBuild(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("buildLocator") String buildLocator) {
     return new BuildCancelRequest("example build cancel comment", false);
   }
 
@@ -274,7 +285,8 @@ public class BuildQueueRequest {
   @Path("/{queuedBuildLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Build cancelBuild(@PathParam("queuedBuildLocator") String queuedBuildLocator, BuildCancelRequest cancelRequest) {
+  public Build cancelBuild(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("queuedBuildLocator") String queuedBuildLocator,
+                           BuildCancelRequest cancelRequest) {
     if (cancelRequest.readdIntoQueue) {
       throw new BadRequestException("Restore in queue is not supported for queued builds.");
     }
@@ -298,14 +310,17 @@ public class BuildQueueRequest {
   @GET
   @Path("/{queuedBuildLocator}" + COMPATIBLE_AGENTS)
   @Produces({"application/xml", "application/json"})
-  public Agents serveCompatibleAgents(@PathParam("queuedBuildLocator") String queuedBuildLocator, @QueryParam("fields") String fields) {
+  public Agents serveCompatibleAgents(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("queuedBuildLocator") String queuedBuildLocator,
+                                      @QueryParam("fields") String fields) {
     return new Agents(AgentFinder.getCompatibleAgentsLocator(myQueuedBuildFinder.getItem(queuedBuildLocator).getBuildPromotion()), null,  new Fields(fields), myBeanContext);
   }
 
   @GET
   @Path("/{buildLocator}/tags/")
   @Produces({"application/xml", "application/json"})
-  public Tags serveTags(@PathParam("buildLocator") String buildLocator, @QueryParam("locator") String tagLocator, @QueryParam("fields") String fields) {
+  public Tags serveTags(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("buildLocator") String buildLocator,
+                        @QueryParam("locator") String tagLocator,
+                        @QueryParam("fields") String fields) {
     BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(Locator.createLocator(buildLocator, getBuildPromotionLocatorDefaults(), null).getStringRepresentation());
     return new Tags(new TagFinder(myBeanContext.getSingletonService(UserFinder.class), buildPromotion).getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries,
                     new Fields(fields), myBeanContext);
@@ -320,7 +335,9 @@ public class BuildQueueRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Tags replaceTags(@PathParam("buildLocator") String buildLocator, @QueryParam("locator") String tagLocator, Tags tags,
+  public Tags replaceTags(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("buildLocator") String buildLocator,
+                          @ApiParam(format = LocatorName.TAG) @QueryParam("locator") String tagLocator,
+                          Tags tags,
                           @QueryParam("fields") String fields, @Context HttpServletRequest request) {
     BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(Locator.createLocator(buildLocator, getBuildPromotionLocatorDefaults(), null).getStringRepresentation());
     final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), buildPromotion);
@@ -340,7 +357,9 @@ public class BuildQueueRequest {
   @POST
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
-  public void addTags(@PathParam("buildLocator") String buildLocator, Tags tags, @Context HttpServletRequest request) {
+  public void addTags(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                      Tags tags,
+                      @Context HttpServletRequest request) {
     BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(Locator.createLocator(buildLocator, getBuildPromotionLocatorDefaults(), null).getStringRepresentation());
     final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
 
@@ -358,7 +377,9 @@ public class BuildQueueRequest {
   @Consumes({"text/plain"})
   @Produces({"text/plain"})
   @ApiOperation(hidden = true, value = "Use addTags instead")
-  public String addTag(@PathParam("buildLocator") String buildLocator, String tagName, @Context HttpServletRequest request) {
+  public String addTag(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                       String tagName,
+                       @Context HttpServletRequest request) {
     if (StringUtil.isEmpty(tagName)) { //check for empty tags: http://youtrack.jetbrains.com/issue/TW-34426
       throw new BadRequestException("Cannot apply empty tag, should have non empty request body");
     }
@@ -381,7 +402,7 @@ public class BuildQueueRequest {
   @GET
   @Path("/{buildLocator}/{field}")
   @Produces("text/plain")
-  public String serveBuildFieldByBuildOnly(@PathParam("buildLocator") String buildLocator,
+  public String serveBuildFieldByBuildOnly(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                            @PathParam("field") String field) {
     final BuildPromotion buildPromotion = myQueuedBuildFinder.getBuildPromotionByBuildQueueLocator(buildLocator);
     return Build.getFieldValue(buildPromotion, field, myBeanContext);

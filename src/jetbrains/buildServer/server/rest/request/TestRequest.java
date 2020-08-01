@@ -17,10 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
+import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
@@ -29,10 +26,16 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.Test;
 import jetbrains.buildServer.server.rest.model.problem.Tests;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.STest;
 import org.jetbrains.annotations.NotNull;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 
 /**
  * @author Yegor.Yarko
@@ -66,7 +69,10 @@ public class TestRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  public Tests getTests(@QueryParam("locator") String locatorText, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
+  public Tests getTests(@ApiParam(format = LocatorName.TEST) @QueryParam("locator") String locatorText,
+                        @QueryParam("fields") String fields,
+                        @Context UriInfo uriInfo,
+                        @Context HttpServletRequest request) {
     final PagedSearchResult<STest> result = myTestFinder.getItems(locatorText);
 
     return new Tests(result.myEntries,
@@ -79,7 +85,8 @@ public class TestRequest {
   @GET
   @Path("/{testLocator}")
   @Produces({"application/xml", "application/json"})
-  public Test serveInstance(@PathParam("testLocator") String locatorText, @QueryParam("fields") String fields) {
+  public Test serveInstance(@ApiParam(format = LocatorName.TEST) @PathParam("testLocator") String locatorText,
+                            @QueryParam("fields") String fields) {
     return new Test(myTestFinder.getItem(locatorText), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder),  new Fields(fields));
   }
 }

@@ -17,12 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import java.util.List;
-import java.util.stream.Collectors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
+import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
@@ -32,10 +27,18 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.Mute;
 import jetbrains.buildServer.server.rest.model.problem.Mutes;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  *  Experimental, the requests and results returned will change in future versions!
@@ -101,7 +104,8 @@ public class MuteRequest {
   @GET
   @Path("/{muteLocator}")
   @Produces({"application/xml", "application/json"})
-  public Mute serveInstance(@PathParam("muteLocator") String locatorText, @QueryParam("fields") String fields) {
+  public Mute serveInstance(@ApiParam(format = LocatorName.MUTE) @PathParam("muteLocator") String locatorText,
+                            @QueryParam("fields") String fields) {
     return new Mute(myMuteFinder.getItem(locatorText), new Fields(fields), myBeanContext);
   }
 
@@ -111,7 +115,8 @@ public class MuteRequest {
   @DELETE
   @Path("/{muteLocator}")
   @Produces({"application/xml", "application/json"})
-  public void deleteInstance(@PathParam("muteLocator") String locatorText, String comment) {
+  public void deleteInstance(@ApiParam(format = LocatorName.MUTE) @PathParam("muteLocator") String locatorText,
+                             String comment) {
     MuteInfo item = myMuteFinder.getItem(locatorText);
     MuteData muteData = new MuteData(item.getScope(), StringUtil.isEmpty(comment) ? null : comment, item.getTests(),
                                      item.getBuildProblemIds().stream().map(i -> i.longValue()).collect(Collectors.toList()), myServiceLocator);

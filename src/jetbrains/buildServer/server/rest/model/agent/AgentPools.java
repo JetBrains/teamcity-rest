@@ -16,28 +16,34 @@
 
 package jetbrains.buildServer.server.rest.model.agent;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 /**
  * @author Yegor.Yarko
- *         Date: 07.11.13
+ * Date: 07.11.13
  */
 @XmlRootElement(name = "agentPools")
 @XmlType(name = "agentPools")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
 @SuppressWarnings("PublicField")
 public class AgentPools {
   @XmlAttribute
@@ -75,22 +81,22 @@ public class AgentPools {
     if (pagerData != null) {
       href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
       nextHref = ValueWithDefault
-        .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
+          .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
       prevHref = ValueWithDefault
-        .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
+          .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
     }
     count = items == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), items.size());
   }
 
   @NotNull
   public List<jetbrains.buildServer.serverSide.agentPools.AgentPool> getPoolsFromPosted(@NotNull final AgentPoolFinder agentPoolFinder) {
-      if (items == null) {
-        throw new BadRequestException("List of agent pools should be supplied");
-      }
-      final ArrayList<jetbrains.buildServer.serverSide.agentPools.AgentPool> result = new ArrayList<jetbrains.buildServer.serverSide.agentPools.AgentPool>(items.size());
-      for (AgentPool agentPool : items) {
-        result.add(agentPool.getAgentPoolFromPosted(agentPoolFinder));
-      }
-      return result;
+    if (items == null) {
+      throw new BadRequestException("List of agent pools should be supplied");
     }
+    final ArrayList<jetbrains.buildServer.serverSide.agentPools.AgentPool> result = new ArrayList<jetbrains.buildServer.serverSide.agentPools.AgentPool>(items.size());
+    for (AgentPool agentPool : items) {
+      result.add(agentPool.getAgentPoolFromPosted(agentPoolFinder));
+    }
+    return result;
+  }
 }

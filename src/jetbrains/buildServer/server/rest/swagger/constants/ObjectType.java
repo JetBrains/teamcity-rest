@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.swagger;
+package jetbrains.buildServer.server.rest.swagger.constants;
 
-import com.sun.jersey.spi.scanning.AnnotationScannerListener;
-import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
-
-public final class LocatorResourceListener extends AnnotationScannerListener {
-  public LocatorResourceListener() {
-    super(LocatorResource.class);
-  }
-
-  public LocatorResourceListener(ClassLoader classloader) {
-    super(classloader, LocatorResource.class);
-  }
+public class ObjectType {
+  public static final String LIST = "ListEntity";
+  public static final String PAGINATED = "PaginatedEntity";
+  public static final String LOCATOR = "LocatorEntity";
+  public static final String DATA = "DataEntity";
 }

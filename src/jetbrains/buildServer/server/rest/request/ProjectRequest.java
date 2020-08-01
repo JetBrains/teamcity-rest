@@ -40,6 +40,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.buildType.NewBuildTypeDescription;
 import jetbrains.buildServer.server.rest.model.project.*;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
@@ -203,13 +204,14 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}")
   @Produces({"application/xml", "application/json"})
-  public Project serveProject(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
+  public Project serveProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                              @QueryParam("fields") String fields) {
     return new Project(myProjectFinder.getItem(projectLocator),  new Fields(fields), myBeanContext);
   }
 
   @DELETE
   @Path("/{projectLocator}")
-  public void deleteProject(@PathParam("projectLocator") String projectLocator) {
+  public void deleteProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator) {
     final SProject project = myProjectFinder.getItem(projectLocator);
     myDataProvider.getServer().getProjectManager().removeProject(project.getProjectId());
   }
@@ -217,7 +219,8 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/{field}")
   @Produces("text/plain")
-  public String serveProjectField(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName) {
+  public String serveProjectField(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                  @PathParam("field") String fieldName) {
     return Project.getFieldValue(myProjectFinder.getItem(projectLocator), fieldName);
   }
 
@@ -225,7 +228,9 @@ public class ProjectRequest {
   @Path("/{projectLocator}/{field}")
   @Consumes("text/plain")
   @Produces("text/plain")
-  public String setProjectField(@PathParam("projectLocator") String projectLocator, @PathParam("field") String fieldName, String newValue) {
+  public String setProjectField(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                @PathParam("field") String fieldName,
+                                String newValue) {
     final SProject project = myProjectFinder.getItem(projectLocator);
     Project.setFieldValueAndPersist(project, fieldName, newValue, myServiceLocator);
     return Project.getFieldValue(project, fieldName);
@@ -253,7 +258,8 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
-  public BuildTypes serveBuildTypesInProject(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
+  public BuildTypes serveBuildTypesInProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                             @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     return new BuildTypes(BuildTypes.fromBuildTypes(project.getOwnBuildTypes()), null, new Fields(fields), myBeanContext);
   }
@@ -263,7 +269,9 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   @Consumes({"text/plain"})
   @ApiOperation(hidden = true, value = "Use createBuildType instead")
-  public BuildType createEmptyBuildType(@PathParam("projectLocator") String projectLocator, String name, @QueryParam("fields") String fields) {
+  public BuildType createEmptyBuildType(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                        String name,
+                                        @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Build type name cannot be empty.");
@@ -285,7 +293,9 @@ public class ProjectRequest {
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
-  public BuildType createBuildType(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor, @QueryParam("fields") String fields) {
+  public BuildType createBuildType(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                   NewBuildTypeDescription descriptor,
+                                   @QueryParam("fields") String fields) {
     @NotNull SProject project = myProjectFinder.getItem(projectLocator);
     SBuildType resultingBuildType;
     @Nullable final BuildTypeOrTemplate sourceBuildType = descriptor.getSourceBuildTypeOrTemplate(myServiceLocator);
@@ -306,7 +316,9 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}")
   @Produces({"application/xml", "application/json"})
-  public BuildType serveBuildType(@PathParam("projectLocator") String projectLocator, @PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
+  public BuildType serveBuildType(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                  @ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
+                                  @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getItem(projectLocator), buildTypeLocator, false);
     return new BuildType(new BuildTypeOrTemplate(buildType),  new Fields(fields), myBeanContext);
   }
@@ -315,7 +327,8 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/templates")
   @Produces({"application/xml", "application/json"})
-  public BuildTypes serveTemplatesInProject(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
+  public BuildTypes serveTemplatesInProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                            @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator, true);
     return new BuildTypes(BuildTypes.fromTemplates(project.getOwnBuildTypeTemplates()), null, new Fields(fields), myBeanContext);
   }
@@ -325,7 +338,9 @@ public class ProjectRequest {
   @Produces({"application/xml", "application/json"})
   @Consumes({"text/plain"})
   @ApiOperation(hidden = true, value = "Use createBuildTypeTemplate instead")
-  public BuildType createEmptyBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, String name, @QueryParam("fields") String fields) {
+  public BuildType createEmptyBuildTypeTemplate(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                                String name,
+                                                @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator, true);
     if (StringUtil.isEmpty(name)) {
       throw new BadRequestException("Build type template name cannot be empty.");
@@ -347,7 +362,9 @@ public class ProjectRequest {
   @Path("/{projectLocator}/templates")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
-  public BuildType createBuildTypeTemplate(@PathParam("projectLocator") String projectLocator, NewBuildTypeDescription descriptor, @QueryParam("fields") String fields) {
+  public BuildType createBuildTypeTemplate(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                           NewBuildTypeDescription descriptor,
+                                           @QueryParam("fields") String fields) {
     @NotNull SProject project = myProjectFinder.getItem(projectLocator, true);
     BuildTypeTemplate resultingBuildType;
     @Nullable final BuildTypeOrTemplate sourceBuildType = descriptor.getSourceBuildTypeOrTemplate(myServiceLocator);
@@ -370,7 +387,9 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/templates/{btLocator}")
   @Produces({"application/xml", "application/json"})
-  public BuildType serveBuildTypeTemplates(@PathParam("projectLocator") String projectLocator, @PathParam("btLocator") String buildTypeLocator, @QueryParam("fields") String fields) {
+  public BuildType serveBuildTypeTemplates(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                           @PathParam("btLocator") String buildTypeLocator,
+                                           @QueryParam("fields") String fields) {
     BuildTypeTemplate buildType = myBuildTypeFinder.getBuildTemplate(myProjectFinder.getItem(projectLocator, true), buildTypeLocator, true);
     return new BuildType(new BuildTypeOrTemplate(buildType),  new Fields(fields), myBeanContext);
   }
@@ -378,7 +397,8 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/defaultTemplate")
   @Produces({"application/xml", "application/json"})
-  public BuildType getDefaultTemplate(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
+  public BuildType getDefaultTemplate(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                      @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator, true);
     BuildType result = Project.getDefaultTemplate(project, new Fields(fields), myBeanContext);
     if (result == null) throw new NotFoundException("No default template present");
@@ -389,7 +409,9 @@ public class ProjectRequest {
   @Path("/{projectLocator}/defaultTemplate")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public BuildType setDefaultTemplate(@PathParam("projectLocator") String projectLocator, BuildType defaultTemplate, @QueryParam("fields") String fields) {
+  public BuildType setDefaultTemplate(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                      BuildType defaultTemplate,
+                                      @QueryParam("fields") String fields) {
     ProjectEx project = (ProjectEx)myProjectFinder.getItem(projectLocator, true);
     if (defaultTemplate == null) throw new BadRequestException("No payload found while template is expected");
     BuildTypeOrTemplate newDefaultTemplate = defaultTemplate.getBuildTypeFromPosted(myBuildTypeFinder);
@@ -415,7 +437,8 @@ public class ProjectRequest {
 
   @DELETE
   @Path("/{projectLocator}/defaultTemplate")
-  public void removeDefaultTemplate(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
+  public void removeDefaultTemplate(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                    @QueryParam("fields") String fields) {
     ProjectEx project = (ProjectEx)myProjectFinder.getItem(projectLocator, true);
     if (project.getOwnDefaultTemplate() == null) throw new NotFoundException("No own default template present");
     project.setDefaultTemplate(null);
@@ -423,7 +446,7 @@ public class ProjectRequest {
   }
 
   @Path("/{projectLocator}" + PARAMETERS)
-  public TypedParametersSubResource getParametersSubResource(@PathParam("projectLocator") String projectLocator){
+  public TypedParametersSubResource getParametersSubResource(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator){
     SProject project = myProjectFinder.getItem(projectLocator, true);
     return new TypedParametersSubResource(myBeanContext, Project.createEntity(project), getParametersHref(project));
   }
@@ -431,8 +454,8 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/{field}")
   @Produces("text/plain")
-  public String serveBuildTypeFieldWithProject(@PathParam("projectLocator") String projectLocator,
-                                               @PathParam("btLocator") String buildTypeLocator,
+  public String serveBuildTypeFieldWithProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                               @ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
                                                @PathParam("field") String fieldName) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(myProjectFinder.getItem(projectLocator), buildTypeLocator, false);
     return buildType.getFieldValue(fieldName, myBeanContext);
@@ -461,8 +484,8 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/builds")
   @Produces({"application/xml", "application/json"})
-  public Builds serveBuilds(@PathParam("projectLocator") String projectLocator,
-                            @PathParam("btLocator") String buildTypeLocator,
+  public Builds serveBuilds(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                            @ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
                             @ApiParam(hidden = true) @QueryParam("status") String status,
                             @ApiParam(hidden = true) @QueryParam("triggeredByUser") String userLocator,
                             @ApiParam(hidden = true) @QueryParam("includePersonal") boolean includePersonal,
@@ -485,9 +508,9 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/builds/{buildLocator}")
   @Produces({"application/xml", "application/json"})
-  public Build serveBuildWithProject(@PathParam("projectLocator") String projectLocator,
-                                     @PathParam("btLocator") String buildTypeLocator,
-                                     @PathParam("buildLocator") String buildLocator,
+  public Build serveBuildWithProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                     @ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
+                                     @ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                      @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getItem(projectLocator), buildTypeLocator, false);
 
@@ -497,9 +520,9 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/builds/{buildLocator}/{field}")
   @Produces("text/plain")
-  public String serveBuildFieldWithProject(@PathParam("projectLocator") String projectLocator,
-                                           @PathParam("btLocator") String buildTypeLocator,
-                                           @PathParam("buildLocator") String buildLocator,
+  public String serveBuildFieldWithProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                           @ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
+                                           @ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                            @PathParam("field") String field) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(myProjectFinder.getItem(projectLocator), buildTypeLocator, false);
     return Build.getFieldValue(myBuildFinder.getBuildPromotion(buildType, buildLocator), field, myBeanContext);
@@ -508,7 +531,7 @@ public class ProjectRequest {
 //todo: add vcs roots and others
 
   @Path("/{projectLocator}" + FEATURES)
-  public ProjectFeatureSubResource getFeatures(@PathParam("projectLocator") String projectLocator) {
+  public ProjectFeatureSubResource getFeatures(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator) {
     final SProject project = myProjectFinder.getItem(projectLocator, true);
     return new ProjectFeatureSubResource(myBeanContext, new FeatureSubResource.Entity<PropEntitiesProjectFeature, PropEntityProjectFeature>() {
 
@@ -577,7 +600,8 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/parentProject")
   @Produces({"application/xml", "application/json"})
-  public Project getParentProject(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
+  public Project getParentProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                  @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     final SProject actualParentProject = project.getParentProject();
     return actualParentProject == null
@@ -589,7 +613,9 @@ public class ProjectRequest {
   @Path("/{projectLocator}/parentProject")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
-  public Project setParentProject(@PathParam("projectLocator") String projectLocator, Project parentProject, @QueryParam("fields") String fields) {
+  public Project setParentProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                  Project parentProject,
+                                  @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     project.moveToProject(parentProject.getProjectFromPosted(myProjectFinder));
     return new Project(project, new Fields(fields), myBeanContext);
@@ -598,14 +624,16 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/agentPools")
   @Produces({"application/xml", "application/json"})
-  public AgentPools getProjectAgentPools(@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
+  public AgentPools getProjectAgentPools(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                         @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     return new AgentPools(myAgentPoolFinder.getPoolsForProject(project), null, new Fields(fields), myBeanContext);
   }
 
   @DELETE
   @Path("/{projectLocator}/agentPools/{agentPoolLocator}")
-  public void deleteProjectAgentPools(@PathParam("projectLocator") String projectLocator, @PathParam("agentPoolLocator") String agentPoolLocator) {
+  public void deleteProjectAgentPools(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                      @PathParam("agentPoolLocator") String agentPoolLocator) {
     SProject project = myProjectFinder.getItem(projectLocator);
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getItem(agentPoolLocator);
     final AgentPoolManager agentPoolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
@@ -621,7 +649,9 @@ public class ProjectRequest {
   @Path("/{projectLocator}/agentPools")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
-  public AgentPools setProjectAgentPools(@PathParam("projectLocator") String projectLocator, AgentPools pools, @QueryParam("fields") String fields) {
+  public AgentPools setProjectAgentPools(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                         AgentPools pools,
+                                         @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     myDataProvider.setProjectPools(project, pools.getPoolsFromPosted(myAgentPoolFinder));
     return new AgentPools(myAgentPoolFinder.getPoolsForProject(project), null, new Fields(fields), myBeanContext);
@@ -631,7 +661,8 @@ public class ProjectRequest {
   @Path("/{projectLocator}/agentPools")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
-  public AgentPool setProjectAgentPools(@PathParam("projectLocator") String projectLocator, AgentPool pool) {
+  public AgentPool setProjectAgentPools(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                        AgentPool pool) {
     SProject project = myProjectFinder.getItem(projectLocator);
     final AgentPoolManager agentPoolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPoolFromPosted = pool.getAgentPoolFromPosted(myAgentPoolFinder);
@@ -652,7 +683,8 @@ public class ProjectRequest {
   @Path("/{projectLocator}/secure/tokens")
   @Produces({"text/plain"})
   @Consumes({"text/plain"})
-  public String createSecureToken(@PathParam("projectLocator") String projectLocator, String secureValue) {
+  public String createSecureToken(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                  String secureValue) {
     SProject project = myProjectFinder.getItem(projectLocator);
     myPermissionChecker.checkProjectPermission(Permission.EDIT_PROJECT, project.getProjectId());
     return ((ProjectEx)project).getOrCreateToken(secureValue, "Requested via REST");
@@ -673,7 +705,8 @@ public class ProjectRequest {
   @Path("/{projectLocator}/secure/values/{token}")
   @Produces({"text/plain"})
   @Consumes({"text/plain"})
-  public String getSecureValue(@PathParam("projectLocator") String projectLocator, @PathParam("token") String token) {
+  public String getSecureValue(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                               @PathParam("token") String token) {
     myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS); //checking global admin for now
     SProject project = myProjectFinder.getItem(projectLocator);
     return getSecureValueByToken(project, token);
@@ -696,7 +729,8 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/order/projects")
   @Produces({"application/xml", "application/json"})
-  public Projects getProjectsOrder(@PathParam("projectLocator") String projectLocator, @QueryParam("field") String fields) {
+  public Projects getProjectsOrder(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                   @QueryParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     return new Projects(((ProjectEx)project).getOwnProjectsOrder(), null, new Fields(fields), myBeanContext);
   }
@@ -708,7 +742,9 @@ public class ProjectRequest {
   @Path("/{projectLocator}/order/projects")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Projects setProjectsOrder(@PathParam("projectLocator") String projectLocator, Projects projects, @QueryParam("field") String fields) {
+  public Projects setProjectsOrder(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                   Projects projects,
+                                   @QueryParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     LinkedHashSet<String> ids = new LinkedHashSet<>();
     if (projects.projects != null) {
@@ -734,7 +770,8 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/order/buildTypes")
   @Produces({"application/xml", "application/json"})
-  public BuildTypes getBuildTypesOrder(@PathParam("projectLocator") String projectLocator, @QueryParam("field") String fields) {
+  public BuildTypes getBuildTypesOrder(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                       @QueryParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     return new BuildTypes(BuildTypes.fromBuildTypes(((ProjectEx)project).getOwnBuildTypesOrder()), null, new Fields(fields), myBeanContext);
   }
@@ -746,7 +783,9 @@ public class ProjectRequest {
   @Path("/{projectLocator}/order/buildTypes")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public BuildTypes setBuildTypesOrder(@PathParam("projectLocator") String projectLocator, BuildTypes buildTypes, @QueryParam("field") String fields) {
+  public BuildTypes setBuildTypesOrder(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                       BuildTypes buildTypes,
+                                       @QueryParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
     LinkedHashSet<String> ids = new LinkedHashSet<>();
     if (buildTypes.buildTypes != null) {
@@ -775,7 +814,9 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/branches")
   @Produces({"application/xml", "application/json"})
-  public Branches getBranches(@PathParam("projectLocator") String projectLocator, @QueryParam("locator") String branchesLocator, @QueryParam("fields") String fields) {
+  public Branches getBranches(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                              @QueryParam("locator") String branchesLocator,
+                              @QueryParam("fields") String fields) {
     final SProject project = myProjectFinder.getItem(projectLocator);
     String updatedBranchLocator = BranchFinder.patchLocatorWithBuildType(branchesLocator, BuildTypeFinder.patchLocator(null, project));
     return new Branches(myBranchFinder.getItems(updatedBranchLocator).myEntries, null, new Fields(fields), myBeanContext);
@@ -801,7 +842,8 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/example/newProjectDescription")
   @Produces({"application/xml", "application/json"})
-  public NewProjectDescription getExampleNewProjectDescription(@PathParam("projectLocator") String projectLocator, @QueryParam("id") String newId) {
+  public NewProjectDescription getExampleNewProjectDescription(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                                               @QueryParam("id") String newId) {
     final SProject project = myProjectFinder.getItem(projectLocator);
     final SProject parentProject = project.getParentProject();
     final Project parentProjectRef =
@@ -826,7 +868,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/settingsFile")
   @Produces({"text/plain"})
-  public String getSettingsFile(@PathParam("projectLocator") String projectLocator) {
+  public String getSettingsFile(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator) {
     myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     final SProject project = myProjectFinder.getItem(projectLocator);
     return project.getConfigurationFile().getAbsolutePath();
@@ -839,7 +881,8 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/latest")
   @Produces({"application/xml", "application/json"})
-  public Project reloadSettingsFile (@PathParam("projectLocator") String projectLocator, @QueryParam("fields") String fields) {
+  public Project reloadSettingsFile (@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                     @QueryParam("fields") String fields) {
     myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     final SProject project = myProjectFinder.getItem(projectLocator);
     final String projectConfigFile = project.getConfigurationFile().getAbsolutePath();
