@@ -262,7 +262,7 @@ public class BuildQueueRequest {
 
   @DELETE
   @Path("/{queuedBuildLocator}")
-  public void deleteBuild(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("queuedBuildLocator") String queuedBuildLocator) {
+  public void deleteQueuedBuild(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("queuedBuildLocator") String queuedBuildLocator) {
     SQueuedBuild build = myQueuedBuildFinder.getItem(queuedBuildLocator);
     cancelQueuedBuild(build, null);
 
@@ -275,9 +275,10 @@ public class BuildQueueRequest {
   }
 
   @GET
+  @ApiOperation(value = "getBuildCancelRequestQueue", hidden = true)
   @Path("/{buildLocator}/example/buildCancelRequest")
   @Produces({"application/xml", "application/json"})
-  public BuildCancelRequest getCancelBuild(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("buildLocator") String buildLocator) {
+  public BuildCancelRequest getBuildCancelRequestQueue(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("buildLocator") String buildLocator) {
     return new BuildCancelRequest("example build cancel comment", false);
   }
 

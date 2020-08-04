@@ -826,9 +826,10 @@ public class ProjectRequest {
    * For compatibility with experimental feature of 8.0
    */
   @GET
+  @ApiOperation(value = "getExampleNewProjectDescriptionCompatibilityVersion", hidden = true)
   @Path("/{projectLocator}/newProjectDescription")
   @Produces({"application/xml", "application/json"})
-  public NewProjectDescription getExampleNewProjectDescriptionCompatibilityVersion1(@PathParam("projectLocator") String projectLocator, @QueryParam("id") String newId) {
+  public NewProjectDescription getExampleNewProjectDescriptionCompatibilityVersion(@PathParam("projectLocator") String projectLocator, @QueryParam("id") String newId) {
     return getExampleNewProjectDescription(projectLocator, newId);
   }
 
@@ -840,6 +841,7 @@ public class ProjectRequest {
    * @return
    */
   @GET
+  @ApiOperation(value = "getExampleNewProjectDescription", hidden = true)
   @Path("/{projectLocator}/example/newProjectDescription")
   @Produces({"application/xml", "application/json"})
   public NewProjectDescription getExampleNewProjectDescription(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,

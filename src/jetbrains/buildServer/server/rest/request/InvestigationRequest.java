@@ -103,8 +103,8 @@ public class InvestigationRequest {
   @GET
   @Path("/{investigationLocator}")
   @Produces({"application/xml", "application/json"})
-  public Investigation serveInstance(@ApiParam(format = LocatorName.INVESTIGATION) @PathParam("investigationLocator") String locatorText,
-                                     @QueryParam("fields") String fields) {
+  public Investigation serveInvestigationInstance(@ApiParam(format = LocatorName.INVESTIGATION) @PathParam("investigationLocator") String locatorText,
+                                                  @QueryParam("fields") String fields) {
     return new Investigation(myInvestigationFinder.getItem(locatorText), new Fields(fields),
                              myBeanContext);
   }

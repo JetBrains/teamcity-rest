@@ -192,7 +192,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/roles")
   @Produces({"application/xml", "application/json"})
-  public RoleAssignments listRoles(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
+  public RoleAssignments listRolesForUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
     SUser user = myUserFinder.getItem(userLocator, true);
     return new RoleAssignments(user.getRoles(), user, myBeanContext);
   }
@@ -221,8 +221,8 @@ public class UserRequest {
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public RoleAssignment addRole(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
-                                RoleAssignment roleAssignment) {
+  public RoleAssignment addRoleToUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                                      RoleAssignment roleAssignment) {
     SUser user = myUserFinder.getItem(userLocator, true);
     user.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleAssignment.roleId, myBeanContext.getServiceLocator()));
     return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleAssignment.roleId, roleAssignment.scope, myBeanContext), user, myBeanContext);
@@ -231,18 +231,18 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   @Produces({"application/xml", "application/json"})
-  public RoleAssignment listRole(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
-                                 @PathParam("roleId") String roleId,
-                                 @PathParam("scope") String scopeValue) {
+  public RoleAssignment listRoleForUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                                        @PathParam("roleId") String roleId,
+                                        @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getItem(userLocator, true);
     return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleId, scopeValue, myBeanContext), user, myBeanContext);
   }
 
   @DELETE
   @Path("/{userLocator}/roles/{roleId}/{scope}")
-  public void deleteRole(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
-                         @PathParam("roleId") String roleId,
-                         @PathParam("scope") String scopeValue) {
+  public void deleteRoleFromUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                                 @PathParam("roleId") String roleId,
+                                 @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getItem(userLocator, true);
     user.removeRole(RoleAssignment.getScope(scopeValue, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleId, myBeanContext.getServiceLocator()));
   }
@@ -258,15 +258,15 @@ public class UserRequest {
   public void addRoleSimplePost(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                 @PathParam("roleId") String roleId,
                                 @PathParam("scope") String scopeValue) {
-    addRoleSimple(userLocator, roleId, scopeValue);
+    addRoleToUserSimple(userLocator, roleId, scopeValue);
   }
 
   @PUT
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   @Produces({"application/xml", "application/json"})
-  public RoleAssignment addRoleSimple(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
-                                      @PathParam("roleId") String roleId,
-                                      @PathParam("scope") String scopeValue) {
+  public RoleAssignment addRoleToUserSimple(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                                            @PathParam("roleId") String roleId,
+                                            @PathParam("scope") String scopeValue) {
     SUser user = myUserFinder.getItem(userLocator, true);
     user.addRole(RoleAssignment.getScope(scopeValue, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleId, myBeanContext.getServiceLocator()));
     return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleId, scopeValue, myBeanContext), user, myBeanContext);
@@ -300,9 +300,9 @@ public class UserRequest {
   @Path("/{userLocator}/groups")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Group addGroup(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
-                        Group group,
-                        @QueryParam("fields") String fields) {
+  public Group addGroupToUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
+                              Group group,
+                              @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
     SUserGroup userGroup = group.getFromPosted(myBeanContext.getServiceLocator());
     userGroup.addUser(user);

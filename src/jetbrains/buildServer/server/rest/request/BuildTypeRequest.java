@@ -1568,9 +1568,10 @@ public class BuildTypeRequest {
    * For compatibility with experimental feature of 8.0
    */
   @GET
+  @ApiOperation(value = "getExampleNewProjectDescriptionCompatibilityVersion", hidden = true)
   @Path("/{btLocator}/newBuildTypeDescription")
   @Produces({"application/xml", "application/json"})
-  public NewBuildTypeDescription getExampleNewProjectDescriptionCompatibilityVersion1(@PathParam("btLocator") String buildTypeLocator){
+  public NewBuildTypeDescription getExampleNewProjectDescriptionCompatibilityVersion(@PathParam("btLocator") String buildTypeLocator){
     return getExampleNewProjectDescription(buildTypeLocator);
   }
 
@@ -1581,6 +1582,7 @@ public class BuildTypeRequest {
    * @return
    */
   @GET
+  @ApiOperation(value = "getExampleNewProjectDescription", hidden = true)
   @Path("/{btLocator}/example/newBuildTypeDescription")
   @Produces({"application/xml", "application/json"})
   public NewBuildTypeDescription getExampleNewProjectDescription(@ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator){

@@ -509,9 +509,9 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/tags/")
   @Produces({"application/xml", "application/json"})
-  public Tags serveTags(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
-                        @ApiParam(format = LocatorName.TAG) @QueryParam("locator") String tagLocator,
-                        @QueryParam("fields") String fields) {
+  public Tags serveTagsFromBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                                 @ApiParam(format = LocatorName.TAG) @QueryParam("locator") String tagLocator,
+                                 @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     return new Tags(new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build).getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries,
                     new Fields(fields), myBeanContext);
@@ -524,10 +524,10 @@ public class BuildRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Tags replaceTags(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
-                          @ApiParam(format = LocatorName.TAG) @QueryParam("locator") String tagLocator,
-                          Tags tags,
-                          @QueryParam("fields") String fields, @Context HttpServletRequest request) {
+  public Tags replaceTagsOnBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                                 @ApiParam(format = LocatorName.TAG) @QueryParam("locator") String tagLocator,
+                                 Tags tags,
+                                 @QueryParam("fields") String fields, @Context HttpServletRequest request) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build);
     final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
@@ -548,9 +548,9 @@ public class BuildRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public Tags addTags(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
-                      Tags tags,
-                      @QueryParam("fields") String fields) {
+  public Tags addTagsToBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                             Tags tags,
+                             @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
 
@@ -711,10 +711,11 @@ public class BuildRequest {
   }
 
   @GET
+  @ApiOperation(value = "getBuildCancelRequest", hidden = true)
   @Path("/{buildLocator}/example/buildCancelRequest")
   @Produces({"application/xml", "application/json"})
-  public BuildCancelRequest cancelBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
-                                        @Context HttpServletRequest request) {
+  public BuildCancelRequest getBuildCancelRequest(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                                                  @Context HttpServletRequest request) {
     return new BuildCancelRequest("example build cancel comment", false);
   }
 
@@ -736,9 +737,9 @@ public class BuildRequest {
   @Path("/{buildLocator}/problemOccurrences")
   @Consumes({"text/plain"})
   @Produces({"application/xml", "application/json"})
-  public ProblemOccurrence addProblem(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
-                                      String problemDetails,
-                                      @QueryParam("fields") String fields) {
+  public ProblemOccurrence addProblemToBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                                             String problemDetails,
+                                             @QueryParam("fields") String fields) {
     BuildPromotion buildPromotion = myBuildFinder.getBuildPromotion(null, buildLocator);
     SBuild build = buildPromotion.getAssociatedBuild();
     if (build == null) {
@@ -1043,9 +1044,9 @@ public class BuildRequest {
   @Path("/multiple/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  public MultipleOperationResult addTagsMultiple(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
-                                                 Tags tags,
-                                                 @QueryParam("fields") String fields) {
+  public MultipleOperationResult addTagsMultipleToBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                                                        Tags tags,
+                                                        @QueryParam("fields") String fields) {
     final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
     final List<TagData> tagsPosted = tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class));
     return processMultiple(buildLocator, (build) -> tagsManager.addTagDatas(build, tagsPosted), new Fields(fields));
@@ -1338,14 +1339,14 @@ public class BuildRequest {
   @Path("/{buildLocator}/finishDate")
   @Produces("text/plain")
   public String getBuildFinishDate(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator) {
-    return serveBuildFieldByBuildOnly(buildLocator, "finishDate");
+    return serveBuildFieldFromBuildOnly(buildLocator, "finishDate");
   }
 
   @GET
   @Path("/{buildLocator}/{field}")
   @Produces("text/plain")
-  public String serveBuildFieldByBuildOnly(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
-                                           @PathParam("field") String field) {
+  public String serveBuildFieldFromBuildOnly(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                                             @PathParam("field") String field) {
     return Build.getFieldValue(myBuildFinder.getBuildPromotion(null, buildLocator), field, myBeanContext);
   }
 
