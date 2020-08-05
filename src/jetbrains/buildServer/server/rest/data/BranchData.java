@@ -16,13 +16,13 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SelectPrevBuildPolicy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -247,32 +247,75 @@ public abstract class BranchData implements Branch {
   }
 
   private static class MergingBranchData extends BranchData {
-    private final List<BranchData> myBranches = new ArrayList<>();
     private @NotNull final String myName;
+    private final BranchData myFirstBranch;
     private final boolean myIsDefault;
+    private Boolean myActive;
+    private String myDisplayName;
+    private Date myActivityTimestamp;
 
     public MergingBranchData(@NotNull final BranchData b1, @NotNull final BranchData b2) {
-      super("");
-      myBranches.add(b1);
+      super(StringUtil.EMPTY);
       myName = b1.getName();
       myIsDefault = b1.isDefaultBranch();
-      check(b2);
-      myBranches.add(b2);
+      myFirstBranch = b1;
+
+      add(b1);
+      add(b2);
     }
 
     public MergingBranchData add(@NotNull final BranchData b) {
       check(b);
-      myBranches.add(b);
+
+      updateActiveState(b);
+      updateActivityTimestamp(b);
+      updateDisplayName(b);
+
       return this;
+    }
+
+    private void updateDisplayName(@NotNull BranchData b) {
+      if (Branch.DEFAULT_BRANCH_NAME.equals(myDisplayName)) return;
+
+      if (myDisplayName == null) {
+        myDisplayName = b.getDisplayName();
+      } else {
+        String displayName = b.getDisplayName();
+        if (!myDisplayName.equals(displayName)) {
+          if (myIsDefault) {
+            myDisplayName = Branch.DEFAULT_BRANCH_NAME;
+          } else {
+            throw new OperationException(getMergeConflictMessage(myFirstBranch, b, "with different display names"));
+          }
+        }
+      }
+    }
+
+    private void updateActivityTimestamp(@NotNull BranchData b) {
+      Date activityTime = b.getActivityTimestamp();
+      if (activityTime != null) {
+        if (myActivityTimestamp == null || myActivityTimestamp.before(activityTime)) {
+          myActivityTimestamp = activityTime;
+        }
+      }
+    }
+
+    private void updateActiveState(@NotNull BranchData b) {
+      if (myActive != null && myActive) return;
+
+      Boolean active = b.isActive();
+      if (myActive == null || active != null) {
+        myActive = active;
+      }
     }
 
     private void check(@NotNull final BranchData b) {
       if (!myName.equals(b.getName())) {
-        throw new OperationException(getMergeConflictMessage(myBranches.get(0), b, "with different name"));
+        throw new OperationException(getMergeConflictMessage(myFirstBranch, b, "with different name"));
       }
       if (myIsDefault != b.isDefaultBranch()) {
         //should never happen as default branch should have "<default>"
-        throw new OperationException(getMergeConflictMessage(myBranches.get(0), b, "with different default state"));
+        throw new OperationException(getMergeConflictMessage(myFirstBranch, b, "with different default state"));
       }
     }
 
@@ -285,18 +328,7 @@ public abstract class BranchData implements Branch {
     @NotNull
     @Override
     public String getDisplayName() {
-      String result = null;
-      for (BranchData branch : myBranches) {
-        String value = branch.getDisplayName();
-        if (result == null) {
-          result = value;
-        } else if (!result.equals(value)) {
-          if (myIsDefault) return Branch.DEFAULT_BRANCH_NAME;
-          throw new OperationException(getMergeConflictMessage(myBranches.get(0), branch, "with different display names"));
-        }
-      }
-      //noinspection ConstantConditions
-      return result;
+      return myDisplayName;
     }
 
     @Override
@@ -311,34 +343,13 @@ public abstract class BranchData implements Branch {
 
     @Override
     public Boolean isActive() {
-      Boolean result = null;
-      for (BranchData branch : myBranches) {
-        Boolean value = branch.isActive();
-        if (value != null) {
-          if (value) {
-            return true;
-          }
-          result = value;
-        }
-      }
-      return result;
+      return myActive;
     }
 
     @Nullable
     @Override
     public Date getActivityTimestamp() {
-      Date result = null;
-      for (BranchData branch : myBranches) {
-        Date value = branch.getActivityTimestamp();
-        if (value != null) {
-          if (result == null) {
-            result = value;
-          } else if (result.before(value)) {
-            result = value;
-          }
-        }
-      }
-      return result;
+      return myActivityTimestamp;
     }
 
     // merged branches do not support these kind of details
