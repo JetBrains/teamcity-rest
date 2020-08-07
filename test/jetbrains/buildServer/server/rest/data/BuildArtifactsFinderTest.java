@@ -62,13 +62,13 @@ import static jetbrains.buildServer.TeamCityAsserts.assertLess;
 @SuppressWarnings({"ResultOfMethodCallIgnored", "ConstantConditions"})
 @Test
 public class BuildArtifactsFinderTest extends BaseTestCase {
-  private BuildServerCreator myFixture;
   private final TempFiles myTempFiles = new TempFiles();
-
+  private BuildServerCreator myFixture;
   private SFinishedBuild myBuildWithArtifacts;
   private File myFile1;
   private File myFile2;
 
+  @SuppressWarnings("UnstableApiUsage")
   private void createTestFiles(final File targetDir) throws IOException {
     final File dotTeamCity = new File(targetDir, ".teamcity");
     dotTeamCity.mkdir();
@@ -89,22 +89,22 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
     ZipArchiveBuilder.using(new FileZipFactory(true, true)).createArchive(targetDir, "archive.zip").
       addFileWithContent("a/file1.txt", "content1").
-      addFileWithContent("a/file2.txt", "content2").
-      addFileWithContent("a/b/file3.txt", "content3").
-      addFileWithContent("file4.txt", "content4").
+                       addFileWithContent("a/file2.txt", "content2").
+                       addFileWithContent("a/b/file3.txt", "content3").
+                       addFileWithContent("file4.txt", "content4").
                        build();
 
     ZipArchiveBuilder.using(new FileZipFactory(true, true)).createArchive(targetDir, "archive_nested.zip").
       addFileWithContent("archive.zip", Files.toByteArray(new File(targetDir, "archive.zip"))).
-      addFileWithContent("file4.txt", "content4").
-      build();
+                       addFileWithContent("file4.txt", "content4").
+                       build();
 
     ZipArchiveBuilder.using(new FileZipFactory(true, true)).createArchive(new File(targetDir, ".teamcity/dirA"), "archive1.zip").
       addFileWithContent("a/file1.txt", "content1").
-      addFileWithContent("a/file2.txt", "content2").
-      addFileWithContent("a/b/file3.txt", "content3").
-      addFileWithContent("file4.txt", "content4").
-      build();
+                       addFileWithContent("a/file2.txt", "content2").
+                       addFileWithContent("a/b/file3.txt", "content3").
+                       addFileWithContent("file4.txt", "content4").
+                       build();
   }
 
   @BeforeClass
@@ -132,14 +132,13 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     myTempFiles.cleanup();
   }
 
-  @SuppressWarnings("ResultOfMethodCallIgnored")
   @Override
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
   }
 
-  public void testOrder() throws Exception {
+  public void testOrder() {
     List<ArtifactTreeElement> artifacts = getArtifacts("", null);
     checkOrderedCollection(getNames(artifacts), "dir1", "archive.zip", "archive_nested.zip", "file.txt");
   }
@@ -155,14 +154,10 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   private List<String> getNames(final List<ArtifactTreeElement> artifacts) {
-    return CollectionsUtil.convertCollection(artifacts, new Converter<String, ArtifactTreeElement>() {
-      public String createFrom(@NotNull final ArtifactTreeElement source) {
-        return source.getFullName();
-      }
-    });
+    return CollectionsUtil.convertCollection(artifacts, Element::getFullName);
   }
 
-  public void testLocatorSet1() throws Exception {
+  public void testLocatorSet1() {
     List<ArtifactTreeElement> artifacts = getArtifacts("", null);
 
     assertSize(4, artifacts);
@@ -173,7 +168,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
-  public void testLocatorHidden() throws Exception {
+  public void testLocatorHidden() {
     List<ArtifactTreeElement> artifacts;
 
     artifacts = getArtifacts("", "hidden:any");
@@ -181,7 +176,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertSize(5, artifacts);
     assertContainsByFullName(artifacts, ".teamcity");
 
-   artifacts = getArtifacts("", "hidden:true");
+    artifacts = getArtifacts("", "hidden:true");
 
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, ".teamcity");
@@ -244,7 +239,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
-  public void testLocatorArchive1() throws Exception {
+  public void testLocatorArchive1() {
     ArtifactTreeElement element;
     List<ArtifactTreeElement> artifacts = getArtifacts("", null);
 
@@ -429,7 +424,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
-  public void testLocatorDirectory() throws Exception {
+  public void testLocatorDirectory() {
     ArtifactTreeElement element;
     List<ArtifactTreeElement> artifacts;
 
@@ -477,7 +472,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
-  public void testLocatorRecursive() throws Exception {
+  public void testLocatorRecursive() {
     ArtifactTreeElement element;
     List<ArtifactTreeElement> artifacts = getArtifacts("", "recursive:true");
 
@@ -547,7 +542,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
-  public void testNestedArchives() throws Exception {
+  public void testNestedArchives() {
     ArtifactTreeElement element;
     List<ArtifactTreeElement> artifacts = getArtifacts("archive_nested.zip", null);
 
@@ -581,8 +576,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
-  public void testPattern() throws Exception {
-    ArtifactTreeElement element;
+  public void testPattern() {
     List<ArtifactTreeElement> artifacts = getArtifacts("", "pattern:*.txt");
     assertSize(1, artifacts);
     assertContainsByFullName(artifacts, "file.txt");
@@ -625,7 +619,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
-  public void testPathWithPatterns() throws Exception {
+  public void testPathWithPatterns() {
     assertEquals("file.txt", getArtifact("file.txt"));
     assertEquals("file.txt", getArtifact("fil?.txt"));
     assertEquals("archive_nested.zip", getArtifact("archiv*d.zip"));
@@ -636,7 +630,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
-  public void testModified() throws Exception {
+  public void testModified() {
     myFile1.setLastModified(Dates.now().getTime() - 10 * 60 * 1000); //file.txt  -10 minutes
     myFile2.setLastModified(Dates.now().getTime() - 5 * 60 * 1000); //dir1/file.txt  -5 minutes
 
@@ -832,7 +826,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
-  public void testComparator() throws Exception {
+  public void testComparator() {
     List<ArtifactTreeElement> result = toArtifactTreeElements(
       "_name_b2",
       "_name_B2",
@@ -851,7 +845,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
       "name_d",
       "name_D"
     );
-    Collections.sort(result, BuildArtifactsFinder.ARTIFACT_COMPARATOR);
+    result.sort(BuildArtifactsFinder.ARTIFACT_COMPARATOR);
 
     checkOrderedCollection(getNames(result),
                            "name_b2",
@@ -874,7 +868,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
-  public void testComparatorForNumbers() throws Exception {
+  public void testComparatorForNumbers() {
     List<ArtifactTreeElement> result = toArtifactTreeElements(
       "name10",
       "name02",
@@ -894,7 +888,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
       "10-014",
       "nam0"
     );
-    Collections.sort(result, BuildArtifactsFinder.ARTIFACT_COMPARATOR);
+    result.sort(BuildArtifactsFinder.ARTIFACT_COMPARATOR);
 
     checkOrderedCollection(getNames(result),
                            "002x",
@@ -918,10 +912,10 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
   }
 
   @Test
-  public void testComparatorSet1() throws Exception {
+  public void testComparatorSet1() {
     //these data used to throw IllegalArgumentException: Comparison method violates its general contract!
     List<ArtifactTreeElement> result = toArtifactTreeElements(
-       "_i/j/j-",
+      "_i/j/j-",
       "i/j/j/19",
       "_i/j/j-",
       "i/j/j/19",
@@ -954,58 +948,74 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
       "_i/x/xm",
       "_i/x/xm"
     );
-    Collections.sort(result, BuildArtifactsFinder.ARTIFACT_COMPARATOR);
+    result.sort(BuildArtifactsFinder.ARTIFACT_COMPARATOR);
     checkOrderedCollection(getNames(result),
-           "i/j/j/19",
-           "i/j/j/19",
-           "i/j/j/19",
-           "i/j/j/19",
-           "i/j/j/19",
+                           "i/j/j/19",
+                           "i/j/j/19",
+                           "i/j/j/19",
+                           "i/j/j/19",
+                           "i/j/j/19",
       /*_*/"i/j/j-",
-     /*_*/"i/j/j-",
-     /*_*/"i/j/j-",
-     /*_*/"i/j/j-",
-     /*_*/"i/j/js",
-     /*_*/"i/j/js",
-     /*_*/"i/j/ju",
-     /*_*/"i/jF",
-     /*_*/"i/js",
-     /*_*/"i/js",
-          "i/m/m/19",
-     /*_*/"i/p/an",
-     /*_*/"i/p/bu",
-     /*_*/"i/p/lv",
-     /*_*/"i/p/pr",
-     /*_*/"i/p/re",
-     /*_*/"i/p/re",
-     /*_*/"i/p/re",
-          "i/p/t/19",
-     /*_*/"i/p/te",
-          "i/p/v/19",
-     /*_*/"i/s/st",
-     /*_*/"i/t/jp",
-          "i/t/t/19",
-     /*_*/"i/v/hg",
-     /*_*/"i/x/xm",
-     /*_*/"i/x/xm"
+      /*_*/"i/j/j-",
+      /*_*/"i/j/j-",
+      /*_*/"i/j/j-",
+      /*_*/"i/j/js",
+      /*_*/"i/j/js",
+      /*_*/"i/j/ju",
+      /*_*/"i/jF",
+      /*_*/"i/js",
+      /*_*/"i/js",
+                           "i/m/m/19",
+      /*_*/"i/p/an",
+      /*_*/"i/p/bu",
+      /*_*/"i/p/lv",
+      /*_*/"i/p/pr",
+      /*_*/"i/p/re",
+      /*_*/"i/p/re",
+      /*_*/"i/p/re",
+                           "i/p/t/19",
+      /*_*/"i/p/te",
+                           "i/p/v/19",
+      /*_*/"i/s/st",
+      /*_*/"i/t/jp",
+                           "i/t/t/19",
+      /*_*/"i/v/hg",
+      /*_*/"i/x/xm",
+      /*_*/"i/x/xm"
     );
   }
 
   @Test
-  public void testComparatorSet2() throws Exception {
+  public void testComparatorSet2() {
     List<ArtifactTreeElement> result = toArtifactTreeElements(
       "_i/vaa/hhh",
       "i/p/test/10"
     );
-    Collections.sort(result, BuildArtifactsFinder.ARTIFACT_COMPARATOR);
+    result.sort(BuildArtifactsFinder.ARTIFACT_COMPARATOR);
     checkOrderedCollection(getNames(result),
                            "i/p/test/10",
                            "i/vaa/hhh"
     );
   }
 
+  @TestFor(issues = "TW-66354")
+  @Test
+  public void testComparatorWhenArtifactNameContainsDigits() {
+    final List<ArtifactTreeElement> result = toArtifactTreeElements("abc10vf",
+                                                                    "abc9vf",
+                                                                    "abc910vf");
+
+    assertGreater(BuildArtifactsFinder.ARTIFACT_COMPARATOR.compare(result.get(0), result.get(1)), 0);
+    assertLess(BuildArtifactsFinder.ARTIFACT_COMPARATOR.compare(result.get(0), result.get(2)), 0);
+    assertLess(BuildArtifactsFinder.ARTIFACT_COMPARATOR.compare(result.get(1), result.get(2)), 0);
+
+    assertLess(BuildArtifactsFinder.ARTIFACT_COMPARATOR.compare(result.get(1), result.get(0)), 0);
+    assertGreater(BuildArtifactsFinder.ARTIFACT_COMPARATOR.compare(result.get(2), result.get(0)), 0);
+    assertGreater(BuildArtifactsFinder.ARTIFACT_COMPARATOR.compare(result.get(2), result.get(1)), 0);
+  }
+
   /**
-   * if name starts with "_", then undescore is removed and the items is considered a directory
+   * if name starts with "_", then underscore is removed and the items is considered a directory
    */
   private List<ArtifactTreeElement> toArtifactTreeElements(final String... names) {
     return Stream.of(names).map(name -> new ArtifactTreeElement() {
@@ -1060,10 +1070,9 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     }).collect(Collectors.toList());
   }
 
-  private File createFileOfSize(final File dir, String name, int size) throws IOException {
+  private void createFileOfSize(final File dir, String name, int size) throws IOException {
     File result = new File(dir, name);
     FileUtil.writeFile(result, StringUtil.repeat("a", "", size), "US-ASCII");
-    return result;
   }
 
   @NotNull
@@ -1079,14 +1088,10 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
   @Nullable
   private ArtifactTreeElement findElement(@NotNull final List<ArtifactTreeElement> artifacts, @NotNull final String fullName) {
-    return CollectionsUtil.findFirst(artifacts, new Filter<ArtifactTreeElement>() {
-      public boolean accept(@NotNull final ArtifactTreeElement data) {
-        return fullName.equals(data.getFullName());
-      }
-    });
+    return CollectionsUtil.findFirst(artifacts, data -> fullName.equals(data.getFullName()));
   }
 
-  private void assertSize(final int expectedSize, final Collection collection) {
+  private void assertSize(final int expectedSize, final Collection<?> collection) {
     if (expectedSize != collection.size()) {
       throw new AssertionFailedError("Size is " + collection.size() + " instead of " + expectedSize + ". Content: " + collection);
     }

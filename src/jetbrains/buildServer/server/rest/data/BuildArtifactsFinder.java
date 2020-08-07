@@ -41,7 +41,6 @@ import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.*;
-import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.util.pathMatcher.AntPatternTreeMatcher;
 import jetbrains.buildServer.util.pathMatcher.PathNode;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactElement;
@@ -88,16 +87,12 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   @NotNull
   @Override
   public ItemFilter<ArtifactTreeElement> getFilter(@NotNull final Locator locator) {
-    final MultiCheckerFilter<ArtifactTreeElement> result = new MultiCheckerFilter<ArtifactTreeElement>();
+    final MultiCheckerFilter<ArtifactTreeElement> result = new MultiCheckerFilter<>();
 
     TimeCondition.FilterAndLimitingDate<ArtifactTreeElement> dateFiltering =
-      myTimeCondition.processTimeConditions(DIMENSION_MODIFIED, locator, new TimeCondition.ValueExtractor<ArtifactTreeElement, Date>() {
-        @Nullable
-        @Override
-        public Date get(@NotNull final ArtifactTreeElement artifactTreeElement) {
-          Long lastModified = artifactTreeElement.getLastModified();
-          return lastModified == null ? null : new Date(lastModified);
-        }
+      myTimeCondition.processTimeConditions(DIMENSION_MODIFIED, locator, artifactTreeElement -> {
+        Long lastModified = artifactTreeElement.getLastModified();
+        return lastModified == null ? null : new Date(lastModified);
       }, null);
 
     if (dateFiltering != null){
@@ -112,11 +107,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
       } catch (NumberFormatException e) {
         throw new BadRequestException("Cannot parse size from '" + sizeDimension + "'. Should be a number (bytes) or <number>kb, <number>mb");
       }
-      result.add(new FilterConditionChecker<ArtifactTreeElement>() {
-        public boolean isIncluded(@NotNull final ArtifactTreeElement item) {
-          return !item.isContentAvailable() || item.getSize() <= sizeLimit;
-        }
-      });
+      result.add(item -> !item.isContentAvailable() || item.getSize() <= sizeLimit);
     }
 
     return result;
@@ -213,7 +204,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
       includeHidden = null;
     }
 
-    List<String> rules = new ArrayList<String>();
+    List<String> rules = new ArrayList<>();
     final String filePatterns = locator.getSingleDimensionValue(DIMENSION_PATTERNS);
     if (filePatterns != null) {
       final String[] splittedPatterns = filePatterns.split(","); //might consider smarter splitting later
@@ -266,7 +257,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
 
     Boolean includeDirectories = locator.getSingleDimensionValueAsBoolean(DIRECTORY_DIMENSION_NAME);
 
-    final List<ArtifactTreeElement> result = new ArrayList<ArtifactTreeElement>();
+    final List<ArtifactTreeElement> result = new ArrayList<>();
     AntPatternTreeMatcher.ScanOption[] options = {};
     if (includeDirectories != null && !includeDirectories) {
       options = new AntPatternTreeMatcher.ScanOption[]{AntPatternTreeMatcher.ScanOption.LEAFS_ONLY};  // does not seem to have any effect, see TW-41662
@@ -275,21 +266,15 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     final Node rootNode = new Node(myBaseElement, childrenNestingLevel, archiveChildrenNestingLevel, includeHidden, true);
     final Collection<Node> rawResult = AntPatternTreeMatcher.scan(rootNode, rules, options);
     final Boolean finalIncludeDirectories = includeDirectories;
-    result.addAll(CollectionsUtil.filterAndConvertCollection(rawResult, new Converter<ArtifactTreeElement, Node>() {
-      public ArtifactTreeElement createFrom(@NotNull final Node source) {
-        return source.getElement();
+    result.addAll(CollectionsUtil.filterAndConvertCollection(rawResult, Node::getElement, data -> {
+      if (rootNode.equals(data)) {
+        return false; //TeamCity API issue: should support not returning the first node in API
       }
-    }, new Filter<Node>() {
-      public boolean accept(@NotNull final Node data) {
-        if (rootNode.equals(data)) {
-          return false; //TeamCity API issue: should support not returning the first node in API
-        }
-        //noinspection RedundantIfStatement
-        if (!FilterUtil.isIncludedByBooleanFilter(finalIncludeDirectories, !data.getElement().isLeaf())) {
-          return false;
-        }
-        return true;
+      //noinspection RedundantIfStatement
+      if (!FilterUtil.isIncludedByBooleanFilter(finalIncludeDirectories, !data.getElement().isLeaf())) {
+        return false;
       }
+      return true;
     }));
 
     try {
@@ -426,15 +411,11 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
         final long nextListArchiveChildrenLevel =
           (myElement.isArchive() && myListArchiveChildrenLevel > 0 && !myFirstNode) ? myListArchiveChildrenLevel - 1 : myListArchiveChildrenLevel;
         //noinspection unchecked
-        return CollectionsUtil.filterAndConvertCollection(myElement.getChildren(), new Converter<Node, Element>() {
-          public Node createFrom(@NotNull final Element source) {
-            final Boolean nestedHidden = myHidden != null && myHidden && isHiddenDir(source) ? null : myHidden; //do not filter if we list hidden files and already within .teamcity
-            return new Node(source, nextListChildrenLevel, nextListArchiveChildrenLevel, nestedHidden, false);
-          }
-        }, new Filter<Element>() {
-          public boolean accept(@NotNull final Element data) {
-            return FilterUtil.isIncludedByBooleanFilter(myHidden, isHiddenDir(data)); //do not go into .teamcity
-          }
+        return CollectionsUtil.filterAndConvertCollection(myElement.getChildren(), source -> {
+          final Boolean nestedHidden = myHidden != null && myHidden && isHiddenDir(source) ? null : myHidden; //do not filter if we list hidden files and already within .teamcity
+          return new Node(source, nextListChildrenLevel, nextListArchiveChildrenLevel, nestedHidden, false);
+        }, data -> {
+          return FilterUtil.isIncludedByBooleanFilter(myHidden, isHiddenDir(data)); //do not go into .teamcity
         });
       } catch (BrowserException e) {
         //noinspection ThrowableResultOfMethodCallIgnored
@@ -697,7 +678,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
         numberEnd++;
       }
       try {
-        return Long.valueOf(text.substring(numberStart, numberEnd));
+        return Long.parseLong(text.substring(numberStart, numberEnd));
       } catch (NumberFormatException ignore) {
         return -1;
       }
