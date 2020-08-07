@@ -653,10 +653,11 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
         return characterComparisonResult; //define order for non-directories different only in case
       }
 
-      if (i < min && Character.isDigit(s1.charAt(i))) {
+      //should go back and forth to scan a full digit
+      if (i < min && (Character.isDigit(s1.charAt(i)) || Character.isDigit(s2.charAt(i)))) {
         long number1 = extractNumber(s1, i);
         long number2 = extractNumber(s2, i);
-        if (number1 != -1 && number2 !=-1 && number1 != number2) {
+        if (number1 != -1 && number2 != -1 && number1 != number2) {
           characterComparisonResult = number1 - number2 < 0 ? -1 : 1;
         }
       }

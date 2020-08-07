@@ -25,7 +25,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,7 +40,6 @@ import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.browser.Browser;
 import jetbrains.buildServer.util.browser.BrowserException;
 import jetbrains.buildServer.util.browser.Element;
-import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import jetbrains.buildServer.zip.FileZipFactory;
 import jetbrains.buildServer.zip.ZipFactory;
@@ -55,9 +53,11 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static jetbrains.buildServer.TeamCityAsserts.assertLess;
+
 /**
  * @author Yegor.Yarko
- *         Date: 18.09.2014
+ * Date: 18.09.2014
  */
 @SuppressWarnings({"ResultOfMethodCallIgnored", "ConstantConditions"})
 @Test
@@ -1009,17 +1009,54 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
    */
   private List<ArtifactTreeElement> toArtifactTreeElements(final String... names) {
     return Stream.of(names).map(name -> new ArtifactTreeElement() {
-      public Long getLastModified() {return null;}
-      public boolean isArchive() {return false;}
-      public boolean isInsideArchive() {return false;}
-      public String getName() {return new File(getFullName()).getName();}
-      public String getFullName() {return name.startsWith("_") ? name.substring(1) : name;}
-      public boolean isLeaf() {return false;}
-      public Iterable<Element> getChildren() throws BrowserException {return null;}
-      public boolean isContentAvailable() {return !name.startsWith("_");}
-      public InputStream getInputStream() throws IllegalStateException, IOException, BrowserException {return null;}
-      public long getSize() {return 0;}
-      public Browser getBrowser() {return null;}
+      public Long getLastModified() {
+        return null;
+      }
+
+      public boolean isArchive() {
+        return false;
+      }
+
+      public boolean isInsideArchive() {
+        return false;
+      }
+
+      @NotNull
+      public String getName() {
+        return new File(getFullName()).getName();
+      }
+
+      @NotNull
+      public String getFullName() {
+        return name.startsWith("_") ? name.substring(1) : name;
+      }
+
+      public boolean isLeaf() {
+        return false;
+      }
+
+      public Iterable<Element> getChildren() throws BrowserException {
+        return null;
+      }
+
+      public boolean isContentAvailable() {
+        return !name.startsWith("_");
+      }
+
+      @NotNull
+      public InputStream getInputStream() throws IllegalStateException, BrowserException {
+        return null;
+      }
+
+
+      public long getSize() {
+        return 0;
+      }
+
+      @NotNull
+      public Browser getBrowser() {
+        return null;
+      }
     }).collect(Collectors.toList());
   }
 
