@@ -625,7 +625,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     //ideally, need to check what will be used in the response and request only those details
     int optionsMask = TeamCityProperties.getInteger("rest.request.testOccurrences.buildStatOpts.default",
-                                                    BuildStatisticsOptions.FIRST_FAILED_IN_BUILD | BuildStatisticsOptions.FIXED_IN_BUILD);
+                                                    0);
     boolean loadAllTests = TeamCityProperties.getBoolean("rest.request.testOccurrences.loadAllTestsForBuild");
     if (locator == null || loadAllTests || FilterUtil.isIncludingBooleanFilter(locator.lookupSingleDimensionValueAsBoolean(IGNORED))) { //todo: consider not loading ignored tests if only failed are requested via status:FAILURE (if that does not change the result)
       optionsMask |= BuildStatisticsOptions.IGNORED_TESTS;
