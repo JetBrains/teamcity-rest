@@ -75,6 +75,8 @@
       <entry name="?*.woff" />
       <entry name="*.sql" />
       <entry name="META-INF/services/?*" />
+      <entry name="*.js" />
+      <entry name="*.css" />
     </wildcardResourcePatterns>
     <bytecodeTargetLevel target="1.8" />
   </component>

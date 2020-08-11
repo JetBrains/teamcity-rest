@@ -49,7 +49,6 @@ public class SwaggerConfigImpl implements SwaggerConfig {
     try {
       final URL url = new URL(server.getRootUrl());
       swagger.setHost(getHostAndPort(url));
-      swagger.setBasePath(Constants.API_URL);
     } catch (MalformedURLException e) {
       LOG.warnAndDebugDetails("Failed to configure swagger with server url", e);
     }
