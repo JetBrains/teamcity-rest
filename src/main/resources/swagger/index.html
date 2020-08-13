@@ -61,30 +61,36 @@
       }
     </script>
     <script>
-    window.onload = function() {
+      window.addEventListener("DOMContentLoaded", async () => {
+        const specResponse = await fetch("./swagger.json");
+        console.log("Response: ", specResponse);
 
-      // Begin Swagger UI call region
-      const ui = SwaggerUIBundle({
-        url: "https://petstore.swagger.io/v2/swagger.json",
-        dom_id: '#swagger-ui',
-        deepLinking: true,
-        presets: [
-          SwaggerUIBundle.presets.apis,
-          SwaggerUIStandalonePreset
-        ],
-        plugins: [
-          SwaggerUIBundle.plugins.DownloadUrl
-        ],
-        layout: "StandaloneLayout",
-        requestInterceptor: (req) => {
-          req.headers["_csrf_header_"] = "_csrf_token_"
-          return req;
-        }
-      })
-      // End Swagger UI call region
+        const spec = await specResponse.json();
+        console.log("JSON: ", spec);
 
-      window.ui = ui
-    }
+        const tokenResponse = await fetch("/authenticationTest.html?csrf");
+        const token = await tokenResponse.text();
+        console.log("Token: ", token);
+
+        const ui = SwaggerUIBundle({
+          url: window.location.origin + "/app/rest/swagger.json",
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          spec: spec,
+          presets: [
+            SwaggerUIBundle.presets.apis,
+            SwaggerUIStandalonePreset
+          ],
+          plugins: [
+            SwaggerUIBundle.plugins.DownloadUrl
+          ],
+          layout: "StandaloneLayout",
+          requestInterceptor: (req) => {
+            req.headers["X-TC-CSRF-Token"] = token
+            return req;
+          }
+        });
+      });
   </script>
   </body>
 </html>
