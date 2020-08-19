@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
 import com.google.common.collect.ComparisonChain;
+import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
@@ -33,6 +35,7 @@ import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
+import jetbrains.buildServer.serverSide.tests.TestHistory;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.ItemProcessor;
@@ -40,9 +43,6 @@ import jetbrains.buildServer.util.NamedThreadFactory;
 import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_NO_DETAILS;
 
@@ -74,7 +74,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final ProjectFinder myProjectFinder;
 
-  @NotNull private final BuildHistoryEx myBuildHistory;
+  @NotNull private final TestHistory myTestHistory;
   @NotNull private final CurrentProblemsManager myCurrentProblemsManager;
   @NotNull private final BranchFinder myBranchFinder;
 
@@ -82,7 +82,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull BuildFinder buildFinder,
                               final @NotNull BuildTypeFinder buildTypeFinder,
                               final @NotNull ProjectFinder projectFinder,
-                              final @NotNull BuildHistoryEx buildHistory,
+                              final @NotNull TestHistory testHistory,
                               final @NotNull CurrentProblemsManager currentProblemsManager,
                               final @NotNull BranchFinder branchFinder) {
     super(DIMENSION_ID, TEST, NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, NEW_FAILURE);
@@ -92,7 +92,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProjectFinder = projectFinder;
-    myBuildHistory = buildHistory;
+    myTestHistory = testHistory;
     myCurrentProblemsManager = currentProblemsManager;
     myBranchFinder = branchFinder;
   }
@@ -286,13 +286,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @NotNull
   private List<STestRun> getTestHistory(final STest test, final SProject affectedProject, @NotNull final Locator locator) {
-    return myBuildHistory.getTestHistory(test.getTestNameId(), affectedProject, getBranchFilter(locator.getSingleDimensionValue(BRANCH)));
+    return myTestHistory.getTestHistory(test.getTestNameId(), affectedProject, getBranchFilter(locator.getSingleDimensionValue(BRANCH)));
     //consider reporting not found if no tests found and the branch does not exist
   }
 
   @NotNull
   private List<STestRun> getTestHistory(final STest test, final SBuildType buildType, @NotNull final Locator locator) {
-    return myBuildHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), getBranchFilter(locator.getSingleDimensionValue(BRANCH)));
+    return myTestHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), getBranchFilter(locator.getSingleDimensionValue(BRANCH)));
     //consider reporting not found if no tests found and the branch does not exist
   }
 
