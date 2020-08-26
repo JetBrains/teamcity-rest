@@ -17,26 +17,24 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
 import io.swagger.annotations.ExtensionProperty;
+import java.util.ArrayList;
+import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.OccurrencesSummary;
 import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * @author Yegor.Yarko
@@ -49,7 +47,8 @@ import java.util.List;
   "href",
   "nextHref",
   "prevHref",
-  "items"
+  "items",
+  "testCounters"
 })
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
 public class TestOccurrences extends OccurrencesSummary {
@@ -58,6 +57,7 @@ public class TestOccurrences extends OccurrencesSummary {
   @XmlAttribute(name = "href") public String href;
   @XmlAttribute @Nullable public String nextHref;
   @XmlAttribute @Nullable public String prevHref;
+  @XmlElement(name = "testCounters") @Nullable public TestCounters testCounters;
 
   public TestOccurrences() {
   }
@@ -82,20 +82,20 @@ public class TestOccurrences extends OccurrencesSummary {
                          @NotNull final BeanContext beanContext) {
     super(passed, failed, newFailed, ignored, muted, fields);
     if (itemsP != null) {
-      items = ValueWithDefault.decideDefault(isTestOccurrenceIncluded(fields), new ValueWithDefault.Value<List<TestOccurrence>>() {
-        @Nullable
-        public List<TestOccurrence> get() {
-          final List<STestRun> sortedItems = new ArrayList<>(itemsP);
-          if (TeamCityProperties.getBoolean("rest.beans.testOccurrences.sortByNameAndNew")) {
-            sortedItems.sort(STestRun.NEW_FIRST_NAME_COMPARATOR); //if we are to support customizable order, this should be done in the TestOccurrenceFinder
-          }
-          final ArrayList<TestOccurrence> result = new ArrayList<>(sortedItems.size());
-          for (STestRun item : sortedItems) {
-            result.add(new TestOccurrence(item, beanContext, fields.getNestedField("testOccurrence")));
-          }
-          return result;
+      items = ValueWithDefault.decideDefault(isTestOccurrenceIncluded(fields), (ValueWithDefault.Value<List<TestOccurrence>>)() -> {
+        final List<STestRun> sortedItems = new ArrayList<>(itemsP);
+        if (TeamCityProperties.getBoolean("rest.beans.testOccurrences.sortByNameAndNew")) {
+          sortedItems.sort(STestRun.NEW_FIRST_NAME_COMPARATOR); //if we are to support customizable order, this should be done in the TestOccurrenceFinder
         }
+        final ArrayList<TestOccurrence> result = new ArrayList<>(sortedItems.size());
+        for (STestRun item : sortedItems) {
+          result.add(new TestOccurrence(item, beanContext, fields.getNestedField("testOccurrence")));
+        }
+        return result;
       });
+      if (fields.isIncluded("testCounters", false, false)) {
+        this.testCounters = new TestCounters(itemsP, fields.getNestedField("testCounters"));
+      }
       this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", true), itemsP.size());
     } else {
       this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), count);

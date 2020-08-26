@@ -17,32 +17,30 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
 import io.swagger.annotations.ExtensionProperty;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * @author Yegor.Yarko
- *         Date: 16.11.13
+ * Date: 16.11.13
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "tests")
@@ -50,6 +48,7 @@ import java.util.stream.Collectors;
 public class Tests implements DefaultValueAware {
   @XmlElement(name = "test") public List<Test> items;
   @XmlAttribute public Integer count;
+  @XmlElement public TestCounters myTestCounters;
   @XmlAttribute(required = false) @Nullable public String nextHref;
   @XmlAttribute(required = false) @Nullable public String prevHref;
 
@@ -58,16 +57,8 @@ public class Tests implements DefaultValueAware {
 
   public Tests(@Nullable final Collection<STest> itemsP, @Nullable final PagerData pagerData, @NotNull final BeanContext beanContext, @NotNull final Fields fields) {
     if (itemsP != null) {
-      items = ValueWithDefault.decideDefault(fields.isIncluded("test", false), new ValueWithDefault.Value<List<Test>>() {
-        public List<Test> get() {
-          return CollectionsUtil.convertCollection(itemsP, new Converter<Test, STest>() {
-            public Test createFrom(@NotNull final STest source) {
-              return new Test(source, beanContext, fields.getNestedField("test"));
-            }
-          });
-        }
-      });
-
+      items = ValueWithDefault
+        .decideDefault(fields.isIncluded("test", false), () -> CollectionsUtil.convertCollection(itemsP, source -> new Test(source, beanContext, fields.getNestedField("test"))));
       this.count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), itemsP.size());
     }
 
@@ -86,9 +77,14 @@ public class Tests implements DefaultValueAware {
   @NotNull
   public List<STest> getFromPosted(@NotNull final ServiceLocator serviceLocator) {
     //todo: support locator here like in build to allow muting for many tests at once
-    if (items == null){
+    if (items == null) {
       throw new BadRequestException("Invalid 'tests' entity: tests should not be empty");
     }
     return items.stream().map(item -> item.getFromPosted(serviceLocator)).collect(Collectors.toList());
+  }
+
+  @Nullable
+  public TestCounters getTestCounts() {
+    return myTestCounters;
   }
 }

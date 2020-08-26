@@ -18,9 +18,9 @@ package jetbrains.buildServer.server.rest.swagger;
 
 import com.intellij.openapi.util.io.StreamUtil;
 import io.swagger.annotations.Api;
-import jetbrains.buildServer.server.rest.SwaggerUIUtil;
-import jetbrains.buildServer.server.rest.request.Constants;
-
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import javax.imageio.ImageIO;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -29,10 +29,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
+import jetbrains.buildServer.server.rest.SwaggerUIUtil;
+import jetbrains.buildServer.server.rest.request.Constants;
 
 @Path(Constants.API_URL + "/swaggerui")
 @Api(hidden = true)
@@ -45,8 +43,7 @@ public class SwaggerUI {
   @Produces({MediaType.TEXT_HTML})
   public String serveSwaggerUI() {
     try (InputStream input = SwaggerUIUtil.getFileFromResources(SwaggerUIUtil.INDEX)) {
-      String response = StreamUtil.readText(input, "UTF-8");
-      return response;
+      return StreamUtil.readText(input, "UTF-8");
     } catch (IOException e) {
       throw new UncheckedIOException("Error while retrieving Swagger UI", e);
     }
@@ -61,12 +58,9 @@ public class SwaggerUI {
 
     try (InputStream input = SwaggerUIUtil.getFileFromResources(path)) {
       if (path.endsWith(".js") || path.endsWith(".css")) {
-        String response = StreamUtil.readText(input, "UTF-8");
-        return response;
-      }
-      else if (path.endsWith(".png")) {
-        BufferedImage response = ImageIO.read(input);
-        return response;
+        return StreamUtil.readText(input, "UTF-8");
+      } else if (path.endsWith(".png")) {
+        return ImageIO.read(input);
       }
       return input;
     } catch (IOException e) {
