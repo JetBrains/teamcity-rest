@@ -56,6 +56,7 @@ import jetbrains.buildServer.serverSide.impl.BuildAgentMessagesQueue;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
+import jetbrains.buildServer.serverSide.vcs.VcsLabelManager;
 import jetbrains.buildServer.tags.TagsManager;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
@@ -65,8 +66,7 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
 import jetbrains.buildServer.util.TimeService;
 import jetbrains.buildServer.util.browser.Element;
-import jetbrains.buildServer.vcs.VcsException;
-import jetbrains.buildServer.vcs.VcsManager;
+import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebAuthUtil;
 import jetbrains.buildServer.web.util.WebUtil;
@@ -448,6 +448,77 @@ public class BuildRequest {
     }
     Loggers.ACTIVITIES.info("Build number is changed via REST request by user " + myPermissionChecker.getCurrentUserDescription() + ". Build: " + LogUtil.describe(runningBuild));
     return runningBuild.getBuildNumber();
+  }
+
+  /**
+   * Gets build labels.
+   * @param buildLocator given build.
+   * @param fields specifies result representation
+   * @returns build labels.
+   */
+  @GET
+  @Path("/{buildLocator}/vcsLabels")
+  @Produces({"application/xml", "application/json"})
+  public List<VcsLabel> getVcsLabels(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                                    @QueryParam("fields") String fields) {
+    SBuild build = getBuild(myBuildFinder.getBuildPromotion(null, buildLocator));
+    if(build == null) {
+      throw new NotFoundException("Cannot find a build using locator: " + buildLocator);
+    }
+
+    VcsLabelManager labelManager = myBeanContext.getSingletonService(VcsLabelManager.class);
+    Fields returnFields = new Fields(fields);
+    return labelManager.getLabels(build).stream()
+                       .map(l -> new VcsLabel(l, returnFields))
+                       .collect(Collectors.toList());
+  }
+
+  /**
+   * Adds a label to build VCS roots.
+   * @param buildLocator specifies build to label.
+   * @param vcsRootLocator optional, specifies a VCS root to put a label on. If not present, label will be applied to all VCS roots.
+   * @param fields specifies result representation
+   * @param labelValue text of the label.
+   * @returns added labels.
+   */
+  @POST
+  @Path("/{buildLocator}/vcsLabels")
+  @Consumes("text/plain")
+  @Produces({"application/xml", "application/json"})
+  public List<VcsLabel> setVcsLabel(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                                    @ApiParam(format = LocatorName.VCS_ROOT_INSTANCE) @PathParam("locator") String vcsRootLocator,
+                                    @QueryParam("fields") String fields,
+                                    String labelValue) {
+    if(StringUtil.isEmpty(labelValue)) {
+      throw new BadRequestException("Label can not empty.");
+    }
+
+    SBuild build = getBuild(myBuildFinder.getBuildPromotion(null, buildLocator));
+    if(build == null) {
+      throw new NotFoundException("Cannot find a build using locator: " + buildLocator);
+    }
+
+    VcsLabelManager labelManager = myBeanContext.getSingletonService(VcsLabelManager.class);
+    List<VcsRootInstance> roots;
+
+    if(vcsRootLocator == null) {
+      roots = build.getVcsRootEntries().stream().map(VcsRootInstanceEntry::getVcsRoot).collect(Collectors.toList());
+    } else {
+      VcsRootInstanceFinder rootInstanceFinder = myBeanContext.getSingletonService(VcsRootInstanceFinder.class);
+      roots = Arrays.asList(rootInstanceFinder.getItem(vcsRootLocator));
+    }
+
+    try {
+      labelManager.setLabel(build, labelValue, roots);
+    } catch (VcsException e) {
+      LOG.warn("Couldn't set a vcs label.", e);
+    }
+
+    Fields returnFields = new Fields(fields);
+    return labelManager.getLabels(build).stream()
+                .filter(l -> l.getLabelText().equals(labelValue))
+                .map(l -> new VcsLabel(l, returnFields))
+                .collect(Collectors.toList());
   }
 
   @GET

@@ -90,6 +90,7 @@ import jetbrains.buildServer.serverSide.metadata.impl.MetadataStorageEx;
 import jetbrains.buildServer.serverSide.parameters.types.PasswordsSearcher;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
+import jetbrains.buildServer.serverSide.vcs.VcsLabelManager;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -132,7 +133,8 @@ import org.jetbrains.annotations.Nullable;
     "related", /*experimental*/
     "triggeringOptions"/*only when triggering*/,
     "usedByOtherBuilds" /*experimental*/,
-    "statusChangeComment" /*experimental, temporary*/
+    "statusChangeComment" /*experimental, temporary*/,
+    "vcsLabels"
   })
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
@@ -196,6 +198,22 @@ public class Build {
     return new Build(build, Fields.NONE, beanContext);
   }
 
+  @XmlAttribute
+  public List<VcsLabel> getVcsLabels() {
+    boolean isIncluded = myFields.isIncluded("vcsLabels", false, true);
+    return ValueWithDefault.decideDefault(isIncluded, () -> {
+      if(myBuild == null) {
+        return Collections.emptyList();
+      }
+
+      VcsLabelManager labelManager = myBeanContext.getSingletonService(VcsLabelManager.class);
+      Fields labelFields = myFields.getNestedField("vcsLabels");
+
+      return labelManager.getLabels(myBuild).stream()
+                         .map(l -> new VcsLabel(l, labelFields))
+                         .collect(Collectors.toList());
+    });
+  }
 
   @XmlAttribute
   public Long getId() {
