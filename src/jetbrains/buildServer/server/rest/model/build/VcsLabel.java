@@ -36,6 +36,11 @@ public class VcsLabel {
   @NotNull
   private final Fields myFields;
 
+  public VcsLabel() {
+    myRealLabel = null;
+    myFields = null;
+  }
+
   @XmlAttribute
   public String getText() {
     boolean isIncluded = myFields.isIncluded("text", true, true);
