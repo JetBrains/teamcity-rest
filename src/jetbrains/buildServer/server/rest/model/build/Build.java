@@ -198,7 +198,7 @@ public class Build {
     return new Build(build, Fields.NONE, beanContext);
   }
 
-  @XmlAttribute
+  @XmlElement
   public List<VcsLabel> getVcsLabels() {
     boolean isIncluded = myFields.isIncluded("vcsLabels", false, true);
     return ValueWithDefault.decideDefault(isIncluded, () -> {
