@@ -29,6 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @XmlType(name = "testCounters", propOrder = {
+  "ignored",
   "failed",
   "muted",
   "success",
@@ -36,6 +37,9 @@ import org.jetbrains.annotations.Nullable;
 })
 @XmlRootElement(name = "testCounters")
 public class TestCounters {
+  @Nullable
+  @XmlAttribute(name = "all")
+  private Integer ignored;
   @Nullable
   @XmlAttribute(name = "failed")
   private Integer failed;
@@ -56,18 +60,20 @@ public class TestCounters {
   public TestCounters(@Nullable final Collection<STestRun> testRuns, @NotNull final Fields fields) {
     if (testRuns != null) {
       all = ValueWithDefault.decideDefault(fields.isIncluded("all"), testRuns::size);
-      failed = 0;
-      muted = 0;
-      success = 0;
       final boolean mutedIncluded = fields.isIncluded("muted", false, true);
       final boolean successIncluded = fields.isIncluded("success", false, true);
       final boolean failedIncluded = fields.isIncluded("failed", false, true);
+      final boolean ignoredIncluded = fields.isIncluded("ignored", false, true);
       failed = failedIncluded ? 0 : null;
       muted = mutedIncluded ? 0 : null;
       success = successIncluded ? 0 : null;
+      ignored = ignoredIncluded ? 0 : null;
       testRuns.forEach(sTestRun -> {
         if (mutedIncluded && sTestRun.isMuted()) {
           muted++;
+        }
+        if (ignoredIncluded && sTestRun.isIgnored()) {
+          ignored++;
         }
         final Status status = sTestRun.getStatus();
         if (successIncluded && status.isSuccessful()) {
@@ -98,5 +104,10 @@ public class TestCounters {
   @Nullable
   public Integer getAll() {
     return all;
+  }
+
+  @Nullable
+  public Integer getIgnored() {
+    return ignored;
   }
 }
