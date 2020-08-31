@@ -38,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "testCounters")
 public class TestCounters {
   @Nullable
-  @XmlAttribute(name = "all")
+  @XmlAttribute(name = "ignored")
   private Integer ignored;
   @Nullable
   @XmlAttribute(name = "failed")
