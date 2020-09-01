@@ -127,7 +127,7 @@ public class TestOccurrenceRequest {
     if (depth < 1 || depth > 16) {
       throw new BadRequestException("depth should be between 0 and 17");
     }
-    if ("package".equals(fieldName)) {
+    if (!"package".equals(fieldName)) {
       throw new BadRequestException("Only grouping by 'package' is currently supported");
     }
     final List<STestRun> items = myTestOccurrenceFinder.getItems(locatorText).myEntries;
