@@ -759,7 +759,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
      .add("duration", Comparator.comparingInt(STestRun::getDuration))
      .add("runOrder", Comparator.comparingInt(STestRun::getOrderId))
      .add("status", Comparator.comparing(tr -> tr.getStatus().getPriority()))
-     .add("newFailure", Comparator.comparing(STestRun::isNewFailure)); //even more experimental than entire sorting feature
+     .add("newFailure", Comparator.comparing(STestRun::isNewFailure)) //even more experimental than entire sorting feature
+     .add("buildStartDate", Comparator.comparing(tr -> tr.getBuild().getStartDate()));
 
   private static class Orders<T> {
     private final Map<String, Comparator<T>> myComparators = new LinkedHashMap<>();
