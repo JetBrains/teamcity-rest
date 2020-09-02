@@ -83,7 +83,7 @@ public abstract class BranchData implements Branch {
       @NotNull
       @Override
       public SBuildType getBuildType() {
-        return branch.getDummyBuildPromotion().getBuildType(); //TeamCity API issue: would be much more effective to get the build type directly
+        return branch.getBuildType();
       }
 
       @NotNull
