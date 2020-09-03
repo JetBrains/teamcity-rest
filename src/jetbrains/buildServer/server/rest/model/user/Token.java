@@ -16,20 +16,13 @@
 
 package jetbrains.buildServer.server.rest.model.user;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Locale;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.AuthenticationToken;
 import jetbrains.buildServer.serverSide.auth.PermanentTokenConstants;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,6 +32,7 @@ import static jetbrains.buildServer.server.rest.model.user.Token.TYPE;
  * @author Dmitrii Bogdanov
  */
 @XmlRootElement(name = TYPE)
+@XmlAccessorType(XmlAccessType.PUBLIC_MEMBER)
 @XmlType(name = TYPE, propOrder = {
   "name",
   "creationTime",
@@ -51,13 +45,15 @@ public class Token {
   @Nullable
   private String name;
   @Nullable
-  private String expirationTime;
+  private Date expirationTime;
   @Nullable
-  private String creationTime;
+  private Date creationTime;
   @Nullable
   private String value;
 
   public Token() {
+    setCreationTime(null);
+    setExpirationTime(null);
   }
 
   public Token(@NotNull final AuthenticationToken t, @NotNull final Fields fields) {
@@ -69,50 +65,55 @@ public class Token {
       name = t.getName();
     }
     if (fields.isIncluded("expirationTime", false, true)) {
-      expirationTime = PermanentTokenConstants.NO_EXPIRE.equals(t.getExpirationTime()) ? null : Util.formatTime(t.getExpirationTime());
+      expirationTime = PermanentTokenConstants.NO_EXPIRE.equals(t.getExpirationTime()) ? null : t.getExpirationTime();
     }
     if (fields.isIncluded("creationTime", false, true)) {
-      creationTime = Util.formatTime(t.getCreationTime());
+      creationTime = t.getCreationTime();
     }
     if (fields.isIncluded("value", true, true)) {
       value = tokenValue;
     }
   }
 
-  @Nullable
-  @XmlAttribute(name = "expirationTime")
-  public Date getExpirationTime() {
-    if (expirationTime == null) {
-      return new Date(PermanentTokenConstants.NO_EXPIRE.getTime());
-    } else {
-      SimpleDateFormat formatter = new SimpleDateFormat(TeamCityProperties.getProperty("rest.defaultDateFormat", Constants.TIME_FORMAT), Locale.ENGLISH);
-      try {
-        final Date parsedDate = formatter.parse(expirationTime);
-        final Date currentDate = new Date();
-        if (currentDate.after(parsedDate)) {
-          throw new BadRequestException("Your date has already passed: " + parsedDate);
-        } else {
-          return parsedDate;
-        }
-      } catch (ParseException ignored) {
-        throw new BadRequestException("Wrong time format, use: " + TeamCityProperties.getProperty("rest.defaultDateFormat", Constants.TIME_FORMAT));
-      }
-    }
-  }
-
   @XmlAttribute
-  @NotNull
+  @Nullable
   public String getName() {
-    if (name == null) {
-      throw new BadRequestException("You should specify name of the token");
-    }
     return name;
   }
 
+  public void setName(@NotNull String name) {
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("name should not be empty");
+    }
+    this.name = name;
+  }
+
   @XmlAttribute
   @Nullable
-  public String getCreationTime() {
+  public Date getExpirationTime() {
+    return expirationTime;
+  }
+
+  public void setExpirationTime(@Nullable Date expirationTime) {
+    if (expirationTime == null) {
+      expirationTime = new Date(PermanentTokenConstants.NO_EXPIRE.getTime());
+    }
+    final Date currentDate = new Date();
+    if (currentDate.after(expirationTime)) {
+      throw new BadRequestException("expirationDate should be after the current date");
+    } else {
+      this.expirationTime = expirationTime;
+    }
+  }
+
+  @XmlAttribute
+  @Nullable
+  public Date getCreationTime() {
     return creationTime;
+  }
+
+  public void setCreationTime(@Nullable Date ignored) {
+    this.creationTime = new Date();
   }
 
   @XmlAttribute

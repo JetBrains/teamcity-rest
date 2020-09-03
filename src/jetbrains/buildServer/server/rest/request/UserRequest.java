@@ -348,6 +348,9 @@ public class UserRequest {
   public Token createToken(Token token,
                            @PathParam("userLocator") String userLocator,
                            @QueryParam("fields") String fields) {
+    if (token.getName() == null) {
+      throw new BadRequestException("name cannot be empty");
+    }
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
       myUserFinder.checkViewAllUsersPermission();
     }
