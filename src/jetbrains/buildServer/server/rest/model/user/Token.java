@@ -40,13 +40,17 @@ import static jetbrains.buildServer.server.rest.model.user.Token.TYPE;
  */
 @SuppressWarnings({"PublicField", "unused", "WeakerAccess"})
 @XmlRootElement(name = TYPE)
-@XmlType(name = TYPE, propOrder = {"name", "creationTime", "value"})
+@XmlType(name = TYPE, propOrder = {
+  "name",
+  "creationTime",
+  "value",
+  "expirationTime"
+})
 public class Token {
   static final String TYPE = "token";
   @XmlAttribute
   public String name;
   @Nullable
-  @XmlAttribute(required = false)
   public String expirationTime;
   @Nullable
   @XmlAttribute(required = false)
@@ -77,6 +81,8 @@ public class Token {
     }
   }
 
+  @Nullable
+  @XmlAttribute(name = "expirationTime")
   public Date getExpirationDate() {
     if (expirationTime == null) {
       return new Date(PermanentTokenConstants.NO_EXPIRE.getTime());
