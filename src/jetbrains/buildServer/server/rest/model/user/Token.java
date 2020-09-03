@@ -38,7 +38,6 @@ import static jetbrains.buildServer.server.rest.model.user.Token.TYPE;
 /**
  * @author Dmitrii Bogdanov
  */
-@SuppressWarnings({"PublicField", "unused", "WeakerAccess"})
 @XmlRootElement(name = TYPE)
 @XmlType(name = TYPE, propOrder = {
   "name",
@@ -47,17 +46,16 @@ import static jetbrains.buildServer.server.rest.model.user.Token.TYPE;
   "expirationTime"
 })
 public class Token {
+  @NotNull
   static final String TYPE = "token";
-  @XmlAttribute
-  public String name;
   @Nullable
-  public String expirationTime;
+  private String name;
   @Nullable
-  @XmlAttribute(required = false)
-  public String creationTime;
+  private String expirationTime;
   @Nullable
-  @XmlAttribute(required = false)
-  public String value;
+  private String creationTime;
+  @Nullable
+  private String value;
 
   public Token() {
   }
@@ -83,7 +81,7 @@ public class Token {
 
   @Nullable
   @XmlAttribute(name = "expirationTime")
-  public Date getExpirationDate() {
+  public Date getExpirationTime() {
     if (expirationTime == null) {
       return new Date(PermanentTokenConstants.NO_EXPIRE.getTime());
     } else {
@@ -102,10 +100,24 @@ public class Token {
     }
   }
 
-  public String getTokenName() {
+  @XmlAttribute
+  @NotNull
+  public String getName() {
     if (name == null) {
       throw new BadRequestException("You should specify name of the token");
     }
     return name;
+  }
+
+  @XmlAttribute
+  @Nullable
+  public String getCreationTime() {
+    return creationTime;
+  }
+
+  @XmlAttribute
+  @Nullable
+  public String getValue() {
+    return value;
   }
 }
