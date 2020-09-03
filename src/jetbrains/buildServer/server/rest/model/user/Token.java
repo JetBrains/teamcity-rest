@@ -16,12 +16,20 @@
 
 package jetbrains.buildServer.server.rest.model.user;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.AuthenticationToken;
+import jetbrains.buildServer.serverSide.auth.PermanentTokenConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,6 +45,9 @@ public class Token {
   static final String TYPE = "token";
   @XmlAttribute
   public String name;
+  @Nullable
+  @XmlAttribute(required = false)
+  public String expirationTime;
   @Nullable
   @XmlAttribute(required = false)
   public String creationTime;
@@ -55,11 +66,40 @@ public class Token {
     if (fields.isIncluded("name", true, true)) {
       name = t.getName();
     }
+    if (fields.isIncluded("expirationTime", false, true)) {
+      expirationTime = PermanentTokenConstants.NO_EXPIRE.equals(t.getExpirationTime()) ? null : Util.formatTime(t.getExpirationTime());
+    }
     if (fields.isIncluded("creationTime", false, true)) {
       creationTime = Util.formatTime(t.getCreationTime());
     }
     if (fields.isIncluded("value", true, true)) {
       value = tokenValue;
     }
+  }
+
+  public Date getExpirationDate() {
+    if (expirationTime == null) {
+      return new Date(PermanentTokenConstants.NO_EXPIRE.getTime());
+    } else {
+      SimpleDateFormat formatter = new SimpleDateFormat(TeamCityProperties.getProperty("rest.defaultDateFormat", Constants.TIME_FORMAT), Locale.ENGLISH);
+      try {
+        final Date parsedDate = formatter.parse(expirationTime);
+        final Date currentDate = new Date();
+        if (currentDate.after(parsedDate)) {
+          throw new BadRequestException("Your date has already passed: " + parsedDate);
+        } else {
+          return parsedDate;
+        }
+      } catch (ParseException ignored) {
+        throw new BadRequestException("Wrong time format, use: " + TeamCityProperties.getProperty("rest.defaultDateFormat", Constants.TIME_FORMAT));
+      }
+    }
+  }
+
+  public String getTokenName() {
+    if (name == null) {
+      throw new BadRequestException("You should specify name of the token");
+    }
+    return name;
   }
 }

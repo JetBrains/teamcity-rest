@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import java.util.Date;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.controllers.login.RememberMe;
@@ -343,6 +344,25 @@ public class UserRequest {
   }
 
   @POST
+  @Path("/{userLocator}/tokens")
+  @Produces({"application/xml", "application/json"})
+  public Token createToken(Token token,
+                           @PathParam("userLocator") String userLocator,
+                           @QueryParam("fields") String fields) {
+    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
+      myUserFinder.checkViewAllUsersPermission();
+    }
+    final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
+    final SUser user = myUserFinder.getItem(userLocator, true);
+    try {
+      final AuthenticationToken authenticationToken = tokenAuthenticationModel.createToken(user.getId(), token.getTokenName(), token.getExpirationDate());
+      return new Token(authenticationToken, authenticationToken.getValue(), new Fields(fields));
+    } catch (AuthenticationTokenStorage.CreationException e) {
+      throw new BadRequestException(e.getMessage());
+    }
+  }
+
+  @POST
   @Path("/{userLocator}/tokens/{name}")
   @Produces({"application/xml", "application/json"})
   public Token createToken(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
@@ -354,7 +374,7 @@ public class UserRequest {
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     final SUser user = myUserFinder.getItem(userLocator, true);
     try {
-      final AuthenticationToken token = tokenAuthenticationModel.createToken(user.getId(), name);
+      final AuthenticationToken token = tokenAuthenticationModel.createToken(user.getId(), name, new Date(PermanentTokenConstants.NO_EXPIRE.getTime()));
       return new Token(token, token.getValue(), new Fields(fields));
     } catch (AuthenticationTokenStorage.CreationException e) {
       throw new BadRequestException(e.getMessage());
