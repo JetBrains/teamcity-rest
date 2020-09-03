@@ -17,9 +17,11 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import java.util.Date;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import java.util.Date;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -44,9 +46,6 @@ import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
 
 @Path(UserRequest.API_USERS_URL)
 @Api("User")
@@ -355,7 +354,7 @@ public class UserRequest {
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     final SUser user = myUserFinder.getItem(userLocator, true);
     try {
-      final AuthenticationToken authenticationToken = tokenAuthenticationModel.createToken(user.getId(), token.getTokenName(), token.getExpirationDate());
+      final AuthenticationToken authenticationToken = tokenAuthenticationModel.createToken(user.getId(), token.getName(), token.getExpirationTime());
       return new Token(authenticationToken, authenticationToken.getValue(), new Fields(fields));
     } catch (AuthenticationTokenStorage.CreationException e) {
       throw new BadRequestException(e.getMessage());
