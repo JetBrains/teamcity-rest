@@ -48,7 +48,8 @@ public class FilterItemProcessor<T> implements ItemProcessor<T> {
     if (myFilter.isIncludedByRange(myCurrentIndex++)) {
       myList.add(item);
     }
-    return true;
+
+    return myFilter.isBelowUpperRangeLimit(myCurrentIndex, myTotalItemsProcessed);
   }
 
   public ArrayList<T> getResult() {

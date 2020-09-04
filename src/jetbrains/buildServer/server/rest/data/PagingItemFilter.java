@@ -47,7 +47,6 @@ public class PagingItemFilter<T> implements ItemFilter<T> {
 
   public boolean isBelowUpperRangeLimit(final long matchedItemsIndex, final long processedItemsIndex) {
     if (myCount != null && matchedItemsIndex >= myActualStart + myCount) return false;
-    //noinspection RedundantIfStatement
     if (myLookupLimit != null && processedItemsIndex >= myLookupLimit) {
       myLookupLimitReached = true;
       return false;
