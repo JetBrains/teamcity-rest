@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.swagger;
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.ExtensionProperty;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
@@ -26,8 +27,8 @@ import io.swagger.jackson.ModelResolver;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 
 import java.util.Iterator;
 
@@ -35,19 +36,27 @@ public class ExtensionModelResolver extends ModelResolver {
   public ExtensionModelResolver(ObjectMapper mapper) {
     super(mapper);
   }
+  private Logger LOG = Logger.getInstance(ExtensionModelResolver.class.getName());
 
   @Override
   public Model resolve(JavaType type, ModelConverterContext context, Iterator<ModelConverter> next) {
     ModelImpl model = (ModelImpl) super.resolve(type, context, next);
-    BeanDescription beanDesc = _mapper.getSerializationConfig().introspect(type);
 
-    final Extension extensions = beanDesc.getClassAnnotations().get(Extension.class);
-    if (extensions != null) {
-      for (ExtensionProperty property : extensions.properties()) {
-        model.setVendorExtension(property.name(), property.value());
+    if (model != null) {
+      BeanDescription beanDesc = _mapper.getSerializationConfig().introspect(type);
+
+      final Extension extensions = beanDesc.getClassAnnotations().get(Extension.class);
+      if (extensions != null) {
+        for (ExtensionProperty property : extensions.properties()) {
+          model.setVendorExtension(property.name(), property.value());
+        }
+      } else { //set default x-base-type vendor extension
+        model.setVendorExtension(ExtensionType.X_BASE_TYPE, ObjectType.DATA);
       }
-    } else { //set default x-base-type vendor extension
-      model.setVendorExtension(ExtensionType.X_BASE_TYPE, ObjectType.DATA);
+    }
+
+    else {
+      LOG.debug(type.toString() + " type resolved to null");
     }
 
     return model;
