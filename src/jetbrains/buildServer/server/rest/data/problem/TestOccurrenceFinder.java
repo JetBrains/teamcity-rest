@@ -65,6 +65,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @LocatorDimension("muted") public static final String MUTED = "muted";
   @LocatorDimension("currentlyMuted") public static final String CURRENTLY_MUTED = "currentlyMuted";
   @LocatorDimension("newFailure") public static final String NEW_FAILURE = "newFailure";
+  @LocatorDimension("includePersonal") public static final String INCLUDE_PERSONAL = "includePersonal";
   protected static final String EXPAND_INVOCATIONS = "expandInvocations"; //experimental
   protected static final String INVOCATIONS = "invocations"; //experimental
   protected static final String ORDER = "orderBy"; //highly experimental
@@ -286,23 +287,39 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @NotNull
   private List<STestRun> getTestHistory(final STest test, final SProject affectedProject, @NotNull final Locator locator) {
-    return myTestHistory.getTestHistory(test.getTestNameId(), affectedProject, getBranchFilter(locator.getSingleDimensionValue(BRANCH)));
+    return myTestHistory.getTestHistory(
+      test.getTestNameId(),
+      affectedProject,
+      jetbrains.buildServer.util.filters.FilterUtil.and(getBranchFilter(locator.getSingleDimensionValue(BRANCH)), getPersonalBuildsFilter(locator))
+    );
     //consider reporting not found if no tests found and the branch does not exist
   }
 
   @NotNull
   private List<STestRun> getTestHistory(final STest test, final SBuildType buildType, @NotNull final Locator locator) {
-    return myTestHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), getBranchFilter(locator.getSingleDimensionValue(BRANCH)));
+    return myTestHistory.getTestHistory(
+      test.getTestNameId(),
+      buildType.getBuildTypeId(),
+      jetbrains.buildServer.util.filters.FilterUtil.and(getBranchFilter(locator.getSingleDimensionValue(BRANCH)), getPersonalBuildsFilter(locator))
+    );
     //consider reporting not found if no tests found and the branch does not exist
+  }
+
+  /** Filter out personal builds by default.
+   */
+  @NotNull
+  private Filter<STestRun> getPersonalBuildsFilter(@NotNull final Locator locator) {
+    Boolean isPersonal = locator.getSingleDimensionValueAsBoolean(INCLUDE_PERSONAL, false);
+    if(isPersonal != null && isPersonal) {
+      return testRun -> true;
+    }
+
+    return testRun -> !testRun.getBuild().isPersonal();
   }
 
   @NotNull
   private Filter<STestRun> getBranchFilter(@Nullable  final String branchLocator) {
-    //do not include personal builds to match original logic
-    Filter<STestRun> defaultFilter = testRun -> {
-      SBuild build = testRun.getBuild();
-      return !build.isPersonal();
-    };
+    Filter<STestRun> defaultFilter = tr -> true;
 
     if (branchLocator == null) {
       return defaultFilter;
@@ -314,9 +331,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       // unparsable locator - support previous behavior with simple equals matching, just match in case-insensitive way
       return testRun -> {
         SBuild build = testRun.getBuild();
-        //do not include personal builds to match original logic
         Branch branch = build.getBuildPromotion().getBranch();
-        return branch != null && !build.isPersonal() && branchLocator.equalsIgnoreCase(branch.getName());
+        return branch != null && branchLocator.equalsIgnoreCase(branch.getName());
       };
     }
     if (branchFilterDetails.isAnyBranch()) {
@@ -324,7 +340,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     }
     return testRun -> {
       SBuild build = testRun.getBuild();
-      return !build.isPersonal() && branchFilterDetails.isIncluded(build.getBuildPromotion());
+      return branchFilterDetails.isIncluded(build.getBuildPromotion());
     };
   }
 
@@ -514,6 +530,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         });
       }
     }
+
+    Filter<STestRun> personalBuildsFilter = getPersonalBuildsFilter(locator);
+    result.add(testRun -> personalBuildsFilter.accept(testRun));
 
     final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);
     if (currentlyInvestigatedDimension != null) {

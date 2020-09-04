@@ -488,6 +488,27 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
   }
 
   @Test
+  public void testTestFromPersonalBuilds() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+
+    final SFinishedBuild personalBuild = build().in(buildType)
+                                          .personalForUser("some_user")
+                                          .withTest(BuildBuilder.TestData.test("aaa"))
+                                          .finish();
+
+    final SFinishedBuild regularBuild = build().in(buildType)
+                                                .withTest(BuildBuilder.TestData.test("aaa"))
+                                                .finish();
+
+    TestRunDataWithBuild personalRun = t("aaa", Status.NORMAL, 1, personalBuild.getBuildId());
+    TestRunDataWithBuild regularRun  = t("aaa", Status.NORMAL, 2, regularBuild.getBuildId());
+
+    check("test:(name:aaa)", TEST_MATCHER, regularRun);
+    check("test:(name:aaa),includePersonal:true", TEST_MATCHER, personalRun, regularRun);
+    check("test:(name:aaa),includePersonal:false", TEST_MATCHER, regularRun);
+  }
+
+  @Test
   public void testTestOccurrenceEntityInvocations() throws Exception {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
     final SFinishedBuild build10 = build().in(buildType)
