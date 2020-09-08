@@ -506,6 +506,9 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     check("test:(name:aaa)", TEST_MATCHER, regularRun);
     check("test:(name:aaa),includePersonal:true", TEST_MATCHER, personalRun, regularRun);
     check("test:(name:aaa),includePersonal:false", TEST_MATCHER, regularRun);
+
+    // Should return from personal build
+    check(String.format("build:(id:%d)", personalBuild.getBuildId()), TEST_MATCHER, personalRun);
   }
 
   @Test

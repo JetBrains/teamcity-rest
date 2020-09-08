@@ -204,6 +204,10 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   private ItemHolder<STestRun> getPrefilteredItemsInternal(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
+      // Include test runs from personal build if user is looking for one specific build.
+      boolean searchByBuildId = new Locator(buildDimension).isAnyPresent(BuildFinder.DIMENSION_ID);
+      locator.setDimensionIfNotPresent(INCLUDE_PERSONAL, Boolean.toString(searchByBuildId));
+
       List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
 
       Boolean expandInvocations = locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS);  //getting the dimension early in order not to get "dimension is unknown" for it in case of early exit
@@ -454,6 +458,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     if (locator.isUnused(DIMENSION_ID)){
       Long testRunId = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
+      // If someone voluntarily excluded personal build when searching by test run id, then assume that is exactly what they want.
+      // Otherwise, return a test run in a personal build by default.
+      locator.setDimensionIfNotPresent(INCLUDE_PERSONAL, "true");
       if (testRunId != null) {
         result.add(new FilterConditionChecker<STestRun>() {
           public boolean isIncluded(@NotNull final STestRun item) {
@@ -502,6 +509,10 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (locator.isUnused(BUILD)) {
       String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
+        // Include test runs from personal build if user is looking for one specific build.
+        boolean searchByBuildId = new Locator(buildDimension).isAnyPresent(BuildFinder.DIMENSION_ID);
+        locator.setDimensionIfNotPresent(INCLUDE_PERSONAL, Boolean.toString(searchByBuildId));
+
         List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries; //todo: use buildPromotionFinder, use filter; drop personal builds filtering in test history
         result.add(new FilterConditionChecker<STestRun>() {
           public boolean isIncluded(@NotNull final STestRun item) {
@@ -530,9 +541,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         });
       }
     }
-
-    Filter<STestRun> personalBuildsFilter = getPersonalBuildsFilter(locator);
-    result.add(testRun -> personalBuildsFilter.accept(testRun));
 
     final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);
     if (currentlyInvestigatedDimension != null) {
@@ -602,6 +610,10 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         });
       }
     }
+
+    // Exclude test runs form personal builds by default to , if not included by a special cases above.
+    Filter<STestRun> personalBuildsFilter = getPersonalBuildsFilter(locator);
+    result.add(testRun -> personalBuildsFilter.accept(testRun));
 
     return result;
   }
