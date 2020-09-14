@@ -33,20 +33,19 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-
 /**
  * @author Yegor.Yarko
- *         Date: 09.11.13
+ * Date: 09.11.13
  */
-@LocatorResource(value = LocatorName.TEST, extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME})
+@LocatorResource(value = LocatorName.TEST, extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT,
+  Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME})
 public class TestFinder extends AbstractFinder<STest> {
   @LocatorDimension("name") private static final String NAME = "name";
   @LocatorDimension("affectedProject") public static final String AFFECTED_PROJECT = "affectedProject";
   @LocatorDimension("currentlyFailing") private static final String CURRENT = "currentlyFailing";
   @LocatorDimension("currentlyInvestigated") public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
-  @LocatorDimension("currentlyMuted") public static final String CURRENTLY_MUTED = "currentlyMuted";
-  @LocatorDimension("muteAffected") public static final String MUTE_AFFECTED = "muteAffected";
+  @LocatorDimension("currentlyMuted") private static final String CURRENTLY_MUTED = "currentlyMuted";
+  @LocatorDimension("muteAffected") private static final String MUTE_AFFECTED = "muteAffected";
   public static final String BUILD = "build";
 
   @NotNull private final ProjectFinder myProjectFinder;
@@ -173,7 +172,7 @@ public class TestFinder extends AbstractFinder<STest> {
 
     //todo: TeamCity API: find a way to support more cases
 
-    ArrayList<String> exampleLocators = new ArrayList<String>();
+    ArrayList<String> exampleLocators = new ArrayList<>();
     exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "<NUMBER>"));
     exampleLocators.add(Locator.getStringLocator(NAME, "<CONSTANT_NAME>"));
     exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "<PROJECT_LOCATOR>"));
@@ -181,6 +180,7 @@ public class TestFinder extends AbstractFinder<STest> {
     throw new BadRequestException("Unsupported test locator '" + locator.getStringRepresentation() + "'. Try locators: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
+  @SuppressWarnings("SortedCollectionWithNonComparableKeys")
   @NotNull
   private TreeSet<STest> getTestsByBuilds(@NotNull final String buildLocator) {
     TreeSet<STest> result = new TreeSet<>();
@@ -188,7 +188,7 @@ public class TestFinder extends AbstractFinder<STest> {
     for (BuildPromotion build : builds) {
       SBuild associatedBuild = build.getAssociatedBuild();
       if (associatedBuild != null){
-        result.addAll(CollectionsUtil.convertCollection(associatedBuild.getBuildStatistics(BuildStatisticsOptions.ALL_TESTS_NO_DETAILS).getAllTests(), source -> source.getTest()));
+        result.addAll(CollectionsUtil.convertCollection(associatedBuild.getBuildStatistics(BuildStatisticsOptions.ALL_TESTS_NO_DETAILS).getAllTests(), STestRun::getTest));
       }
     }
     return result; //todo: use BuildStatistics.getTests to get unsorted, then sort
@@ -207,7 +207,7 @@ public class TestFinder extends AbstractFinder<STest> {
   @NotNull
   @Override
   public ItemFilter<STest> getFilter(@NotNull final Locator locator) {
-    final MultiCheckerFilter<STest> result = new MultiCheckerFilter<STest>();
+    final MultiCheckerFilter<STest> result = new MultiCheckerFilter<>();
 
     final String nameDimension = locator.getSingleDimensionValue(NAME);
     if (nameDimension != null) {
@@ -217,21 +217,17 @@ public class TestFinder extends AbstractFinder<STest> {
 
     final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);
     if (currentlyInvestigatedDimension != null) {
-      result.add(new FilterConditionChecker<STest>() {
-        public boolean isIncluded(@NotNull final STest item) {
-          //todo: check investigation in affected Project/buildType only, if set
-          return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension, !item.getAllResponsibilities().isEmpty());
-        }
+      result.add(item -> {
+        //todo: check investigation in affected Project/buildType only, if set
+        return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension, item.getAllResponsibilities().stream().noneMatch(t -> t.getState().isActive()));
       });
     }
 
     final Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null) {
-      result.add(new FilterConditionChecker<STest>() {
-        public boolean isIncluded(@NotNull final STest item) {
-          //todo: check mute in affected Project/buildType only, if set
-          return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, item.getCurrentMuteInfo() != null);
-        }
+      result.add(item -> {
+        //todo: check mute in affected Project/buildType only, if set
+        return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, item.getCurrentMuteInfo() != null);
       });
     }
 
@@ -241,31 +237,27 @@ public class TestFinder extends AbstractFinder<STest> {
       String muteAffectedBuildTypeLocatorText = muteAffectedLocator.getSingleDimensionValue("buildType");
       if (muteAffectedBuildTypeLocatorText != null) {
         final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, muteAffectedBuildTypeLocatorText);
-        result.add(new FilterConditionChecker<STest>() {
-          public boolean isIncluded(@NotNull final STest item) {
-            CurrentMuteInfo muteInfo = item.getCurrentMuteInfo();
-            if (muteInfo == null) return false;
-            Set<SProject> mutedInProjects = muteInfo.getProjectsMuteInfo().keySet();
-            Set<SBuildType> mutedInBuildTypes = muteInfo.getBuildTypeMuteInfo().keySet();
-            for (SBuildType buildType : buildTypes) {
-              if (buildType == null) continue;
-              if (mutedInBuildTypes.contains(buildType)) return true;
-              if (ProjectFinder.isSameOrParent(mutedInProjects, buildType.getProject())) return true;
-            }
-            return false;
+        result.add(item -> {
+          CurrentMuteInfo muteInfo = item.getCurrentMuteInfo();
+          if (muteInfo == null) return false;
+          Set<SProject> mutedInProjects = muteInfo.getProjectsMuteInfo().keySet();
+          Set<SBuildType> mutedInBuildTypes = muteInfo.getBuildTypeMuteInfo().keySet();
+          for (SBuildType buildType : buildTypes) {
+            if (buildType == null) continue;
+            if (mutedInBuildTypes.contains(buildType)) return true;
+            if (ProjectFinder.isSameOrParent(mutedInProjects, buildType.getProject())) return true;
           }
+          return false;
         });
       }
       String muteAffectedProjectLocatorText = muteAffectedLocator.getSingleDimensionValue("project");
       if (muteAffectedProjectLocatorText != null) {
         List<SProject> projects = myProjectFinder.getItems(muteAffectedProjectLocatorText).myEntries;
-        result.add(new FilterConditionChecker<STest>() {
-          public boolean isIncluded(@NotNull final STest item) {
-            CurrentMuteInfo muteInfo = item.getCurrentMuteInfo();
-            if (muteInfo == null) return false;
-            Set<SProject> mutedInProjects = muteInfo.getProjectsMuteInfo().keySet();
-            return projects.stream().anyMatch(project -> ProjectFinder.isSameOrParent(mutedInProjects, project));
-          }
+        result.add(item -> {
+          CurrentMuteInfo muteInfo = item.getCurrentMuteInfo();
+          if (muteInfo == null) return false;
+          Set<SProject> mutedInProjects = muteInfo.getProjectsMuteInfo().keySet();
+          return projects.stream().anyMatch(project -> ProjectFinder.isSameOrParent(mutedInProjects, project));
         });
       }
       muteAffectedLocator.checkLocatorFullyProcessed();
@@ -275,12 +267,7 @@ public class TestFinder extends AbstractFinder<STest> {
       String buildLocator = locator.getSingleDimensionValue(BUILD);
       if (buildLocator != null) {
         final TreeSet<STest> tests = getTestsByBuilds(buildLocator);
-        result.add(new FilterConditionChecker<STest>() {
-          @Override
-          public boolean isIncluded(@NotNull final STest item) {
-            return tests.contains(item);
-          }
-        });
+        result.add(tests::contains);
       }
     }
 
