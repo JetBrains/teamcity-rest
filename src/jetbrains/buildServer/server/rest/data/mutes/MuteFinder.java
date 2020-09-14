@@ -229,7 +229,13 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
                                                            .toItems(dimension -> dimension.stream().flatMap(MuteFinder.this::getMuteInfosForProject).collect(Collectors.toList()));
 
       dimensionProjects(PROJECT, myServiceLocator).description("project in which mute is assigned")
-                                                  .valueForDefaultFilter(muteInfo -> Collections.singleton(muteInfo.getProject())); //todo: add toItems?
+                                                  .valueForDefaultFilter(muteInfo -> {
+                                                    if (canView(muteInfo)) {
+                                                      return Collections.singleton(muteInfo.getProject());
+                                                    } else {
+                                                      return Collections.emptySet();
+                                                    }
+                                                  }); //todo: add toItems?
 
       dimensionTimeCondition(CREATION_DATE, myTimeCondition).description("mute creation time")
                                                             .filter((timeCondition, item) -> timeCondition.matches(item.getMutingTime()));
