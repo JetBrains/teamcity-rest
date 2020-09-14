@@ -509,6 +509,9 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     // Should return from personal build
     check(String.format("build:(id:%d)", personalBuild.getBuildId()), TEST_MATCHER, personalRun);
+
+    STestRun testInPersonalBuild = personalBuild.getFullStatistics().getAllTests().get(0);
+    check(String.format("id:%d,build:(id:%d)", testInPersonalBuild.getTestRunId(), personalBuild.getBuildId()), TEST_MATCHER, personalRun);
   }
 
   @Test

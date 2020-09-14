@@ -163,6 +163,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     Long idDimension = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (idDimension != null) {
+      // Return a test run from a personal build if not specified otherwise.
+      locator.setDimensionIfNotPresent(INCLUDE_PERSONAL, "true");
 
       String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
