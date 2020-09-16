@@ -657,8 +657,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     final List<TestNameResponsibilityEntry> testResponsibilities = item.getTest().getAllResponsibilities();
     for (TestNameResponsibilityEntry testResponsibility : testResponsibilities) {
       final SBuildType buildType = item.getBuild().getBuildType();
-      if (buildType != null) {  //might need to log this
-        if (ProjectFinder.isSameOrParent(testResponsibility.getProject(), buildType.getProject()) && testResponsibility.getState().isActive()) {
+      if (buildType != null) {
+        if (testResponsibility.getState().isActive() && ProjectFinder.isSameOrParent(testResponsibility.getProject(), buildType.getProject())) {
           return true;
         }
       }
