@@ -38,7 +38,6 @@ import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.tests.TestHistory;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.util.ExceptionUtil;
-import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.NamedThreadFactory;
 import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
@@ -63,7 +62,52 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @LocatorDimension("ignored") private static final String IGNORED = "ignored";
   @LocatorDimension("currentlyInvestigated") public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   @LocatorDimension("muted") public static final String MUTED = "muted";
-  @LocatorDimension("currentlyMuted") public static final String CURRENTLY_MUTED = "currentlyMuted";
+  protected static final Comparator<STestRun> TEST_RUN_COMPARATOR = (o1, o2) -> {
+    // see also STestRun.NEW_FIRST_NAME_COMPARATOR
+
+    // New failure goes first
+    boolean isNew1 = o1.isNewFailure();
+    boolean isNew2 = o2.isNewFailure();
+    if (isNew1 && !isNew2) {
+      return -1;
+    }
+    if (!isNew1 && isNew2) {
+      return 1;
+    }
+
+    final TestGroupName grp1 = o1.getTest().getName().getGroupName();
+    final TestGroupName grp2 = o2.getTest().getName().getGroupName();
+    final int grpCompare = grp1.compareTo(grp2);
+    if (grpCompare != 0) return grpCompare;
+
+    final String name1 = o1.getTest().getName().getAsString();
+    final String name2 = o2.getTest().getName().getAsString();
+    final int nameCompare = name1.compareTo(name2);
+    if (nameCompare != 0) return nameCompare;
+
+    // Failure goes first
+    boolean isFailed1 = o1.getStatus().isFailed();
+    boolean isFailed2 = o2.getStatus().isFailed();
+    if (isFailed1 && !isFailed2) {
+      return -1;
+    }
+    if (!isFailed1 && isFailed2) {
+      return 1;
+    }
+
+    // that's what STestRun.NEW_FIRST_NAME_COMPARATOR does not compare
+    SBuild build1 = o1.getBuild();
+    SBuild build2 = o2.getBuild();
+
+    int datesComparison = build1.getServerStartDate().compareTo(build2.getServerStartDate());
+    if (datesComparison != 0) return datesComparison;
+
+    if (build1.getBuildId() != build2.getBuildId()) {
+      return (int)(build1.getBuildId() - build2.getBuildId());
+    }
+
+    return o1.getOrderId() - o2.getOrderId();
+  };
   @LocatorDimension("newFailure") public static final String NEW_FAILURE = "newFailure";
   @LocatorDimension("includePersonal") public static final String INCLUDE_PERSONAL = "includePersonal";
   protected static final String EXPAND_INVOCATIONS = "expandInvocations"; //experimental
@@ -130,18 +174,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(build)).getStringRepresentation();
   }
 
-  @NotNull
-  public TreeSet<STestRun> createContainerSet() {
-    return new TreeSet<>(new Comparator<STestRun>() {
-      @Override
-      public int compare(final STestRun o1, final STestRun o2) {
-        return ComparisonChain.start()
-                              .compare(o1.getBuildId(), o2.getBuildId())
-                              .compare(o1.getTestRunId(), o2.getTestRunId())
-                              .result();
-      }
-    });
-  }
+  @LocatorDimension("currentlyMuted") private static final String CURRENTLY_MUTED = "currentlyMuted";
 
   @Override
   @Nullable
@@ -203,120 +236,53 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  private ItemHolder<STestRun> getPrefilteredItemsInternal(@NotNull final Locator locator) {
-    String buildDimension = locator.getSingleDimensionValue(BUILD);
-    if (buildDimension != null) {
-      // Include test runs from personal build if user is looking for one specific build.
-      boolean searchByBuildId = new Locator(buildDimension).isAnyPresent(BuildFinder.DIMENSION_ID);
-      locator.setDimensionIfNotPresent(INCLUDE_PERSONAL, Boolean.toString(searchByBuildId));
-
-      List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
-
-      Boolean expandInvocations = locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS);  //getting the dimension early in order not to get "dimension is unknown" for it in case of early exit
-      String testDimension = locator.getSingleDimensionValue(TEST);
-      if (testDimension == null) {
-        AggregatingItemHolder<STestRun> result = new AggregatingItemHolder<>();
-        for (BuildPromotion build : builds) {
-          SBuild associatedBuild = build.getAssociatedBuild();
-          if (associatedBuild != null) {
-            result.add(getPossibleExpandedTestsHolder(getBuildStatistics(associatedBuild, locator).getAllTests(), expandInvocations));
-          }
-        }
-        return result;
-      }
-
-      final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
-      final ArrayList<STestRun> result = new ArrayList<STestRun>();
-      for (BuildPromotion build : builds) {
-        SBuild associatedBuild = build.getAssociatedBuild();
-        if (associatedBuild != null) {
-          Set<Long> allTestNameIds = tests.myEntries.stream().map(t -> t.getTestNameId()).collect(Collectors.toSet());
-          final List<STestRun> allTests = getBuildStatistics(associatedBuild, locator).getAllTests();
-          for (STestRun item : allTests) {
-            if (allTestNameIds.contains(item.getTest().getTestNameId())) {
-              result.add(item);
-            }
-          }
-        }
-      }
-      return getPossibleExpandedTestsHolder(result, expandInvocations);
+  public static Set<STestRun> getCurrentOccurrences(@NotNull final SProject affectedProject, @NotNull final CurrentProblemsManager currentProblemsManager) {
+    final CurrentProblems currentProblems = currentProblemsManager.getProblemsForProject(affectedProject);
+    final Map<TestName, List<STestRun>> failingTests = currentProblems.getFailingTests();
+    final Map<TestName, List<STestRun>> mutedTestFailures = currentProblems.getMutedTestFailures();
+    final TreeSet<STestRun> result = new TreeSet<>(TEST_RUN_COMPARATOR);
+    //todo: check whether STestRun is OK to put into the set
+    for (List<STestRun> testRuns : failingTests.values()) {
+      result.addAll(testRuns);
     }
-
-    String testDimension = locator.getSingleDimensionValue(TEST);
-    if (testDimension != null) {
-      final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
-
-      String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
-      if (buildTypeDimension != null) {
-        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension, false);
-        final ArrayList<STestRun> result = new ArrayList<STestRun>();
-        for (STest test : tests.myEntries) {
-          result.addAll(getTestHistory(test, buildType, locator));
-        }
-        return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
-      }
-
-      final ArrayList<STestRun> result = new ArrayList<STestRun>();
-      final SProject affectedProject = getAffectedProject(locator);
-      for (STest test : tests.myEntries) {
-        result.addAll(getTestHistory(test, affectedProject, locator));
-      }
-      return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+    for (List<STestRun> testRuns : mutedTestFailures.values()) {
+      result.addAll(testRuns);
     }
-
-    Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
-    if (currentDimension != null && currentDimension) {
-      locator.markUsed(Collections.singleton(CURRENT));
-      return getPossibleExpandedTestsHolder(getCurrentOccurrences(getAffectedProject(locator), myCurrentProblemsManager),
-                                            locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
-    }
-
-    Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
-    if (currentlyMutedDimension != null && currentlyMutedDimension) {
-      final SProject affectedProject = getAffectedProject(locator);
-      final Set<STest> currentlyMutedTests = myTestFinder.getCurrentlyMutedTests(affectedProject);
-      final ArrayList<STestRun> result = new ArrayList<STestRun>();
-      for (STest test : currentlyMutedTests) {
-        result.addAll(getTestHistory(test, affectedProject, locator));
-      }
-      return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
-    }
-
-    ArrayList<String> exampleLocators = new ArrayList<String>();
-    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(BUILD, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(TEST, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
-    exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
-    throw new BadRequestException("Unsupported test occurrence locator '" + locator.getStringRepresentation() + "'. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
+    return result;
   }
 
   @NotNull
-  private List<STestRun> getTestHistory(final STest test, final SProject affectedProject, @NotNull final Locator locator) {
-    return myTestHistory.getTestHistory(
-      test.getTestNameId(),
-      affectedProject,
-      jetbrains.buildServer.util.filters.FilterUtil.and(getBranchFilter(locator.getSingleDimensionValue(BRANCH)), getPersonalBuildsFilter(locator))
-    );
-    //consider reporting not found if no tests found and the branch does not exist
+  private static <T> ItemHolder<T> getSortedItemHolder(@NotNull final ItemHolder<T> baseHolder, @Nullable final Comparator<T> comparator) {
+    if (comparator == null) return baseHolder;
+
+    ArrayList<T> items = new ArrayList<>(100);
+    baseHolder.process(items::add);
+    try {
+      return NamedThreadFactory.executeWithNewThreadName("Sorting " + items.size() + " items", () -> {
+        items.sort(comparator);
+        return getItemHolder(items);
+      });
+    } catch (Exception e) {
+      ExceptionUtil.rethrowAsRuntimeException(e);
+      return null;
+    }
   }
 
   @NotNull
-  private List<STestRun> getTestHistory(final STest test, final SBuildType buildType, @NotNull final Locator locator) {
-    return myTestHistory.getTestHistory(
-      test.getTestNameId(),
-      buildType.getBuildTypeId(),
-      jetbrains.buildServer.util.filters.FilterUtil.and(getBranchFilter(locator.getSingleDimensionValue(BRANCH)), getPersonalBuildsFilter(locator))
-    );
-    //consider reporting not found if no tests found and the branch does not exist
+  public TreeSet<STestRun> createContainerSet() {
+    return new TreeSet<>((o1, o2) -> ComparisonChain.start()
+                                                    .compare(o1.getBuildId(), o2.getBuildId())
+                                                    .compare(o1.getTestRunId(), o2.getTestRunId())
+                                                    .result());
   }
 
-  /** Filter out personal builds by default.
+  /**
+   * Filter out personal builds by default.
    */
   @NotNull
   private Filter<STestRun> getPersonalBuildsFilter(@NotNull final Locator locator) {
     Boolean isPersonal = locator.getSingleDimensionValueAsBoolean(INCLUDE_PERSONAL, false);
-    if(isPersonal != null && isPersonal) {
+    if (isPersonal != null && isPersonal) {
       return testRun -> true;
     }
 
@@ -324,7 +290,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  private Filter<STestRun> getBranchFilter(@Nullable  final String branchLocator) {
+  private Filter<STestRun> getBranchFilter(@Nullable final String branchLocator) {
     Filter<STestRun> defaultFilter = tr -> true;
 
     if (branchLocator == null) {
@@ -366,24 +332,93 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  private ItemHolder<STestRun> getPossibleExpandedTestsHolder(@NotNull final Iterable<STestRun> tests, @Nullable final Boolean expandInvocations) {
-    if (expandInvocations == null || !expandInvocations) {
-      return getItemHolder(tests);
-    }
-    return new ItemHolder<STestRun>() {
-      @Override
-      public void process(@NotNull final ItemProcessor<STestRun> processor) {
-        for (STestRun entry : tests) {
-          if (!(entry instanceof MultiTestRun)) {
-            processor.processItem(entry);
-          } else {
-            for (STestRun nestedTestRun : getInvocations(entry)) {
-              processor.processItem(nestedTestRun);
+  private ItemHolder<STestRun> getPrefilteredItemsInternal(@NotNull final Locator locator) {
+    String buildDimension = locator.getSingleDimensionValue(BUILD);
+    if (buildDimension != null) {
+      // Include test runs from personal build if user is looking for one specific build.
+      boolean searchByBuildId = new Locator(buildDimension).isAnyPresent(BuildFinder.DIMENSION_ID);
+      locator.setDimensionIfNotPresent(INCLUDE_PERSONAL, Boolean.toString(searchByBuildId));
+
+      List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+
+      Boolean expandInvocations = locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS);  //getting the dimension early in order not to get "dimension is unknown" for it in case of early exit
+      String testDimension = locator.getSingleDimensionValue(TEST);
+      if (testDimension == null) {
+        AggregatingItemHolder<STestRun> result = new AggregatingItemHolder<>();
+        for (BuildPromotion build : builds) {
+          SBuild associatedBuild = build.getAssociatedBuild();
+          if (associatedBuild != null) {
+            result.add(getPossibleExpandedTestsHolder(getBuildStatistics(associatedBuild, locator).getAllTests(), expandInvocations));
+          }
+        }
+        return result;
+      }
+
+      final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
+      final ArrayList<STestRun> result = new ArrayList<>();
+      for (BuildPromotion build : builds) {
+        SBuild associatedBuild = build.getAssociatedBuild();
+        if (associatedBuild != null) {
+          Set<Long> allTestNameIds = tests.myEntries.stream().map(STest::getTestNameId).collect(Collectors.toSet());
+          final List<STestRun> allTests = getBuildStatistics(associatedBuild, locator).getAllTests();
+          for (STestRun item : allTests) {
+            if (allTestNameIds.contains(item.getTest().getTestNameId())) {
+              result.add(item);
             }
           }
         }
       }
-    };
+      return getPossibleExpandedTestsHolder(result, expandInvocations);
+    }
+
+    String testDimension = locator.getSingleDimensionValue(TEST);
+    if (testDimension != null) {
+      final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
+
+      String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
+      if (buildTypeDimension != null) {
+        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension, false);
+        final ArrayList<STestRun> result = new ArrayList<>();
+        for (STest test : tests.myEntries) {
+          result.addAll(getTestHistory(test, buildType, locator));
+        }
+        return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+      }
+
+      final ArrayList<STestRun> result = new ArrayList<>();
+      final SProject affectedProject = getAffectedProject(locator);
+      for (STest test : tests.myEntries) {
+        result.addAll(getTestHistory(test, affectedProject, locator));
+      }
+      return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+    }
+
+    Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
+    if (currentDimension != null && currentDimension) {
+      locator.markUsed(Collections.singleton(CURRENT));
+      return getPossibleExpandedTestsHolder(getCurrentOccurrences(getAffectedProject(locator), myCurrentProblemsManager),
+                                            locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+    }
+
+    Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
+    if (currentlyMutedDimension != null && currentlyMutedDimension) {
+      final SProject affectedProject = getAffectedProject(locator);
+      final Set<STest> currentlyMutedTests = myTestFinder.getCurrentlyMutedTests(affectedProject);
+      final ArrayList<STestRun> result = new ArrayList<>();
+      for (STest test : currentlyMutedTests) {
+        result.addAll(getTestHistory(test, affectedProject, locator));
+      }
+      return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+    }
+
+    ArrayList<String> exampleLocators = new ArrayList<>();
+    exampleLocators.add(Locator.getStringLocator(DIMENSION_ID, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(BUILD, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(TEST, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
+    exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
+    throw new BadRequestException(
+      "Unsupported test occurrence locator '" + locator.getStringRepresentation() + "'. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   @NotNull
@@ -391,72 +426,55 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
       return myProjectFinder.getItem(affectedProjectDimension);
-    }else{
+    } else {
       return myProjectFinder.getRootProject();
     }
   }
 
-  protected static final Comparator<STestRun> TEST_RUN_COMPARATOR = new Comparator<STestRun>() {
-    public int compare(STestRun o1, STestRun o2) {
-      // see also STestRun.NEW_FIRST_NAME_COMPARATOR
-
-      // New failure goes first
-      boolean isNew1 = o1.isNewFailure();
-      boolean isNew2 = o2.isNewFailure();
-      if (isNew1 && !isNew2) { return -1; }
-      if (!isNew1 && isNew2) { return 1; }
-
-      final TestGroupName grp1 = o1.getTest().getName().getGroupName();
-      final TestGroupName grp2 = o2.getTest().getName().getGroupName();
-      final int grpCompare = grp1.compareTo(grp2);
-      if (grpCompare != 0) return grpCompare;
-
-      final String name1 = o1.getTest().getName().getAsString();
-      final String name2 = o2.getTest().getName().getAsString();
-      final int nameCompare = name1.compareTo(name2);
-      if (nameCompare != 0) return nameCompare;
-
-      // Failure goes first
-      boolean isFailed1 = o1.getStatus().isFailed();
-      boolean isFailed2 = o2.getStatus().isFailed();
-      if (isFailed1 && !isFailed2) { return -1; }
-      if (!isFailed1 && isFailed2) { return 1; }
-
-      // that's what STestRun.NEW_FIRST_NAME_COMPARATOR does not compare
-      SBuild build1 = o1.getBuild();
-      SBuild build2 = o2.getBuild();
-
-      int datesComparison = build1.getServerStartDate().compareTo(build2.getServerStartDate());
-      if (datesComparison != 0 ) return datesComparison;
-
-      if (build1.getBuildId() != build2.getBuildId()) {
-        return (int)(build1.getBuildId() - build2.getBuildId());
-      }
-
-      return o1.getOrderId() - o2.getOrderId();
-    }
-  };
+  @NotNull
+  private List<STestRun> getTestHistory(final STest test, final SProject affectedProject, @NotNull final Locator locator) {
+    //noinspection unchecked
+    return myTestHistory.getTestHistory(
+      test.getTestNameId(),
+      affectedProject,
+      jetbrains.buildServer.util.filters.FilterUtil.and(getBranchFilter(locator.getSingleDimensionValue(BRANCH)), getPersonalBuildsFilter(locator))
+    );
+    //consider reporting not found if no tests found and the branch does not exist
+  }
 
   @NotNull
-  public static Set<STestRun> getCurrentOccurrences(@NotNull final SProject affectedProject, @NotNull final CurrentProblemsManager currentProblemsManager) {
-    final CurrentProblems currentProblems = currentProblemsManager.getProblemsForProject(affectedProject);
-    final Map<TestName, List<STestRun>> failingTests = currentProblems.getFailingTests();
-    final Map<TestName, List<STestRun>> mutedTestFailures = currentProblems.getMutedTestFailures();
-    final TreeSet<STestRun> result = new TreeSet<STestRun>(TEST_RUN_COMPARATOR);
-    //todo: check whether STestRun is OK to put into the set
-    for (List<STestRun> testRuns : failingTests.values()) {
-      result.addAll(testRuns);
+  private List<STestRun> getTestHistory(final STest test, final SBuildType buildType, @NotNull final Locator locator) {
+    //noinspection unchecked
+    return myTestHistory.getTestHistory(
+      test.getTestNameId(),
+      buildType.getBuildTypeId(),
+      jetbrains.buildServer.util.filters.FilterUtil.and(getBranchFilter(locator.getSingleDimensionValue(BRANCH)), getPersonalBuildsFilter(locator))
+    );
+    //consider reporting not found if no tests found and the branch does not exist
+  }
+
+  @NotNull
+  private ItemHolder<STestRun> getPossibleExpandedTestsHolder(@NotNull final Iterable<STestRun> tests, @Nullable final Boolean expandInvocations) {
+    if (expandInvocations == null || !expandInvocations) {
+      return getItemHolder(tests);
     }
-    for (List<STestRun> testRuns : mutedTestFailures.values()) {
-      result.addAll(testRuns);
-    }
-    return result;
+    return processor -> {
+      for (STestRun entry : tests) {
+        if (!(entry instanceof MultiTestRun)) {
+          processor.processItem(entry);
+        } else {
+          for (STestRun nestedTestRun : getInvocations(entry)) {
+            processor.processItem(nestedTestRun);
+          }
+        }
+      }
+    };
   }
 
   @NotNull
   @Override
   public ItemFilter<STestRun> getFilter(@NotNull final Locator locator) {
-    final MultiCheckerFilter<STestRun> result = new MultiCheckerFilter<STestRun>();
+    final MultiCheckerFilter<STestRun> result = new MultiCheckerFilter<>();
 
     if (locator.isUnused(DIMENSION_ID)){
       Long testRunId = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
@@ -464,11 +482,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       // Otherwise, return a test run in a personal build by default.
       locator.setDimensionIfNotPresent(INCLUDE_PERSONAL, "true");
       if (testRunId != null) {
-        result.add(new FilterConditionChecker<STestRun>() {
-          public boolean isIncluded(@NotNull final STestRun item) {
-            return testRunId.intValue() == item.getTestRunId();
-          }
-        });
+        result.add(item -> testRunId.intValue() == item.getTestRunId());
       }
     }
 
@@ -479,11 +493,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     final Boolean ignoredDimension = locator.getSingleDimensionValueAsBoolean(IGNORED);
     if (ignoredDimension != null) {
-      result.add(new FilterConditionChecker<STestRun>() {
-        public boolean isIncluded(@NotNull final STestRun item) {
-          return FilterUtil.isIncludedByBooleanFilter(ignoredDimension, item.isIgnored());
-        }
-      });
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(ignoredDimension, item.isIgnored()));
     }
 
     final String nameDimension = locator.getSingleDimensionValue(NAME);
@@ -496,15 +506,11 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       String testDimension = locator.getSingleDimensionValue(TEST);
       if (testDimension != null) {
         final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
-        final HashSet<Long> testNameIds = new HashSet<Long>();
+        final HashSet<Long> testNameIds = new HashSet<>();
         for (STest test : tests.myEntries) {
           testNameIds.add(test.getTestNameId());
         }
-        result.add(new FilterConditionChecker<STestRun>() {
-          public boolean isIncluded(@NotNull final STestRun item) {
-            return testNameIds.contains(item.getTest().getTestNameId());
-          }
-        });
+        result.add(item -> testNameIds.contains(item.getTest().getTestNameId()));
       }
     }
 
@@ -516,11 +522,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         locator.setDimensionIfNotPresent(INCLUDE_PERSONAL, Boolean.toString(searchByBuildId));
 
         List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries; //todo: use buildPromotionFinder, use filter; drop personal builds filtering in test history
-        result.add(new FilterConditionChecker<STestRun>() {
-          public boolean isIncluded(@NotNull final STestRun item) {
-            return builds.contains(item.getBuild().getBuildPromotion());
-          }
-        });
+        result.add(item -> builds.contains(item.getBuild().getBuildPromotion()));
       }
     }
 
@@ -536,31 +538,23 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
       if (buildTypeDimension != null) {
         final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension, false);
-        result.add(new FilterConditionChecker<STestRun>() {
-          public boolean isIncluded(@NotNull final STestRun item) {
-            return item.getBuild().getBuildTypeId().equals(buildType.getInternalId());
-          }
-        });
+        result.add(item -> item.getBuild().getBuildTypeId().equals(buildType.getInternalId()));
       }
     }
 
     final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);
     if (currentlyInvestigatedDimension != null) {
-      result.add(new FilterConditionChecker<STestRun>() {
-        public boolean isIncluded(@NotNull final STestRun item) {
-          //todo: check investigation in affected Project/buildType only, if set
-          return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension, isCurrentlyInvestigated(item));
-        }
+      result.add(item -> {
+        //todo: check investigation in affected Project/buildType only, if set
+        return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension, isCurrentlyInvestigated(item));
       });
     }
 
     final Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null) { //it is important to filter even if prefiltered items processed the tests as that does not consider mute scope
-      result.add(new FilterConditionChecker<STestRun>() {
-        public boolean isIncluded(@NotNull final STestRun item) { //todo: TeamCity API (MP): is there an API way to figure out there is a mute for a STestRun ?
-          //todo: check mute in affected Project/buildType only, if set
-          return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, isCurrentlyMuted(item));
-        }
+      result.add(item -> { //todo: TeamCity API (MP): is there an API way to figure out there is a mute for a STestRun ?
+        //todo: check mute in affected Project/buildType only, if set
+        return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, isCurrentlyMuted(item));
       });
     }
 
@@ -572,11 +566,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     final Boolean muteDimension = locator.getSingleDimensionValueAsBoolean(MUTED);
     if (muteDimension != null) {
-      result.add(new FilterConditionChecker<STestRun>() {
-        public boolean isIncluded(@NotNull final STestRun item) {
-          return FilterUtil.isIncludedByBooleanFilter(muteDimension, item.isMuted());
-        }
-      });
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(muteDimension, item.isMuted()));
     }
 
     if (locator.isUnused(CURRENT)) {
@@ -590,32 +580,30 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (locator.getUnusedDimensions().contains(INVOCATIONS)) {
       final String dimensionValue = locator.getSingleDimensionValue(INVOCATIONS);
       if (dimensionValue != null) {
-        result.add(new FilterConditionChecker<STestRun>() {
-          public boolean isIncluded(@NotNull final STestRun item) {
-            Collection<STestRun> testRuns = getInvocations(item);
-            FinderSearchMatcher<STestRun> matcher =
-              new FinderSearchMatcher<>(dimensionValue, new DelegatingAbstractFinder<STestRun>(TestOccurrenceFinder.this) {
-                @Nullable
-                @Override
-                public STestRun findSingleItem(@NotNull final Locator locator) {
-                  return null;
-                }
+        result.add(item -> {
+          Collection<STestRun> testRuns = getInvocations(item);
+          FinderSearchMatcher<STestRun> matcher =
+            new FinderSearchMatcher<>(dimensionValue, new DelegatingAbstractFinder<STestRun>(TestOccurrenceFinder.this) {
+              @Nullable
+              @Override
+              public STestRun findSingleItem(@NotNull final Locator locator1) {
+                return null;
+              }
 
-                @NotNull
-                @Override
-                public ItemHolder getPrefilteredItems(@NotNull final Locator locator) {
-                  return getItemHolder(testRuns);
-                }
-              });
-            return matcher.matches(null);
-          }
+              @NotNull
+              @Override
+              public ItemHolder<STestRun> getPrefilteredItems(@NotNull final Locator locator1) {
+                return getItemHolder(testRuns);
+              }
+            });
+          return matcher.matches(null);
         });
       }
     }
 
     // Exclude test runs form personal builds by default to , if not included by a special cases above.
     Filter<STestRun> personalBuildsFilter = getPersonalBuildsFilter(locator);
-    result.add(testRun -> personalBuildsFilter.accept(testRun));
+    result.add(personalBuildsFilter::accept);
 
     return result;
   }
@@ -630,24 +618,10 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       return false; //might need to log this
     }
 
-    if (currentMuteInfo.getBuildTypeMuteInfo().keySet().contains(buildType)) return true;
+    if (currentMuteInfo.getBuildTypeMuteInfo().containsKey(buildType)) return true;
 
     final Set<SProject> projects = currentMuteInfo.getProjectsMuteInfo().keySet();
     return ProjectFinder.isSameOrParent(projects, buildType.getProject());
-  }
-
-  public boolean isCurrentlyInvestigated(@NotNull final STestRun item) {  //todo: TeamCity API (MP): is there an API way to figure out there is an investigation for a STestRun ?
-    final List<TestNameResponsibilityEntry> testResponsibilities =
-      item.getTest().getAllResponsibilities();//todo: TeamCity API (MP): what is the difference with getResponsibility() ?
-    for (TestNameResponsibilityEntry testResponsibility : testResponsibilities) {
-      final SBuildType buildType = item.getBuild().getBuildType();
-      if (buildType != null) {  //might need to log this
-        if (ProjectFinder.isSameOrParent(testResponsibility.getProject(), buildType.getProject())) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   @NotNull
@@ -668,7 +642,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       optionsMask |= BuildStatisticsOptions.PASSED_TESTS;
     }
 
-    return build.getBuildStatistics(new BuildStatisticsOptions(optionsMask, TeamCityProperties.getInteger("rest.request.testOccurrences.buildStatOpts.maxNumberOfTestsStacktracesToLoad", 0)));
+    return build.getBuildStatistics(
+      new BuildStatisticsOptions(optionsMask, TeamCityProperties.getInteger("rest.request.testOccurrences.buildStatOpts.maxNumberOfTestsStacktracesToLoad", 0)));
   }
 
   @Nullable
@@ -678,60 +653,17 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return build.getBuildStatistics(ALL_TESTS_NO_DETAILS).findTestByTestRunId(testRunId);
   }
 
-  private class DelegatingAbstractFinder<T> extends AbstractFinder<T> {
-    private final AbstractFinder<T> myDelegate;
-
-    public DelegatingAbstractFinder(final AbstractFinder<T> delegate) {
-      myDelegate = delegate;
+  public boolean isCurrentlyInvestigated(@NotNull final STestRun item) {  //todo: TeamCity API (MP): is there an API way to figure out there is an investigation for a STestRun ?
+    final List<TestNameResponsibilityEntry> testResponsibilities = item.getTest().getAllResponsibilities();
+    for (TestNameResponsibilityEntry testResponsibility : testResponsibilities) {
+      final SBuildType buildType = item.getBuild().getBuildType();
+      if (buildType != null) {  //might need to log this
+        if (ProjectFinder.isSameOrParent(testResponsibility.getProject(), buildType.getProject()) && testResponsibility.getState().isActive()) {
+          return true;
+        }
+      }
     }
-
-    @NotNull
-    @Override
-    public String[] getKnownDimensions() {
-      return myDelegate.getKnownDimensions();
-    }
-
-    @NotNull
-    @Override
-    public String[] getHiddenDimensions() {
-      return myDelegate.getHiddenDimensions();
-    }
-
-    @Nullable
-    @Override
-    public Locator.DescriptionProvider getLocatorDescriptionProvider() {
-      return myDelegate.getLocatorDescriptionProvider();
-    }
-
-    @Nullable
-    @Override
-    public T findSingleItem(@NotNull final Locator locator) {
-      return myDelegate.findSingleItem(locator);
-    }
-
-    @NotNull
-    @Override
-    public ItemHolder getPrefilteredItems(@NotNull final Locator locator) {
-      return myDelegate.getPrefilteredItems(locator);
-    }
-
-    @NotNull
-    @Override
-    public ItemFilter getFilter(@NotNull final Locator locator) {
-      return myDelegate.getFilter(locator);
-    }
-
-    @NotNull
-    @Override
-    public String getItemLocator(@NotNull final T item) {
-      return myDelegate.getItemLocator(item);
-    }
-
-    @Nullable
-    @Override
-    public Set<T> createContainerSet() {
-      return myDelegate.createContainerSet();
-    }
+    return false;
   }
 
   @Nullable
@@ -770,20 +702,59 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return comparator;
   }
 
-  @NotNull
-  private static <T> ItemHolder<T> getSortedItemHolder(@NotNull final ItemHolder<T> baseHolder, @Nullable final Comparator<T> comparator) {
-    if (comparator == null) return baseHolder;
+  private static class DelegatingAbstractFinder<T> extends AbstractFinder<T> {
+    private final AbstractFinder<T> myDelegate;
 
-    ArrayList<T> items = new ArrayList<>(100);
-    baseHolder.process(items::add);
-    try {
-      return NamedThreadFactory.executeWithNewThreadName("Sorting " + items.size() + " items", () -> {
-        Collections.sort(items, comparator);
-        return getItemHolder(items);
-      });
-    } catch (Exception e) {
-      ExceptionUtil.rethrowAsRuntimeException(e);
-      return null;
+    public DelegatingAbstractFinder(final AbstractFinder<T> delegate) {
+      myDelegate = delegate;
+    }
+
+    @NotNull
+    @Override
+    public String[] getKnownDimensions() {
+      return myDelegate.getKnownDimensions();
+    }
+
+    @NotNull
+    @Override
+    public String[] getHiddenDimensions() {
+      return myDelegate.getHiddenDimensions();
+    }
+
+    @Nullable
+    @Override
+    public Locator.DescriptionProvider getLocatorDescriptionProvider() {
+      return myDelegate.getLocatorDescriptionProvider();
+    }
+
+    @Nullable
+    @Override
+    public T findSingleItem(@NotNull final Locator locator) {
+      return myDelegate.findSingleItem(locator);
+    }
+
+    @NotNull
+    @Override
+    public ItemHolder<T> getPrefilteredItems(@NotNull final Locator locator) {
+      return myDelegate.getPrefilteredItems(locator);
+    }
+
+    @NotNull
+    @Override
+    public ItemFilter<T> getFilter(@NotNull final Locator locator) {
+      return myDelegate.getFilter(locator);
+    }
+
+    @NotNull
+    @Override
+    public String getItemLocator(@NotNull final T item) {
+      return myDelegate.getItemLocator(item);
+    }
+
+    @Nullable
+    @Override
+    public Set<T> createContainerSet() {
+      return myDelegate.createContainerSet();
     }
   }
 
