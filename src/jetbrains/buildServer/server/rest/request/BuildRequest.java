@@ -20,6 +20,16 @@ import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import java.io.*;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.agent.ServerProvidedProperties;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
@@ -66,23 +76,15 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TCStreamUtil;
 import jetbrains.buildServer.util.TimeService;
 import jetbrains.buildServer.util.browser.Element;
-import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.vcs.VcsException;
+import jetbrains.buildServer.vcs.VcsManager;
+import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.VcsRootInstanceEntry;
 import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebAuthUtil;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
-import java.io.*;
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /*
  * User: Yegor Yarko
@@ -1354,7 +1356,7 @@ public class BuildRequest {
     }
     RunningBuildEx runningBuild = (RunningBuildEx)build;
     try {
-      myBeanContext.getSingletonService(BuildAgentMessagesQueue.class).processMessages(runningBuild, Collections.singletonList(DefaultMessagesInfo.createTextMessage(lines)));
+      myBeanContext.getSingletonService(BuildAgentMessagesQueue.class).processMessages(runningBuild, Collections.singletonList(DefaultMessagesInfo.createTextMessage(lines).updateTags(DefaultMessagesInfo.TAG_REST)));
     } catch (InterruptedException e) {
       throw new OperationException("Got interrupted", e); //todo
     } catch (BuildAgentMessagesQueue.BuildMessagesQueueFullException e) {
