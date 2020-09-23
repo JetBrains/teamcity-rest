@@ -16,11 +16,15 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiParam;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.data.AuditEventFinder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.helpers.AuthorityHelper;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.audit.AuditEvent;
@@ -28,21 +32,20 @@ import jetbrains.buildServer.server.rest.model.audit.AuditEvents;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.audit.AuditLogAction;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
 
 @Path(AuditRequest.API_URL)
 @Api("Audit")
 public class AuditRequest {
-  private static final Logger LOG = Logger.getInstance(AuditRequest.class.getName());
+  @NotNull
   public static final String API_URL = Constants.API_URL + "/audit";
-
-  @Context @NotNull public AuditEventFinder myAuditEventFinder;
-  @Context @NotNull public BeanContext myBeanContext;
+  @Context
+  @NotNull
+  public AuditEventFinder myAuditEventFinder;
+  @Context
+  @NotNull
+  public BeanContext myBeanContext;
 
   @GET
   @Produces({"application/xml", "application/json"})
@@ -50,6 +53,7 @@ public class AuditRequest {
                          @QueryParam("fields") String fields,
                          @Context UriInfo uriInfo,
                          @Context HttpServletRequest request) {
+    AuthorityHelper.checkGlobalPermission(myBeanContext, Permission.VIEW_AUDIT_LOG);
     PagedSearchResult<AuditLogAction> items = myAuditEventFinder.getItems(locator);
     final PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), items, locator, "locator");
     return new AuditEvents(items.myEntries, pagerData, new Fields(fields), myBeanContext);
@@ -60,6 +64,7 @@ public class AuditRequest {
   @Produces({"application/xml", "application/json"})
   public AuditEvent getSingle(@ApiParam(format = LocatorName.AUDIT) @PathParam("auditEventLocator") String auditEventLocator,
                               @QueryParam("fields") String fields) {
+    AuthorityHelper.checkGlobalPermission(myBeanContext, Permission.VIEW_AUDIT_LOG);
     return new AuditEvent(myAuditEventFinder.getItem(auditEventLocator), new Fields(fields), myBeanContext);
   }
 }
