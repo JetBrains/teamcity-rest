@@ -18,6 +18,8 @@ package jetbrains.buildServer.server.rest.model.problem;
 
 import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.mutes.MuteFinder;
 import jetbrains.buildServer.server.rest.data.problem.MuteData;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -57,6 +59,21 @@ public class Mutes implements DefaultValueAware{
   @XmlElement(name = "mute") public List<Mute> items;
 
   private boolean isDefault;
+
+
+  /**
+   * This method creates Mutes object with attributes which are actual to the current moment, not the moment when the mute was initially created.
+   * Unfortunately, this includes loading of all mutes for the Root project, so this method is really slow.
+   */
+  @NotNull
+  static Mutes createMutesWithActualAttributes(@NotNull String problemLocator, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    Fields nestedFields = fields.getNestedField("mutes", Fields.NONE, Fields.LONG);
+    final String actualLocatorText = Locator.merge(nestedFields.getLocator(), problemLocator);
+    List<MuteInfo> entries = beanContext.getSingletonService(MuteFinder.class).getItems(actualLocatorText).myEntries;
+    return new Mutes(entries, null, nestedFields, beanContext);
+  }
+
+
 
   public Mutes() {
   }
