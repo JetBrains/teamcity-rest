@@ -34,6 +34,7 @@ import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
 import jetbrains.buildServer.server.rest.request.ProblemRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -75,7 +76,10 @@ public class Problem {
 
     mutes = ValueWithDefault.decideDefault(fields.isIncluded("mutes", false), new ValueWithDefault.Value<Mutes>() {
       public Mutes get() {
-        return Mutes.createMutesWithActualAttributes(MuteFinder.getLocator(problem), fields, beanContext);
+        if (TeamCityProperties.getBoolean(Mutes.REST_MUTES_ACTUAL_STATE)) {
+          return Mutes.createMutesWithActualAttributes(MuteFinder.getLocator(problem), fields, beanContext);
+        }
+        return new Mutes(problem.getMutes(), null, fields.getNestedField("mutes", Fields.NONE, Fields.LONG), beanContext);
       }
     });
     investigations = ValueWithDefault.decideDefault(fields.isIncluded("investigations", false), new ValueWithDefault.Value<Investigations>() {

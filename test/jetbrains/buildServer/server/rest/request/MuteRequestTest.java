@@ -127,6 +127,7 @@ public class MuteRequestTest extends BaseFinderTest<MuteInfo> {
     }
 
     {
+      setInternalProperty(Mutes.REST_MUTES_ACTUAL_STATE, "true");
       Mutes mutes = myRequest.getMutes(null, "$long,mute(target(tests(test(mutes(mute(target(tests($long))))))))", null, null);
       assertEquals(1, mutes.items.get(0).target.tests.items.get(0).mutes.items.get(0).target.tests.items.size());
     }
@@ -192,6 +193,7 @@ public class MuteRequestTest extends BaseFinderTest<MuteInfo> {
     }
 
     {
+      setInternalProperty(Mutes.REST_MUTES_ACTUAL_STATE, "true");
       Mutes mutes = myRequest.getMutes(null, "$long,mute(target(tests(test(mutes(mute(scope(buildTypes($long))))))))", null, null);
       assertEquals(1, mutes.items.get(0).target.tests.items.get(0).mutes.items.get(0).scope.buildTypes.buildTypes.size());
     }
@@ -246,6 +248,7 @@ public class MuteRequestTest extends BaseFinderTest<MuteInfo> {
     }
 
     {
+      setInternalProperty(Mutes.REST_MUTES_ACTUAL_STATE, "true");
       Mutes mutes = myRequest.getMutes("id:" + mute2Id, "$long,mute(target(tests(test(mutes(mute(target(tests(test($long))),scope(buildTypes(buildType($long)))))))))", null, null);
       assertEquals(2, mutes.items.get(0).target.tests.items.get(0).mutes.items.size());
       assertEquals(2, mutes.items.get(0).target.tests.items.get(0).mutes.items.get(0).target.tests.items.size());

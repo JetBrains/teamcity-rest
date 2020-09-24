@@ -51,6 +51,9 @@ import java.util.stream.Collectors;
 @XmlRootElement(name = "mutes")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
 public class Mutes implements DefaultValueAware{
+
+  public static final String REST_MUTES_ACTUAL_STATE = "rest.mutes.actual.state"; // Setting this internal property fixes TW-53288 but makes requests slower
+
   @XmlAttribute public Integer count;
   @XmlAttribute(required = false) @Nullable public String nextHref;
   @XmlAttribute(required = false) @Nullable public String prevHref;

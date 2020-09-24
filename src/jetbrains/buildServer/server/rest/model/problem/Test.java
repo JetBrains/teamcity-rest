@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -36,6 +38,9 @@ import jetbrains.buildServer.server.rest.request.TestRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.STest;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
+import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -75,7 +80,18 @@ public class Test {
 
     mutes = ValueWithDefault.decideDefault(fields.isIncluded("mutes", false), new ValueWithDefault.Value<Mutes>() {
       public Mutes get() {
-        return Mutes.createMutesWithActualAttributes(MuteFinder.getLocator(test), fields, beanContext);
+        if (TeamCityProperties.getBoolean(Mutes.REST_MUTES_ACTUAL_STATE)) {
+          return Mutes.createMutesWithActualAttributes(MuteFinder.getLocator(test), fields, beanContext);
+        }
+
+        final ArrayList<MuteInfo> muteInfos = new ArrayList<MuteInfo>();
+        final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo();
+        if (currentMuteInfo != null) {
+          muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getProjectsMuteInfo().values())); //add with deduplication
+          muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getBuildTypeMuteInfo().values())); //add with deduplication
+        }
+        return new Mutes(muteInfos, null, fields.getNestedField("mutes", Fields.NONE, Fields.LONG), beanContext);
+
       }
     });
 
