@@ -461,7 +461,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/vcsLabels")
   @Produces({"application/xml", "application/json"})
-  public List<VcsLabel> getVcsLabels(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+  public VcsLabels getVcsLabels(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                     @QueryParam("fields") String fields) {
     SBuild build = getBuild(myBuildFinder.getBuildPromotion(null, buildLocator));
     if(build == null) {
@@ -470,9 +470,9 @@ public class BuildRequest {
 
     VcsLabelManager labelManager = myBeanContext.getSingletonService(VcsLabelManager.class);
     Fields returnFields = new Fields(fields);
-    return labelManager.getLabels(build).stream()
+    return new VcsLabels(labelManager.getLabels(build).stream()
                        .map(l -> new VcsLabel(l, returnFields))
-                       .collect(Collectors.toList());
+                       .collect(Collectors.toList()), returnFields);
   }
 
   /**
@@ -487,7 +487,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/vcsLabels")
   @Consumes("text/plain")
   @Produces({"application/xml", "application/json"})
-  public List<VcsLabel> setVcsLabel(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+  public VcsLabels setVcsLabel(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                     @ApiParam(format = LocatorName.VCS_ROOT_INSTANCE) @QueryParam("locator") String vcsRootLocator,
                                     @QueryParam("fields") String fields,
                                     String labelValue) {
@@ -517,10 +517,10 @@ public class BuildRequest {
     }
 
     Fields returnFields = new Fields(fields);
-    return labelManager.getLabels(build).stream()
+    return new VcsLabels(labelManager.getLabels(build).stream()
                 .filter(l -> l.getLabelText().equals(labelValue))
                 .map(l -> new VcsLabel(l, returnFields))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()), returnFields);
   }
 
   @GET
