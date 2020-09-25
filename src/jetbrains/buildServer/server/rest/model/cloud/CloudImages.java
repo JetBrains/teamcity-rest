@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 
 @XmlRootElement(name = "cloudImages")
 @XmlType(name = "cloudImages")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
 public class CloudImages {
   @XmlElement(name = "cloudImage")
   public List<CloudImage> cloudImages;

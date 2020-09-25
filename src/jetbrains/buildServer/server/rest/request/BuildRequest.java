@@ -488,7 +488,7 @@ public class BuildRequest {
   @Consumes("text/plain")
   @Produces({"application/xml", "application/json"})
   public List<VcsLabel> setVcsLabel(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
-                                    @ApiParam(format = LocatorName.VCS_ROOT_INSTANCE) @PathParam("locator") String vcsRootLocator,
+                                    @ApiParam(format = LocatorName.VCS_ROOT_INSTANCE) @QueryParam("locator") String vcsRootLocator,
                                     @QueryParam("fields") String fields,
                                     String labelValue) {
     if(StringUtil.isEmpty(labelValue)) {

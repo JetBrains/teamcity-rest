@@ -43,7 +43,7 @@ import java.util.List;
  */
 @XmlRootElement(name = "agents")
 @XmlType(name = "agents-ref")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
 @SuppressWarnings("PublicField")
 public class Agents {
   public static final String COUNT = "count";
