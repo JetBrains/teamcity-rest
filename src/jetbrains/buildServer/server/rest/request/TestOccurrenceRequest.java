@@ -28,6 +28,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -40,7 +41,12 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestRun;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.StandardProperties;
+import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.omg.PortableInterceptor.LOCATION_FORWARD;
 
 /**
  * @author Yegor.Yarko
@@ -85,7 +91,8 @@ public class TestOccurrenceRequest {
                                             @QueryParam("fields") String fields,
                                             @Context UriInfo uriInfo,
                                             @Context HttpServletRequest request) {
-    final PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locatorText);
+    String locator = patchLocatorForPersonalBuilds(locatorText, request);
+    final PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locator);
 
     return new TestOccurrences(result.myEntries,
                                uriInfo == null ? null : uriInfo.getRequestUri().toString(),
@@ -99,8 +106,23 @@ public class TestOccurrenceRequest {
   @Path("/{testLocator}")
   @Produces({"application/xml", "application/json"})
   public TestOccurrence serveInstance(@ApiParam(format = LocatorName.TEST_OCCURRENCE) @PathParam("testLocator") String locatorText,
-                                      @QueryParam("fields") String fields) {
-    return new TestOccurrence(myTestOccurrenceFinder.getItem(locatorText), myBeanContext, new Fields(fields));
+                                      @QueryParam("fields") String fields,
+                                      @Context HttpServletRequest request) {
+    String locator = patchLocatorForPersonalBuilds(locatorText, request);
+
+    return new TestOccurrence(myTestOccurrenceFinder.getItem(locator), myBeanContext, new Fields(fields));
+  }
+
+  @Nullable
+  private String patchLocatorForPersonalBuilds(@Nullable String locator, @NotNull HttpServletRequest request) {
+    if(locator == null) return null;
+
+    SUser user = SessionUser.getUser(request);
+    if(user.getBooleanProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS)) {
+      return locator;
+    }
+
+    return Locator.setDimension(locator, TestOccurrenceFinder.PERSONAL_FOR_USER, user.getId());
   }
 
   void initForTests(@NotNull final BeanContext beanContext) {

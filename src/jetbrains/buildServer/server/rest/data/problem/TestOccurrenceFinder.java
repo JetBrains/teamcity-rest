@@ -110,6 +110,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   };
   @LocatorDimension("newFailure") public static final String NEW_FAILURE = "newFailure";
   @LocatorDimension("includePersonal") public static final String INCLUDE_PERSONAL = "includePersonal";
+  public static final String PERSONAL_FOR_USER = "personalForUser"; // internal only, see #getPersonalBuildsFilter
   protected static final String EXPAND_INVOCATIONS = "expandInvocations"; //experimental
   protected static final String INVOCATIONS = "invocations"; //experimental
   protected static final String ORDER = "orderBy"; //highly experimental
@@ -281,9 +282,17 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
    */
   @NotNull
   private Filter<STestRun> getPersonalBuildsFilter(@NotNull final Locator locator) {
-    Boolean isPersonal = locator.getSingleDimensionValueAsBoolean(INCLUDE_PERSONAL, false);
-    if (isPersonal != null && isPersonal) {
-      return testRun -> true;
+    Boolean includePersonal = locator.getSingleDimensionValueAsBoolean(INCLUDE_PERSONAL, false);
+    String userIdStr = locator.getSingleDimensionValue(PERSONAL_FOR_USER);
+    Long user = (userIdStr == null)? -1 : Long.parseLong(userIdStr);
+
+    if (includePersonal != null && includePersonal) {
+      if(userIdStr == null) {
+        return testRun -> true;
+      } else {
+        // Personal test run always has a user
+        return testRun -> !testRun.getBuild().isPersonal() || user.equals(testRun.getBuild().getOwner().getId());
+      }
     }
 
     return testRun -> !testRun.getBuild().isPersonal();

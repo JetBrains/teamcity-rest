@@ -537,11 +537,8 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     TestRunDataWithBuild myRun = t("aaa", Status.NORMAL, 1, myBuild.getBuildId());
     TestRunDataWithBuild notMyRun = t("aaa", Status.NORMAL, 2, notMyBuild.getBuildId());
 
-    user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "false");
-    check("test:(name:aaa),includePersonal:true", TEST_MATCHER, myRun);
-
-    user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "true");
     check("test:(name:aaa),includePersonal:true", TEST_MATCHER, myRun, notMyRun);
+    check("test:(name:aaa),includePersonal:true,personalForUser:" + user.getId(), TEST_MATCHER, myRun);
   }
 
   @Test
