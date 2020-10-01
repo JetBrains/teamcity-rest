@@ -41,6 +41,8 @@ import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.StandardProperties;
+import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -491,8 +493,10 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
   public void testTestFromPersonalBuilds() {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
 
+    SUser user = myFixture.createUserAccount("andrey");
+
     final SFinishedBuild personalBuild = build().in(buildType)
-                                          .personalForUser("some_user")
+                                          .personalForUser(user.getUsername())
                                           .withTest(BuildBuilder.TestData.test("aaa"))
                                           .finish();
 
@@ -512,6 +516,32 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     STestRun testInPersonalBuild = personalBuild.getFullStatistics().getAllTests().get(0);
     check(String.format("id:%d,build:(id:%d)", testInPersonalBuild.getTestRunId(), personalBuild.getBuildId()), TEST_MATCHER, personalRun);
+  }
+
+  @Test
+  public void testTestFinderRespectsProfilePersonalBuildsCheckbox() throws Exception {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+
+    SUser user = myFixture.createUserAccount("andrey");
+
+    final SFinishedBuild myBuild = build().in(buildType)
+                                                .personalForUser(user.getUsername())
+                                                .withTest(BuildBuilder.TestData.test("aaa"))
+                                                .finish();
+
+    final SFinishedBuild notMyBuild = build().in(buildType)
+                                               .personalForUser("another_user_with_unique-name")
+                                               .withTest(BuildBuilder.TestData.test("aaa"))
+                                               .finish();
+
+    TestRunDataWithBuild myRun = t("aaa", Status.NORMAL, 1, myBuild.getBuildId());
+    TestRunDataWithBuild notMyRun = t("aaa", Status.NORMAL, 2, notMyBuild.getBuildId());
+
+    user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "false");
+    check("test:(name:aaa),includePersonal:true", TEST_MATCHER, myRun);
+
+    user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "true");
+    check("test:(name:aaa),includePersonal:true", TEST_MATCHER, myRun, notMyRun);
   }
 
   @Test
