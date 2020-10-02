@@ -79,7 +79,7 @@ public class TestCounters {
         if (successIncluded && status.isSuccessful()) {
           success++;
         }
-        if (failedIncluded && status.isFailed()) {
+        if (failedIncluded && status.isFailed() && !sTestRun.isMuted()) {
           failed++;
         }
       });
