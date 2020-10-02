@@ -134,7 +134,8 @@ import org.jetbrains.annotations.Nullable;
     "triggeringOptions"/*only when triggering*/,
     "usedByOtherBuilds" /*experimental*/,
     "statusChangeComment" /*experimental, temporary*/,
-    "vcsLabels"
+    "vcsLabels",
+    "detachedFromAgent"
   })
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
@@ -264,7 +265,7 @@ public class Build {
    */
   @XmlAttribute
   public Boolean isComposite() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("composite"), () -> myBuildPromotion.isCompositeBuild());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("composite"), myBuildPromotion::isCompositeBuild);
   }
 
   @XmlAttribute
@@ -274,7 +275,7 @@ public class Build {
 
   @XmlAttribute
   public String getNumber() {
-    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("number", true), () -> myBuild.getBuildNumber());
+    return myBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("number", true), myBuild::getBuildNumber);
   }
 
   @XmlAttribute
@@ -1214,6 +1215,12 @@ public class Build {
         }
       }));
     });
+  }
+
+  @Nullable
+  @XmlAttribute
+  public Boolean isDetachedFromAgent() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("detachedFromAgent"), myBuild::isDetachedFromAgent);
   }
 
   private boolean myCanViewRuntimeDataChecked = false;
