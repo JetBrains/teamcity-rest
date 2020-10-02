@@ -23,6 +23,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.Null;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -114,8 +115,10 @@ public class TestOccurrenceRequest {
   }
 
   @Nullable
-  private String patchLocatorForPersonalBuilds(@Nullable String locator, @NotNull HttpServletRequest request) {
-    if(locator == null) return null;
+  private String patchLocatorForPersonalBuilds(@Nullable String locator, @Nullable HttpServletRequest request) {
+    if(locator == null || request == null) {
+      return locator;
+    }
 
     SUser user = SessionUser.getUser(request);
     if(user.getBooleanProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS)) {
