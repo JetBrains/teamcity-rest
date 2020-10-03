@@ -1220,7 +1220,7 @@ public class Build {
   @Nullable
   @XmlAttribute
   public Boolean isDetachedFromAgent() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("detachedFromAgent"), myBuild::isDetachedFromAgent);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("detachedFromAgent"), () -> myBuild != null && myBuild.isDetachedFromAgent());
   }
 
   private boolean myCanViewRuntimeDataChecked = false;
