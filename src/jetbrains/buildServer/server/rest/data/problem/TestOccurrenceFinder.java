@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data.problem;
 import com.google.common.collect.ComparisonChain;
 import java.util.*;
 import java.util.stream.Collectors;
+import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
@@ -110,7 +111,10 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   };
   @LocatorDimension("newFailure") public static final String NEW_FAILURE = "newFailure";
   @LocatorDimension("includePersonal") public static final String INCLUDE_PERSONAL = "includePersonal";
-  public static final String PERSONAL_FOR_USER = "personalForUser"; // internal only, see #getPersonalBuildsFilter
+  /** Internal dimension, stores id of the user who is making request. <br/>
+   * See also {@link #getPersonalBuildsFilter(Locator)},
+   * {@link jetbrains.buildServer.server.rest.request.TestOccurrenceRequest#patchLocatorForPersonalBuilds(String, HttpServletRequest)}*/
+  public static final String PERSONAL_FOR_USER = "personalForUser";
   protected static final String EXPAND_INVOCATIONS = "expandInvocations"; //experimental
   protected static final String INVOCATIONS = "invocations"; //experimental
   protected static final String ORDER = "orderBy"; //highly experimental
@@ -134,6 +138,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     super(DIMENSION_ID, TEST, NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, NEW_FAILURE);
     setHiddenDimensions(EXPAND_INVOCATIONS, INVOCATIONS);
     setHiddenDimensions(ORDER); //highly experiemntal
+    setHiddenDimensions(PERSONAL_FOR_USER);
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -278,19 +283,19 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   /**
-   * Filter out personal builds by default.
+   * Filters out personal builds by default. Uses dimension {@link #PERSONAL_FOR_USER} to filter out personal builds of other users.
    */
   @NotNull
   private Filter<STestRun> getPersonalBuildsFilter(@NotNull final Locator locator) {
     Boolean includePersonal = locator.getSingleDimensionValueAsBoolean(INCLUDE_PERSONAL, false);
     String userIdStr = locator.getSingleDimensionValue(PERSONAL_FOR_USER);
-    Long user = (userIdStr == null)? -1 : Long.parseLong(userIdStr);
 
     if (includePersonal != null && includePersonal) {
       if(userIdStr == null) {
         return testRun -> true;
       } else {
-        // Personal test run always has a user
+        Long user = Long.parseLong(userIdStr);
+        // Personal test run always has an owner
         return testRun -> !testRun.getBuild().isPersonal() || user.equals(testRun.getBuild().getOwner().getId());
       }
     }

@@ -114,6 +114,7 @@ public class TestOccurrenceRequest {
     return new TestOccurrence(myTestOccurrenceFinder.getItem(locator), myBeanContext, new Fields(fields));
   }
 
+  /** Checks if user has enabled "show personal builds" checkbox in profile and sets an internal dimension with user id. */
   @Nullable
   private String patchLocatorForPersonalBuilds(@Nullable String locator, @Nullable HttpServletRequest request) {
     if(locator == null || request == null) {
