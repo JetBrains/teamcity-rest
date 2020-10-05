@@ -72,7 +72,7 @@ public class TestCounters {
         if (mutedIncluded && sTestRun.isMuted()) {
           muted++;
         }
-        if (ignoredIncluded && sTestRun.isIgnored()) {
+        if (ignoredIncluded && sTestRun.isIgnored() && !sTestRun.isMuted()) {
           ignored++;
         }
         final Status status = sTestRun.getStatus();
