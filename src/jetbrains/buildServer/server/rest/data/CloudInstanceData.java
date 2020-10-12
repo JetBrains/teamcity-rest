@@ -65,7 +65,7 @@ public class CloudInstanceData {
     CloudProfile profile = myServiceLocator.getSingletonService(CloudInstanceFinder.class).myCloudUtil
       .getProfile(myInstance.getImage());
     if (profile == null) return null;
-    Collection<SBuildAgent> agents = myServiceLocator.getSingletonService(CloudManager.class).findAgentByInstance(profile, myInstance);
+    Collection<SBuildAgent> agents = myServiceLocator.getSingletonService(CloudManager.class).findAgentByInstance(profile.getProfileId(), myInstance.getInstanceId());
     return agents.size() > 0 ? agents.iterator().next() : null;
   }
 
