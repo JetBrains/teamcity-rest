@@ -415,11 +415,13 @@ public class APIController extends BaseController implements ServletContextAware
 
     final Stopwatch requestStart = new Stopwatch().start();
     boolean shouldLogToDebug = shouldLogToDebug(request);
-    boolean internalRequest = RestApiFacade.isInternal(request);
+
+    String requestType = getRequestType(request);
+
     CachingValue<String> requestDump = CachingValue.simple(() -> WebUtil.getRequestDump(request));
 
     if (shouldLogToDebug && TeamCityProperties.getBoolean("rest.log.debug.requestStart") && LOG.isDebugEnabled()) {
-      LOG.debug("REST API" + (internalRequest ? " internal" : "") + " request received: " + requestDump.get());
+      LOG.debug("REST API " + requestType + " request received: " + requestDump.get());
     }
 
     try {
@@ -471,7 +473,7 @@ public class APIController extends BaseController implements ServletContextAware
         }
       }
 
-      patchThread(requestDump, internalRequest, () -> {
+      patchThread(requestDump, requestType, () -> {
         // workaround for http://jetbrains.net/tracker/issue2/TW-7656
         doUnderContextClassLoader(myClassloader, new FuncThrow<Void, Throwable>() {
           public Void apply() throws Throwable {
@@ -500,12 +502,22 @@ public class APIController extends BaseController implements ServletContextAware
       processException(request, response, throwable);
     } finally{
       if (shouldLogToDebug && LOG.isDebugEnabled()) {
-        LOG.debug("REST API" + (internalRequest ? " internal" : "") + " request processing finished in " +
+        LOG.debug("REST API " + requestType + " request processing finished in " +
                   TimePrinter.createMillisecondsFormatter().formatTime(requestStart.elapsedMillis()) +
                   (errorEncountered ? " with errors, original " : ", ") + "status code: " + getStatus(response) + ", request: " + requestDump.get());
       }
     }
     return null;
+  }
+
+  @NotNull
+  private String getRequestType(@NotNull HttpServletRequest request) {
+    String requestType = "";
+    if (RestApiFacade.isInternal(request)) requestType = "internal";
+    if (request.getHeader("X-TeamCity-Essential") != null) {
+      requestType = requestType.isEmpty() ? "essential" : requestType + " " + "essential";
+    }
+    return requestType;
   }
 
   private void processException(@NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response, @NotNull final Throwable throwable) {
@@ -535,20 +547,20 @@ public class APIController extends BaseController implements ServletContextAware
     reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, Level.WARN, request);
   }
 
-  private void patchThread(@NotNull final CachingValue<String> requestDump, final boolean internalRequest,
+  private void patchThread(@NotNull final CachingValue<String> requestDump, @NotNull final String requestType,
                            @NotNull final FuncThrow<Void, Throwable> action) throws Throwable {
     if (TeamCityProperties.getBooleanOrTrue("rest.debug.APIController.patchThread")) {
       StringBuilder activityName = new StringBuilder();
       activityName.append("Processing REST");
-      if (internalRequest) {
-        activityName.append(" internal");
+      if (!requestType.isEmpty()) {
+        activityName.append(" ").append(requestType);
       }
       activityName.append(" request");
       if (requestDump.isCached()) {
         activityName.append(requestDump.get());
       }
 
-      NamedThreadFactory.executeWithNewThreadNameFuncThrow(activityName.toString(), () -> action.apply());
+      NamedThreadFactory.executeWithNewThreadNameFuncThrow(activityName.toString(), action);
     } else {
       action.apply();
     }
