@@ -135,7 +135,8 @@ import org.jetbrains.annotations.Nullable;
     "usedByOtherBuilds" /*experimental*/,
     "statusChangeComment" /*experimental, temporary*/,
     "vcsLabels",
-    "detachedFromAgent"
+    "detachedFromAgent",
+    "customized"
   })
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
@@ -1221,6 +1222,12 @@ public class Build {
   @XmlAttribute
   public Boolean isDetachedFromAgent() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("detachedFromAgent"), () -> myBuild != null && myBuild.isDetachedFromAgent());
+  }
+
+  @Nullable
+  @XmlAttribute
+  public Boolean isCustomized() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("customized"), () -> ((BuildPromotionEx)myBuildPromotion).isCustomized());
   }
 
   private boolean myCanViewRuntimeDataChecked = false;
