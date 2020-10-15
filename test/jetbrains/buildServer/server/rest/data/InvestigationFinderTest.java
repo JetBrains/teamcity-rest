@@ -149,7 +149,7 @@ public class InvestigationFinderTest extends BaseServerTestCase {
   public void testProblemInvestigationModel() throws Exception {
     createFailingBuild();
 
-    final BuildProblemInfoImpl buildProblem = new BuildProblemInfoImpl(myProject.getProjectId(), getProblemId(PROBLEM_IDENTITY), null);
+    final BuildProblemInfoImpl buildProblem = new BuildProblemInfoImpl(myProject.getProjectId(), getProblemId(PROBLEM_IDENTITY));
     myFixture.getResponsibilityFacadeEx().setBuildProblemResponsibility(buildProblem, myProject.getProjectId(), createRespEntry(ResponsibilityEntry.State.TAKEN, myUser));
 
     final BuildProblemResponsibilityEntry buildProblemResponsibility = myFixture.getResponsibilityFacadeEx().findBuildProblemResponsibility(buildProblem, myProject.getProjectId());
