@@ -120,7 +120,7 @@ import org.jetbrains.annotations.Nullable;
     "links",
     "statusText"/*rf*/,
     "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
-    "startEstimate"/*q*/, "waitReason"/*q*/,
+    "startEstimate"/*q*/, "waitReason"/*q*/, "finishEstimate"/*q*/,
     "runningBuildInfo"/*r*/, "canceledInfo"/*rf*/,
     "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
     "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision", "artifactDependencyChanges" /*experimental*/,
@@ -140,6 +140,8 @@ import org.jetbrains.annotations.Nullable;
   })
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
+
+  private static final String FINISH_ESTIMATE = "finishEstimate";
 
   public static final String CANCELED_INFO = "canceledInfo";
   public static final String PROMOTION_ID = "taskId";
@@ -1130,6 +1132,32 @@ public class Build {
   }
 
   @XmlElement
+  public String getFinishEstimate() {
+    if(myQueuedBuild == null) {
+      return null;
+    }
+
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded(FINISH_ESTIMATE, false),
+      () -> {
+        if(myQueuedBuild.getBuildEstimates() == null ||
+           myQueuedBuild.getBuildEstimates().getTimeInterval() == null ||
+           myQueuedBuild.getBuildEstimates().getTimeInterval().getEndPoint() == null) {
+          return null;
+        }
+
+        TimePoint endPoint = myQueuedBuild.getBuildEstimates().getTimeInterval().getEndPoint();
+        if(endPoint == TimePoint.NEVER) {
+          return null;
+        }
+
+        return Util.formatTime(endPoint.getAbsoluteTime());
+      }
+    );
+  }
+
+
+  @XmlElement
   public String getWaitReason() {
     final Boolean include = myFields.isIncluded("waitReason", false);
     if (myQueuedBuild == null || (include != null && !include)) return null;
@@ -1758,6 +1786,8 @@ public class Build {
       return String.valueOf(build.isFailedToStart());
     } else if ("startEstimateDate".equals(field)) {
       return build.getStartEstimate();
+    } else if (FINISH_ESTIMATE.equals(field)) {
+      return build.getFinishEstimate();
     } else if ("percentageComplete".equals(field)) {
       return String.valueOf(build.getPercentageComplete());
     } else if ("personal".equals(field)) {

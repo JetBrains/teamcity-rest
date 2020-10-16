@@ -885,6 +885,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
     Build build1 = new Build(myServer.getQueue().getItems().get(1).getBuildPromotion(), Fields.LONG, getBeanContext(myFixture));
     assertEquals(Util.formatTime(myServer.getQueue().getItems().get(1).getBuildEstimates().getTimeInterval().getStartPoint().getAbsoluteTime()), build1.getStartEstimate());
+    assertEquals(Util.formatTime(myServer.getQueue().getItems().get(1).getBuildEstimates().getTimeInterval().getEndPoint().getAbsoluteTime()), build1.getFinishEstimate());
 
     build1 = new Build(myServer.getQueue().getItems().get(2).getBuildPromotion(), Fields.LONG, getBeanContext(myFixture));
     assertNull(build1.getStartEstimate());
