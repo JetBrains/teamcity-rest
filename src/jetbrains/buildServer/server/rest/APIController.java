@@ -23,6 +23,18 @@ import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.core.util.FeaturesAndProperties;
 import com.sun.jersey.spi.container.WebApplication;
 import com.sun.jersey.spi.container.servlet.WebComponent;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.ext.ExceptionMapper;
 import jetbrains.buildServer.controllers.AuthorizationInterceptor;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.interceptors.PathSet;
@@ -66,19 +78,6 @@ import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.ext.ExceptionMapper;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import static jetbrains.buildServer.util.Util.doUnderContextClassLoader;
 
 /**
@@ -89,7 +88,7 @@ public class APIController extends BaseController implements ServletContextAware
   public static final String REST_COMPATIBILITY_ALLOW_EXTERNAL_ID_AS_INTERNAL = "rest.compatibility.allowExternalIdAsInternal";
   public static final String INCLUDE_INTERNAL_ID_PROPERTY_NAME = "rest.beans.includeInternalId";
   public static final String LATEST_REST_API_PLUGIN_NAME = "rest-api";
-  private Logger LOG = Logger.getInstance(APIController.class.getName());
+  private final Logger LOG;
   public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";
   public static final String REST_PREFER_OWN_BIND_PATHS = "rest.allow.bind.paths.override.for.plugins";
 
@@ -97,8 +96,8 @@ public class APIController extends BaseController implements ServletContextAware
 
   private final boolean myInternalAuthProcessing = TeamCityProperties.getBoolean("rest.cors.optionsRequest.allowUnauthorized");
   private final String[] myPathsWithoutAuth = new String[]{
-    BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/*/" + BuildRequest.STATUS_ICON_REQUEST_NAME + "*",
-    BuildRequest.BUILDS_ROOT_REQUEST_PATH + BuildRequest.AGGREGATED + "/*/" + BuildRequest.STATUS_ICON_REQUEST_NAME + "*",
+    BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/*/" + "statusIcon" + "*",
+    BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/aggregated" + "/*/" + "statusIcon" + "*",
     ServerRequest.SERVER_REQUEST_PATH + "/" + ServerRequest.SERVER_VERSION_RQUEST_PATH,
     RootApiRequest.VERSION,
     RootApiRequest.API_VERSION,
@@ -187,11 +186,11 @@ public class APIController extends BaseController implements ServletContextAware
 
     LOG.info("Listening for paths " + originalBindPaths + " in " + getPluginIdentifyingText());
 
-    List<String> bindPaths = new ArrayList<String>(originalBindPaths);
+    List<String> bindPaths = new ArrayList<>(originalBindPaths);
     bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.HTTP_AUTH_PREFIX)));
     bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.GUEST_AUTH_PREFIX)));
 
-    Map<String, String> transformBindPaths = new HashMap<String, String>();
+    Map<String, String> transformBindPaths = new HashMap<>();
     addEntries(transformBindPaths, bindPaths, Constants.API_URL);
     addEntries(transformBindPaths, addSuffix(bindPaths, Constants.EXTERNAL_APPLICATION_WADL_NAME), Constants.JERSEY_APPLICATION_WADL_NAME);
 
@@ -222,7 +221,7 @@ public class APIController extends BaseController implements ServletContextAware
             // workaround for http://jetbrains.net/tracker/issue2/TW-7656
             doUnderContextClassLoader(myClassloader, new FuncThrow<Void, Throwable>() {
               public Void apply() throws Throwable {
-                final Set<ConfigurableApplicationContext> contexts = new HashSet<ConfigurableApplicationContext>();
+                final Set<ConfigurableApplicationContext> contexts = new HashSet<>();
                 contexts.add(myConfigurableApplicationContext);
                 for (RESTControllerExtension extension : getExtensions()) {
                   contexts.add(extension.getContext());
@@ -262,7 +261,7 @@ public class APIController extends BaseController implements ServletContextAware
     if (!overridesAllowed) {
       return bindPaths;
     }
-    final ArrayList<String> result = new ArrayList<String>(bindPaths);
+    final ArrayList<String> result = new ArrayList<>(bindPaths);
 
     final Collection<PluginInfo> allPlugins = myPluginManager.getDetectedPlugins();
     //is the plugin actually loaded? Might need to check only the successfully loaded plugins
@@ -300,7 +299,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   private List<String> addPrefix(final List<String> paths, final String prefix) {
-    List<String> result = new ArrayList<String>(paths.size());
+    List<String> result = new ArrayList<>(paths.size());
     for (String path : paths) {
       result.add(prefix + path);
     }
@@ -308,7 +307,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   private List<String> addSuffix(final List<String> paths, final String suffix) {
-    List<String> result = new ArrayList<String>(paths.size());
+    List<String> result = new ArrayList<>(paths.size());
     for (String path : paths) {
       result.add(path + suffix);
     }
@@ -361,7 +360,7 @@ public class APIController extends BaseController implements ServletContextAware
 
   private FilterConfig createJerseyConfig() {
     return new FilterConfig() {
-      private final Map<String, String> initParameters = new HashMap<String, String>();
+      private final Map<String, String> initParameters = new HashMap<>();
 
       {
         initParameters.put(ResourceConfig.PROPERTY_WADL_GENERATOR_CONFIG, WadlGenerator.class.getCanonicalName());
@@ -392,7 +391,7 @@ public class APIController extends BaseController implements ServletContextAware
       }
 
       public Enumeration getInitParameterNames() {
-        return new Vector<String>(initParameters.keySet()).elements();
+        return new Vector<>(initParameters.keySet()).elements();
       }
     };
   }
