@@ -21,6 +21,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+
+import io.swagger.annotations.ApiOperation;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.clouds.server.TerminateInstanceReason;
@@ -105,6 +107,7 @@ public class CloudRequest {
   @GET
   @Path("/instances")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all cloud instances.",nickname="getAllCloudInstances")
   public CloudInstances serveInstances(@QueryParam("locator") String locator,
                                        @QueryParam("fields") String fields,
                                        @Context UriInfo uriInfo, @Context HttpServletRequest request) {
@@ -117,6 +120,7 @@ public class CloudRequest {
   @GET
   @Path("/instances/{instanceLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get cloud instance matching the locator.",nickname="getCloudInstance")
   public CloudInstance serveInstance(@PathParam("instanceLocator") String instanceLocator, @QueryParam("fields") String fields) {
     return new CloudInstance(myCloudInstanceFinder.getItem(instanceLocator), new Fields(fields), myBeanContext);
   }
@@ -128,6 +132,7 @@ public class CloudRequest {
   @Path("/instances")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Start a new cloud instance.",nickname="startInstance")
   public void startInstance(CloudInstance cloudInstance, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     jetbrains.buildServer.clouds.CloudInstance startedInstance = cloudInstance.startInstance(user, myServiceLocator);
@@ -135,6 +140,7 @@ public class CloudRequest {
 
   @DELETE
   @Path("/instances/{instanceLocator}")
+  @ApiOperation(value="Stop cloud instance matching the locator.",nickname="stopInstance")
   public void stopInstance(@PathParam("instanceLocator") String instanceLocator) {
     jetbrains.buildServer.clouds.CloudInstance instance = myCloudInstanceFinder.getItem(instanceLocator).getInstance();
     final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
@@ -153,6 +159,7 @@ public class CloudRequest {
   @GET
   @Path("/images")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all cloud images.",nickname="getAllCloudImages")
   public CloudImages serveImages(@QueryParam("locator") String locator,
                                  @QueryParam("fields") String fields,
                                  @Context UriInfo uriInfo, @Context HttpServletRequest request) {
@@ -165,6 +172,7 @@ public class CloudRequest {
   @GET
   @Path("/images/{imageLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get cloud image matching the locator.",nickname="getCloudImage")
   public CloudImage serveImage(@PathParam("imageLocator") String imageLocator, @QueryParam("fields") String fields) {
     return new CloudImage(myCloudImageFinder.getItem(imageLocator), new Fields(fields), myBeanContext);
   }
@@ -176,6 +184,7 @@ public class CloudRequest {
   @GET
   @Path("/profiles")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all cloud profiles.",nickname="getAllCloudProfiles")
   public CloudProfiles serveProfiles(@QueryParam("locator") String locator,
                                      @QueryParam("fields") String fields,
                                      @Context UriInfo uriInfo, @Context HttpServletRequest request) {
@@ -188,6 +197,7 @@ public class CloudRequest {
   @GET
   @Path("/profiles/{profileLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get cloud profile matching the locator.",nickname="getCloudProfile")
   public CloudProfile serveProfile(@PathParam("profileLocator") String profileLocator, @QueryParam("fields") String fields) {
     return new CloudProfile(myCloudProfileFinder.getItem(profileLocator), new Fields(fields), myBeanContext);
   }

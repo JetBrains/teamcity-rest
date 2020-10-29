@@ -17,9 +17,12 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -42,6 +45,7 @@ import java.util.Objects;
 @XmlRootElement(name = "testRunMetadata")
 @XmlType(name = "testRunMetadata", propOrder = {"count", "typedValues"})
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = ObjectType.LIST)
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
 public class TestRunMetadata implements DefaultValueAware {
   @XmlElement(name = "typedValues") public List<TypedValue> typedValues;
   @XmlAttribute public Integer count;

@@ -57,7 +57,7 @@ import java.util.*;
  */
 @Path(BuildQueueRequest.API_BUILD_QUEUE_URL)
 @Api("BuildQueue")
-public class BuildQueueRequest {
+public class  BuildQueueRequest {
   private static final Logger LOG = Logger.getInstance(BuildRequest.class.getName());
 
   public static final String API_BUILD_QUEUE_URL = Constants.API_URL + "/buildQueue";
@@ -88,6 +88,7 @@ public class BuildQueueRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all queued builds.",nickname="getAllQueuedBuilds")
   public Builds getBuilds(@ApiParam(format = LocatorName.BUILD_QUEUE) @QueryParam("locator") String locator,
                           @QueryParam("fields") String fields,
                           @Context UriInfo uriInfo,
@@ -112,6 +113,7 @@ public class BuildQueueRequest {
    * @return
    */
   @DELETE
+  @ApiOperation(value="Delete all queued builds.",nickname="deleteAllQueuedBuilds")
   public void deleteBuildsExperimental(@ApiParam(format = LocatorName.BUILD_QUEUE) @QueryParam("locator") String locator,
                                        @QueryParam("fields") String fields,
                                        @Context UriInfo uriInfo,
@@ -151,6 +153,7 @@ public class BuildQueueRequest {
   @PUT
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="replaceBuilds",hidden=true)
   public Builds replaceBuilds(Builds builds, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request){
     if (builds == null){
       throw new BadRequestException("List of builds should be posted.");
@@ -250,6 +253,7 @@ public class BuildQueueRequest {
   @GET
   @Path("/{queuedBuildLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get a queued matching build.",nickname="getQueuedBuild")
   public Build getBuild(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("queuedBuildLocator") String queuedBuildLocator,
                         @QueryParam("fields") String fields,
                         @Context UriInfo uriInfo,
@@ -262,6 +266,7 @@ public class BuildQueueRequest {
 
   @DELETE
   @Path("/{queuedBuildLocator}")
+  @ApiOperation(value="Delete a queued matching build.",nickname="deleteQueuedBuild")
   public void deleteQueuedBuild(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("queuedBuildLocator") String queuedBuildLocator) {
     SQueuedBuild build = myQueuedBuildFinder.getItem(queuedBuildLocator);
     cancelQueuedBuild(build, null);
@@ -286,6 +291,7 @@ public class BuildQueueRequest {
   @Path("/{queuedBuildLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Cancel a queued matching build.",nickname="cancelQueuedBuild")
   public Build cancelBuild(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("queuedBuildLocator") String queuedBuildLocator,
                            BuildCancelRequest cancelRequest) {
     if (cancelRequest.readdIntoQueue) {
@@ -311,6 +317,7 @@ public class BuildQueueRequest {
   @GET
   @Path("/{queuedBuildLocator}" + COMPATIBLE_AGENTS)
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get compatible agents for a queued matching build.",nickname="getCompatibleAgentsForBuild")
   public Agents serveCompatibleAgents(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("queuedBuildLocator") String queuedBuildLocator,
                                       @QueryParam("fields") String fields) {
     return new Agents(AgentFinder.getCompatibleAgentsLocator(myQueuedBuildFinder.getItem(queuedBuildLocator).getBuildPromotion()), null,  new Fields(fields), myBeanContext);
@@ -319,6 +326,7 @@ public class BuildQueueRequest {
   @GET
   @Path("/{buildLocator}/tags/")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get tags of the queued matching build.",nickname="getQueuedBuildTags")
   public Tags serveTags(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("buildLocator") String buildLocator,
                         @QueryParam("locator") String tagLocator,
                         @QueryParam("fields") String fields) {
@@ -336,6 +344,7 @@ public class BuildQueueRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="replaceTags",hidden=true)
   public Tags replaceTags(@ApiParam(format = LocatorName.BUILD_QUEUE) @PathParam("buildLocator") String buildLocator,
                           @ApiParam(format = LocatorName.TAG) @QueryParam("locator") String tagLocator,
                           Tags tags,
@@ -358,6 +367,7 @@ public class BuildQueueRequest {
   @POST
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
+  @ApiOperation(value="Add tags to the matching build.",nickname="addTagsToBuild")
   public void addTags(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                       Tags tags,
                       @Context HttpServletRequest request) {
@@ -403,6 +413,7 @@ public class BuildQueueRequest {
   @GET
   @Path("/{buildLocator}/{field}")
   @Produces("text/plain")
+  @ApiOperation(value="serveBuildFieldByBuildOnly",hidden=true)
   public String serveBuildFieldByBuildOnly(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                            @PathParam("field") String field) {
     final BuildPromotion buildPromotion = myQueuedBuildFinder.getBuildPromotionByBuildQueueLocator(buildLocator);
@@ -412,6 +423,7 @@ public class BuildQueueRequest {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Add a new build to the queue.",nickname="addBuildToQueue")
   public Build queueNewBuild(Build build, @QueryParam("moveToTop") Boolean moveToTop, @Context HttpServletRequest request){
     final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     SQueuedBuild queuedBuild = build.triggerBuild(user, myServiceLocator, new HashMap<Long, Long>());
@@ -429,6 +441,7 @@ public class BuildQueueRequest {
   @Path("/order")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update the build queue order.",nickname="setQueuedBuildsOrder")
   public Builds setBuildQueueOrder(Builds builds, @QueryParam("fields") String fields) {
     if (builds.builds == null){
       throw new BadRequestException("No new builds order specified. Should post a collection of builds, each with id or locator");
@@ -461,6 +474,7 @@ public class BuildQueueRequest {
   @Path("/order/{queuePosition}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get the queue position of a queued matching build.",nickname="getQueuedBuildPosition")
   public Build getBuildQueuePosition(@PathParam("queuePosition") String queuePosition, @QueryParam("fields") String fields) {
     int queuePositionNumber;
     queuePositionNumber = getQueuePositionNumber(queuePosition);
@@ -495,6 +509,7 @@ public class BuildQueueRequest {
   @Path("/order/{queuePosition}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update the queue position of a queued matching build.",nickname="setQueuedBuildPosition")
   public Build setBuildQueuePosition(Build build, @PathParam("queuePosition") String queuePosition, @QueryParam("fields") String fields) {
     BuildPromotion buildToMove = build.getFromPosted(myBuildPromotionFinder, Collections.emptyMap());
     SQueuedBuild queuedBuild = buildToMove.getQueuedBuild();

@@ -53,6 +53,7 @@ public class RootApiRequest {
 
   @GET
   @Produces("text/plain")
+  @ApiOperation(value="Get root endpoints.",nickname="getRootEndpoints")
   public String serveRoot() {
     return "This is a root of TeamCity REST API.\n" +
            "Explore what's inside from '" + myApiUrlBuilder.transformRelativePath(ServerRequest.API_SERVER_URL) + "'.\n" +
@@ -63,6 +64,7 @@ public class RootApiRequest {
   @GET
   @Path(VERSION)
   @Produces("text/plain")
+  @ApiOperation(value="Get the TeamCity server version.",nickname="getVersion")
   public String serveVersion() {
     return myDataProvider.getPluginInfo().getPluginXml().getInfo().getVersion();
   }
@@ -70,6 +72,7 @@ public class RootApiRequest {
   @GET
   @Path(API_VERSION)
   @Produces("text/plain")
+  @ApiOperation(value="Get the API version.",nickname="getApiVersion")
   public String serveApiVersion() {
     return myDataProvider.getPluginInfo().getParameterValue("api.version");
   }
@@ -77,6 +80,7 @@ public class RootApiRequest {
   @GET
   @Path("/info")
   @Produces("application/xml")
+  @ApiOperation(value="Get the plugin info.",nickname="getPluginInfo")
   public PluginInfo servePluginInfo(@QueryParam("fields") String fields) {
     return new PluginInfo(myDataProvider.getPluginInfo(), new Fields(fields), myBeanContext);
   }

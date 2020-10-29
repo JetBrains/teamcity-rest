@@ -19,6 +19,10 @@ package jetbrains.buildServer.server.rest.model;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 
 @XmlType(propOrder = {"name", "value"})
 @XmlRootElement(name = "entry")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a single name-value relation."))
 public class Entry {
   @XmlAttribute
   public String name;

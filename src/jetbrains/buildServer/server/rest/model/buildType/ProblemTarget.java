@@ -22,6 +22,8 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
@@ -34,6 +36,8 @@ import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.Problems;
 import jetbrains.buildServer.server.rest.model.problem.Tests;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.STest;
@@ -46,6 +50,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("PublicField")
 @XmlType(name = "problemTarget")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an investigation target."))
 public class ProblemTarget {
 
   @XmlAttribute public Boolean anyProblem;

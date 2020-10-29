@@ -23,6 +23,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.Used;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.ChangeFinder;
@@ -34,6 +36,8 @@ import jetbrains.buildServer.server.rest.model.Items;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.user.User;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.WebLinks;
@@ -68,6 +72,8 @@ import org.jetbrains.annotations.NotNull;
   "attributes",
   "storesProjectSettings"
 })
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a VCS change (commit)." + 
+"\nRelated Help article: [Change](https://www.jetbrains.com/help/teamcity/change.html)"))
 public class Change {
   protected SVcsModification myModification;
   protected ApiUrlBuilder myApiUrlBuilder;

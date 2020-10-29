@@ -18,7 +18,11 @@ package jetbrains.buildServer.server.rest.model.agent;
 
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
@@ -29,6 +33,8 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlType(name = "authorizedInfo")
 @XmlRootElement(name = "authorizedInfo")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents agent authorization data." + 
+"\nRelated Help article: [Build Agent](https://www.jetbrains.com/help/teamcity/build-agent.html)"))
 public class AgentAuthorizedInfo extends BooleanStatus {
   public AgentAuthorizedInfo() {
   }

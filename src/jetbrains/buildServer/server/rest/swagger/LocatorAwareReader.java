@@ -20,10 +20,12 @@ import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.jaxrs.Reader;
 import io.swagger.jaxrs.config.ReaderConfig;
 import io.swagger.models.*;
-import io.swagger.models.properties.StringProperty;
+import io.swagger.models.properties.*;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 
 import java.lang.reflect.Field;
@@ -41,10 +43,13 @@ public class LocatorAwareReader extends Reader {
   public Swagger read(Set<Class<?>> classes) {
     Swagger swagger = super.read(classes);
 
-    LOGGER.info("Populating examples for endpoint responses.");
-    populateExamples(swagger); // Set empty Example Objects for each MIME-Type involved in each response to handle TW-56270
+    LOGGER.info("Populating examples for endpoint responses and fixing duplicate operationIds.");
+    for (Path path : swagger.getPaths().values()) {
+      populateExamples(path); // Set empty Example Objects for each MIME-Type involved in each response to handle TW-56270
+      fixDuplicateOperationId(swagger, path); // Replace numeric values in operationIds with tag, if present
+    }
 
-    LOGGER.info("Generating locator definitions.");
+    LOGGER.info("Generating locator definitions and setting package hint extensions.");
     for (Class<?> cls : classes) {
       if (cls.isAnnotationPresent(LocatorResource.class)) {
         populateLocatorDefinition(swagger, cls); // For every @LocatorResource annotated finder, generate Locator definition
@@ -54,56 +59,123 @@ public class LocatorAwareReader extends Reader {
     return swagger;
   }
 
-  private void populateExamples(Swagger swagger) {
-    for (Path path : swagger.getPaths().values()) {
-      for (Operation operation : path.getOperations()) {
-        List<String> produces = operation.getProduces(); // Returns a list of MIME-Type strings (specification expects one example per type)
-        if (produces == null || produces.isEmpty() || operation.getResponses().isEmpty() || operation.getResponses() == null) {
-          continue;
-        }
-        for (Response response : operation.getResponses().values()) {
-          Map<String, Object> examples = new HashMap<String, Object>();
-          for (String mimeType : produces) {
-            if (response.getExamples() != null && response.getExamples().containsKey(mimeType)) { // Preserve existing Example Objects if any
-              examples.put(mimeType, response.getExamples().get(mimeType));
-            } else {
-              examples.put(mimeType, "");
-            }
+  private void populateExamples(Path path) {
+    for (Operation operation : path.getOperations()) {
+      List<String> produces = operation.getProduces(); // Returns a list of MIME-Type strings (specification expects one example per type)
+      if (produces == null || produces.isEmpty() || operation.getResponses().isEmpty() || operation.getResponses() == null) {
+        continue;
+      }
+      for (Response response : operation.getResponses().values()) {
+        Map<String, Object> examples = new HashMap<String, Object>();
+        for (String mimeType : produces) {
+          if (response.getExamples() != null && response.getExamples().containsKey(mimeType)) { // Preserve existing Example Objects if any
+            examples.put(mimeType, response.getExamples().get(mimeType));
+          } else {
+            examples.put(mimeType, "");
           }
-          response.setExamples(examples);
         }
+        response.setExamples(examples);
       }
     }
   }
 
   private void populateLocatorDefinition(Swagger swagger, Class<?> cls) {
-    LocatorResource annotation = cls.getAnnotation(LocatorResource.class);
+    LocatorResource locatorAnnotation = cls.getAnnotation(LocatorResource.class);
     ModelImpl definition = new ModelImpl();
 
-    if (!swagger.getDefinitions().containsKey(annotation.value())) { //case if definition is already present because of other swagger annotations present on class
+    if (!swagger.getDefinitions().containsKey(locatorAnnotation.value())) { //case if definition is already present because of other swagger annotations present on class
       definition.setType(ModelImpl.OBJECT);
-      definition.setName(annotation.value());
+      definition.setName(locatorAnnotation.value());
       definition.setVendorExtension(ExtensionType.X_BASE_TYPE, ObjectType.LOCATOR);
+      definition.setVendorExtension(ExtensionType.X_IS_LOCATOR, true);
+      definition.setVendorExtension(ExtensionType.X_SUBPACKAGE, "locator");
     } else {
-      definition = (ModelImpl) swagger.getDefinitions().get(annotation.value());
+      definition = (ModelImpl) swagger.getDefinitions().get(locatorAnnotation.value());
     }
 
-    ArrayList<String> dimensions = new ArrayList<String>();
-    Collections.addAll(dimensions, annotation.extraDimensions());
+    // as annotation should be compile-time constant, we keep dimension names in the annotation and resolve them in runtime
+    ArrayList<LocatorDimension> dimensions = new ArrayList<LocatorDimension>();
+    for (String extraDimensionName : locatorAnnotation.extraDimensions()) {
+      if (CommonLocatorDimensionsList.dimensionHashMap.containsKey(extraDimensionName)) {
+        dimensions.add(CommonLocatorDimensionsList.dimensionHashMap.get(extraDimensionName));
+      } else {
+        LOGGER.warn(String.format("Common locator dimension %s was not found.", extraDimensionName));
+      }
+    }
 
+    // iterate through class fields to see if any have LocatorDimension annotation
     for (Field field : cls.getDeclaredFields()) { //iterate through the class fields
       if (field.isAnnotationPresent(LocatorDimension.class)) {
-        String dimension = field.getAnnotation(LocatorDimension.class).value();
+        LocatorDimension dimension = field.getAnnotation(LocatorDimension.class);
         dimensions.add(dimension);
       }
     }
 
-    Collections.sort(dimensions);
-    for (String dimension : dimensions) {
-      definition.addProperty(dimension, new StringProperty());
+    Collections.sort(dimensions, new Comparator<LocatorDimension>() {
+      @Override
+      public int compare(LocatorDimension o1, LocatorDimension o2) {
+        return o1.value().compareTo(o2.value());
+      }
+    });
+
+    for (LocatorDimension dimension : dimensions) {
+      AbstractProperty property = resolveLocatorDimensionProperty(dimension);
+      definition.addProperty(dimension.value(), property);
     }
 
-    swagger.addDefinition(annotation.value(), definition);
+    if (!locatorAnnotation.description().isEmpty()) {
+      definition.setVendorExtension(ExtensionType.X_DESCRIPTION, locatorAnnotation.description());
+    }
 
+    swagger.addDefinition(locatorAnnotation.value(), definition);
+
+  }
+
+  private AbstractProperty resolveLocatorDimensionProperty(LocatorDimension dimension) {
+    AbstractProperty property;
+
+    switch (dimension.dataType()) {
+      case (LocatorDimensionDataType.INTEGER):
+        property = new IntegerProperty();
+        break;
+      case (LocatorDimensionDataType.BOOLEAN):
+        property = new BooleanProperty();
+        break;
+      case (LocatorDimensionDataType.TIMESTAMP):
+        property = new DateTimeProperty();
+        break;
+      default:
+        property = new StringProperty();
+        if (!dimension.format().isEmpty()) {
+          property.setFormat(dimension.format());
+        }
+        break;
+    }
+
+    if (!dimension.notes().isEmpty()) {
+      property.setVendorExtension(ExtensionType.X_DESCRIPTION, dimension.notes());
+    }
+
+    return property;
+  }
+
+  private void fixDuplicateOperationId(Swagger swagger, Path path) {
+    for (Operation operation : path.getOperations()) {
+      String operationId = operation.getOperationId();
+      List<String> tags = operation.getTags();
+
+      boolean duplicateOperationId = false;
+      for (Path knownPath : swagger.getPaths().values()) {
+        for (Operation op : knownPath.getOperations()) {
+          if (operationId.equalsIgnoreCase(op.getOperationId()) && !op.equals(operation)) {
+            duplicateOperationId = true;
+          }
+        }
+      }
+
+      if (duplicateOperationId && !tags.isEmpty()) {
+        operation.setOperationId(operationId + "Of" + tags.get(0));
+      }
+    }
   }
 }

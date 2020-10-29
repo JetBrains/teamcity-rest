@@ -25,6 +25,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.parameters.EntityWithModifiableParameters;
@@ -39,6 +41,8 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.VcsRootInstanceRequest;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -65,6 +69,8 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
 @XmlType(name = "vcs-root", propOrder = { "id", "internalId", "uuid", "name","vcsName", "modificationCheckInterval", "href",
   "project", "properties", "vcsRootInstances" , "repositoryIdStrings"})  //todo: add webUrl
 @SuppressWarnings("PublicField")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a VCS root." + 
+"\nRelated Help article: [VCS Root](https://www.jetbrains.com/help/teamcity/vcs-root.html)"))
 public class VcsRoot {
   @XmlAttribute
   public String id;

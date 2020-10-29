@@ -20,7 +20,11 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.audit.ActionType;
@@ -33,6 +37,8 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "auditAction")
 @XmlType(name = "auditAction")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an audit action." + 
+"\nRelated Help article: [Audit](https://www.jetbrains.com/help/teamcity/tracking-user-actions.html)"))
 public class AuditAction {
   /**
    * Note that name can change from one TeamCity version to another

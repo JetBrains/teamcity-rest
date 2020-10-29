@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
@@ -50,19 +51,33 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
  * @author Yegor.Yarko
  *         Date: 17.11.13
  */
-@LocatorResource(value = LocatorName.TEST_OCCURRENCE, extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT})
+@LocatorResource(value = LocatorName.TEST_OCCURRENCE,
+    extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
+    description = "Represents a locator string for filtering TestOccurrence entities." +
+        "\nExamples:" +
+        "\n* `currentlyInvestigated:true` – find last 100 test occurrences which are being currently investigated." +
+        "\n* `build:<buildLocator>` – find test occurrences under build found by buildLocator.")
 public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
-  @LocatorDimension("build") private static final String BUILD = "build";
-  @LocatorDimension("test") private static final String TEST = "test";
+  @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
+  private static final String BUILD = "build";
+  @LocatorDimension(value = "test", format = LocatorName.TEST, notes = "Test locator.")
+  private static final String TEST = "test";
   @LocatorDimension("name") private static final String NAME = "name"; //value condition for the test's name
-  @LocatorDimension("buildType") private static final String BUILD_TYPE = "buildType";
-  @LocatorDimension("affectedProject") public static final String AFFECTED_PROJECT = "affectedProject";
-  @LocatorDimension("currentlyFailing") private static final String CURRENT = "currentlyFailing";
-  @LocatorDimension("status") private static final String STATUS = "status";
+  @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
+  private static final String BUILD_TYPE = "buildType";
+  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
+  public static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension(value = "currentlyFailing", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently failing.")
+  private static final String CURRENT = "currentlyFailing";
+  @LocatorDimension(value = "status", notes = "Supported values: unknown/normal/warning/failure/error.")
+  private static final String STATUS = "status";
   @LocatorDimension("branch") private static final String BRANCH = "branch";
-  @LocatorDimension("ignored") private static final String IGNORED = "ignored";
-  @LocatorDimension("currentlyInvestigated") public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
-  @LocatorDimension("muted") public static final String MUTED = "muted";
+  @LocatorDimension(value = "ignored", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is ignored.")
+  private static final String IGNORED = "ignored";
+  @LocatorDimension(value = "currentlyInvestigated", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently investigated.")
+  public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
+  @LocatorDimension(value = "muted", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is muted.")
+  public static final String MUTED = "muted";
   protected static final Comparator<STestRun> TEST_RUN_COMPARATOR = (o1, o2) -> {
     // see also STestRun.NEW_FIRST_NAME_COMPARATOR
 

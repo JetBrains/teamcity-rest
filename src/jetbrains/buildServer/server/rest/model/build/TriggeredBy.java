@@ -21,6 +21,8 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.BuildPromotionFinder;
@@ -29,6 +31,8 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.user.User;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -45,6 +49,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("PublicField")
 @XmlType(propOrder = {"type", "details", "date", "displayText", "rawValue",
   "user", "build", "buildType", "properties"})
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the user/trigger/dependency which caused this build to start."))
 public class TriggeredBy {
   protected static final String TYPE_IDE_PLUGIN_REST = "idePlugin";
   protected static final String CORE_TRIGGERED_BY_TYPE_XML_RPC = "xmlRpc";

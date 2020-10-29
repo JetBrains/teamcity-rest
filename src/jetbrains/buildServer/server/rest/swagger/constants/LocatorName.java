@@ -20,12 +20,16 @@ public class LocatorName {
   public static final String AGENT = "AgentLocator";
   public static final String AGENT_POOL = "AgentPoolLocator";
   public static final String AUDIT = "AuditLocator";
+  public static final String BRANCH = "BranchLocator";
   public static final String BUILD = "BuildLocator";
   public static final String BUILD_TYPE = "BuildTypeLocator";
   public static final String CHANGE = "ChangeLocator";
   public static final String PROJECT = "ProjectLocator";
+  public static final String PROJECT_FEATURE = "ProjectLocator";
   public static final String BUILD_QUEUE = "BuildQueueLocator";
   public static final String USER = "UserLocator";
+  public static final String USER_GROUP = "UserGroupLocator";
+  public static final String ROLE = "RoleLocator";
   public static final String INVESTIGATION = "InvestigationLocator";
   public static final String MUTE = "MuteLocator";
   public static final String PROBLEM_OCCURRENCE = "ProblemOccurrenceLocator";

@@ -14,16 +14,11 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.swagger;
+package jetbrains.buildServer.server.rest.swagger.constants;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-@Target({ElementType.TYPE})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface LocatorResource {
-  String value();
-  String[] extraDimensions() default {};
+public class LocatorDimensionDataType {
+  public static final String STRING = "string";
+  public static final String BOOLEAN = "boolean";
+  public static final String TIMESTAMP = "date-time";
+  public static final String INTEGER = "integer";
 }

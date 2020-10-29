@@ -25,6 +25,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.CycleDetectedException;
 import jetbrains.buildServer.groups.SUserGroup;
@@ -43,6 +45,8 @@ import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
 import jetbrains.buildServer.server.rest.model.user.Users;
 import jetbrains.buildServer.server.rest.request.GroupRequest;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
@@ -57,6 +61,8 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "group")
 @XmlType(name = "group")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a user group." + 
+"\nRelated Help article: [User Group](https://www.jetbrains.com/help/teamcity/user-group.html)"))
 public class Group {
   @XmlAttribute
   public String key;

@@ -18,6 +18,8 @@ package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
 import javax.ws.rs.*;
+
+import io.swagger.annotations.ApiOperation;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -84,6 +86,7 @@ public class FeatureSubResource<M, S> {
 
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all features.",nickname="getFeatures")
   public M get(@QueryParam("locator") String locator, @QueryParam("fields") String fields) {
     return myEntity.get(locator, new Fields(fields), myBeanContext);
   }
@@ -91,6 +94,7 @@ public class FeatureSubResource<M, S> {
   @PUT
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
+  @ApiOperation(value="Update all features.",nickname="updateFeatures")
   public M replaceAll(M newEntities, @QueryParam("fields") String fields) {
     myEntity.replaceAll(newEntities, myBeanContext.getServiceLocator());
     myEntity.persist();
@@ -100,6 +104,7 @@ public class FeatureSubResource<M, S> {
   @POST
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
+  @ApiOperation(value="Add a feature.",nickname="addFeature")
   public S add(S entityToAdd, @QueryParam("fields") String fields) {
     final String resultId = myEntity.add(entityToAdd, myBeanContext.getServiceLocator());
     myEntity.persist();
@@ -109,12 +114,14 @@ public class FeatureSubResource<M, S> {
   @GET
   @Path("/{featureLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get a matching feature.",nickname="getFeature")
   public S getSingle(@PathParam("featureLocator") String featureLocator, @QueryParam("fields") String fields) {
     return myEntity.getSingle(featureLocator, new Fields(fields), myBeanContext);
   }
 
   @DELETE
   @Path("/{featureLocator}")
+  @ApiOperation(value="Delete a matching feature.",nickname="deleteFeature")
   public void delete(@PathParam("featureLocator") String featureLocator) {
     myEntity.delete(featureLocator, myBeanContext.getServiceLocator());
     myEntity.persist();
@@ -124,12 +131,14 @@ public class FeatureSubResource<M, S> {
   @Path("/{featureLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update a matching feature.",nickname="updateFeature")
   public S replace(@PathParam("featureLocator") String featureLocator, @NotNull S featureDescription, @QueryParam("fields") String fields) {
     final String resultId = myEntity.replace(featureLocator, featureDescription, myBeanContext.getServiceLocator());
     myEntity.persist();
     return myEntity.getSingle(resultId, new Fields(fields), myBeanContext);
   }
 
+  @ApiOperation(value="getParametersSubResource", hidden = true)
   @Path("/{featureLocator}" + PROPERTIES)
   public ParametersSubResource getParametersSubResource(@PathParam("featureLocator") String featureLocator, @QueryParam("fields") String fields) {
     return new ParametersSubResource(myBeanContext, myEntity.getParametersHolder(featureLocator),

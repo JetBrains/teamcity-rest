@@ -88,6 +88,7 @@ public class ChangeRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all changes.",nickname="getAllChanges")
   public Changes serveChanges(@ApiParam(hidden = true) @QueryParam("project") String projectLocator,
                               @ApiParam(hidden = true) @QueryParam("buildType") String buildTypeLocator,
                               @ApiParam(hidden = true) @QueryParam("build") String buildLocator,
@@ -135,6 +136,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get change matching the locator.",nickname="getChange")
   public Change serveChange(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                             @QueryParam("fields") String fields) {
     return new Change(myChangeFinder.getItem(changeLocator),  new Fields(fields), myBeanContext);
@@ -143,6 +145,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/{field}")
   @Produces("text/plain")
+  @ApiOperation(value="Get a field of the matching change.",nickname="getChangeField")
   public String getChangeField(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                @PathParam("field") String field) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
@@ -155,6 +158,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/parentChanges")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get parent changes of the matching change.",nickname="getChangeParentChanges")
   public Changes getParentChanges(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                   @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
@@ -167,6 +171,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/parentRevisions")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get parent revisions of the matching change.",nickname="getChangeParentRevisions")
   public Items getChangeParentRevisions(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
     return new Items(change.getParentRevisions());
@@ -178,6 +183,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/vcsRootInstance")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get a VCS root instance of the matching change.",nickname="getChangeVcsRoot")
   public VcsRootInstance getChangeVCSRootInstance(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                                   @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
@@ -202,6 +208,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/attributes")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get attributes of the matching change.",nickname="getChangeAttributes")
   public Entries getChangeAttributes(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                      @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
@@ -214,6 +221,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/duplicates")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get duplicates of the matching change.",nickname="getChangeDuplicates")
   public Changes getChangeDuplicates(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                      @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
@@ -227,6 +235,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/issues")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get issues of the matching change.",nickname="getChangeIssue")
   public Issues getChangeIssue(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
     return new Issues(change.getRelatedIssues());
@@ -238,6 +247,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get build configurations related to the matching change.",nickname="getChangeRelatedBuildTypes")
   public BuildTypes getRelatedBuildTypes(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                          @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
@@ -250,6 +260,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/firstBuilds")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get first builds of the matching change.",nickname="getChangeFirstBuilds")
   public Builds getChangeFirstBuilds(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                      @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);

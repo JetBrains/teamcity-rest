@@ -176,6 +176,7 @@ public class BuildRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all builds.",nickname="getAllBuilds")
   public Builds serveAllBuilds(@ApiParam(hidden = true) @QueryParam("buildType") String buildTypeLocator,
                                @ApiParam(hidden = true) @QueryParam("status") String status,
                                @ApiParam(hidden = true) @QueryParam("triggeredByUser") String userLocator,
@@ -226,6 +227,7 @@ public class BuildRequest {
    * Changing of some attributes is not supported and can result in strange and "unpredictable" behavior.
    */
   @Path("/{buildLocator}/attributes")
+  @ApiOperation(value="getAttributes",nickname="getAttributes", hidden = true)
   public ParametersSubResource getAttributes(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                              @QueryParam("fields") String fields) {
     BuildPromotionEx build = (BuildPromotionEx)myBuildPromotionFinder.getItem(buildLocator);
@@ -271,6 +273,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get build matching the locator.",nickname="getBuild")
   public Build serveBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                           @QueryParam("fields") String fields,
                           @Context HttpServletRequest request) {
@@ -282,6 +285,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/resulting-properties")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get actual build parameters of the matching build.",nickname="getBuildActualParameters")
   public Properties serveBuildActualParameters(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                                @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildPromotionFinder.getItem(buildLocator);
@@ -292,6 +296,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/resulting-properties/{propertyName}")
   @Produces({"text/plain"})
+  @ApiOperation(value="Update a build parameter of the matching build.",nickname="getBuildResultingProperties")
   public String getParameter(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                              @PathParam("propertyName") String propertyName) {
     BuildPromotion build = myBuildPromotionFinder.getItem(buildLocator);
@@ -306,6 +311,7 @@ public class BuildRequest {
   @DELETE
   @Path("/{buildLocator}/caches/finishProperties")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Remove build parameters from the matching build.",nickname="resetBuildFinishProperties")
   public void resetBuildFinishParameters(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     myPermissionChecker.checkPermission(Permission.EDIT_PROJECT, build.getBuildPromotion());
@@ -322,6 +328,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/resolved/{value}")
   @Produces({"text/plain"})
+  @ApiOperation(value="Get the resolvement status of the matching build.",nickname="getBuildResolved")
   public String getResolvedParameter(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                      @PathParam("value") String value) {
     return getResolvedIfNecessary(myBuildPromotionFinder.getItem(buildLocator), value, true);
@@ -388,6 +395,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/sources/files/{fileName:.+}") //todo: use "content" like for artifacts here
   @Produces({"application/octet-stream"})
+  @ApiOperation(value="Get a source file of the matching build.",nickname="getBuildSourceFile")
   public Response serveSourceFile(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") final String buildLocator,
                                   @PathParam("fileName") final String fileName) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
@@ -416,6 +424,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}" + RELATED_ISSUES)
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get related issues of the matching build.",nickname="getBuildRelatedIssues")
   public IssueUsages serveBuildRelatedIssues(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                              @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
@@ -431,6 +440,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/number")
   @Produces("text/plain")
+  @ApiOperation(value="Get the number of the matching build.",nickname="getBuildNumber")
   public String getBuildNumber(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator) {
     SBuild build = getBuild(myBuildFinder.getBuildPromotion(null, buildLocator));
     return build == null ? null : build.getBuildNumber();
@@ -440,6 +450,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/number")
   @Consumes("text/plain")
   @Produces("text/plain")
+  @ApiOperation(value="Update the number of the matching build.",nickname="setBuildNumber")
   public String setBuildNumber(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator, String value) {
     SRunningBuild runningBuild = Build.getRunningBuild(myBuildFinder.getBuildPromotion(null, buildLocator), myBeanContext.getServiceLocator());
     if (runningBuild == null) {
@@ -463,6 +474,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/vcsLabels")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get VCS labels of the matching build.",nickname="getBuildVcsLabels")
   public VcsLabels getVcsLabels(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                 @QueryParam("fields") String fields) {
     SBuild build = getBuild(myBuildFinder.getBuildPromotion(null, buildLocator));
@@ -489,6 +501,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/vcsLabels")
   @Consumes("text/plain")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Add a VCS label to the matching build.",nickname="addBuildVcsLabel")
   public VcsLabels setVcsLabel(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                @ApiParam(format = LocatorName.VCS_ROOT_INSTANCE) @QueryParam("locator") String vcsRootLocator,
                                @QueryParam("fields") String fields,
@@ -528,6 +541,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/statusText")
   @Produces("text/plain")
+  @ApiOperation(value="Get the build status text of the matching build.",nickname="getBuildStatusText")
   public String getBuildStatusText(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator) {
     SBuild build = getBuild(myBuildFinder.getBuildPromotion(null, buildLocator));
     return build == null ? null : build.getStatusDescriptor().getText();
@@ -537,6 +551,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/statusText")
   @Consumes("text/plain")
   @Produces("text/plain")
+  @ApiOperation(value="Update the build status of the matching build.",nickname="setBuildStatusText")
   public String setBuildStatusText(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator, String value) {
     RunningBuildEx runningBuild = (RunningBuildEx)Build.getRunningBuild(myBuildFinder.getBuildPromotion(null, buildLocator), myBeanContext.getServiceLocator());
     if (runningBuild == null) {
@@ -551,6 +566,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}" + STATISTICS + "/")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all statistical values of the matching build.",nickname="getBuildStatisticValues")
   public Properties serveBuildStatisticValues(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator, @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
     return new Properties(Build.getBuildStatisticsValues(build), null, new Fields(fields), myBeanContext);
@@ -559,6 +575,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}" + STATISTICS + "/{name}")
   @Produces("text/plain")
+  @ApiOperation(value="Get a statistical value of the matching build.",nickname="getBuildStatisticValue")
   public String serveBuildStatisticValue(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                          @PathParam("name") String statisticValueName) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
@@ -585,6 +602,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/tags/")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get tags of the matching build.",nickname="getBuildTags")
   public Tags serveTagsFromBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                  @ApiParam(format = LocatorName.TAG) @QueryParam("locator") String tagLocator,
                                  @QueryParam("fields") String fields) {
@@ -600,6 +618,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update tags of the matching build.",nickname="setBuildTags")
   public Tags replaceTagsOnBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                  @ApiParam(format = LocatorName.TAG) @QueryParam("locator") String tagLocator,
                                  Tags tags,
@@ -624,6 +643,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Add tags to the matching build.",nickname="addTagsToBuild")
   public Tags addTagsToBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                              Tags tags,
                              @QueryParam("fields") String fields) {
@@ -666,6 +686,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/pinInfo/")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Check if the matching build is pinned.",nickname="getBuildPinInfo")
   public PinInfo getPinData(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                             @QueryParam("fields") String fields,
                             @Context HttpServletRequest request) {
@@ -681,6 +702,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/pinInfo/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update the pin info of the matching build.",nickname="setBuildPinInfo")
   public PinInfo setBuildPinData(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                  PinInfo pinStatus,
                                  @QueryParam("fields") String fields,
@@ -753,6 +775,7 @@ public class BuildRequest {
   @PUT
   @Path("/{buildLocator}/comment")
   @Consumes({"text/plain"})
+  @ApiOperation(value="Update the comment on the matching build.",nickname="setBuildComment")
   public void replaceComment(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                              String text,
                              @Context HttpServletRequest request) {
@@ -763,6 +786,7 @@ public class BuildRequest {
 
   @DELETE
   @Path("/{buildLocator}/comment")
+  @ApiOperation(value="Remove the build comment matching the locator.",nickname="deleteBuildComment")
   public void deleteComment(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                             @Context HttpServletRequest request) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
@@ -780,6 +804,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/" + Build.CANCELED_INFO)
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Check if the matching build is canceled.",nickname="getCanceledInfo")
   public Comment getCanceledInfo(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                  @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
@@ -798,6 +823,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/problemOccurrences")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get build problems of the matching build.",nickname="getBuildProblems")
   public ProblemOccurrences getProblems(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                         @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
@@ -813,6 +839,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/problemOccurrences")
   @Consumes({"text/plain"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Add a build problem to the matching build.",nickname="addProblemToBuild")
   public ProblemOccurrence addProblemToBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                              String problemDetails,
                                              @QueryParam("fields") String fields) {
@@ -837,6 +864,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/problemOccurrences")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="addProblem",nickname="addProblem", hidden = true)
   public ProblemOccurrence addProblem(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                       ProblemOccurrence problemOccurrence,
                                       @QueryParam("fields") String fields) {
@@ -854,6 +882,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/" + TESTS)
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get test occurrences of the matching build.",nickname="getBuildTestOccurrences")
   public TestOccurrences getTests(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                   @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
@@ -867,6 +896,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/artifactsDirectory")
   @Produces({"text/plain"})
+  @ApiOperation(value="Get the artifacts' directory of the matching build.",nickname="getArtifactsDirectory")
   public String getArtifactsDirectory(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator) {
     myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
@@ -879,6 +909,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/artifactDependencyChanges")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get artifact dependency changes of the matching build.",nickname="getArtifactDependencyChanges")
   public BuildChanges getArtifactDependencyChanges(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                                    @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
@@ -890,6 +921,7 @@ public class BuildRequest {
   @Path("/{buildLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="cancelBuild",hidden=true)
   public Build cancelBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                            BuildCancelRequest cancelRequest,
                            @QueryParam("fields") String fields,
@@ -924,6 +956,7 @@ public class BuildRequest {
 
   @DELETE
   @Path("/{buildLocator}")
+  @ApiOperation(value="Delete build matching the locator.",nickname="deleteBuild")
   public void deleteBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                           @Context HttpServletRequest request) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
@@ -1053,6 +1086,7 @@ public class BuildRequest {
   @GET
   @Path("/multiple/{buildLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get multiple builds matching the locator.",nickname="getMultipleBuilds")
   public Builds getMultiple(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                             @QueryParam("fields") String fields,
                             @Context UriInfo uriInfo,
@@ -1071,6 +1105,7 @@ public class BuildRequest {
   @DELETE
   @Path("/multiple/{buildLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Delete multiple builds matching the locator.",nickname="deleteMultipleBuilds")
   public MultipleOperationResult deleteMultiple(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                                 @QueryParam("fields") String fields,
                                                 @Context HttpServletRequest request) {
@@ -1107,6 +1142,7 @@ public class BuildRequest {
   @Path("/multiple/{buildLocator}/pinInfo/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Pin multiple matching builds.",nickname="pinMultipleBuilds")
   public MultipleOperationResult pinMultiple(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                              PinInfo pinStatus,
                                              @QueryParam("fields") String fields,
@@ -1127,6 +1163,7 @@ public class BuildRequest {
   @Path("/multiple/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Add tags to multiple matching builds.",nickname="addTagsToMultipleBuilds")
   public MultipleOperationResult addTagsMultipleToBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                                         Tags tags,
                                                         @QueryParam("fields") String fields) {
@@ -1144,6 +1181,7 @@ public class BuildRequest {
   @Path("/multiple/{buildLocator}/tags/")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Remove tags from multiple matching builds.",nickname="removeMultipleBuildTags")
   public MultipleOperationResult removeTagsMultiple(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                                     Tags tags,
                                                     @QueryParam("fields") String fields) {
@@ -1161,6 +1199,7 @@ public class BuildRequest {
   @Path("/multiple/{buildLocator}/comment")
   @Consumes({"text/plain"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update comments in multiple matching builds.",nickname="setMultipleBuildComments")
   public MultipleOperationResult replaceCommentMultiple(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                                         String text,
                                                         @QueryParam("fields") String fields,
@@ -1177,6 +1216,7 @@ public class BuildRequest {
   @DELETE
   @Path("/multiple/{buildLocator}/comment")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Delete comments of multiple matching builds.",nickname="deleteMultipleBuildComments")
   public MultipleOperationResult deleteCommentMultiple(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                                        @QueryParam("fields") String fields,
                                                        @Context HttpServletRequest request) {
@@ -1193,6 +1233,7 @@ public class BuildRequest {
   @Path("/multiple/{buildLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="cancelMultiple",hidden=true)
   public MultipleOperationResult cancelMultiple(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                                 BuildCancelRequest cancelRequest,
                                                 @QueryParam("fields") String fields,
@@ -1212,6 +1253,7 @@ public class BuildRequest {
   // Note: authentication for this request is disabled in APIController configuration
   @GET
   @Path("/{buildLocator}/statusIcon{suffix:(.*)?}")
+  @ApiOperation(value="Get the status icon (in specified format) of the matching build.",nickname="getBuildStatusIcon")
   public Response serveBuildStatusIcon(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") final String buildLocator,
                                        @PathParam("suffix") final String suffix,
                                        @Context HttpServletRequest request) {
@@ -1225,6 +1267,7 @@ public class BuildRequest {
   // Note: authentication for this request is disabled in APIController configuration
   @GET
   @Path("/aggregated/{buildLocator}/statusIcon{suffix:(.*)?}")
+  @ApiOperation(value="Get the status icon (in specified format) of aggregated matching builds.",nickname="getAggregatedBuildStatusIcon")
   public Response serveAggregatedBuildStatusIcon(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String locator,
                                                  @PathParam("suffix") final String suffix,
                                                  @Context HttpServletRequest request) {
@@ -1234,6 +1277,7 @@ public class BuildRequest {
 
   @GET
   @Path("/aggregated/{buildLocator}/status")
+  @ApiOperation(value="Get the build status of aggregated matching builds.",nickname="getAggregatedBuildStatus")
   public String serveAggregatedBuildStatus(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String locator) {
     final PagedSearchResult<BuildPromotion> builds = myBuildPromotionFinder.getItems(locator);
     Status resultingStatus = Status.UNKNOWN;
@@ -1247,6 +1291,7 @@ public class BuildRequest {
     return resultingStatus.getText();
   }
 
+  @ApiOperation(value="serveAggregatedBuildArtifacts",hidden = true)
   @Path("/aggregated" + "/{buildLocator}" + ARTIFACTS)
   public FilesSubResource serveAggregatedBuildArtifacts(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") final String locator,
                                                         @QueryParam("logBuildUsage") final Boolean logBuildUsage) {
@@ -1281,7 +1326,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/runningData")
   @Consumes({MediaType.TEXT_PLAIN})
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  @ApiOperation("Starts the queued build as an agent-less build and returns the corresponding running build.")
+  @ApiOperation(value = "Starts the queued build as an agent-less build and returns the corresponding running build.", nickname = "markBuildAsRunning")
   public Build markBuildAsRunning(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                   String requestor,
                                   @QueryParam("fields") String fields) {
@@ -1307,7 +1352,7 @@ public class BuildRequest {
   @POST
   @Path("/{buildLocator}/log")
   @Consumes({MediaType.TEXT_PLAIN})
-  @ApiOperation("Adds a message to the build log. Service messages are accepted.")
+  @ApiOperation(value = "Adds a message to the build log. Service messages are accepted.", nickname = "addLogMessageToBuild")
   public void addLogMessage(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                             String logLines,
                             @QueryParam("fields") String fields) {
@@ -1397,7 +1442,7 @@ public class BuildRequest {
   @Path("/{buildLocator}/finishDate")
   @Consumes({MediaType.TEXT_PLAIN})
   @Produces({MediaType.TEXT_PLAIN})
-  @ApiOperation("Marks the running build as finished by passing agent the current time of the build to finish.")
+  @ApiOperation(value = "Marks the running build as finished by passing agent the current time of the build to finish.", nickname = "setBuildFinishDate")
   public String setFinishedTime(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator, final String date) {
     if (StringUtil.isEmpty(date)) {
       throw new BadRequestException("Body should contain finish date");
@@ -1443,6 +1488,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/finishDate")
   @Produces("text/plain")
+  @ApiOperation(value="Get the finish date of the matching build.",nickname="getBuildFinishDate")
   public String getBuildFinishDate(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator) {
     return serveBuildFieldFromBuildOnly(buildLocator, "finishDate");
   }
@@ -1450,6 +1496,7 @@ public class BuildRequest {
   @GET
   @Path("/{buildLocator}/{field}")
   @Produces("text/plain")
+  @ApiOperation(value="Get a field of the matching build.",nickname="getBuildField")
   public String serveBuildFieldFromBuildOnly(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                              @PathParam("field") String field) {
     return Build.getFieldValue(myBuildFinder.getBuildPromotion(null, buildLocator), field, myBeanContext);

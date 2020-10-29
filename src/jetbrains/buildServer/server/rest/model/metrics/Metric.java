@@ -24,9 +24,13 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.metrics.MetricId;
 import jetbrains.buildServer.metrics.MetricValue;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,6 +40,8 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "metric")
 @XmlType(propOrder = {"name", "description", "prometheusName", "metricValues", "metricTags"})
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a specific server metric." + 
+"\nRelated Help article: [Metrics](https://www.jetbrains.com/help/teamcity/teamcity-monitoring-and-diagnostics.html#Metrics)"))
 public class Metric {
   private MetricValue myMetricValue;
   private Fields myFields;

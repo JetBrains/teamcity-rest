@@ -24,6 +24,9 @@ import jetbrains.buildServer.groups.UserGroupManager;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,8 +34,16 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
+@LocatorResource(value = LocatorName.USER_GROUP, extraDimensions = AbstractFinder.DIMENSION_ITEM,
+    description = "Represents a locator string for filtering UserGroup entities." +
+        "\nExamples:" +
+        "\n* 'name:MyGroupName' – find group with name MyGroupName." +
+        "\n* 'key:MyGroupKey' – find group with key MyGroupKey.")
 public class UserGroupFinder {
   @NotNull private final UserGroupManager myUserGroupManager;
+
+  @LocatorDimension("key") private static final String KEY = "key";
+  @LocatorDimension("name") private static final String NAME = "name";
 
   public UserGroupFinder(@NotNull UserGroupManager userGroupManager) throws LocatorProcessException {
     myUserGroupManager = userGroupManager;
@@ -59,7 +70,7 @@ public class UserGroupFinder {
       return group;
     }
 
-    String groupKey = locator.getSingleDimensionValue("key");
+    String groupKey = locator.getSingleDimensionValue(KEY);
     if (groupKey != null) {
       SUserGroup group = myUserGroupManager.findUserGroupByKey(groupKey);
       if (group == null) {
@@ -68,7 +79,7 @@ public class UserGroupFinder {
       return group;
     }
 
-    String groupName = locator.getSingleDimensionValue("name");
+    String groupName = locator.getSingleDimensionValue(NAME);
     if (groupName != null) {
       SUserGroup group = myUserGroupManager.findUserGroupByName(groupName);
       if (group == null) {

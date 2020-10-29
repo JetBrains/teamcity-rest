@@ -21,6 +21,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.*;
@@ -31,6 +33,8 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntity;
 import jetbrains.buildServer.server.rest.request.ProjectFeatureSubResource;
 import jetbrains.buildServer.server.rest.request.ProjectRequest;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.SProjectFeatureDescriptor;
@@ -43,6 +47,7 @@ import org.jetbrains.annotations.NotNull;
  *         Date: 04/06/2016
  */
 @XmlRootElement(name = "projectFeature") //todo: is this OK that it clashes with PropEntityFeature???
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a project feature."))
 public class PropEntityProjectFeature extends PropEntity {
   public PropEntityProjectFeature() {
   }

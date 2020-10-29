@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import com.google.common.base.Stopwatch;
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import jetbrains.buildServer.controllers.HttpDownloadProcessor;
 import jetbrains.buildServer.server.rest.data.ArchiveElement;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
@@ -84,6 +85,7 @@ public class FilesSubResource {
    */
   @GET
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  @ApiOperation(value="List all files.",nickname="getFilesList")
   public Files getRoot(@QueryParam("basePath") final String basePath,
                        @QueryParam("locator") final String locator,
                        @QueryParam("fields") String fields) {
@@ -96,6 +98,7 @@ public class FilesSubResource {
   @GET
   @Path("{path:(.*)?}") //for some reason, leading slash is not passed here
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  @ApiOperation(value="List files under this path.",nickname="getFilesListForSubpath")
   public Files getChildrenAlias(@PathParam("path") @DefaultValue("") final String path,
                                 @QueryParam("basePath") final String basePath,
                                 @QueryParam("locator") final String locator,
@@ -106,6 +109,7 @@ public class FilesSubResource {
   @GET
   @Path(FilesSubResource.CHILDREN + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  @ApiOperation(value="getChildren", hidden=true)
   public Files getChildren(@PathParam("path") @DefaultValue("") final String path,
                            @QueryParam("basePath") final String basePath,
                            @QueryParam("locator") final String locator,
@@ -145,6 +149,7 @@ public class FilesSubResource {
   @GET
   @Path("files" + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
+  @ApiOperation(value="Download specific file.",nickname="downloadFile")
   public Response getContentAlias(@PathParam("path") @DefaultValue("") final String path, @Context HttpServletRequest request, @Context HttpServletResponse response) {
     return getContent(path, null, request, response);
   }
@@ -152,6 +157,7 @@ public class FilesSubResource {
   @GET
   @Path(FilesSubResource.CONTENT + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
+  @ApiOperation(value="getContent", hidden=true)
   public Response getContent(@PathParam("path") final String path,
                              @QueryParam("responseBuilder") final String responseBuilder,
                              @Context HttpServletRequest request,
@@ -301,6 +307,7 @@ public class FilesSubResource {
   @GET
   @Path(FilesSubResource.METADATA + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  @ApiOperation(value="Get metadata of specific file.",nickname="getFileMetadata")
   public jetbrains.buildServer.server.rest.model.files.File getMetadata(@PathParam("path") final String path,
                                                                         @QueryParam("fields") String fields,
                                                                         @Context HttpServletRequest request) {
@@ -311,6 +318,7 @@ public class FilesSubResource {
   @GET
   @Path("/archived" + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
+  @ApiOperation(value="Get specific file zipped.",nickname="getZippedFile")
   public Response getZipped(@PathParam("path") final String path,
                             @QueryParam("basePath") final String basePath,
                             @QueryParam("locator") final String locator,

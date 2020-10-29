@@ -29,6 +29,8 @@ import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -51,21 +53,32 @@ import java.util.stream.Stream;
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
-@LocatorResource(value = LocatorName.VCS_ROOT_INSTANCE, extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME})
+@LocatorResource(value = LocatorName.VCS_ROOT_INSTANCE,
+    extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
+    description = "Represents a locator string for filtering VcsRootInstance entities." +
+        "\nExamples:" +
+        "\n* `vcsRoot:<vcsRootLocator>` – find all VCS root instances of a VCS root found by vcsRootLocator." +
+        "\n* `project:<projectLocator>` – find all VCS root instances defined under project found by projectLocator.")
 public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   private static final Logger LOG = Logger.getInstance(VcsRootInstanceFinder.class.getName());
-  @LocatorDimension("vcsRoot") public static final String VCS_ROOT_DIMENSION = "vcsRoot";
-  @LocatorDimension("repositoryIdString") public static final String REPOSITORY_ID_STRING = "repositoryIdString";
-  @LocatorDimension("type") protected static final String TYPE = "type";
-  @LocatorDimension("project") protected static final String PROJECT = "project";
-  @LocatorDimension("affectedProject") protected static final String AFFECTED_PROJECT = "affectedProject";
-  @LocatorDimension("property") protected static final String PROPERTY = "property";
-  @LocatorDimension("buildType") protected static final String BUILD_TYPE = "buildType";
-  @LocatorDimension("build") protected static final String BUILD = "build";
+  @LocatorDimension(value = "vcsRoot", format = LocatorName.VCS_ROOT, notes = "VCS root locator.")
+  public static final String VCS_ROOT_DIMENSION = "vcsRoot";
+  public static final String REPOSITORY_ID_STRING = "repositoryIdString";
+  @LocatorDimension(value = "type", notes = "Type of VCS (e.g. jetbrains.git).")
+  protected static final String TYPE = "type";
+  @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project (direct parent) locator.")
+  protected static final String PROJECT = "project";
+  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
+  protected static final String AFFECTED_PROJECT = "affectedProject";
+  protected static final String PROPERTY = "property";
+  @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
+  protected static final String BUILD_TYPE = "buildType";
+  @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
+  protected static final String BUILD = "build";
   protected static final String STATUS = "status";
   protected static final String FINISH_VCS_CHECKING_FOR_CHANGES = "checkingForChangesFinishDate";  // experimental
   protected static final String REPOSITORY_STATE = "repositoryState";  // experimental
-  @LocatorDimension("versionedSettings") protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //whether to include usages in project's versioned settings or not. By default "false" if "buildType" dimension is present and "any" otherwise
+  @LocatorDimension(value = "versionedSettings", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is used for versioned settings.") protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //whether to include usages in project's versioned settings or not. By default "false" if "buildType" dimension is present and "any" otherwise
   protected static final String COMMIT_HOOK_MODE = "commitHookMode"; // experimental
   protected static final Comparator<VcsRootInstance> VCS_ROOT_INSTANCE_COMPARATOR = new Comparator<VcsRootInstance>() {
     public int compare(final VcsRootInstance o1, final VcsRootInstance o2) {

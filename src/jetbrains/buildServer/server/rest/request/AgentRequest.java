@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.util.text.StringUtil;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import java.util.Date;
 import javax.servlet.http.HttpServletRequest;
@@ -90,6 +91,7 @@ public class AgentRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all known agents.",nickname="getAllAgents")
   public Agents serveAgents(@ApiParam(hidden = true) @QueryParam("includeDisconnected") Boolean includeDisconnected,
                             @ApiParam(hidden = true) @QueryParam("includeUnauthorized") Boolean includeUnauthorized,
                             @ApiParam(format = LocatorName.AGENT) @QueryParam("locator") String locator,
@@ -123,6 +125,7 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get agent matching the locator.",nickname="getAgent")
   public Agent serveAgent(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                           @QueryParam("fields") String fields) {
     return new Agent(myAgentFinder.getItem(agentLocator), new Fields(fields), myBeanContext);
@@ -130,6 +133,7 @@ public class AgentRequest {
 
   @DELETE
   @Path("/{agentLocator}")
+  @ApiOperation(value="Delete an inactive agent.",nickname="deleteAgent")
   public void deleteAgent(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
     myServiceLocator.getSingletonService(BuildAgentManager.class).removeAgent(agent, myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser());
@@ -138,6 +142,7 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/pool")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get the agent pool of the matching agent.",nickname="getAgentPool")
   public AgentPool getAgentPool(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                                 @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
@@ -149,6 +154,7 @@ public class AgentRequest {
   @Path("/{agentLocator}/pool")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Assign the matching agent to the specified agent pool.",nickname="setAgentPool")
   public AgentPool setAgentPool(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                                 AgentPool agentPool,
                                 @QueryParam("fields") String fields) {
@@ -161,6 +167,7 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/enabledInfo")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Check if the matching agent is enabled.",nickname="getEnabledInfo")
   public AgentEnabledInfo getEnabledInfo(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                                          @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
@@ -171,6 +178,7 @@ public class AgentRequest {
   @Path("/{agentLocator}/enabledInfo")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update the enablement status of the matching agent.",nickname="setEnabledInfo")
   public AgentEnabledInfo setEnabledInfo(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                                          AgentEnabledInfo enabledInfo,
                                          @QueryParam("fields") String fields) {
@@ -194,6 +202,7 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/authorizedInfo")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get the authorization info of the matching agent.",nickname="getAuthorizedInfo")
   public AgentAuthorizedInfo getAuthorizedInfo(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                                                @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
@@ -204,6 +213,7 @@ public class AgentRequest {
   @Path("/{agentLocator}/authorizedInfo")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update the authorization info of the matching agent.",nickname="setAuthorizedInfo")
   public AgentAuthorizedInfo setAuthorizedInfo(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                                                AgentAuthorizedInfo authorizedInfo,
                                                @QueryParam("fields") String fields) {
@@ -221,6 +231,7 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/{field}")
   @Produces("text/plain")
+  @ApiOperation(value="Get a field of the matching agent.",nickname="getAgentField")
   public String serveAgentField(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                                 @PathParam("field") String fieldName) {
     return Agent.getFieldValue(myAgentFinder.getItem(agentLocator), fieldName, myServiceLocator);
@@ -232,6 +243,7 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/compatibleBuildTypes")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get build types compatible with the matching agent.",nickname="getCompatibleBuildTypes")
   public BuildTypes getCompatibleBuildTypes(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                                             @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
@@ -246,8 +258,10 @@ public class AgentRequest {
    * Experimental support to get currently incompatible build types with incompatibility reason
    */
   @GET
+
   @Path("/{agentLocator}/incompatibleBuildTypes")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get build types incompatible with the matching agent.",nickname="getIncompatibleBuildTypes")
   public Compatibilities geIncompatibleBuildTypes(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                                                   @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
@@ -264,6 +278,7 @@ public class AgentRequest {
   @GET
   @Path("/{agentLocator}/compatibilityPolicy")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get the build configuration run policy of the matching agent.",nickname="getBuildConfigurationRunPolicy")
   public CompatibilityPolicy getAllowedRunConfigurations(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                                                          @QueryParam("fields") String fields) {
     final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
@@ -277,6 +292,7 @@ public class AgentRequest {
   @Path("/{agentLocator}/compatibilityPolicy")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update build configuration run policy of agent matching locator.",nickname="setBuildConfigurationRunPolicy")
   public CompatibilityPolicy setAllowedRunConfigurations(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                                                          CompatibilityPolicy payload,
                                                          @QueryParam("fields") String fields) {
@@ -289,6 +305,7 @@ public class AgentRequest {
   @Path("/{agentLocator}/{field}")
   @Consumes("text/plain")
   @Produces("text/plain")
+  @ApiOperation(value="Update a field of the matching agent.",nickname="setAgentField")
   public String setAgentField(@ApiParam(format = LocatorName.AGENT) @PathParam("agentLocator") String agentLocator,
                               @PathParam("field") String fieldName,
                               String value) {

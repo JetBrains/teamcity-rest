@@ -24,6 +24,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
@@ -37,15 +38,25 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  * Date: 09.11.13
  */
-@LocatorResource(value = LocatorName.TEST, extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT,
-  Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME})
+@LocatorResource(value = LocatorName.TEST,
+    extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT,
+  Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, AbstractFinder.DIMENSION_ITEM},
+    description = "Represents a locator string for filtering Test entities." +
+        "\nExamples:" +
+        "\n* `currentlyInvestigated:true` – find last 100 tests which are being currently investigated." +
+        "\n* `build:<buildLocator>` – find tests under build found by buildLocator.")
 public class TestFinder extends AbstractFinder<STest> {
   @LocatorDimension("name") private static final String NAME = "name";
-  @LocatorDimension("affectedProject") public static final String AFFECTED_PROJECT = "affectedProject";
-  @LocatorDimension("currentlyFailing") private static final String CURRENT = "currentlyFailing";
-  @LocatorDimension("currentlyInvestigated") public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
-  @LocatorDimension("currentlyMuted") private static final String CURRENTLY_MUTED = "currentlyMuted";
-  @LocatorDimension("muteAffected") private static final String MUTE_AFFECTED = "muteAffected";
+  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
+  public static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension(value = "currentlyFailing", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently failing.")
+  private static final String CURRENT = "currentlyFailing";
+  @LocatorDimension(value = "currentlyInvestigated", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently investigated.")
+  public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
+  @LocatorDimension(value = "currentlyMuted", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently muted.")
+  private static final String CURRENTLY_MUTED = "currentlyMuted";
+  @LocatorDimension(value = "muteAffected", format = LocatorName.BUILD_TYPE, notes = "Build type locator (for finding out if this test is affected by mutes in build type).")
+  private static final String MUTE_AFFECTED = "muteAffected";
   public static final String BUILD = "build";
 
   @NotNull private final ProjectFinder myProjectFinder;

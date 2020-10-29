@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -53,17 +54,25 @@ import java.util.stream.Collectors;
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
-@LocatorResource(value = LocatorName.VCS_ROOT, extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME})
+@LocatorResource(value = LocatorName.VCS_ROOT,
+    extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
+    description = "Represents a locator string for filtering VcsRoot entities." +
+        "\nExamples:" +
+        "\n* `type:jetbrains.git` – find all Git-typed VCS roots." +
+        "\n* `project:<projectLocator>` – find all VCS roots defined under project found by projectLocator.")
 public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
   private static final Logger LOG = Logger.getInstance(VcsRootFinder.class.getName());
-  @LocatorDimension("repositoryIdString") public static final String REPOSITORY_ID_STRING = "repositoryIdString";
+  public static final String REPOSITORY_ID_STRING = "repositoryIdString";
   @LocatorDimension("internalId") protected static final String INTERNAL_ID = "internalId";
   @LocatorDimension("uuid") protected static final String UUID = "uuid";
   @LocatorDimension("name") protected static final String NAME = "name";
-  @LocatorDimension("type") protected static final String TYPE = "type";
-  @LocatorDimension("project") protected static final String PROJECT = "project";
-  @LocatorDimension("affectedProject") protected static final String AFFECTED_PROJECT = "affectedProject";
-  @LocatorDimension("property") protected static final String PROPERTY = "property";
+  @LocatorDimension(value = "type", notes = "Type of VCS (e.g. jetbrains.git).")
+  protected static final String TYPE = "type";
+  @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project (direct parent) locator.")
+  protected static final String PROJECT = "project";
+  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
+  protected static final String AFFECTED_PROJECT = "affectedProject";
+  protected static final String PROPERTY = "property";
 
   @NotNull private final VcsManager myVcsManager;
   @NotNull private final ProjectFinder myProjectFinder;

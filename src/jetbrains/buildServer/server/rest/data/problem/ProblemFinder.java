@@ -22,6 +22,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -41,15 +42,25 @@ import java.util.*;
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
-@LocatorResource(value = LocatorName.PROBLEM, extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME})
+@LocatorResource(value = LocatorName.PROBLEM,
+    extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, AbstractFinder.DIMENSION_ITEM},
+    description = "Represents a locator string for filtering Problem entities." +
+        "\nExamples:" +
+        "\n* `currentlyInvestigated:true` – find last 100 build problems which are being currently investigated." +
+        "\n* `build:<buildLocator>` – find build problems under build found by buildLocator.")
 public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
-  @LocatorDimension("currentlyFailing") private static final String CURRENT = "currentlyFailing";
+  @LocatorDimension(value = "currentlyFailing", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently failing.")
+  private static final String CURRENT = "currentlyFailing";
   @LocatorDimension("identity") public static final String IDENTITY = "identity";
   @LocatorDimension("type") public static final String TYPE = "type";
-  @LocatorDimension("affectedProject") public static final String AFFECTED_PROJECT = "affectedProject";
-  @LocatorDimension("currentlyInvestigated") public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
-  @LocatorDimension("currentlyMuted") public static final String CURRENTLY_MUTED = "currentlyMuted";
-  @LocatorDimension("build") public static final String BUILD = "build";
+  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
+  public static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension(value = "currentlyInvestigated", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently investigated.")
+  public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
+  @LocatorDimension(value = "currentlyMuted", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently muted.")
+  public static final String CURRENTLY_MUTED = "currentlyMuted";
+  @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
+  public static final String BUILD = "build";
 
   @NotNull private final ProjectFinder myProjectFinder;
 

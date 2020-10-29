@@ -21,6 +21,8 @@ import io.swagger.annotations.Api;
 import java.util.LinkedHashSet;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+
+import io.swagger.annotations.ApiOperation;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -75,6 +77,7 @@ public class GroupRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all user groups.",nickname="getAllGroups")
   public Groups serveGroups(@QueryParam("fields") String fields) {
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewAllUsersPermission();
@@ -85,6 +88,7 @@ public class GroupRequest {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Add a new user group.",nickname="addGroup")
   public Group addGroup(Group description, @QueryParam("fields") String fields) {
     SUserGroup group = myDataUpdater.createUserGroup(description, myBeanContext.getServiceLocator());
     return new Group(group,  new Fields(fields), myBeanContext);
@@ -93,6 +97,7 @@ public class GroupRequest {
   @GET
   @Path("/{groupLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get user group matching the locator.",nickname="getUserGroup")
   public Group serveGroup(@PathParam("groupLocator") String groupLocator, @QueryParam("fields") String fields) {
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewAllUsersPermission();
@@ -102,6 +107,7 @@ public class GroupRequest {
 
   @DELETE
   @Path("/{groupLocator}")
+  @ApiOperation(value="Delete user group matching the locator.",nickname="deleteGroup")
   public void deleteGroup(@PathParam("groupLocator") String groupLocator) {
     myDataUpdater.deleteUserGroup(myUserGroupFinder.getGroup(groupLocator));
   }
@@ -109,6 +115,7 @@ public class GroupRequest {
   @GET
   @Path("/{groupLocator}/roles")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all roles of the matching user group.",nickname="getGroupRoles")
   public RoleAssignments listRoles(@PathParam("groupLocator") String groupLocator) {
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
       myUserFinder.checkViewAllUsersPermission();
@@ -121,6 +128,7 @@ public class GroupRequest {
   @Path("/{groupLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update roles of the matching user group.",nickname="setGroupRoles")
   public RoleAssignments setRoles(@PathParam("groupLocator") String groupLocator, RoleAssignments roleAssignments) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
     Group.setRoles(group, roleAssignments, myBeanContext.getServiceLocator());
@@ -131,6 +139,7 @@ public class GroupRequest {
   @Path("/{groupLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Add a role to the matching user group.",nickname="addRoleToGroup")
   public RoleAssignment addRole(@PathParam("groupLocator") String groupLocator, RoleAssignment roleAssignment) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
     group.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleAssignment.roleId, myBeanContext.getServiceLocator()));
@@ -140,6 +149,7 @@ public class GroupRequest {
   @GET
   @Path("/{groupLocator}/roles/{roleId}/{scope}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get a role with the specific scope of the matching user group.",nickname="getGroupRoleAtScope")
   public RoleAssignment listRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)){
@@ -151,6 +161,7 @@ public class GroupRequest {
 
   @DELETE
   @Path("/{groupLocator}/roles/{roleId}/{scope}")
+  @ApiOperation(value="Remove a role with the specific scope from the matching user group.",nickname="removeRoleAtScopeFromGroup")
   public void deleteRole(@PathParam("groupLocator") String groupLocator, @PathParam("roleId") String roleId,
                          @PathParam("scope") String scopeValue) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
@@ -160,6 +171,7 @@ public class GroupRequest {
   @POST
   @Path("/{groupLocator}/roles/{roleId}/{scope}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Add a role with the specific scope to the matching user group.",nickname="addRoleAtScopeToGroup")
   public RoleAssignment addRoleSimple(@PathParam("groupLocator") String groupLocator,
                             @PathParam("roleId") String roleId,
                             @PathParam("scope") String scopeValue) {
@@ -171,6 +183,7 @@ public class GroupRequest {
   @GET
   @Path("/{groupLocator}/properties")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get properties of the matching user group.",nickname="getGroupProperties")
   public Properties getProperties(@PathParam("groupLocator") String groupLocator, @QueryParam("fields") String fields) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
     return new Properties(User.getProperties(group), null, new Fields(fields), myBeanContext);
@@ -179,6 +192,7 @@ public class GroupRequest {
   @GET
   @Path("/{groupLocator}/properties/{name}")
   @Produces("text/plain")
+  @ApiOperation(value="Get a property of the matching user group.",nickname="getGroupProperty")
   public String serveUserProperties(@PathParam("groupLocator") String groupLocator, @PathParam("name") String parameterName) {
     return BuildTypeUtil.getParameter(parameterName, User.getProperties( myUserGroupFinder.getGroup(groupLocator)), true, true, myBeanContext.getServiceLocator());
   }
@@ -187,6 +201,7 @@ public class GroupRequest {
   @Path("/{groupLocator}/properties/{name}")
   @Consumes("text/plain")
   @Produces("text/plain")
+  @ApiOperation(value="Update a property of the matching user group.",nickname="setGroupProperty")
   public String putUserProperty(@PathParam("groupLocator") String groupLocator,
                               @PathParam("name") String name,
                               String newValue) {
@@ -201,6 +216,7 @@ public class GroupRequest {
 
   @DELETE
   @Path("/{groupLocator}/properties/{name}")
+  @ApiOperation(value="Remove a property of the matching user group.",nickname="removeGroupProperty")
   public void removeUserProperty(@PathParam("groupLocator") String groupLocator,
                                  @PathParam("name") String name) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
@@ -214,6 +230,7 @@ public class GroupRequest {
   @GET
   @Path("/{groupLocator}/parent-groups")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get parent groups of the matching user group.",nickname="getGroupParentGroups")
   public Groups getParentGroups(@PathParam("groupLocator") String groupLocator, @QueryParam("fields") String fields) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
     return new Groups(group.getParentGroups(), new Fields(fields), myBeanContext);
@@ -223,6 +240,7 @@ public class GroupRequest {
   @Path("/{groupLocator}/parent-groups")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update parent groups of the matching user group.",nickname="setGroupParentGroups")
   public Groups setParentGroups(@PathParam("groupLocator") String groupLocator, Groups parents, @QueryParam("fields") String fields) {
     SUserGroup group = myUserGroupFinder.getGroup(groupLocator);
     if (parents == null ) {
@@ -238,6 +256,7 @@ public class GroupRequest {
   @GET
   @Path("/{groupLocator}/debug/permissions")
   @Produces({"text/plain"})
+  @ApiOperation(value="getPermissions",hidden=true)
   public String getPermissions(@PathParam("groupLocator") String groupLocator) {
     if (!TeamCityProperties.getBoolean("rest.debug.permissionsList.enable")) {
       throw new BadRequestException("Request is not enabled. Set \"rest.debug.permissionsList.enable\" internal property to enable.");

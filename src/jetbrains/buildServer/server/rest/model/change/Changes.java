@@ -17,9 +17,12 @@
 package jetbrains.buildServer.server.rest.model.change;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
@@ -42,6 +45,7 @@ import java.util.stream.Collectors;
  */
 @XmlRootElement(name = "changes")
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = ObjectType.LIST)
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
 public class Changes implements DefaultValueAware {
   @Nullable private CachingValue<List<SVcsModification>> myModifications;
   @Nullable private PagerData myPagerData;

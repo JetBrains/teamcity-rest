@@ -22,6 +22,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
@@ -37,15 +38,26 @@ import java.util.TreeSet;
  * @author Yegor.Yarko
  *         Date: 21.12.13
  */
-@LocatorResource(value = LocatorName.BUILD_QUEUE, extraDimensions = {FinderImpl.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT})
+@LocatorResource(value = LocatorName.BUILD_QUEUE,
+    extraDimensions = {FinderImpl.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
+    description = "Represents a locator string for filtering queued Build entities." +
+        "\nExamples:" +
+        "\n* `buildType:<buildTypeLocator>` – find queued builds under build configuration found by buildTypeLocator." +
+        "\n* `user:<userLocator>` – find queued builds started by user found by userLocator.")
 public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   @LocatorDimension(BuildFinder.PROMOTION_ID) public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
-  @LocatorDimension("buildType") public static final String BUILD_TYPE = "buildType";
-  @LocatorDimension("project") public static final String PROJECT = "project";
-  @LocatorDimension("pool") public static final String POOL = "pool";
-  @LocatorDimension("agent") public static final String AGENT = "agent";
-  @LocatorDimension("personal") public static final String PERSONAL = "personal";
-  @LocatorDimension("user") public static final String USER = "user";
+  @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
+  public static final String BUILD_TYPE = "buildType";
+  @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
+  public static final String PROJECT = "project";
+  @LocatorDimension(value = "pool", format = LocatorName.AGENT_POOL, notes = "Agent pool locator.")
+  public static final String POOL = "pool";
+  @LocatorDimension(value = "agent", format = LocatorName.AGENT, notes = "Agent locator.")
+  public static final String AGENT = "agent";
+  @LocatorDimension(value = "personal", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is personal.")
+  public static final String PERSONAL = "personal";
+  @LocatorDimension(value = "user", format = LocatorName.USER, notes = "User locator.")
+  public static final String USER = "user";
 
   private final BuildQueue myBuildQueue;
   private final ProjectFinder myProjectFinder;

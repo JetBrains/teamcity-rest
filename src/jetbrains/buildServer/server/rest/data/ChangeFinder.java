@@ -25,6 +25,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
@@ -53,25 +54,39 @@ import java.util.stream.Stream;
  * @author Yegor.Yarko
  *         Date: 12.05.13
  */
-@LocatorResource(value = LocatorName.CHANGE, extraDimensions = {AbstractFinder.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT})
+@LocatorResource(value = LocatorName.CHANGE,
+    extraDimensions = {AbstractFinder.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
+    description = "Represents a locator string for filtering Change entities." +
+        "\nExamples:" +
+        "\n* `username:MyVCSUsername` – find last 100 changes made by user with MyVCSUsername VCS username." +
+        "\n* `pending:true,buildType:<buildTypeLocator>` – find all pending changes on build configuration found by buildTypeLocator.")
 public class ChangeFinder extends AbstractFinder<SVcsModification> {
   public static final String IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION = "rest.ignoreChangesFromDependenciesOption";
 
   public static final String PERSONAL = "personal";
-  @LocatorDimension("project") public static final String PROJECT = "project";
-  @LocatorDimension("buildType") public static final String BUILD_TYPE = "buildType";
-  @LocatorDimension("build") public static final String BUILD = "build";
+  @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
+  public static final String PROJECT = "project";
+  @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
+  public static final String BUILD_TYPE = "buildType";
+  @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
+  public static final String BUILD = "build";
   public static final String PROMOTION = BuildFinder.PROMOTION_ID;
-  @LocatorDimension("vcsRoot") public static final String VCS_ROOT = "vcsRoot";
-  @LocatorDimension("vcsRootInstance") public static final String VCS_ROOT_INSTANCE = "vcsRootInstance";
-  @LocatorDimension("username") public static final String USERNAME = "username";
-  @LocatorDimension("user") public static final String USER = "user";
+  @LocatorDimension(value = "vcsRoot", format = LocatorName.VCS_ROOT, notes = "VCS root locator.")
+  public static final String VCS_ROOT = "vcsRoot";
+  @LocatorDimension(value = "vcsRootInstance", format = LocatorName.VCS_ROOT_INSTANCE, notes = "VCS instance locator.")
+  public static final String VCS_ROOT_INSTANCE = "vcsRootInstance";
+  @LocatorDimension(value = "username", notes = "VCS side username.")
+  public static final String USERNAME = "username";
+  @LocatorDimension(value = "user", format = LocatorName.USER, notes = "User locator.")
+  public static final String USER = "user";
   @LocatorDimension("version") public static final String VERSION = "version";
   @LocatorDimension("internalVersion") public static final String INTERNAL_VERSION = "internalVersion";
   @LocatorDimension("comment") public static final String COMMENT = "comment";
   @LocatorDimension("file") public static final String FILE = "file";
-  @LocatorDimension("sinceChange") public static final String SINCE_CHANGE = "sinceChange";
-  @LocatorDimension("pending") public static final String PENDING = "pending";
+  @LocatorDimension(value = "sinceChange", notes = "Commit SHA since which the changes should be returned.")
+  public static final String SINCE_CHANGE = "sinceChange";
+  @LocatorDimension(value = "pending", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is pending.")
+  public static final String PENDING = "pending";
   public static final String BRANCH = "branch";
   public static final String CHILD_CHANGE = "childChange";
   public static final String PARENT_CHANGE = "parentChange";

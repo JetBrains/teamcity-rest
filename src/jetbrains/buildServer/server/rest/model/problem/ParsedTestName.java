@@ -16,10 +16,15 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
+import io.swagger.annotations.ExtensionProperty;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+
 import java.util.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents test metadata (package, method, class, etc.)."))
 public class ParsedTestName {
 
   @XmlAttribute public String testPackage;

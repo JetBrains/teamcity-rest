@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -72,6 +73,7 @@ public class AgentPoolRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all agent pools.",nickname="getAllAgentPools")
   public AgentPools getPools(@ApiParam(format = LocatorName.AGENT_POOL) @QueryParam("locator") String locator,
                              @QueryParam("fields") String fields,
                              @Context UriInfo uriInfo,
@@ -84,6 +86,7 @@ public class AgentPoolRequest {
   @GET
   @Path("/{agentPoolLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get the agent pool matching the locator.",nickname="getAgentPool")
   public AgentPool getPool(@ApiParam(format = LocatorName.AGENT_POOL) @PathParam("agentPoolLocator") String agentPoolLocator,
                            @QueryParam("fields") String fields) {
     return new AgentPool(myAgentPoolFinder.getItem(agentPoolLocator), new Fields(fields), myBeanContext);
@@ -91,6 +94,7 @@ public class AgentPoolRequest {
 
   @DELETE
   @Path("/{agentPoolLocator}")
+  @ApiOperation(value="Delete the agent pool matching the locator.",nickname="deleteAgentPool")
   public void deletePool(@ApiParam(format = LocatorName.AGENT_POOL) @PathParam("agentPoolLocator") String agentPoolLocator) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getItem(agentPoolLocator);
     try {
@@ -105,6 +109,7 @@ public class AgentPoolRequest {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Create a new agent pool.",nickname="createAgentPool")
   public AgentPool createPool(AgentPool agentPool) {
     if (agentPool.agents != null){
       throw new BadRequestException("Creating an agent pool with agents is not supported. Please add agents after the pool creation");
@@ -129,6 +134,7 @@ public class AgentPoolRequest {
   @GET
   @Path("/{agentPoolLocator}/projects")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all projects of the matching agent pool.",nickname="getAllProjectsFromAgentPool")
   public Projects getPoolProjects(@ApiParam(format = LocatorName.AGENT_POOL) @PathParam("agentPoolLocator") String agentPoolLocator,
                                   @QueryParam("fields") String fields) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getItem(agentPoolLocator);
@@ -145,6 +151,7 @@ public class AgentPoolRequest {
   @Path("/{agentPoolLocator}/projects")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update projects of the matching agent pool.",nickname="setAgentPoolProjects")
   public Projects replaceProjects(@ApiParam(format = LocatorName.AGENT_POOL) @PathParam("agentPoolLocator") String agentPoolLocator,
                                   Projects projects) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getItem(agentPoolLocator);
@@ -174,6 +181,7 @@ public class AgentPoolRequest {
   @Path("/{agentPoolLocator}/projects")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Assign the project to the matching agent pool.",nickname="addProjectToAgentPool")
   public Project addProject(@ApiParam(format = LocatorName.AGENT_POOL) @PathParam("agentPoolLocator") String agentPoolLocator,
                             Project project) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getItem(agentPoolLocator);
@@ -193,6 +201,7 @@ public class AgentPoolRequest {
    */
   @DELETE
   @Path("/{agentPoolLocator}/projects")
+  @ApiOperation(value="Unassign all projects from the matching agent pool.",nickname="deleteAllProjectsFromAgentPool")
   public void deleteProjects(@ApiParam(format = LocatorName.AGENT_POOL) @PathParam("agentPoolLocator") String agentPoolLocator) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getItem(agentPoolLocator);
     final AgentPoolManager agentPoolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
@@ -207,6 +216,7 @@ public class AgentPoolRequest {
   @GET
   @Path("/{agentPoolLocator}/projects/{projectLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="getPoolProject",hidden=true)
   public Project getPoolProject(@ApiParam(format = LocatorName.AGENT_POOL) @PathParam("agentPoolLocator") String agentPoolLocator,
                                 @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                 @QueryParam("fields") String fields) {
@@ -217,6 +227,7 @@ public class AgentPoolRequest {
 
   @DELETE
   @Path("/{agentPoolLocator}/projects/{projectLocator}")
+  @ApiOperation(value="Unassign the project from the matching agent pool.",nickname="deleteProjectFromAgentPool")
   public void deletePoolProject(@ApiParam(format = LocatorName.AGENT_POOL) @PathParam("agentPoolLocator") String agentPoolLocator,
                                 @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getItem(agentPoolLocator);
@@ -233,6 +244,7 @@ public class AgentPoolRequest {
   @GET
   @Path("/{agentPoolLocator}/agents")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get the agent of the matching agent pool.",nickname="getAllAgentsFromAgentPool")
   public Agents getPoolAgents(@ApiParam(format = LocatorName.AGENT_POOL) @PathParam("agentPoolLocator") String agentPoolLocator,
                               @ApiParam(format = LocatorName.AGENT) @QueryParam("locator") String locator,
                               @QueryParam("fields") String fields) {
@@ -250,6 +262,7 @@ public class AgentPoolRequest {
   @Path("/{agentPoolLocator}/agents")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Assign the agent to the matching agent pool.",nickname="addAgentToAgentPool")
   public Agent addAgent(@ApiParam(format = LocatorName.AGENT_POOL) @PathParam("agentPoolLocator") String agentPoolLocator,
                         Agent agent,
                         @QueryParam("fields") String fields) {
@@ -266,6 +279,7 @@ public class AgentPoolRequest {
   @GET
   @Path("/{agentPoolLocator}/{field}")
   @Produces("text/plain")
+  @ApiOperation(value="Get a field of the matching agent pool.",nickname="getFieldFromAgentPool")
   public String getField(@ApiParam(format = LocatorName.AGENT_POOL) @PathParam("agentPoolLocator") String agentPoolLocator,
                          @PathParam("field") String fieldName) {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool = myAgentPoolFinder.getItem(agentPoolLocator);
@@ -276,6 +290,7 @@ public class AgentPoolRequest {
   @Path("/{agentPoolLocator}/{field}")
   @Consumes("text/plain")
   @Produces("text/plain")
+  @ApiOperation(value="Update a field of the matching agent pool.",nickname="setAgentPoolField")
   public String setField(@ApiParam(format = LocatorName.AGENT_POOL) @PathParam("agentPoolLocator") String agentPoolLocator,
                          @PathParam("field") String fieldName,
                          String newValue) {

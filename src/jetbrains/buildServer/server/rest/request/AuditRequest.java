@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -49,6 +50,7 @@ public class AuditRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all audit events.",nickname="getAllAuditEvents")
   public AuditEvents get(@ApiParam(format = LocatorName.AUDIT) @QueryParam("locator") String locator,
                          @QueryParam("fields") String fields,
                          @Context UriInfo uriInfo,
@@ -62,6 +64,7 @@ public class AuditRequest {
   @GET
   @Path("/{auditEventLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get audit event matching the locator.",nickname="getAuditEvent")
   public AuditEvent getSingle(@ApiParam(format = LocatorName.AUDIT) @PathParam("auditEventLocator") String auditEventLocator,
                               @QueryParam("fields") String fields) {
     AuthorityHelper.checkGlobalPermission(myBeanContext, Permission.VIEW_AUDIT_LOG);

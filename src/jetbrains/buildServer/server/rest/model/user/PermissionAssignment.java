@@ -19,9 +19,13 @@ package jetbrains.buildServer.server.rest.model.user;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.PermissionAssignmentData;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Project;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -34,6 +38,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "permissionAssignment")
 @XmlType(name = "permissionAssignment")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a relation between specific permission and project."))
 public class PermissionAssignment {
   @XmlElement
   public Permission permission;

@@ -16,7 +16,45 @@
 
 package jetbrains.buildServer.server.rest.swagger.constants;
 
+import org.apache.commons.lang3.ArrayUtils;
+
+import java.util.HashMap;
+import java.util.Map;
+
 public class ExtensionType {
+  // reference to an abstract class which may be present in client implementation (to streamline code generation)
   public static final String X_BASE_TYPE = "x-object-type";
-  public static final String X_PARAM_TYPE = "x-param-type";
+
+  // Swagger models do not have built-in description field
+  public static final String X_DESCRIPTION = "x-description";
+
+  // reference to subpackage of model class
+  public static final String X_SUBPACKAGE = "x-subpackage";
+
+  // swagger-codegen does not support inline boolean checks; thus this data is available as vendor extension on model level
+  public static final String X_IS_DATA = "x-is-data";
+  public static final String X_IS_LOCATOR = "x-is-locator";
+  public static final String X_IS_LIST = "x-is-list";
+  public static final String X_IS_PAGINATED = "x-is-paginated";
+
+  // similar to above, param-level boolean data which can be used along with the "base" class implementation
+  public static final String X_DEFINED_IN_BASE = "x-defined-in-base";
+  public static final String X_IS_FIRST_CONTAINER_VAR = "x-is-first-container-var";
+
+  public static final Map<String, String[]> paramToObjectType;
+
+  static {
+    paramToObjectType = new HashMap<>();
+    paramToObjectType.put(ObjectType.DATA, new String[]{"href"});
+    paramToObjectType.put(ObjectType.LIST, ArrayUtils.addAll(
+        new String[]{"count"},
+        paramToObjectType.get(ObjectType.DATA)
+        )
+    );
+    paramToObjectType.put(ObjectType.PAGINATED, ArrayUtils.addAll(
+        new String[]{"nextHref", "prevHref"},
+        paramToObjectType.get(ObjectType.LIST)
+        )
+    );
+  }
 }

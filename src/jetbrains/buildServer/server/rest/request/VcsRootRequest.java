@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -81,6 +82,7 @@ public class VcsRootRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all VCS roots.",nickname="getAllVcsRoots")
   public VcsRoots serveRoots(@ApiParam(format = LocatorName.VCS_ROOT) @QueryParam("locator") String locatorText,
                              @QueryParam("fields") String fields,
                              @Context UriInfo uriInfo,
@@ -95,6 +97,7 @@ public class VcsRootRequest {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Add a new VCS root.",nickname="addVcsRoot")
   public VcsRoot addRoot(VcsRoot vcsRootDescription, @QueryParam("fields") String fields) {
     checkVcsRootDescription(vcsRootDescription);
     BeanContext ctx = new BeanContext(myDataProvider.getBeanFactory(), myServiceLocator, myApiUrlBuilder);
@@ -118,6 +121,7 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get root endpoints.",nickname="getRootEndpoints")
   public VcsRoot serveRoot(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator,
                            @QueryParam("fields") String fields) {
     return new VcsRoot(myVcsRootFinder.getItem(vcsRootLocator), new Fields(fields), myBeanContext);
@@ -125,6 +129,7 @@ public class VcsRootRequest {
 
   @DELETE
   @Path("/{vcsRootLocator}")
+  @ApiOperation(value="Remove VCS root matching the locator.",nickname="deleteVcsRoot")
   public void deleteRoot(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
     try {
@@ -137,6 +142,7 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}/" + INSTANCES_PATH)
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all VCS root instances of the matching VCS root.",nickname="getVcsRootInstances")
   public VcsRootInstances serveRootInstances(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") final String vcsRootLocator,
                                              @QueryParam("fields") final String fields) {
     //todo: use VcsRootFinder here
@@ -165,6 +171,7 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}/" + INSTANCES_PATH + "/{vcsRootInstanceLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get instance of the matching VCS root.",nickname="getVcsRootInstance", hidden=true)
   public VcsRootInstance serveRootInstance(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator,
                                            @ApiParam(format = LocatorName.VCS_ROOT_INSTANCE) @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
                                            @QueryParam("fields") String fields) {
@@ -174,6 +181,7 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}/" + INSTANCES_PATH + "/{vcsRootInstanceLocator}/properties")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all properties of the matching VCS root instance.",nickname="getVcsRootInstanceProperties", hidden=true)
   public Properties serveRootInstanceProperties(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator,
                                                 @ApiParam(format = LocatorName.VCS_ROOT_INSTANCE) @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
                                                 @QueryParam("fields") String fields) {
@@ -184,6 +192,7 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}/" + INSTANCES_PATH + "/{vcsRootInstanceLocator}/{field}")
   @Produces("text/plain")
+  @ApiOperation(value="Get a field of the matching VCS root instance.",nickname="getVcsRootInstanceField", hidden=true)
   public String serveInstanceField(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator,
                                    @ApiParam(format = LocatorName.VCS_ROOT_INSTANCE) @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
                                    @PathParam("field") String fieldName) {
@@ -195,6 +204,7 @@ public class VcsRootRequest {
   @Path("/{vcsRootLocator}/" + INSTANCES_PATH + "/{vcsRootInstanceLocator}/{field}")
   @Consumes("text/plain")
   @Produces("text/plain")
+  @ApiOperation(value="Get a field of the matching VCS root.",nickname="setVcsRootInstanceField", hidden=true)
   public String setInstanceField(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator,
                                  @ApiParam(format = LocatorName.VCS_ROOT_INSTANCE) @PathParam("vcsRootInstanceLocator") String vcsRootInstanceLocator,
                                  @PathParam("field") String fieldName, String newValue) {
@@ -209,6 +219,7 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}/properties")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all properties of the matching VCS root.",nickname="getAllVcsRootProperties")
   public Properties serveProperties(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator,
                                     @QueryParam("fields") String fields) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
@@ -219,6 +230,7 @@ public class VcsRootRequest {
   @Path("/{vcsRootLocator}/properties")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update all properties of the matching VCS root.",nickname="setVcsRootProperties")
   public Properties changeProperties(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator,
                                      Properties properties,
                                      @QueryParam("fields") String fields) {
@@ -230,6 +242,7 @@ public class VcsRootRequest {
 
   @DELETE
   @Path("/{vcsRootLocator}/properties")
+  @ApiOperation(value="Delete all properties of the matching VCS root.",nickname="deleteAllVcsRootProperties")
   public void deleteAllProperties(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
     vcsRoot.setProperties(new HashMap<String, String>());
@@ -239,6 +252,7 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}/properties/{name}")
   @Produces("text/plain")
+  @ApiOperation(value="Get a property on the matching VCS root.",nickname="getVcsRootProperty")
   public String serveProperty(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator,
                               @PathParam("name") String parameterName) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
@@ -249,6 +263,7 @@ public class VcsRootRequest {
   @Path("/{vcsRootLocator}/properties/{name}")
   @Consumes("text/plain")
   @Produces("text/plain")
+  @ApiOperation(value="Update a property of the matching VCS root.",nickname="setVcsRootProperty")
   public String putParameter(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator,
                              @PathParam("name") String parameterName,
                              String newValue) {
@@ -261,6 +276,7 @@ public class VcsRootRequest {
 
   @DELETE
   @Path("/{vcsRootLocator}/properties/{name}")
+  @ApiOperation(value="Delete a property of the matching VCS root.",nickname="deleteVcsRootProperty")
   public void deleteParameter(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator,
                               @PathParam("name") String parameterName) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
@@ -271,6 +287,7 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}/{field}")
   @Produces("text/plain")
+  @ApiOperation(value="Get a field of the matching VCS root.",nickname="getVcsRootField")
   public String serveField(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator,
                            @PathParam("field") String fieldName) {
     final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
@@ -281,6 +298,7 @@ public class VcsRootRequest {
   @Path("/{vcsRootLocator}/{field}")
   @Consumes("text/plain")
   @Produces("text/plain")
+  @ApiOperation(value="Update a field of the matching VCS root.",nickname="setVcsRootField")
   public String setField(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator,
                          @PathParam("field") String fieldName,
                          String newValue) {
@@ -296,6 +314,7 @@ public class VcsRootRequest {
   @GET
   @Path("/{vcsRootLocator}/settingsFile")
   @Produces({"text/plain"})
+  @ApiOperation(value="Get the settings file of the matching VCS root.",nickname="getVcsRootSettingsFile")
   public String getSettingsFile(@ApiParam(format = LocatorName.VCS_ROOT) @PathParam("vcsRootLocator") String vcsRootLocator) {
     myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     @NotNull final SVcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);

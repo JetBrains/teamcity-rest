@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -90,6 +91,7 @@ public class InvestigationRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all investigations.",nickname="getAllInvestigations")
   public Investigations getInvestigations(@QueryParam("locator") String locatorText, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<InvestigationWrapper> result = myInvestigationFinder.getItems(locatorText);
 
@@ -103,6 +105,7 @@ public class InvestigationRequest {
   @GET
   @Path("/{investigationLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get investigation matching the locator.",nickname="getInvestigation")
   public Investigation serveInvestigationInstance(@ApiParam(format = LocatorName.INVESTIGATION) @PathParam("investigationLocator") String locatorText,
                                                   @QueryParam("fields") String fields) {
     return new Investigation(myInvestigationFinder.getItem(locatorText), new Fields(fields),
@@ -112,6 +115,7 @@ public class InvestigationRequest {
   @DELETE
   @Path("/{investigationLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Delete investigation matching the locator.",nickname="deleteInvestigation")
   public void deleteInstance(@ApiParam(format = LocatorName.INVESTIGATION) @PathParam("investigationLocator") String locatorText) {
     InvestigationWrapper item = myInvestigationFinder.getItem(locatorText);
     item.remove(myServiceLocator);
@@ -121,6 +125,7 @@ public class InvestigationRequest {
   @Path("/{investigationLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update investigation matching the locator.",nickname="replaceInvestigation")
   public Investigation replaceInstance(@ApiParam(format = LocatorName.INVESTIGATION) @PathParam("investigationLocator") String locatorText,
                                        Investigation investigation,
                                        @QueryParam("fields") String fields) {
@@ -132,6 +137,7 @@ public class InvestigationRequest {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Create a new investigation.",nickname="addInvestigation")
   public Investigation createInstance(Investigation investigation, @QueryParam("fields") String fields) {
     InvestigationWrapper investigationWrapper = null;
     try {
@@ -149,6 +155,7 @@ public class InvestigationRequest {
   @Path("/multiple")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Create multiple new investigations.",nickname="addMultipleInvestigations")
   public Investigations createInstances(Investigations investigations, @QueryParam("fields") String fields) {
     List<InvestigationWrapper> investigationWrappers = investigations.getFromPostedAndApply(myServiceLocator);
     return new Investigations(investigationWrappers, null, new Fields(fields), myBeanContext);

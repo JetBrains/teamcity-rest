@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -91,6 +92,7 @@ public class MuteRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all muted tests.",nickname="getAllMutedTests")
   public Mutes getMutes(@QueryParam("locator") String locatorText, @QueryParam("fields") String fields, @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<MuteInfo> result = myMuteFinder.getItems(locatorText);
 
@@ -104,6 +106,7 @@ public class MuteRequest {
   @GET
   @Path("/{muteLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get a muted test.",nickname="getMutedTest")
   public Mute serveInstance(@ApiParam(format = LocatorName.MUTE) @PathParam("muteLocator") String locatorText,
                             @QueryParam("fields") String fields) {
     return new Mute(myMuteFinder.getItem(locatorText), new Fields(fields), myBeanContext);
@@ -115,6 +118,7 @@ public class MuteRequest {
   @DELETE
   @Path("/{muteLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Unmute the matching test.",nickname="unmuteTest")
   public void deleteInstance(@ApiParam(format = LocatorName.MUTE) @PathParam("muteLocator") String locatorText,
                              String comment) {
     MuteInfo item = myMuteFinder.getItem(locatorText);
@@ -137,6 +141,7 @@ public class MuteRequest {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Mute a test.",nickname="muteTest")
   public Mute createInstance(Mute mute, @QueryParam("fields") String fields) {
     return new Mute(mute.getFromPosted(myServiceLocator).mute(), new Fields(fields), myBeanContext);
   }
@@ -148,6 +153,7 @@ public class MuteRequest {
   @Path("/multiple")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Mute multiple tests.",nickname="muteMultipleTests")
   public Mutes createInstances(Mutes mutes, @QueryParam("fields") String fields) {
     List<MuteData> postedEntities = mutes.getFromPosted(myServiceLocator);
     List<MuteInfo> results = postedEntities.stream().map(muteData -> muteData.mute()).collect(Collectors.toList()); //muting after getting objects to report any deserialize errors before

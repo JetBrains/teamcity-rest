@@ -19,10 +19,14 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import java.util.HashMap;
 import java.util.List;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildFeatureDescriptorFactory;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
@@ -37,6 +41,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 05.01.12
  */
 @XmlRootElement(name = "feature")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a build feature."))
 public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBuildFeatureDescriptor>{
   public PropEntityFeature() {
   }

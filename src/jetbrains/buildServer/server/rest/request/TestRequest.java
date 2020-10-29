@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -69,6 +70,7 @@ public class TestRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all tests.",nickname="getTests")
   public Tests getTests(@ApiParam(format = LocatorName.TEST) @QueryParam("locator") String locatorText,
                         @QueryParam("fields") String fields,
                         @Context UriInfo uriInfo,
@@ -85,6 +87,7 @@ public class TestRequest {
   @GET
   @Path("/{testLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get a matching test.",nickname="getTest")
   public Test serveInstance(@ApiParam(format = LocatorName.TEST) @PathParam("testLocator") String locatorText,
                             @QueryParam("fields") String fields) {
     return new Test(myTestFinder.getItem(locatorText), new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder),  new Fields(fields));

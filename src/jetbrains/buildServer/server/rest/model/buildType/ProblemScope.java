@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
@@ -30,6 +32,8 @@ import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrappe
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Project;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -47,6 +51,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings("PublicField")
 @XmlType(name = "problemScope")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an investigation scope."))
 public class ProblemScope {
   @XmlElement public Project project;
   @XmlElement public BuildTypes buildTypes;

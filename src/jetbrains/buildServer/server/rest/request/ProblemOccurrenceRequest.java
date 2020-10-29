@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -84,6 +85,7 @@ public class ProblemOccurrenceRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all build problem occurrences.",nickname="getAllBuildProblemOccurrences")
   public ProblemOccurrences getProblems(@ApiParam(format = LocatorName.PROBLEM_OCCURRENCE) @QueryParam("locator") String locatorText,
                                         @QueryParam("fields") String fields,
                                         @Context UriInfo uriInfo,
@@ -101,6 +103,7 @@ public class ProblemOccurrenceRequest {
   @GET
   @Path("/{problemLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get a matching build problem occurrence.",nickname="getBuildProblemOccurrence")
   public ProblemOccurrence serveInstance(@ApiParam(format = LocatorName.PROBLEM_OCCURRENCE) @PathParam("problemLocator") String locatorText,
                                          @QueryParam("fields") String fields) {
     return new ProblemOccurrence(myProblemOccurrenceFinder.getItem(locatorText), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder),

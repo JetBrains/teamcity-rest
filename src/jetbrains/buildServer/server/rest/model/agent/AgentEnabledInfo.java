@@ -20,11 +20,15 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.TimeCondition;
 import jetbrains.buildServer.server.rest.data.TimeWithPrecision;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SBuildAgent;
@@ -37,6 +41,8 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlType(name = "enabledInfo")
 @XmlRootElement(name = "enabledInfo")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents current enablement status of the agent." + 
+"\nRelated Help article: [Build Agent](https://www.jetbrains.com/help/teamcity/build-agent.html)"))
 public class AgentEnabledInfo extends BooleanStatus {
   @XmlAttribute(name = "statusSwitchTime")
   public String statusSwitchTime;

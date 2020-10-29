@@ -35,7 +35,7 @@ import javax.ws.rs.*;
  * @author Yegor.Yarko
  *         Date: 16.03.2015
  */
-@Api(hidden = true)
+@Api
 public class ParametersSubResource {
 
   @NotNull protected final BeanContext myBeanContext;
@@ -53,6 +53,7 @@ public class ParametersSubResource {
 
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get build parameters.",nickname="getBuildParameters")
   public Properties getParameters(@QueryParam("locator") Locator locator, @QueryParam("fields") String fields) {
     Properties result = new Properties(myEntityWithParameters, myParametersHref, locator, new Fields(fields), myBeanContext);
     if (locator != null) locator.checkLocatorFullyProcessed();
@@ -62,6 +63,7 @@ public class ParametersSubResource {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Create a build parameter.",nickname="createBuildParameter")
   public Property setParameter(Property parameter, @QueryParam("fields") String fields) {
     addParameter(parameter);
     myEntityWithParameters.persist("Parameter with name " + parameter.name + " changed");
@@ -76,6 +78,7 @@ public class ParametersSubResource {
   @PUT
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update build parameters.",nickname="updateBuildParameters")
   public Properties setParameters(Properties properties, @QueryParam("fields") String fields) {
     properties.setTo(myEntityWithParameters, myBeanContext.getServiceLocator());
     myEntityWithParameters.persist("Parameters changed");
@@ -83,6 +86,7 @@ public class ParametersSubResource {
   }
 
   @DELETE
+  @ApiOperation(value="Delete all build parameters.",nickname="deleteBuildParameters")
   public void deleteAllParameters() {
     BuildTypeUtil.removeAllParameters(myEntityWithParameters);
     myEntityWithParameters.persist("Parameters removed");
@@ -91,6 +95,7 @@ public class ParametersSubResource {
   @GET
   @Path("/{name}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get build parameter.",nickname="getBuildParameter")
   public Property getParameter(@PathParam("name") String parameterName, @QueryParam("fields") String fields) {
     return Property.createFrom(parameterName, myEntityWithParameters, new Fields(fields), myBeanContext.getServiceLocator());
   }
@@ -98,6 +103,7 @@ public class ParametersSubResource {
   @GET
   @Path("/{name}/value")
   @Produces("text/plain")
+  @ApiOperation(value="Get value of build parameter.",nickname="getBuildParameterValue")
   public String getParameterValueLong(@PathParam("name") String parameterName) {
     return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, true, false, myBeanContext.getServiceLocator());
   }
@@ -106,6 +112,7 @@ public class ParametersSubResource {
   @Path("/{name}/value")
   @Consumes("text/plain")
   @Produces("text/plain")
+  @ApiOperation(value="Update value of build parameter.",nickname="updateBuildParameterValue")
   public String setParameterValueLong(@PathParam("name") String parameterName, String newValue) {
     BuildTypeUtil.changeParameter(parameterName, newValue, myEntityWithParameters, myBeanContext.getServiceLocator());
     myEntityWithParameters.persist("Value of the parameter " + parameterName + " changed");
@@ -118,7 +125,7 @@ public class ParametersSubResource {
   @GET
   @Path("/{name}")
   @Produces("text/plain")
-  @ApiOperation(hidden = true, value = "Use getParameter instead")
+  @ApiOperation(hidden = true, value = "Use getBuildParameter instead")
   public String getParameterValue(@PathParam("name") String parameterName) {
     return BuildTypeUtil.getParameter(parameterName, myEntityWithParameters, true, false, myBeanContext.getServiceLocator());
   }
@@ -130,7 +137,7 @@ public class ParametersSubResource {
   @Path("/{name}")
   @Consumes("text/plain")
   @Produces("text/plain")
-  @ApiOperation(hidden = true, value = "Use setParameter instead")
+  @ApiOperation(hidden = true, value = "Use setBuildParameter instead")
   public String setParameterValue(@PathParam("name") String parameterName, String newValue) {
     BuildTypeUtil.changeParameter(parameterName, newValue, myEntityWithParameters, myBeanContext.getServiceLocator());
     myEntityWithParameters.persist("Value of the parameter " + parameterName + " changed");
@@ -141,6 +148,7 @@ public class ParametersSubResource {
   @Path("/{name}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update build parameter.",nickname="updateBuildParameter")
   public Property setParameter(@PathParam("name") String parameterName, Property parameter, @QueryParam("fields") String fields) {
     parameter.name = parameterName; //overriding name in the entity with the value from URL
     addParameter(parameter);
@@ -150,6 +158,7 @@ public class ParametersSubResource {
 
   @DELETE
   @Path("/{name}")
+  @ApiOperation(value="Delete build parameter.",nickname="deleteBuildParameter")
   public void deleteParameter(@PathParam("name") String parameterName) {
     BuildTypeUtil.deleteParameter(parameterName, myEntityWithParameters);
     myEntityWithParameters.persist("Parameter with name " + parameterName + " removed");

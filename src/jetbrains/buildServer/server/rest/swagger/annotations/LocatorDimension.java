@@ -16,6 +16,9 @@
 
 package jetbrains.buildServer.server.rest.swagger.annotations;
 
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
+
+import javax.annotation.Nullable;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -25,4 +28,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface LocatorDimension {
   String value();
+  String dataType() default LocatorDimensionDataType.STRING;
+  String format() default "";
+  String notes() default "";
 }

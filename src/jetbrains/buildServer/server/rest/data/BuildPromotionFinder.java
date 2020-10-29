@@ -36,6 +36,8 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.StreamUtil;
 import jetbrains.buildServer.serverSide.*;
@@ -64,63 +66,95 @@ import java.util.stream.Stream;
  * @author Yegor.Yarko
  *         Date: 20.08.2014
  */
-@LocatorResource(value = LocatorName.BUILD, extraDimensions = {FinderImpl.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT, FinderImpl.DIMENSION_LOOKUP_LIMIT})
+@LocatorResource(value = LocatorName.BUILD,
+    extraDimensions = {FinderImpl.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT, FinderImpl.DIMENSION_LOOKUP_LIMIT, CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
+    description = "Represents a locator string for filtering Build entities." +
+        "\nExamples:" +
+        "\n* `id:1` – find build with ID 1." +
+        "\n* `buildType:<buildTypeLocator>` – find builds under build configuration found by buildTypeLocator." +
+        "\n* `defaultFilter:false,agent:<agentLocator>` – find builds executed on agent found by agentLocator, with defaultFilter disabled (see below).")
 public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private static final Logger LOG = Logger.getInstance(BuildPromotionFinder.class.getName());
 
   //DIMENSION_ID - id of a build or id of build promotion which will get associated build with the id
-  @LocatorDimension(BuildFinder.PROMOTION_ID) public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
+  @LocatorDimension(value = BuildFinder.PROMOTION_ID, dataType = LocatorDimensionDataType.INTEGER, notes = "ID of a build or build promotion.")
+  public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
   protected static final String PROMOTION_ID_ALIAS = "promotionId";
   protected static final String BUILD_ID = "buildId"; //this is experimental, for debug purposes only
-  @LocatorDimension("buildType") public static final String BUILD_TYPE = "buildType";
-  @LocatorDimension("project") public static final String PROJECT = "project"; // BuildFinder (used prior to 9.0) treats "project" as "affectedProject" and thus this behavior is different from BuildFinder
-  @LocatorDimension("affectedProject") private static final String AFFECTED_PROJECT = "affectedProject";
-  @LocatorDimension("agent") public static final String AGENT = "agent";
-  @LocatorDimension("agentName") public static final String AGENT_NAME = "agentName";
-  @LocatorDimension("agentTypeId") public static final String AGENT_TYPE_ID = "agentTypeId";
-  @LocatorDimension("personal") public static final String PERSONAL = "personal";
-  @LocatorDimension("user") public static final String USER = "user";
+  @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
+  public static final String BUILD_TYPE = "buildType";
+  @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project (direct parent) locator.")
+  public static final String PROJECT = "project"; // BuildFinder (used prior to 9.0) treats "project" as "affectedProject" and thus this behavior is different from BuildFinder
+  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
+  private static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension(value = "agent", format = LocatorName.AGENT, notes = "Agent locator.")
+  public static final String AGENT = "agent";
+  public static final String AGENT_NAME = "agentName";
+  @LocatorDimension(value = "agentTypeId", dataType = LocatorDimensionDataType.INTEGER, notes = "typeId of agent used to execute build.")
+  public static final String AGENT_TYPE_ID = "agentTypeId";
+  @LocatorDimension(value = "personal", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is a personal build.")
+  public static final String PERSONAL = "personal";
+  @LocatorDimension(value = "user", format = LocatorName.USER, notes = "User locator.")
+  public static final String USER = "user";
   public static final String TRIGGERED = "triggered"; //experimental
-  @LocatorDimension("branch") protected static final String BRANCH = "branch";
+  @LocatorDimension(value = "branch", format = LocatorName.BRANCH, notes = "Branch locator.")
+  protected static final String BRANCH = "branch";
   protected static final String BRANCHED = "branched"; //experimental
-  @LocatorDimension("property") protected static final String PROPERTY = "property";
+  protected static final String PROPERTY = "property";
   protected static final String STATISTIC_VALUE = "statisticValue";
 
-  @LocatorDimension("state") public static final String STATE = "state";
-  @LocatorDimension("queued") public static final String STATE_QUEUED = "queued";
-  @LocatorDimension("running") public static final String STATE_RUNNING = "running";
-  @LocatorDimension("finished") public static final String STATE_FINISHED = "finished";
-  @LocatorDimension("any") protected static final String STATE_ANY = "any";
+  @LocatorDimension(value = "state", notes = "Supported values: queued/running/finished/any.")
+  public static final String STATE = "state";
+  @LocatorDimension(value = "queued", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is queued.")
+  public static final String STATE_QUEUED = "queued";
+  @LocatorDimension(value = "running", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is running.")
+  public static final String STATE_RUNNING = "running";
+  @LocatorDimension(value = "finished", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is finished.")
+  public static final String STATE_FINISHED = "finished";
+  @LocatorDimension(value = "any", dataType = LocatorDimensionDataType.BOOLEAN, notes = "State can be any.")
+  protected static final String STATE_ANY = "any";
 
   @LocatorDimension("number") protected static final String NUMBER = "number";
   @LocatorDimension("status") protected static final String STATUS = "status";
-  @LocatorDimension("canceled") protected static final String CANCELED = "canceled";
-  @LocatorDimension("failedToStart") protected static final String FAILED_TO_START = "failedToStart";
-  @LocatorDimension("pinned") protected static final String PINNED = "pinned";
+  @LocatorDimension(value = "canceled", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is canceled.")
+  protected static final String CANCELED = "canceled";
+  @LocatorDimension(value = "failedToStart", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is failed to start.")
+  protected static final String FAILED_TO_START = "failedToStart";
+  @LocatorDimension(value = "pinned", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is pinned.")
+  protected static final String PINNED = "pinned";
   protected static final String RUNNING = "running";
-  @LocatorDimension("hanging") protected static final String HANGING = "hanging";
-  @LocatorDimension("composite") protected static final String COMPOSITE = "composite";
+  @LocatorDimension(value = "hanging", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is hanging.")
+  protected static final String HANGING = "hanging";
+  @LocatorDimension(value = "composite", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is composite.")
+  protected static final String COMPOSITE = "composite";
   @LocatorDimension("snapshotDependency") protected static final String SNAPSHOT_DEP = "snapshotDependency";
   @LocatorDimension("artifactDependency") protected static final String ARTIFACT_DEP = "artifactDependency";
   public static final String SNAPSHOT_PROBLEM = "snapshotDependencyProblem"; /*experimental*/
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
   protected static final String TAGS = "tags"; //legacy support only
-  @LocatorDimension("tag") protected static final String TAG = "tag";
-  @LocatorDimension("compatibleAgent") protected static final String COMPATIBLE_AGENT = "compatibleAgent";
-  @LocatorDimension("history") protected static final String HISTORY = "history";
+  @LocatorDimension(value = "tag", format = LocatorName.TAG, notes = "Tag locator.")
+  protected static final String TAG = "tag";
+  @LocatorDimension(value = "compatibleAgent", format = LocatorName.AGENT, notes = "Agent locator.")
+  protected static final String COMPATIBLE_AGENT = "compatibleAgent";
+  @LocatorDimension(value = "history", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is history build.")
+  protected static final String HISTORY = "history";
   protected static final String TEST_OCCURRENCE = "testOccurrence";
   protected static final String TEST = "test";
   //todo: add problem* filtering; filtering by statusText;
-  @LocatorDimension("sinceBuild") protected static final String SINCE_BUILD = "sinceBuild"; //use startDate:(build:(<locator>),condition:after) instead
-  @LocatorDimension("sinceDate") protected static final String SINCE_DATE = "sinceDate"; //use startDate:(date:<date>,condition:after) instead
-  @LocatorDimension("untilBuild") protected static final String UNTIL_BUILD = "untilBuild"; //use startDate:(build:(<locator>),condition:before) instead
-  @LocatorDimension("untilDate") protected static final String UNTIL_DATE = "untilDate"; //use startDate:(date:<date>,condition:before) instead
+  protected static final String SINCE_BUILD = "sinceBuild"; //use startDate:(build:(<locator>),condition:after) instead
+  protected static final String SINCE_DATE = "sinceDate"; //use startDate:(date:<date>,condition:after) instead
+  protected static final String UNTIL_BUILD = "untilBuild"; //use startDate:(build:(<locator>),condition:before) instead
+  protected static final String UNTIL_DATE = "untilDate"; //use startDate:(date:<date>,condition:before) instead
 
-  @LocatorDimension("queuedDate") protected static final String QUEUED_TIME = "queuedDate";
-  @LocatorDimension("startDate") protected static final String STARTED_TIME = "startDate";
-  @LocatorDimension("finishDate") protected static final String FINISHED_TIME = "finishDate";
+  @LocatorDimension(value = "queuedDate", format = "date:<yyyyMMddTHHmmss+ZZZZ>,build:<build locator>,condition:<before/after>", notes = "Requires either date or build dimension.")
+  protected static final String QUEUED_TIME = "queuedDate";
+  @LocatorDimension(value = "startDate", format = "date:<yyyyMMddTHHmmss+ZZZZ>,build:<build locator>,condition:<before/after>", notes = "Requires either date or build dimension.")
+  protected static final String STARTED_TIME = "startDate";
+  @LocatorDimension(value = "finishDate", format = "date:<yyyyMMddTHHmmss+ZZZZ>,build:<build locator>,condition:<before/after>", notes = "Requires either date or build dimension.")
+  protected static final String FINISHED_TIME = "finishDate";
 
-  @LocatorDimension("defaultFilter") protected static final String DEFAULT_FILTERING = "defaultFilter";
+  @LocatorDimension(value = "defaultFilter", dataType = LocatorDimensionDataType.BOOLEAN, notes = "If true, applies default filter which returns only \"normal\" builds (finished builds which are not canceled, not failed-to-start, not personal, and on default branch (in branched build configurations)).")
+  protected static final String DEFAULT_FILTERING = "defaultFilter";
   protected static final String SINCE_BUILD_ID_LOOK_AHEAD_COUNT = "sinceBuildIdLookAheadCount";  /*experimental*/
   public static final String ORDERED = "ordered"; /*experimental*/
   public static final String STROB = "strob"; /*experimental*/  //might need a better name

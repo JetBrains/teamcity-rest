@@ -21,12 +21,16 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.CloudUtil;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.CloudRequest;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -40,6 +44,8 @@ import org.jetbrains.annotations.NotNull;
 @XmlType(name = "cloudProfile", propOrder = {"id", "name", "cloudProviderId", "href",
 "project", "images"})
 @SuppressWarnings("PublicField")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a cloud agent profile." + 
+"\nRelated Help article: [Cloud Profile](https://www.jetbrains.com/help/teamcity/agent-cloud-profile.html)"))
 public class CloudProfile {
 
   @NotNull private final jetbrains.buildServer.clouds.CloudProfile myCloudProfile;

@@ -20,7 +20,11 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 
 /**
  * Used when triggering a build for settingas not making sense for a queued build (processed during the triggering)
@@ -30,6 +34,8 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 @XmlRootElement(name = "buildTriggeringOptions")
 @XmlType(name = "buildTriggeringOptions", propOrder = {"cleanSources", "cleanSourcesInAllDependencies", "rebuildAllDependencies", "rebuildFailedOrIncompleteDependencies", "queueAtTop", "freezeSettings", "tagDependencies",
   "rebuildDependencies"})
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the dependency/queue settings with which this build has been started." + 
+"\nRelated Help article: [Custom Build](https://www.jetbrains.com/help/teamcity/triggering-a-custom-build.html#Run+Custom+Build+dialog)"))
 public class BuildTriggeringOptions {
     @XmlAttribute public Boolean cleanSources;
     @XmlAttribute public Boolean cleanSourcesInAllDependencies;

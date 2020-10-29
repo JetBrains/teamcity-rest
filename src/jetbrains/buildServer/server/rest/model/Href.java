@@ -19,7 +19,11 @@ package jetbrains.buildServer.server.rest.model;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -27,6 +31,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "href")
 @XmlType(name = "HReference")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a href link."))
 public class Href {
   protected String href;
 

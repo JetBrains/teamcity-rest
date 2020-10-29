@@ -24,6 +24,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
@@ -40,6 +42,8 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -55,6 +59,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlType(name = "investigation")
 @XmlRootElement(name = "investigation")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an investigation on build problem."))
 public class Investigation {
   protected static final String REST_BEANS_INVESTIGATIONS_COMPATIBILITY = "rest.beans.buildTypeInvestigationCompatibility";
   @XmlAttribute public String id;

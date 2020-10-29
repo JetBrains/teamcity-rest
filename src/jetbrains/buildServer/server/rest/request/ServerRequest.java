@@ -28,6 +28,9 @@ import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.log.Loggers;
@@ -93,6 +96,7 @@ public class ServerRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get the server info.",nickname="getServerInfo")
   public Server serveServerInfo(@QueryParam("fields") String fields) {
     return new Server(new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
@@ -100,6 +104,7 @@ public class ServerRequest {
   @GET
   @Path("/{field}")
   @Produces({"text/plain"})
+  @ApiOperation(value="Get a field of the server info.",nickname="getServerField")
   public String serveServerVersion(@PathParam("field") String fieldName) {
     return Server.getFieldValue(fieldName, myServiceLocator);
   }
@@ -107,6 +112,7 @@ public class ServerRequest {
   @GET
   @Path("/plugins")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all plugins.",nickname="getAllPlugins")
   public PluginInfos servePlugins(@QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     return new PluginInfos(myDataProvider.getPlugins(), new Fields(fields), myBeanContext);
@@ -115,6 +121,7 @@ public class ServerRequest {
   @GET
   @Path("/metrics")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get metrics.",nickname="getAllMetrics")
   public Metrics serveMetrics(@QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.VIEW_USAGE_STATISTICS);
 
@@ -136,6 +143,7 @@ public class ServerRequest {
   @POST
   @Path("/backup")
   @Produces({"text/plain"})
+  @ApiOperation(value="Start a new backup.",nickname="startBackup")
   public String startBackup(@QueryParam("fileName") String fileName,
                             @QueryParam("addTimestamp") Boolean addTimestamp,
                             @QueryParam("includeConfigs") Boolean includeConfigs,
@@ -144,7 +152,7 @@ public class ServerRequest {
                             @QueryParam("includePersonalChanges") Boolean includePersonalChanges,
                             @QueryParam("includeRunningBuilds") Boolean includeRunningBuilds,
                             @QueryParam("includeSupplimentaryData") Boolean includeSupplimentaryData,
-                            @InjectParam BackupProcessManager backupManager) {
+                            @ApiParam(hidden = true) @InjectParam BackupProcessManager backupManager) {
     BackupConfig backupConfig = new BackupConfig();
     if (StringUtil.isNotEmpty(fileName)) {
       if (!TeamCityProperties.getBoolean("rest.request.server.backup.allowAnyTargetPath")) {
@@ -189,7 +197,8 @@ public class ServerRequest {
   @GET
   @Path("/backup")
   @Produces({"text/plain"})
-  public String getBackupStatus(@InjectParam BackupProcessManager backupManager) {
+  @ApiOperation(value="Get the latest backup status.",nickname="getBackupStatus")
+  public String getBackupStatus(@ApiParam(hidden = true) @InjectParam BackupProcessManager backupManager) {
     final BackupProcess backupProcess = backupManager.getCurrentBackupProcess();
     if (backupProcess == null) {
       return "Idle";
@@ -203,6 +212,7 @@ public class ServerRequest {
   @GET
   @Path(LICENSING_DATA)
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get the licensing data.",nickname="getLicensingData")
   public LicensingData getLicensingData(@QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     return new LicensingData(myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager(), new Fields(fields), myBeanContext);
@@ -211,6 +221,7 @@ public class ServerRequest {
   @GET
   @Path(LICENSING_KEYS)
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all license keys.",nickname="getLicenseKeys")
   public LicenseKeyEntities getLicenseKeys(@QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     LicenseList licenseList = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager().getLicenseList();
@@ -226,6 +237,7 @@ public class ServerRequest {
   @Path(LICENSING_KEYS)
   @Consumes({"text/plain"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Add license keys.",nickname="addLicenseKeys")
   public LicenseKeyEntities addLicenseKeys(final String licenseKeyCodes, @QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     LicenseKeysManager licenseKeysManager = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager();
@@ -251,6 +263,7 @@ public class ServerRequest {
   @GET
   @Path(LICENSING_KEYS + "/{licenseKey}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get a license key.",nickname="getLicenseKey")
   public LicenseKeyEntity getLicenseKey(@PathParam("licenseKey") final String licenseKey, @QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     LicenseKeysManager licenseKeysManager = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager();
@@ -260,6 +273,7 @@ public class ServerRequest {
 
   @DELETE
   @Path(LICENSING_KEYS + "/{licenseKey}")
+  @ApiOperation(value="Delete a license key.",nickname="deleteLicenseKey")
   public void deleteLicenseKey(@PathParam("licenseKey") final String licenseKey) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     LicenseKeysManager licenseKeysManager = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager();

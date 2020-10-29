@@ -19,9 +19,13 @@ package jetbrains.buildServer.server.rest.model.server;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.controllers.license.ServerLicenseBean;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.LicenseKey;
 import jetbrains.buildServer.serverSide.LicenseKeyData;
@@ -35,6 +39,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "licenseKey")
 @XmlType(name = "licenseKey")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a license key details."))
 public class LicenseKeyEntity {
   protected static final String LICENSE_TYPE_EVALUATION = "evaluation";
   protected static final String LICENSE_TYPE_EAP = "eap";

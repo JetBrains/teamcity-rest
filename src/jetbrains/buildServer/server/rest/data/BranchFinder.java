@@ -22,6 +22,10 @@ import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
@@ -34,12 +38,21 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 22/01/2016
  */
+@LocatorResource(value = LocatorName.BRANCH, extraDimensions = AbstractFinder.DIMENSION_ITEM,
+    description = "Represents a locator string for filtering Branch entities." +
+        "\nExamples:" +
+        "\n* `build:<buildLocator>` – find branch with which the build found by buildLocator was started." +
+        "\n* `buildType:<buildTypeLocator>` – find branches of a build configuration found by buildTypeLocator.")
 public class BranchFinder extends AbstractFinder<BranchData> {
-  protected static final String NAME = "name";
+  @LocatorDimension("name") protected static final String NAME = "name";
+  @LocatorDimension(value = "default", format = LocatorDimensionDataType.BOOLEAN, notes = "Is default branch.")
   protected static final String DEFAULT = "default";
   protected static final String UNSPECIFIED = "unspecified";
+  @LocatorDimension(value = "branched", format = LocatorDimensionDataType.BOOLEAN, notes = "Is feature branch.")
   protected static final String BRANCHED = "branched"; //rather use "branched" dimension in build locator
+  @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
   protected static final String BUILD = "build";
+  @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
   protected static final String BUILD_TYPE = "buildType";
 
   protected static final String BRANCH_GROUP = "group";

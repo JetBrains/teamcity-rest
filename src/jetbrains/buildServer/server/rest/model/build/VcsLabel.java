@@ -19,7 +19,11 @@ package jetbrains.buildServer.server.rest.model.build;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,6 +34,8 @@ import org.jetbrains.annotations.NotNull;
   "status",
   "buildId"
 })
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a VCS-side label of this build sources." + 
+"\nRelated Help article: [Labeling Sources](https://www.jetbrains.com/help/teamcity/vcs-labeling.html)"))
 public class VcsLabel {
   @NotNull
   private final jetbrains.buildServer.serverSide.vcs.VcsLabel myRealLabel;

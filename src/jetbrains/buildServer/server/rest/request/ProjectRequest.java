@@ -122,6 +122,7 @@ public class ProjectRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all projects.",nickname="getAllProjects")
   public Projects serveProjects(@QueryParam("locator") String locator, @QueryParam("fields") String fields,
                                 @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<SProject> result = myProjectFinder.getItems(locator);
@@ -145,6 +146,7 @@ public class ProjectRequest {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Create a new project.",nickname="addProject")
   public Project createProject(NewProjectDescription descriptor) {
     if (StringUtil.isEmpty(descriptor.name)) {
       throw new BadRequestException("Project name cannot be empty.");
@@ -204,6 +206,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get project matching the locator.",nickname="getProject")
   public Project serveProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                               @QueryParam("fields") String fields) {
     return new Project(myProjectFinder.getItem(projectLocator),  new Fields(fields), myBeanContext);
@@ -211,6 +214,7 @@ public class ProjectRequest {
 
   @DELETE
   @Path("/{projectLocator}")
+  @ApiOperation(value="Delete project matching the locator.",nickname="deleteProject")
   public void deleteProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator) {
     final SProject project = myProjectFinder.getItem(projectLocator);
     myDataProvider.getServer().getProjectManager().removeProject(project.getProjectId());
@@ -219,6 +223,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/{field}")
   @Produces("text/plain")
+  @ApiOperation(value="Get a field of the matching project.",nickname="getProjectField")
   public String serveProjectField(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                   @PathParam("field") String fieldName) {
     return Project.getFieldValue(myProjectFinder.getItem(projectLocator), fieldName);
@@ -228,6 +233,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/{field}")
   @Consumes("text/plain")
   @Produces("text/plain")
+  @ApiOperation(value="Update a field of the matching project.",nickname="setProjectField")
   public String setProjectField(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                 @PathParam("field") String fieldName,
                                 String newValue) {
@@ -258,6 +264,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="serveBuildTypesInProject",hidden=true)
   public BuildTypes serveBuildTypesInProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                              @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
@@ -293,6 +300,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
+  @ApiOperation(value="Add a build configuration to the matching project.",nickname="addBuildType")
   public BuildType createBuildType(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                    NewBuildTypeDescription descriptor,
                                    @QueryParam("fields") String fields) {
@@ -316,6 +324,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="serveBuildType",hidden=true)
   public BuildType serveBuildType(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                   @ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
                                   @QueryParam("fields") String fields) {
@@ -327,6 +336,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/templates")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all templates of the matching project.",nickname="getProjectTemplates")
   public BuildTypes serveTemplatesInProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                             @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator, true);
@@ -362,6 +372,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/templates")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
+  @ApiOperation(value="Add a build configuration template to the matching project.",nickname="addTemplate")
   public BuildType createBuildTypeTemplate(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                            NewBuildTypeDescription descriptor,
                                            @QueryParam("fields") String fields) {
@@ -387,6 +398,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/templates/{btLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="serveBuildTypeTemplates",hidden=true)
   public BuildType serveBuildTypeTemplates(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                            @PathParam("btLocator") String buildTypeLocator,
                                            @QueryParam("fields") String fields) {
@@ -397,6 +409,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/defaultTemplate")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get the default template of the matching project.",nickname="getDefaultTemplate")
   public BuildType getDefaultTemplate(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                       @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator, true);
@@ -409,6 +422,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/defaultTemplate")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update the default template of the matching project.",nickname="setDefaultTemplate")
   public BuildType setDefaultTemplate(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                       BuildType defaultTemplate,
                                       @QueryParam("fields") String fields) {
@@ -437,6 +451,7 @@ public class ProjectRequest {
 
   @DELETE
   @Path("/{projectLocator}/defaultTemplate")
+  @ApiOperation(value="Remove the default template from the matching project.",nickname="removeDefaultTemplate")
   public void removeDefaultTemplate(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                     @QueryParam("fields") String fields) {
     ProjectEx project = (ProjectEx)myProjectFinder.getItem(projectLocator, true);
@@ -446,6 +461,7 @@ public class ProjectRequest {
   }
 
   @Path("/{projectLocator}" + PARAMETERS)
+  @ApiOperation(value="getParametersSubResource",nickname="getParametersSubResource")
   public TypedParametersSubResource getParametersSubResource(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator){
     SProject project = myProjectFinder.getItem(projectLocator, true);
     return new TypedParametersSubResource(myBeanContext, Project.createEntity(project), getParametersHref(project));
@@ -454,6 +470,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/{field}")
   @Produces("text/plain")
+  @ApiOperation(value="serveBuildTypeFieldWithProject",hidden=true)
   public String serveBuildTypeFieldWithProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                                @ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
                                                @PathParam("field") String fieldName) {
@@ -484,6 +501,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/builds")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="serveBuilds",hidden=true)
   public Builds serveBuilds(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                             @ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
                             @ApiParam(hidden = true) @QueryParam("status") String status,
@@ -508,6 +526,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/builds/{buildLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="serveBuildWithProject",hidden=true)
   public Build serveBuildWithProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                      @ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
                                      @ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
@@ -520,6 +539,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/buildTypes/{btLocator}/builds/{buildLocator}/{field}")
   @Produces("text/plain")
+  @ApiOperation(value="serveBuildFieldWithProject",hidden=true)
   public String serveBuildFieldWithProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                            @ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
                                            @ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
@@ -600,6 +620,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/parentProject")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get the parent project of the matching project.",nickname="getProjectParentProject")
   public Project getParentProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                   @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
@@ -613,6 +634,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/parentProject")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
+  @ApiOperation(value="Update the parent project of the matching project.",nickname="setParentProject")
   public Project setParentProject(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                   Project parentProject,
                                   @QueryParam("fields") String fields) {
@@ -624,6 +646,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/agentPools")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get agent pools appointed to the matching project.",nickname="getAgentPoolsProject")
   public AgentPools getProjectAgentPools(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                          @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
@@ -632,6 +655,7 @@ public class ProjectRequest {
 
   @DELETE
   @Path("/{projectLocator}/agentPools/{agentPoolLocator}")
+  @ApiOperation(value="Unassign a project from the matching agent pool.",nickname="removeProjectFromAgentPool")
   public void deleteProjectAgentPools(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                       @PathParam("agentPoolLocator") String agentPoolLocator) {
     SProject project = myProjectFinder.getItem(projectLocator);
@@ -649,6 +673,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/agentPools")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
+  @ApiOperation(value="Update agent pools apppointed to the matching project.",nickname="setAgentPoolsProject")
   public AgentPools setProjectAgentPools(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                          AgentPools pools,
                                          @QueryParam("fields") String fields) {
@@ -661,6 +686,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/agentPools")
   @Produces({"application/xml", "application/json"})
   @Consumes({"application/xml", "application/json"})
+  @ApiOperation(value="Assign the matching project to the agent pool.",nickname="addAgentPoolsProject")
   public AgentPool setProjectAgentPools(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                         AgentPool pool) {
     SProject project = myProjectFinder.getItem(projectLocator);
@@ -683,6 +709,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/secure/tokens")
   @Produces({"text/plain"})
   @Consumes({"text/plain"})
+  @ApiOperation(value="Create a new secure token for the matching project.",nickname="addSecureToken")
   public String createSecureToken(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                   String secureValue) {
     SProject project = myProjectFinder.getItem(projectLocator);
@@ -705,6 +732,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/secure/values/{token}")
   @Produces({"text/plain"})
   @Consumes({"text/plain"})
+  @ApiOperation(value="Get a secure token of the matching project.",nickname="getSecureValue")
   public String getSecureValue(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                @PathParam("token") String token) {
     myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS); //checking global admin for now
@@ -729,6 +757,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/order/projects")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all subprojects ordered of the matching project.",nickname="getAllSubprojectsOrdered")
   public Projects getProjectsOrder(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                    @QueryParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
@@ -742,6 +771,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/order/projects")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update all subprojects order of the matching project.",nickname="setSubprojectsOrder")
   public Projects setProjectsOrder(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                    Projects projects,
                                    @QueryParam("field") String fields) {
@@ -770,6 +800,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/order/buildTypes")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all build configurations ordered from the matching project.", nickname="getAllBuildTypesOrdered", hidden = true)
   public BuildTypes getBuildTypesOrder(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                        @QueryParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
@@ -783,6 +814,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/order/buildTypes")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update all build configurations order of the matching project.",nickname="setBuildTypesOrder")
   public BuildTypes setBuildTypesOrder(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                        BuildTypes buildTypes,
                                        @QueryParam("field") String fields) {
@@ -814,6 +846,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/branches")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all branches of the matching project.",nickname="getAllBranches")
   public Branches getBranches(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                               @QueryParam("locator") String branchesLocator,
                               @QueryParam("fields") String fields) {
@@ -870,6 +903,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/settingsFile")
   @Produces({"text/plain"})
+  @ApiOperation(value="Get the settings file of the matching build configuration.",nickname="getProjectSettingsFile")
   public String getSettingsFile(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator) {
     myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     final SProject project = myProjectFinder.getItem(projectLocator);
@@ -883,6 +917,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/latest")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="reloadSettingsFile",hidden=true)
   public Project reloadSettingsFile (@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                      @QueryParam("fields") String fields) {
     myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);

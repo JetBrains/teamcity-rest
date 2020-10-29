@@ -22,6 +22,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.CloudProfile;
@@ -39,6 +41,8 @@ import jetbrains.buildServer.server.rest.model.cloud.CloudProfiles;
 import jetbrains.buildServer.server.rest.request.CloudRequest;
 import jetbrains.buildServer.server.rest.request.ProjectRequest;
 import jetbrains.buildServer.server.rest.request.VcsRootRequest;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
@@ -56,6 +60,8 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "description", "href", "webUrl",
   "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects", "cloudProfiles"})
 @SuppressWarnings("PublicField")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a project." + 
+"\nRelated Help article: [Project](https://www.jetbrains.com/help/teamcity/project.html)"))
 public class Project {
   @XmlAttribute
   public String id;

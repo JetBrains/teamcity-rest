@@ -26,4 +26,5 @@ import java.lang.annotation.Target;
 public @interface LocatorResource {
   String value();
   String[] extraDimensions() default {};
+  String description() default "";
 }

@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.ParameterType;
@@ -41,6 +42,7 @@ public class TypedParametersSubResource extends ParametersSubResource{
   @GET
   @Path("/{name}/type")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get type of build parameter.",nickname="getBuildParameterType")
   public ParameterType getParameterType(@PathParam("name") String parameterName) {
     return Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myBeanContext.getServiceLocator()).type;
   }
@@ -49,6 +51,7 @@ public class TypedParametersSubResource extends ParametersSubResource{
   @Path("/{name}/type")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Update type of build parameter.",nickname="updateBuildParameterType")
   public ParameterType setParameterType(@PathParam("name") String parameterName, ParameterType parameterType) {
     BuildTypeUtil.changeParameterType(parameterName, parameterType.rawValue, myEntityWithParameters, myBeanContext.getServiceLocator());
     myEntityWithParameters.persist("The type of the parameter with name " + parameterName + " changed");
@@ -58,6 +61,7 @@ public class TypedParametersSubResource extends ParametersSubResource{
   @GET
   @Path("/{name}/type/rawValue")
   @Produces("text/plain")
+  @ApiOperation(value="Get build parameter specification.",nickname="getBuildParameterSpecification")
   public String getParameterTypeRawValue(@PathParam("name") String parameterName) {
     final ParameterType type = Property.createFrom(parameterName, myEntityWithParameters, Fields.LONG, myBeanContext.getServiceLocator()).type;
     return type == null ? null : type.rawValue;
@@ -67,6 +71,7 @@ public class TypedParametersSubResource extends ParametersSubResource{
   @Path("/{name}/type/rawValue")
   @Consumes("text/plain")
   @Produces("text/plain")
+  @ApiOperation(value="Update build parameter specification.",nickname="updateBuildParameterSpecification")
   public String setParameterTypeRawValue(@PathParam("name") String parameterName, String parameterTypeRawValue) {
     BuildTypeUtil.changeParameterType(parameterName, parameterTypeRawValue, myEntityWithParameters, myBeanContext.getServiceLocator());
     myEntityWithParameters.persist("The type of the parameter with name " + parameterName + " changed");

@@ -21,6 +21,8 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.TimeCondition;
@@ -28,6 +30,8 @@ import jetbrains.buildServer.server.rest.data.TimeWithPrecision;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.mute.UnmuteOptions;
 import jetbrains.buildServer.util.StringUtil;
@@ -39,6 +43,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 30.01.14
  */
 @XmlType(name = "resolution")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an investigation resolution timestamp and details."))
 public class Resolution {
   protected static final String MANUALLY = "manually";
   protected static final String WHEN_FIXED = "whenFixed";

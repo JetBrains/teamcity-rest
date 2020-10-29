@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
@@ -51,19 +52,33 @@ import java.util.List;
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
-@LocatorResource(value = LocatorName.INVESTIGATION, extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT})
+@LocatorResource(value = LocatorName.INVESTIGATION,
+    extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
+    description = "Represents a locator string for filtering Investigation entities." +
+        "\nExamples:" +
+        "\n* `assignee:John Doe` – find investigations assigned to John Doe." +
+        "\n* `state:taken` – find investigations which are currently in work.")
 public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
-  @LocatorDimension("problem") private static final String PROBLEM_DIMENSION = "problem";
-  @LocatorDimension("test") private static final String TEST_DIMENSION = "test";
-  @LocatorDimension("assignmentProject") private static final String ASSIGNMENT_PROJECT = "assignmentProject";
-  @LocatorDimension("affectedProject") private static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension(value = "problem", format = LocatorName.PROBLEM, notes = "Problem locator.")
+  private static final String PROBLEM_DIMENSION = "problem";
+  @LocatorDimension(value = "test", format = LocatorName.TEST, notes = "Test locator.")
+  private static final String TEST_DIMENSION = "test";
+  @LocatorDimension(value = "assignmentProject", format = LocatorName.PROJECT, notes = "Project (direct parent) locator.")
+  private static final String ASSIGNMENT_PROJECT = "assignmentProject";
+  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
+  private static final String AFFECTED_PROJECT = "affectedProject";
   @LocatorDimension("assignee") private static final String ASSIGNEE = "assignee";
-  @LocatorDimension("sinceDate") private static final String SINCE_DATE = "sinceDate";
-  @LocatorDimension("state") private static final String STATE = "state";
-  @LocatorDimension("resolution") private static final String RESOLUTION = "resolution";
-  @LocatorDimension("type") private static final String TYPE = "type";
+  @LocatorDimension(value = "sinceDate", dataType = LocatorDimensionDataType.TIMESTAMP, notes = "yyyyMMddTHHmmss+ZZZZ")
+  private static final String SINCE_DATE = "sinceDate";
+  @LocatorDimension(value = "state", notes = "Supported values: taken/fixed/given_up/none.")
+  private static final String STATE = "state";
+  @LocatorDimension(value = "resolution", notes = "Supported values: manually/whenFixed/atTime.")
+  private static final String RESOLUTION = "resolution";
+  @LocatorDimension(value = "type", notes = "Supported values: test/problem/anyProblem/unknown.")
+  private static final String TYPE = "type";
   @LocatorDimension("reporter") private static final String REPORTER = "reporter";
-  @LocatorDimension("buildType") private static final String BUILD_TYPE = "buildType";
+  @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
+  private static final String BUILD_TYPE = "buildType";
   //todo: add removeMethod
 
   private final ProjectFinder myProjectFinder;

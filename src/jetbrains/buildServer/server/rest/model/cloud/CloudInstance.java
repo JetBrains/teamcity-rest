@@ -20,6 +20,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.clouds.server.CloudManager;
@@ -32,6 +34,8 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.request.CloudRequest;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.users.SUser;
@@ -46,6 +50,8 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "cloudInstance", propOrder = {"id", "name", "state", "startDate", "networkAddress", "href",
   "image", "agent", "errorMessage"})
 @SuppressWarnings("PublicField")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a running cloud instance." + 
+"\nRelated Help article: [Cloud Profile](https://www.jetbrains.com/help/teamcity/agent-cloud-profile.html)"))
 public class CloudInstance {
 
   @NotNull private final CloudInstanceData myCloudInstance;

@@ -20,6 +20,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
@@ -31,6 +33,8 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.request.AgentRequest;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.agentPools.*;
@@ -46,6 +50,8 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "agentPool")
 @XmlType(name = "agentPool")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an agent pool instance." + 
+"\nRelated Help article: [Agent Pool](https://www.jetbrains.com/help/teamcity/agent-pool.html)"))
 @SuppressWarnings("PublicField")
 public class AgentPool {
   @XmlAttribute public Integer id;

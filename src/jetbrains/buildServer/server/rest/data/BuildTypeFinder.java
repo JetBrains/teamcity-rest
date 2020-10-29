@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
@@ -54,7 +55,12 @@ import java.util.stream.Collectors;
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
-@LocatorResource(value = LocatorName.BUILD_TYPE, extraDimensions = {Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT})
+@LocatorResource(value = LocatorName.BUILD_TYPE,
+    extraDimensions = {Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
+    description = "Represents a locator string for filtering BuildType entities." +
+        "\nExamples:" +
+        "\n* `name:MyBuildType` – find build configuration with MyBuildType name" +
+        "\n* `project:<projectLocator>` – find build configurations under project found by projectLocator")
 public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   private static final Logger LOG = Logger.getInstance(BuildTypeFinder.class.getName());
 
@@ -63,13 +69,18 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   @LocatorDimension(AbstractFinder.DIMENSION_ID) public static final String DIMENSION_ID = AbstractFinder.DIMENSION_ID;
   @LocatorDimension("internalId") public static final String DIMENSION_INTERNAL_ID = "internalId";
   @LocatorDimension("uuid") public static final String DIMENSION_UUID = "uuid";
-  @LocatorDimension("project") public static final String DIMENSION_PROJECT = "project";
-  @LocatorDimension("affectedProject") private static final String AFFECTED_PROJECT = "affectedProject";
+  @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project (direct parent) locator.")
+  public static final String DIMENSION_PROJECT = "project";
+  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
+  private static final String AFFECTED_PROJECT = "affectedProject";
   @LocatorDimension("name") public static final String DIMENSION_NAME = "name";
-  @LocatorDimension("template") public static final String TEMPLATE_DIMENSION_NAME = "template";
-  @LocatorDimension("templateFlag") public static final String TEMPLATE_FLAG_DIMENSION_NAME = "templateFlag";
+  @LocatorDimension(value = "template", format = LocatorName.BUILD_TYPE, notes = "Base template locator.")
+  public static final String TEMPLATE_DIMENSION_NAME = "template";
+  @LocatorDimension(value = "templateFlag", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is a template.")
+  public static final String TEMPLATE_FLAG_DIMENSION_NAME = "templateFlag";
   public static final String TYPE = "type";
-  @LocatorDimension("paused") public static final String PAUSED = "paused";
+  @LocatorDimension(value = "paused", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is paused.")
+  public static final String PAUSED = "paused";
   protected static final String COMPATIBLE_AGENT = "compatibleAgent";
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
   protected static final String PARAMETER = "parameter";
@@ -78,9 +89,12 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   protected static final String SNAPSHOT_DEPENDENCY = "snapshotDependency";
   protected static final String ARTIFACT_DEPENDENCY = "artifactDependency";
   protected static final String DIMENSION_SELECTED = "selectedByUser";
-  @LocatorDimension("vcsRoot") public static final String VCS_ROOT_DIMENSION = "vcsRoot";
-  @LocatorDimension("vcsRootInstance") public static final String VCS_ROOT_INSTANCE_DIMENSION = "vcsRootInstance";
-  @LocatorDimension("build") public static final String BUILD = "build";
+  @LocatorDimension(value = "vcsRoot", format = LocatorName.VCS_ROOT, notes = "VCS root locator.")
+  public static final String VCS_ROOT_DIMENSION = "vcsRoot";
+  @LocatorDimension(value = "vcsRootInstance", format = LocatorName.VCS_ROOT_INSTANCE, notes = "VCS root instance locator.")
+  public static final String VCS_ROOT_INSTANCE_DIMENSION = "vcsRootInstance";
+  @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
+  public static final String BUILD = "build";
 
   private final ProjectFinder myProjectFinder;
   @NotNull private final AgentFinder myAgentFinder;

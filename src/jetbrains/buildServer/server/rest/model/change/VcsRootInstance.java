@@ -25,6 +25,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -35,6 +37,8 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Items;
 import jetbrains.buildServer.server.rest.model.Properties;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.RepositoryVersion;
@@ -61,6 +65,8 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
   "modificationCheckInterval", "commitHookMode", "lastVersion", "lastVersionInternal", "href",
   "parent", "status", "repositoryState", "properties", "repositoryIdStrings"})
 @SuppressWarnings("PublicField")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a relation between VCS root and unique settings set for this root." + 
+"\nRelated Help article: [VCS Settings](https://www.jetbrains.com/help/teamcity/configuring-vcs-settings.html#VCS+Settings+Overview)"))
 public class VcsRootInstance {
   public static final String LAST_VERSION_INTERNAL = "lastVersionInternal";
   public static final String LAST_VERSION = "lastVersion";

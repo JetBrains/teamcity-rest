@@ -16,6 +16,10 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
+import io.swagger.annotations.ExtensionProperty;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -26,6 +30,7 @@ import javax.xml.bind.annotation.XmlType;
  */
 @XmlRootElement(name = "buildCancelRequest")
 @XmlType(name = "buildCancelRequest")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a cancel request for a specific build."))
 public class BuildCancelRequest {
   public BuildCancelRequest() {
   }

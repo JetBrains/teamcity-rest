@@ -88,6 +88,7 @@ public class TestOccurrenceRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get all test occurrences.",nickname="getAllTestOccurrences")
   public TestOccurrences getTestOccurrences(@ApiParam(format = LocatorName.TEST_OCCURRENCE) @QueryParam("locator") String locatorText,
                                             @QueryParam("fields") String fields,
                                             @Context UriInfo uriInfo,
@@ -106,6 +107,7 @@ public class TestOccurrenceRequest {
   @GET
   @Path("/{testLocator}")
   @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get a matching test occurrence.",nickname="getTestOccurrence")
   public TestOccurrence serveInstance(@ApiParam(format = LocatorName.TEST_OCCURRENCE) @PathParam("testLocator") String locatorText,
                                       @QueryParam("fields") String fields,
                                       @Context HttpServletRequest request) {

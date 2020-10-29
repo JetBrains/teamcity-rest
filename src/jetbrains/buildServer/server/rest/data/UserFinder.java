@@ -29,6 +29,8 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -52,22 +54,29 @@ import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimensio
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
-@LocatorResource(LocatorName.USER)
+@LocatorResource(value = LocatorName.USER, extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
+    description = "Represents a locator string for filtering User entities." +
+        "\nExamples:" +
+        "\n* `name:John Doe` – find user with name John Doe." +
+        "\n* `group:<groupLocator>` – find all users in user group found by groupLocator.")
 public class UserFinder extends DelegatingFinder<SUser> {
   private static final Logger LOG = Logger.getInstance(jetbrains.buildServer.serverSide.impl.audit.finders.UserFinder.class.getName());
   public static final String REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS = "rest.request.checkAdditionalPermissionsForUsersAndGroups";
 
   @LocatorDimension("id") private static final Dimension<Long> ID = new Dimension<>("id");
   @LocatorDimension("username") private static final Dimension<String> USERNAME = new Dimension<>("username");
-  @LocatorDimension("group") private static final Dimension<SUserGroup> GROUP = new Dimension<>("group");
-  @LocatorDimension("affectedGroup") private static final Dimension<SUserGroup> AFFECTED_GROUP = new Dimension<>("affectedGroup");
-  @LocatorDimension("property") private static final Dimension<ParameterCondition> PROPERTY = new Dimension<>("property");
+  @LocatorDimension(value = "group", format = LocatorName.USER_GROUP, notes = "User group (direct parent) locator.")
+  private static final Dimension<SUserGroup> GROUP = new Dimension<>("group");
+  @LocatorDimension(value = "affectedGroup", format = LocatorName.USER_GROUP, notes = "User group (direct or indirect parent) locator.")
+  private static final Dimension<SUserGroup> AFFECTED_GROUP = new Dimension<>("affectedGroup");
+  private static final Dimension<ParameterCondition> PROPERTY = new Dimension<>("property");
   @LocatorDimension("email") private static final Dimension<ValueCondition> EMAIL = new Dimension<>("email");
   @LocatorDimension("name") private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
   private static final Dimension<Boolean> HAS_PASSWORD = new Dimension<>("hasPassword");
   private static final Dimension<String> PASSWORD = new Dimension<>("password");
-  @LocatorDimension("lastLogin") private static final Dimension<TimeCondition.ParsedTimeCondition> LAST_LOGIN_TIME = new Dimension<>("lastLogin");
-  @LocatorDimension("role") private static final Dimension<RoleEntryDatas> ROLE = new Dimension<>("role");
+  @LocatorDimension(value = "lastLogin", dataType = LocatorDimensionDataType.TIMESTAMP, format = "yyyyMMddTHHmmss+ZZZZ") private static final Dimension<TimeCondition.ParsedTimeCondition> LAST_LOGIN_TIME = new Dimension<>("lastLogin");
+  @LocatorDimension(value = "role", format = LocatorName.ROLE, notes = "Role locator.")
+  private static final Dimension<RoleEntryDatas> ROLE = new Dimension<>("role");
   private static final Dimension<ItemFilter<SUser>> PERMISSION = new Dimension<>("permission");
   //todo: add filtering by changes (authors), builds (triggering), audit events, etc?
   @NotNull private final UserModel myUserModel;
@@ -201,7 +210,6 @@ public class UserFinder extends DelegatingFinder<SUser> {
     @NotNull private final ProjectFinder myProjectFinder;
     @NotNull private final PermissionChecker myPermissionChecker;
     @NotNull private final String myMethod;
-
 
     public RoleEntryDatas(@NotNull final String roleLocatorText,
                           @NotNull final RolesManager rolesManager,

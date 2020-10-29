@@ -45,7 +45,11 @@ import java.util.*;
  * @author Yegor.Yarko
  *         Date: 07.11.13
  */
-@LocatorResource(LocatorName.AGENT_POOL)
+@LocatorResource(value = LocatorName.AGENT_POOL, extraDimensions = AbstractFinder.DIMENSION_ITEM,
+    description = "Represents a locator string for filtering AgentPool entities." +
+        "\nExamples:" +
+        "\n* `name:Default` – find Default agent pool details." +
+        "\n* `project:(<projectLocator>)` – find pool associated with project found by projectLocator.")
 public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
   @NotNull private final AgentPoolManager myAgentPoolManager;
   @NotNull private final ServiceLocator myServiceLocator;
@@ -74,8 +78,10 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
 
   @LocatorDimension(ID_DIMENSION) public static final Dimension<Long> ID = new Dimension<>(ID_DIMENSION);
   @LocatorDimension("name") public static final Dimension<String> NAME = new Dimension<>("name");
-  @LocatorDimension("agent") private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
-  @LocatorDimension("project") private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
+  @LocatorDimension(value = "agent", format = LocatorName.AGENT, notes = "Pool's agents locator.")
+  private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
+  @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Pool's associated projects locator.")
+  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
   private static final Dimension<Boolean> PROJECT_POOL = new Dimension<>("projectPool");
   private static final Dimension<List<SProject>> OWNER_PROJECT = new Dimension<>("ownerProject");
 

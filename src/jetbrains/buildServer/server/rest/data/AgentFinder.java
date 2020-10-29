@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.Compatibility;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
@@ -49,22 +50,33 @@ import java.util.stream.Stream;
  * @author Yegor.Yarko
  *         Date: 25.12.13
  */
-@LocatorResource(value = LocatorName.AGENT, extraDimensions = {FinderImpl.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT})
+@LocatorResource(value = LocatorName.AGENT,
+    extraDimensions = {FinderImpl.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
+    description = "Represents a locator string for filtering Agent entities." +
+        "\nExamples:" +
+        "\n* `name:DefaultAgent` – find agent with DefaultAgent name." +
+        "\n* `pool:(<agentPoolLocator>),connected:true` – find all connected agents in a pool found by agentPoolLocator.")
 public class AgentFinder extends AbstractFinder<SBuildAgent> {
   private static final Logger LOG = Logger.getInstance(AgentFinder.class.getName());
 
   @LocatorDimension("name") public static final String NAME = "name";
   protected static final String AGENT_TYPE_ID = "typeId";  //"imageId" might suiite better, but "typeId" is already used in Agent
-  @LocatorDimension("connected") public static final String CONNECTED = "connected";
-  @LocatorDimension("authorized") public static final String AUTHORIZED = "authorized";
+  @LocatorDimension(value = "connected", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is the agent connected.")
+  public static final String CONNECTED = "connected";
+  @LocatorDimension(value = "authorized", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is the agent authorized.")
+  public static final String AUTHORIZED = "authorized";
   @LocatorDimension("parameter") public static final String PARAMETER = "parameter";
-  @LocatorDimension("enabled") public static final String ENABLED = "enabled";
+  @LocatorDimension(value = "enabled", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is the agent enabled.")
+  public static final String ENABLED = "enabled";
   @LocatorDimension("ip") protected static final String IP = "ip";
   protected static final String PROTOCOL = "protocol";
   protected static final String DEFAULT_FILTERING = "defaultFilter";
-  @LocatorDimension("pool") protected static final String POOL = "pool";
-  @LocatorDimension("build") protected static final String BUILD = "build";
-  @LocatorDimension("compatible") protected static final String COMPATIBLE = "compatible";
+  @LocatorDimension(value = "pool", notes = "Agent pool ID.")
+  protected static final String POOL = "pool";
+  @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
+  protected static final String BUILD = "build";
+  @LocatorDimension(value = "compatible", format = LocatorName.BUILD_TYPE, notes = "Compatible build types locator.")
+  protected static final String COMPATIBLE = "compatible";
   protected static final String INCOMPATIBLE = "incompatible";
   protected static final String COMPATIBLE_BUILD_TYPE = "buildType";
   protected static final String COMPATIBLE_BUILD = "build";

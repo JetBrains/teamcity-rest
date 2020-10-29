@@ -20,9 +20,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.issueTracker.IssueEx;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.change.Changes;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -35,6 +39,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 28.07.2009
  */
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a relation between issue and Changes entity."))
 public class IssueUsage {
   private jetbrains.buildServer.issueTracker.Issue myIssue;
   private SBuild myBuild;
