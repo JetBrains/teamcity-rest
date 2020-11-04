@@ -448,22 +448,22 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @NotNull
   private List<STestRun> getTestHistory(final STest test, final SProject affectedProject, @NotNull final Locator locator) {
     //noinspection unchecked
-    return myTestHistory.getTestHistory(
+    return MultiTestRun.mergeByTestName(myTestHistory.getTestHistory(
       test.getTestNameId(),
       affectedProject,
       jetbrains.buildServer.util.filters.FilterUtil.and(getBranchFilter(locator.getSingleDimensionValue(BRANCH)), getPersonalBuildsFilter(locator))
-    );
+    ));
     //consider reporting not found if no tests found and the branch does not exist
   }
 
   @NotNull
   private List<STestRun> getTestHistory(final STest test, final SBuildType buildType, @NotNull final Locator locator) {
     //noinspection unchecked
-    return myTestHistory.getTestHistory(
+    return MultiTestRun.mergeByTestName(myTestHistory.getTestHistory(
       test.getTestNameId(),
       buildType.getBuildTypeId(),
       jetbrains.buildServer.util.filters.FilterUtil.and(getBranchFilter(locator.getSingleDimensionValue(BRANCH)), getPersonalBuildsFilter(locator))
-    );
+    ));
     //consider reporting not found if no tests found and the branch does not exist
   }
 
