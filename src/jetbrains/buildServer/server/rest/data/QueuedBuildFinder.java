@@ -24,6 +24,7 @@ import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +42,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   @LocatorDimension(BuildFinder.PROMOTION_ID) public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
   @LocatorDimension("buildType") public static final String BUILD_TYPE = "buildType";
   @LocatorDimension("project") public static final String PROJECT = "project";
+  @LocatorDimension("pool") public static final String POOL = "pool";
   @LocatorDimension("agent") public static final String AGENT = "agent";
   @LocatorDimension("personal") public static final String PERSONAL = "personal";
   @LocatorDimension("user") public static final String USER = "user";
@@ -50,6 +52,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   private final BuildTypeFinder myBuildTypeFinder;
   private final UserFinder myUserFinder;
   private final AgentFinder myAgentFinder;
+  private final AgentPoolFinder myAgentPoolFinder;
   private final BuildPromotionManager myBuildPromotionManager;
   private final BuildsManager myBuildsManager;
 
@@ -58,14 +61,15 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
                            final BuildTypeFinder buildTypeFinder,
                            final UserFinder userFinder,
                            final AgentFinder agentFinder,
-                           final BuildPromotionManager buildPromotionManager,
+                           AgentPoolFinder agentPoolFinder, final BuildPromotionManager buildPromotionManager,
                            final BuildsManager buildsManager) {
-    super(DIMENSION_ID, PROMOTION_ID, PROJECT, BUILD_TYPE, AGENT, USER, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    super(DIMENSION_ID, PROMOTION_ID, PROJECT, POOL, BUILD_TYPE, AGENT, USER, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     setHiddenDimensions(DIMENSION_LOOKUP_LIMIT, "compatibleAgent", "compatibleAgentsCount");
     myBuildQueue = buildQueue;
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myUserFinder = userFinder;
+    myAgentPoolFinder = agentPoolFinder;
     myAgentFinder = agentFinder;
     myBuildPromotionManager = buildPromotionManager;
     myBuildsManager = buildsManager;
@@ -142,6 +146,16 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
       result.add(new FilterConditionChecker<SQueuedBuild>() {
         public boolean isIncluded(@NotNull final SQueuedBuild item) {
           return internalProject.equals(item.getBuildType().getProject());
+        }
+      });
+    }
+
+    final String poolLocator = locator.getSingleDimensionValue(POOL);
+    if (poolLocator != null) {
+      AgentPool pool = myAgentPoolFinder.getItem(poolLocator);
+      result.add(new FilterConditionChecker<SQueuedBuild>() {
+        public boolean isIncluded(@NotNull final SQueuedBuild item) {
+          return ((QueuedBuildEx)item).canRunInPool(pool.getAgentPoolId());
         }
       });
     }

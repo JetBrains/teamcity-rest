@@ -176,7 +176,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myFixture.addService(myMuteFinder);
 
     myQueuedBuildFinder =
-      new QueuedBuildFinder(myServer.getQueue(), myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myFixture.getBuildPromotionManager(), myServer);
+      new QueuedBuildFinder(myServer.getQueue(), myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myAgentPoolFinder, myFixture.getBuildPromotionManager(), myServer);
     myFixture.addService(myQueuedBuildFinder);
 
     myChangeFinder = new ChangeFinder(myProjectFinder, myBuildFinder, myBuildPromotionFinder, myBuildTypeFinder, myVcsRootFinder, myVcsRootInstanceFinder, myUserFinder,
