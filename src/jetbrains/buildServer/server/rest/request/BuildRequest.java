@@ -1409,7 +1409,7 @@ public class BuildRequest {
     if (build.isFinished() || !(build instanceof RunningBuildEx)) {
       throw new NotFoundException("Build with id " + buildPromotion.getId() + " is already finished");
     }
-    logMessage(build, "Build finish request received via REST endpoint");
+    logMessage(build, "Build finish request received via REST endpoint" + (build.isDetachedFromAgent() ? ". Finishing detached build." : ""));
     RunningBuildEx runningBuild = (RunningBuildEx)build;
     myBeanContext.getSingletonService(BuildAgentMessagesQueue.class).buildFinished(runningBuild, finishTime, false);
     return Util.formatTime(finishTime);
