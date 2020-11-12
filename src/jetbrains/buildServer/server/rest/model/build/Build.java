@@ -136,7 +136,9 @@ import org.jetbrains.annotations.Nullable;
     "statusChangeComment" /*experimental, temporary*/,
     "vcsLabels",
     "detachedFromAgent",
-    "customized"
+    "customized", /* Probably to be removed, replace with customization */
+    "customization",
+
   })
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
@@ -1256,6 +1258,13 @@ public class Build {
   @XmlAttribute
   public Boolean isCustomized() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("customized"), () -> ((BuildPromotionEx)myBuildPromotion).getPromotionCustomization().isCustomized());
+  }
+
+  @XmlElement
+  public Items getCustomization() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("customization", false, true), () -> {
+      return new Items(((BuildPromotionEx)myBuildPromotion).getPromotionCustomization().getItems());
+    });
   }
 
   private boolean myCanViewRuntimeDataChecked = false;
