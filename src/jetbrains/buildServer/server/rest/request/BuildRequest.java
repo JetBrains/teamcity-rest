@@ -65,6 +65,7 @@ import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import jetbrains.buildServer.serverSide.impl.BuildAgentMessagesQueue;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.impl.RunningBuildState;
 import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.vcs.VcsLabelManager;
@@ -191,8 +192,8 @@ public class BuildRequest {
                                @QueryParam("fields") String fields,
                                @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     return myBuildFinder.getBuildsForRequest(myBuildTypeFinder.getBuildTypeIfNotNull(buildTypeLocator), status, userLocator, includePersonal,
-                                           includeCanceled, onlyPinned, tags, agentName, sinceBuildLocator, sinceDate, start, count,
-                                           locator, "locator", uriInfo, request,   new Fields(fields), myBeanContext
+                                             includeCanceled, onlyPinned, tags, agentName, sinceBuildLocator, sinceDate, start, count,
+                                             locator, "locator", uriInfo, request, new Fields(fields), myBeanContext
     );
   }
 
@@ -204,12 +205,12 @@ public class BuildRequest {
   @Produces({"application/xml", "application/json"})
   public void deleteBuilds(@ApiParam(format = LocatorName.BUILD) @QueryParam("locator") String locator,
                            @Context HttpServletRequest request) {
-    if (locator == null){
+    if (locator == null) {
       throw new BadRequestException("Empty 'locator' parameter specified.");
     }
     final List<BuildPromotion> builds = myBuildFinder.getBuilds(null, locator).myEntries;
     final int deleteLimit = TeamCityProperties.getInteger(REST_BUILD_REQUEST_DELETE_LIMIT, 10);
-    if (builds.size() > deleteLimit){
+    if (builds.size() > deleteLimit) {
       throw new BadRequestException("Refusing to delete more than " + deleteLimit + " builds as a precaution measure." +
                                     " The limit is set via '" + REST_BUILD_REQUEST_DELETE_LIMIT + "' internal property on the server.");
     }
@@ -275,7 +276,7 @@ public class BuildRequest {
                           @Context HttpServletRequest request) {
 
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
-    return new Build(build,  new Fields(fields), myBeanContext);
+    return new Build(build, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -418,7 +419,7 @@ public class BuildRequest {
   public IssueUsages serveBuildRelatedIssues(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                              @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return new IssueUsages(build,  new Fields(fields), myBeanContext);
+    return new IssueUsages(build, new Fields(fields), myBeanContext);
   }
 
   @Nullable
@@ -456,32 +457,32 @@ public class BuildRequest {
   /**
    * Gets build labels.
    * @param buildLocator given build.
-   * @param fields specifies result representation
+   * @param fields       specifies result representation
    * @return build labels.
    */
   @GET
   @Path("/{buildLocator}/vcsLabels")
   @Produces({"application/xml", "application/json"})
   public VcsLabels getVcsLabels(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
-                                    @QueryParam("fields") String fields) {
+                                @QueryParam("fields") String fields) {
     SBuild build = getBuild(myBuildFinder.getBuildPromotion(null, buildLocator));
-    if(build == null) {
+    if (build == null) {
       throw new NotFoundException("Cannot find a build using locator: " + buildLocator);
     }
 
     VcsLabelManager labelManager = myBeanContext.getSingletonService(VcsLabelManager.class);
     Fields returnFields = new Fields(fields);
     return new VcsLabels(labelManager.getLabels(build).stream()
-                       .map(l -> new VcsLabel(l, returnFields))
-                       .collect(Collectors.toList()), returnFields);
+                                     .map(l -> new VcsLabel(l, returnFields))
+                                     .collect(Collectors.toList()), returnFields);
   }
 
   /**
    * Adds a label to build VCS roots.
-   * @param buildLocator specifies build to label.
+   * @param buildLocator   specifies build to label.
    * @param vcsRootLocator optional, specifies a VCS root to put a label on. If not present, label will be applied to all VCS roots.
-   * @param fields specifies result representation
-   * @param labelValue text of the label.
+   * @param fields         specifies result representation
+   * @param labelValue     text of the label.
    * @return added labels.
    */
   @POST
@@ -489,22 +490,22 @@ public class BuildRequest {
   @Consumes("text/plain")
   @Produces({"application/xml", "application/json"})
   public VcsLabels setVcsLabel(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
-                                    @ApiParam(format = LocatorName.VCS_ROOT_INSTANCE) @QueryParam("locator") String vcsRootLocator,
-                                    @QueryParam("fields") String fields,
-                                    String labelValue) {
-    if(StringUtil.isEmpty(labelValue)) {
+                               @ApiParam(format = LocatorName.VCS_ROOT_INSTANCE) @QueryParam("locator") String vcsRootLocator,
+                               @QueryParam("fields") String fields,
+                               String labelValue) {
+    if (StringUtil.isEmpty(labelValue)) {
       throw new BadRequestException("Label can not empty.");
     }
 
     SBuild build = getBuild(myBuildFinder.getBuildPromotion(null, buildLocator));
-    if(build == null) {
+    if (build == null) {
       throw new NotFoundException("Cannot find a build using locator: " + buildLocator);
     }
 
     VcsLabelManager labelManager = myBeanContext.getSingletonService(VcsLabelManager.class);
     List<VcsRootInstance> roots;
 
-    if(vcsRootLocator == null) {
+    if (vcsRootLocator == null) {
       roots = build.getVcsRootEntries().stream().map(VcsRootInstanceEntry::getVcsRoot).collect(Collectors.toList());
     } else {
       VcsRootInstanceFinder rootInstanceFinder = myBeanContext.getSingletonService(VcsRootInstanceFinder.class);
@@ -519,9 +520,9 @@ public class BuildRequest {
 
     Fields returnFields = new Fields(fields);
     return new VcsLabels(labelManager.getLabels(build).stream()
-                .filter(l -> l.getLabelText().equals(labelValue))
-                .map(l -> new VcsLabel(l, returnFields))
-                .collect(Collectors.toList()), returnFields);
+                                     .filter(l -> l.getLabelText().equals(labelValue))
+                                     .map(l -> new VcsLabel(l, returnFields))
+                                     .collect(Collectors.toList()), returnFields);
   }
 
   @GET
@@ -542,7 +543,8 @@ public class BuildRequest {
       throw new BadRequestException("Cannot set status text for a build which is not running");
     }
     runningBuild.setCustomStatusText(value);
-    Loggers.ACTIVITIES.info("Build status text is changed via REST request by user " + myPermissionChecker.getCurrentUserDescription() + ". Build: " + LogUtil.describe(runningBuild));
+    Loggers.ACTIVITIES
+      .info("Build status text is changed via REST request by user " + myPermissionChecker.getCurrentUserDescription() + ". Build: " + LogUtil.describe(runningBuild));
     return runningBuild.getStatusDescriptor().getText();
   }
 
@@ -781,7 +783,7 @@ public class BuildRequest {
   public Comment getCanceledInfo(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                  @QueryParam("fields") String fields) {
     SBuild build = myBuildFinder.getBuild(null, buildLocator);
-    return Build.getCanceledComment(build,  new Fields(fields), myBeanContext);
+    return Build.getCanceledComment(build, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -800,7 +802,7 @@ public class BuildRequest {
                                         @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
     final List<BuildProblem> buildProblems = ((BuildPromotionEx)build).getBuildProblems();//todo: (TeamCity) is this OK to use?
-    return new ProblemOccurrences(buildProblems, ProblemOccurrenceRequest.getHref(build), null,  new Fields(fields), myBeanContext);
+    return new ProblemOccurrences(buildProblems, ProblemOccurrenceRequest.getHref(build), null, new Fields(fields), myBeanContext);
   }
 
   /**
@@ -965,7 +967,7 @@ public class BuildRequest {
         }
       } else {
         if (build.getQueuedBuild() != null) {
-          errors.putIfAbsent(build.getId(),  new AuthorizationFailedException("Failed to delete queued build. Probably not sufficient permissions."));
+          errors.putIfAbsent(build.getId(), new AuthorizationFailedException("Failed to delete queued build. Probably not sufficient permissions."));
         }
       }
     }
@@ -973,7 +975,9 @@ public class BuildRequest {
   }
 
   @NotNull
-  private LinkedHashMap<Long, RuntimeException> cancelBuilds(@NotNull final List<BuildPromotion> builds, @NotNull final BuildCancelRequest cancelRequest, @Nullable final SUser currentUser) {
+  private LinkedHashMap<Long, RuntimeException> cancelBuilds(@NotNull final List<BuildPromotion> builds,
+                                                             @NotNull final BuildCancelRequest cancelRequest,
+                                                             @Nullable final SUser currentUser) {
     LinkedHashMap<Long, RuntimeException> errors = new LinkedHashMap<>();
 
     if (cancelRequest.readdIntoQueue) {
@@ -1008,7 +1012,7 @@ public class BuildRequest {
         }
         continue;
       }
-      
+
       SRunningBuild runningBuild = runningBuildsManager.findRunningBuildById(sBuild.getBuildId());
       if (runningBuild == null) {
         errors.put(build.getId(), new BadRequestException("Cannot cancel not running build"));
@@ -1019,7 +1023,12 @@ public class BuildRequest {
         if (cancelRequest.readdIntoQueue) {
           stoppedBuilds.add(runningBuild);
         }
-        runningBuild.stop(currentUser, cancelRequest.comment == null ? "Canceled via REST API" : cancelRequest.comment);
+        final String comment = cancelRequest.comment == null ? "Canceled via REST API" : cancelRequest.comment;
+        if (!cancelRequest.readdIntoQueue && currentUser == null) {
+          ((RunningBuildEx)runningBuild).stop(RunningBuildState.INTERRUPTED_BY_USER, null, comment, cancelRequest.readdIntoQueue);
+        } else {
+          runningBuild.stop(currentUser, comment);
+        }
       } catch (RuntimeException e) {
         errors.putIfAbsent(build.getId(), e);
       }
@@ -1027,13 +1036,13 @@ public class BuildRequest {
 
 
     if (cancelRequest.readdIntoQueue && !stoppedBuilds.isEmpty()) {
-        stoppedBuilds.forEach(build -> {
-          try {
-            restoreInQueue(build, currentUser);
-          } catch (RuntimeException e) {
-            errors.putIfAbsent(build.getBuildPromotion().getId(), e);
-          }
-        });
+      stoppedBuilds.forEach(build -> {
+        try {
+          restoreInQueue(build, currentUser);
+        } catch (RuntimeException e) {
+          errors.putIfAbsent(build.getBuildPromotion().getId(), e);
+        }
+      });
     }
     return errors;
   }
@@ -1268,28 +1277,28 @@ public class BuildRequest {
    * Use with caution: this API is not yet stable and is subject to change.
    */
   //todo: add GET .../runningData for consistency
-    @PUT
-    @Path("/{buildLocator}/runningData")
-    @Consumes({MediaType.TEXT_PLAIN})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @ApiOperation("Starts the queued build as an agent-less build and returns the corresponding running build.")
-    public Build markBuildAsRunning(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
-                                    String requestor,
-                                    @QueryParam("fields") String fields) {
-      BuildPromotion buildPromotion = myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
-      checkBuildOperationPermission(buildPromotion);
-      QueuedBuildEx build = (QueuedBuildEx)buildPromotion.getQueuedBuild();
-      if (build != null) {
-        try {
-          build.startBuild(requestor);
-        } catch (IllegalStateException e) {
-          throw new BadRequestException("Error on attempt to mark the build as running: " + e.getMessage(), e);
-        }
-      } else {
-        throw new BadRequestException("Build with promotion id " + buildPromotion.getId() + " is not a queued build");
+  @PUT
+  @Path("/{buildLocator}/runningData")
+  @Consumes({MediaType.TEXT_PLAIN})
+  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  @ApiOperation("Starts the queued build as an agent-less build and returns the corresponding running build.")
+  public Build markBuildAsRunning(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                                  String requestor,
+                                  @QueryParam("fields") String fields) {
+    BuildPromotion buildPromotion = myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
+    checkBuildOperationPermission(buildPromotion);
+    QueuedBuildEx build = (QueuedBuildEx)buildPromotion.getQueuedBuild();
+    if (build != null) {
+      try {
+        build.startBuild(requestor);
+      } catch (IllegalStateException e) {
+        throw new BadRequestException("Error on attempt to mark the build as running: " + e.getMessage(), e);
       }
-      return new Build(buildPromotion, new Fields(fields), myBeanContext);
+    } else {
+      throw new BadRequestException("Build with promotion id " + buildPromotion.getId() + " is not a queued build");
     }
+    return new Build(buildPromotion, new Fields(fields), myBeanContext);
+  }
 
   /**
    * Experimental support for logging a message to a running build.
@@ -1489,9 +1498,9 @@ public class BuildRequest {
     try {
       resultIconFileName = getRealFileName(iconFileName);
     } catch (AccessDeniedException e) {
-      if (StringUtil.isEmpty(suffix)){
+      if (StringUtil.isEmpty(suffix)) {
         throw new InvalidStateException("Error retrieving requested resource", e);
-      } else{
+      } else {
         throw new BadRequestException("Wrong suffix '" + suffix + "' is specified. Try omitting it."); //todo: list extensions, see below
       }
     }
@@ -1529,6 +1538,7 @@ public class BuildRequest {
     return response.build();
   }
 
+
   enum BuildIconStatus {
     NOT_FOUND("not_found"),
     INTERNAL_ERROR("internal_error"),
@@ -1548,8 +1558,7 @@ public class BuildRequest {
     public String getIconName() {
       return myIconName;
     }
-
-   @NotNull
+    @NotNull
     private static BuildIconStatus create(final BeanContext beanContext, final Value<BuildPromotion> buildPromotionRetriever) {
       BuildIconStatus[] result = new BuildIconStatus[1];
       try {
@@ -1613,7 +1622,6 @@ public class BuildRequest {
       @NotNull
       S get();
     }
-
     private static boolean hasPermissionsToViewStatus(@NotNull final BuildPromotion build, @NotNull final AuthorityHolder authorityHolder, final BeanContext beanContext) {
       final SBuildType buildType = build.getBuildType();
       if (buildType == null) {
@@ -1653,7 +1661,7 @@ public class BuildRequest {
     final String realPath = servletContext.getRealPath(relativePath);
     FileSecurityUtil.checkInsideDirectory(new File(realPath), new File(servletContext.getRealPath("/")));
     return realPath;
-  }
+    }
 
   void initForTests(@NotNull final BeanContext beanContext) {
     myBeanContext = beanContext;
@@ -1663,7 +1671,7 @@ public class BuildRequest {
     myPermissionChecker = myBeanContext.getSingletonService(PermissionChecker.class);
   }
 
-  private class BuildArtifactsProvider extends FilesSubResource.Provider implements FilesSubResource.DownloadProcessor{
+  private class BuildArtifactsProvider extends FilesSubResource.Provider implements FilesSubResource.DownloadProcessor {
     private final BuildPromotion myBuildPromotion;
     private final Boolean myResolveParameters;
     private final Boolean myLogBuildUsage;
@@ -1716,7 +1724,7 @@ public class BuildRequest {
       boolean useCoreLogic = TeamCityProperties.getBooleanOrTrue("rest.buildRequest.artifacts.download.useCoreDownloadProcessor");
       if (!useCoreLogic) return false;
 
-      if (element instanceof BuildArtifactsFinder.BuildHoldingElement){
+      if (element instanceof BuildArtifactsFinder.BuildHoldingElement) {
         BuildArtifactsFinder.BuildHoldingElement buildArtifact = (BuildArtifactsFinder.BuildHoldingElement)element;
         try {
           SBuild build = buildArtifact.getBuildPromotion().getAssociatedBuild();
