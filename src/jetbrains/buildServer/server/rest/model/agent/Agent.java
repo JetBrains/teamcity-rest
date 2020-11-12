@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.model.cloud.CloudImage;
 import jetbrains.buildServer.server.rest.model.cloud.CloudInstance;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -88,6 +89,7 @@ public class Agent {
   @XmlElement public AgentAuthorizedInfo authorizedInfo;
   @XmlElement public Properties properties;
   @XmlElement public CloudInstance cloudInstance;
+  @XmlElement public CloudImage cloudImage;
   /**
    * Experimental support only
    */
@@ -213,10 +215,25 @@ public class Agent {
                                                                                               .getItem(CloudInstanceFinder.getLocator(agent)),
                                                                                    fields.getNestedField("cloudInstance"), beanContext);
                                                                                } catch (NotFoundException e) {
-                                                                                 //no cloud instance found
                                                                                  return null;
                                                                                }
                                                                              });
+
+          cloudImage = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("cloudImage", false, false), () -> {
+            try {
+              if (cloudInstance != null && fields.getNestedField("cloudInstance").isIncluded("image")) {
+                return cloudInstance.getImage();
+              } else {
+                if (!agent.isCloudAgent()) {
+                  return null;
+                } else {
+                  return new CloudImage(beanContext.getSingletonService(CloudImageFinder.class).getItem(CloudImageFinder.getLocator(agent)), fields.getNestedField("cloudImage"), beanContext);
+                }
+              }
+            } catch (NotFoundException e) {
+              return null;
+            }
+          });
 
           compatibilityPolicy = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded(COMPATIBILITY_POLICY, false, false),
                                                                                    () -> CompatibilityPolicy

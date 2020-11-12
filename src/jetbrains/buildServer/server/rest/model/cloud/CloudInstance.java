@@ -97,8 +97,7 @@ public class CloudInstance {
 
   @XmlElement(name = "image")
   public CloudImage getImage() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("image", true, true),
-                                          () -> new CloudImage(myCloudInstance.getInstance().getImage(), myFields.getNestedField("image", Fields.SHORT, Fields.SHORT), myBeanContext));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("image", true, true), () -> this.getCloudImageInternal("image"));
   }
 
   @XmlElement(name = "agent")
@@ -117,6 +116,11 @@ public class CloudInstance {
 
   public void setImage(CloudImage item) {
     submittedImage = item;
+  }
+
+  @NotNull
+  public CloudImage getCloudImageInternal(final String fieldName) {
+    return new CloudImage(myCloudInstance.getInstance().getImage(), myFields.getNestedField(fieldName, Fields.SHORT, Fields.SHORT), myBeanContext);
   }
 
 
