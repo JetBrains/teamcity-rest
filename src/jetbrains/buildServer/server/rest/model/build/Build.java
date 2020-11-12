@@ -1255,7 +1255,7 @@ public class Build {
   @Nullable
   @XmlAttribute
   public Boolean isCustomized() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("customized"), () -> ((BuildPromotionEx)myBuildPromotion).isCustomized());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("customized"), () -> ((BuildPromotionEx)myBuildPromotion).getPromotionCustomization().isCustomized());
   }
 
   private boolean myCanViewRuntimeDataChecked = false;
