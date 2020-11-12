@@ -101,6 +101,12 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   @NotNull
   @Override
   public ItemHolder<SQueuedBuild> getPrefilteredItems(@NotNull final Locator locator) {
+    final String poolLocator = locator.getSingleDimensionValue(POOL);
+    if (poolLocator != null) {
+      AgentPool pool = myAgentPoolFinder.getItem(poolLocator);
+      return getItemHolder(((BuildQueueEx)myBuildQueue).getItemsByPool(pool.getAgentPoolId()));
+    }
+
     return getItemHolder(myBuildQueue.getItems());
   }
 
@@ -150,15 +156,6 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
       });
     }
 
-    final String poolLocator = locator.getSingleDimensionValue(POOL);
-    if (poolLocator != null) {
-      AgentPool pool = myAgentPoolFinder.getItem(poolLocator);
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return ((QueuedBuildEx)item).canRunInPool(pool.getAgentPoolId());
-        }
-      });
-    }
 
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator != null) {
