@@ -1257,7 +1257,7 @@ public class Build {
   @Nullable
   @XmlElement(name = "finishOnAgentDate")
   public String getFinishOnAgentDate() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("finishOnAgentDate"), () -> Util.formatTime(myBuild.getFinishOnAgentDate()));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("finishOnAgentDate"), () -> myBuild != null ? Util.formatTime(myBuild.getFinishOnAgentDate()) : null);
   }
 
   @Nullable
