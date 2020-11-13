@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.data.CloudImageFinder;
 import jetbrains.buildServer.server.rest.data.CloudInstanceData;
 import jetbrains.buildServer.server.rest.data.CloudUtil;
@@ -34,6 +35,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -41,7 +43,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "cloudImage")
 @XmlType(name = "cloudImage", propOrder = {"id", "name", "href",
-  "profile", "instances", "errorMessage"})
+  "profile", "instances", "errorMessage", "agentTypeId"})
 
 @SuppressWarnings("PublicField")
 public class CloudImage {
@@ -92,6 +94,13 @@ public class CloudImage {
                                             CachingValue.simple(() -> myCloudImage.getInstances().stream().map(i -> new CloudInstanceData(i, myBeanContext.getServiceLocator())).collect(Collectors.toList())),
                                             new PagerData(CloudRequest.getInstancesHref(myCloudImage, myBeanContext.getSingletonService(CloudUtil.class))),
                                             myFields.getNestedField("instances", Fields.NONE, Fields.LONG), myBeanContext));
+  }
+
+  @Nullable
+  @XmlAttribute
+  public Integer getAgentTypeId() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("agentTypeId", false, true),
+                                          () -> myBeanContext.getSingletonService(CloudManager.class).getDescriptionFor(myBeanContext.getSingletonService(CloudUtil.class).getProfile(myCloudImage), myCloudImage.getId())).getAgentTypeId();
   }
 
   @XmlElement(name = "errorMessage")
