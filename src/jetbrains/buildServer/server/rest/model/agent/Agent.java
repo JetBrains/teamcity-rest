@@ -78,6 +78,7 @@ public class Agent {
   @XmlAttribute public String ip;
   @XmlAttribute public String protocol;
   @XmlAttribute public String version; //experimental
+  @XmlAttribute public String currentAgentVersion; //experimental
   @XmlAttribute public String lastActivityTime; //experimental
   @XmlAttribute public String idleSinceTime; //experimental
   @XmlAttribute public String disconnectionComment;  //experimental
@@ -187,6 +188,8 @@ public class Agent {
           protocol = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("protocol", false, false), () -> getAgentProtocol(agent));
 
           version = ValueWithDefault.decideDefault(fields.isIncluded("version", false, false), agent::getVersion);
+
+          currentAgentVersion = ValueWithDefault.decideDefault(fields.isIncluded("currentAgentVersion", false, false), ((BuildAgentEx)agent)::getCurrentAgentVersion);
 
           lastActivityTime = ValueWithDefault.decideDefault(fields.isIncluded("lastActivityTime", false, false),
                                                             () -> Util.formatTime(agent.getLastCommunicationTimestamp()));
