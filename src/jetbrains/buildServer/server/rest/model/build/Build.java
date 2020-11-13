@@ -136,9 +136,9 @@ import org.jetbrains.annotations.Nullable;
     "statusChangeComment" /*experimental, temporary*/,
     "vcsLabels",
     "detachedFromAgent",
+    "finishOnAgentDate",
     "customized", /* Probably to be removed, replace with customization */
-    "customization",
-
+    "customization"
   })
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
@@ -1252,6 +1252,12 @@ public class Build {
   @XmlAttribute
   public Boolean isDetachedFromAgent() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("detachedFromAgent"), () -> myBuild != null && myBuild.isDetachedFromAgent());
+  }
+
+  @Nullable
+  @XmlElement(name = "finishOnAgentDate")
+  public String getFinishOnAgentDate() {
+    return Util.formatTime(myBuild.getFinishOnAgentDate());
   }
 
   @Nullable
