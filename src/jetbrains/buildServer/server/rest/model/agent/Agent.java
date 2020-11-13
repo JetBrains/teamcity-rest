@@ -38,6 +38,7 @@ import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.auth.AccessChecker;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.impl.AgentUpgradeUtil;
 import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
 import jetbrains.buildServer.serverSide.impl.agent.DummyAgentType;
 import jetbrains.buildServer.serverSide.impl.agent.PollingRemoteAgentConnection;
@@ -71,6 +72,9 @@ public class Agent {
   @XmlAttribute public Boolean enabled;
   @XmlAttribute public Boolean authorized;
   @XmlAttribute public Boolean uptodate;
+  @XmlAttribute public Boolean outdated;
+  @XmlAttribute public Boolean pluginsOutdated;
+  @XmlAttribute public Boolean javaOutdated;
   @XmlAttribute public String ip;
   @XmlAttribute public String protocol;
   @XmlAttribute public String version; //experimental
@@ -170,6 +174,9 @@ public class Agent {
 
         if (!unknownAgent) {
           uptodate = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("uptodate", false), !agent.isOutdated() && !agent.isPluginsOutdated());
+          outdated = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("outdated", false, false), agent::isOutdated);
+          pluginsOutdated = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("pluginsOutdated", false, false), agent::isPluginsOutdated);
+          javaOutdated = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("javaOutdated", false, false), () -> AgentUpgradeUtil.isAgentUsesOldJava(((BuildAgentEx)agent).getAgentType()));
           host = ValueWithDefault.decideDefault(fields.isIncluded("host", false), agent::getHostName);
           cpuRank = ValueWithDefault.decideDefault(fields.isIncluded("cpuRank", false), agent::getCpuBenchmarkIndex);
           port = ValueWithDefault.decideDefault(fields.isIncluded("port", false), agent::getPort);
