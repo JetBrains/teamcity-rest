@@ -97,7 +97,7 @@ public class CloudImage {
   }
 
   @Nullable
-  @XmlAttribute
+  @XmlElement(name = "agentTypeId")
   public Integer getAgentTypeId() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("agentTypeId", false, true),
                                           () -> myBeanContext.getSingletonService(CloudManager.class).getDescriptionFor(myBeanContext.getSingletonService(CloudUtil.class).getProfile(myCloudImage), myCloudImage.getId())).getAgentTypeId();
