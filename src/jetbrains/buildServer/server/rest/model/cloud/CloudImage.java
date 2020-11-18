@@ -34,6 +34,7 @@ import jetbrains.buildServer.server.rest.request.CloudRequest;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -99,8 +100,18 @@ public class CloudImage {
   @Nullable
   @XmlElement(name = "agentTypeId")
   public Integer getAgentTypeId() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("agentTypeId", false, true),
-                                          () -> myBeanContext.getSingletonService(CloudManager.class).getDescriptionFor(myBeanContext.getSingletonService(CloudUtil.class).getProfile(myCloudImage), myCloudImage.getId())).getAgentTypeId();
+    return ValueWithDefault.decideDefault(myFields.isIncluded("agentTypeId", false, false),
+                                          () -> {
+                                            final jetbrains.buildServer.clouds.CloudProfile profile = myBeanContext.getSingletonService(CloudUtil.class).getProfile(myCloudImage);
+                                            if (profile == null) {
+                                              return null;
+                                            }
+                                            final SAgentType agentType = myBeanContext.getSingletonService(CloudManager.class).getDescriptionFor(profile, myCloudImage.getId());
+                                            if (agentType == null) {
+                                              return null;
+                                            }
+                                            return agentType.getAgentTypeId();
+                                          });
   }
 
   @XmlElement(name = "errorMessage")
