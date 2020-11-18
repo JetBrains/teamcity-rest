@@ -136,11 +136,11 @@ public class PermissionAssignmentFinderTest extends BaseFinderTest<PermissionAss
 
     myUser1.addRole(RoleScope.projectScope(projectId), roleProject);
 
-    checkUnordered(null, pa(Permission.CHANGE_OWN_PROFILE), pa(Permission.ADMINISTER_AGENT), pa(Permission.RUN_BUILD, projectId), pa(Permission.RUN_BUILD, myProject11.getProjectId()));
+    checkUnordered(null, pa(Permission.CHANGE_OWN_PROFILE), pa(Permission.ADMINISTER_AGENT), pa(Permission.RUN_BUILD, projectId), pa(Permission.RUN_BUILD, myProject11.getProjectId()), pa(Permission.VIEW_PROJECT, getRootProject().getProjectId()));
     checkUnordered("global:true", pa(Permission.CHANGE_OWN_PROFILE), pa(Permission.ADMINISTER_AGENT));
-    checkUnordered("global:false", pa(Permission.RUN_BUILD, projectId), pa(Permission.RUN_BUILD, myProject11.getProjectId()));
+    checkUnordered("global:false", pa(Permission.RUN_BUILD, projectId), pa(Permission.RUN_BUILD, myProject11.getProjectId()), pa(Permission.VIEW_PROJECT, getRootProject().getProjectId()));
     checkUnordered("project:(internalId:" + projectId + ")", pa(Permission.RUN_BUILD, projectId));
-    checkUnordered("project:(internalId:" + getRootProject().getProjectId() + ")");
+    checkUnordered("project:(internalId:" + getRootProject().getProjectId() + ")", pa(Permission.VIEW_PROJECT, getRootProject().getProjectId())); // since 2020.2 this permission is always granted by default
     checkUnordered("permission:" + "run_build", pa(Permission.RUN_BUILD, projectId), pa(Permission.RUN_BUILD, myProject11.getProjectId()));
     checkUnordered("permission:" + "run_build" + ",project:" + projectId, pa(Permission.RUN_BUILD, projectId));
   }
