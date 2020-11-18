@@ -31,6 +31,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.VcsRootInstanceEntry;
 import org.jetbrains.annotations.NotNull;
@@ -157,9 +158,10 @@ public class BuildTypeOrTemplate implements Loggable {
     }
   }
 
-  public void remove() {
+  public void remove(@Nullable SUser user, String reason) {
     try {
-      myBuildTypeIdentity.remove();
+      ConfigAction action = myBuildTypeIdentity.createConfigAction(user, reason);
+      myBuildTypeIdentity.scheduleRemove(action);
     } catch (TemplateCannotBeRemovedException e) {
       throw new BadRequestException("Cannot remove template with id '" + getId() + "': " + e.getMessage(), e);
     }

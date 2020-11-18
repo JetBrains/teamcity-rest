@@ -49,10 +49,13 @@ import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -897,7 +900,8 @@ public class BuildType {
       }, serviceLocator);
     } catch (Exception e) {
       //error on filling the build type, should not preserve the created empty build type
-      resultingBuildType.remove();
+      AuthorityHolder authorityHolder = myBeanContext.getSingletonService(SecurityContext.class).getAuthorityHolder();
+      resultingBuildType.remove((SUser)authorityHolder.getAssociatedUser(), resultingBuildType.isBuildType() ? "Removing broken build configuration" : "Removing broken template");
       throw e;
     }
 
