@@ -16,9 +16,15 @@
 
 package jetbrains.buildServer.server.rest.model.agent;
 
+import com.intellij.openapi.diagnostic.Logger;
+import java.util.Date;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.agent.OSKind;
+import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -48,11 +54,6 @@ import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.Date;
-
 /**
  * @author Yegor.Yarko
  * Date: 01.08.2009
@@ -60,6 +61,8 @@ import java.util.Date;
 @XmlRootElement(name = "agent")
 @SuppressWarnings({"PublicField", "WeakerAccess"})
 public class Agent {
+  @NotNull
+  private static final Logger LOGGER = Logger.getInstance(Agent.class);
 
   public static final int UNKNOWN_AGENT_ID = -1;
   public static final String COMPATIBILITY_POLICY = "compatibilityPolicy";
@@ -177,7 +180,8 @@ public class Agent {
           uptodate = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("uptodate", false), !agent.isOutdated() && !agent.isPluginsOutdated());
           outdated = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("outdated", false, false), agent::isOutdated);
           pluginsOutdated = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("pluginsOutdated", false, false), agent::isPluginsOutdated);
-          javaOutdated = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("javaOutdated", false, false), () -> AgentUpgradeUtil.isAgentUsesOldJava(((BuildAgentEx)agent).getAgentType()));
+          javaOutdated = ValueWithDefault
+            .decideIncludeByDefault(fields.isIncluded("javaOutdated", false, false), () -> AgentUpgradeUtil.isAgentUsesOldJava(((BuildAgentEx)agent).getAgentType()));
           host = ValueWithDefault.decideDefault(fields.isIncluded("host", false), agent::getHostName);
           cpuRank = ValueWithDefault.decideDefault(fields.isIncluded("cpuRank", false), agent::getCpuBenchmarkIndex);
           port = ValueWithDefault.decideDefault(fields.isIncluded("port", false), agent::getPort);
@@ -231,16 +235,13 @@ public class Agent {
 
           cloudImage = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("cloudImage", false, false), () -> {
             try {
-              if (cloudInstance != null && fields.getNestedField("cloudInstance").isIncluded("image")) {
-                return cloudInstance.getImage();
+              if (!agent.isCloudAgent()) {
+                return null;
               } else {
-                if (!agent.isCloudAgent()) {
-                  return null;
-                } else {
-                  return new CloudImage(beanContext.getSingletonService(CloudImageFinder.class).getItem(CloudImageFinder.getLocator(agent)), fields.getNestedField("cloudImage"), beanContext);
-                }
+                return new CloudImage(beanContext.getSingletonService(CloudImageFinder.class).getItem(CloudImageFinder.getLocator(agent)), fields.getNestedField("cloudImage"), beanContext);
               }
-            } catch (NotFoundException e) {
+            } catch (Exception e) {
+              LOGGER.warnAndDebugDetails("Unable to get the cloud image for agent " + LogUtil.describe(agent), e);
               return null;
             }
           });
