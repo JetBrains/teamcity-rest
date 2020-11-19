@@ -17,26 +17,27 @@
 package jetbrains.buildServer.server.rest.model.build;
 
 import java.util.Collection;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import static jetbrains.buildServer.util.StringUtil.EMPTY;
+import static java.util.Collections.emptyMap;
 
 /**
  * @author kir
  */
 @XmlRootElement(name = "customizations")
 public class Customizations {
-  @XmlElement public String parameters;
-  @XmlElement public String changes;
-  @XmlElement public String artifactDependencies;
+  @XmlElement public Map<String, String> parameters;
+  @XmlElement public Map<String, String> changes;
+  @XmlElement public Map<String, String> artifactDependencies;
 
   public Customizations() {
   }
 
   public Customizations(Collection<String> changed) {
-    parameters = changed.contains("params") ? EMPTY : null;
-    changes = changed.contains("mod_id") ? EMPTY : null;
-    artifactDependencies = changed.contains("artifacts") ? EMPTY : null;
+    parameters = changed.contains("params") ? emptyMap() : null;
+    changes = changed.contains("mod_id") ? emptyMap() : null;
+    artifactDependencies = changed.contains("artifacts") ? emptyMap() : null;
   }
 }
