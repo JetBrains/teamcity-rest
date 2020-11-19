@@ -1267,9 +1267,9 @@ public class Build {
   }
 
   @XmlElement
-  public Items getCustomization() {
+  public Customizations getCustomization() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("customization", false, true), () -> {
-      return new Items(((BuildPromotionEx)myBuildPromotion).getPromotionCustomization().getItems());
+      return new Customizations(((BuildPromotionEx)myBuildPromotion).getPromotionCustomization().getItems());
     });
   }
 
