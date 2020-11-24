@@ -20,12 +20,16 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -37,6 +41,7 @@ import jetbrains.buildServer.server.rest.model.user.*;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.*;
@@ -44,19 +49,19 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
+import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Path(UserRequest.API_USERS_URL)
 @Api("User")
 public class UserRequest {
+  public static final String API_USERS_URL = Constants.API_URL + "/users";
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private UserFinder myUserFinder;
   @Context @NotNull private DataUpdater myDataUpdater;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private BeanContext myBeanContext;
-
-  public static final String API_USERS_URL = Constants.API_URL + "/users";
 
   public static String getUserHref(@NotNull final jetbrains.buildServer.users.User user) {
     //todo: investigate why "DOMAIN username" does not work as query parameter
@@ -75,7 +80,7 @@ public class UserRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Users serveUsers(@QueryParam("locator") String locator, @QueryParam("fields") String fields) {
-    return new Users(myUserFinder.getItems(locator).myEntries,  new Fields(fields), myBeanContext);
+    return new Users(myUserFinder.getItems(locator).myEntries, new Fields(fields), myBeanContext);
   }
 
   @POST
@@ -84,7 +89,7 @@ public class UserRequest {
   public User createUser(User userData, @QueryParam("fields") String fields) {
     final SUser user = myDataUpdater.createUser(userData.getSubmittedUsername());
     myDataUpdater.modify(user, userData, myBeanContext.getServiceLocator());
-    return new User(user,  new Fields(fields), myBeanContext);
+    return new User(user, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -111,7 +116,7 @@ public class UserRequest {
                          @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
     myDataUpdater.modify(user, userData, myBeanContext.getServiceLocator());
-    return new User(user,  new Fields(fields), myBeanContext);
+    return new User(user, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -212,7 +217,8 @@ public class UserRequest {
       user.removeRole(roleEntry.getScope(), roleEntry.getRole());
     }
     for (RoleAssignment roleAssignment : roleAssignments.roleAssignments) {
-      user.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleAssignment.roleId, myBeanContext.getServiceLocator()));
+      user.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()),
+                   RoleAssignment.getRoleById(roleAssignment.roleId, myBeanContext.getServiceLocator()));
     }
     return new RoleAssignments(user.getRoles(), user, myBeanContext);
   }
@@ -224,7 +230,8 @@ public class UserRequest {
   public RoleAssignment addRoleToUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                       RoleAssignment roleAssignment) {
     SUser user = myUserFinder.getItem(userLocator, true);
-    user.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()), RoleAssignment.getRoleById(roleAssignment.roleId, myBeanContext.getServiceLocator()));
+    user.addRole(RoleAssignment.getScope(roleAssignment.scope, myBeanContext.getServiceLocator()),
+                 RoleAssignment.getRoleById(roleAssignment.roleId, myBeanContext.getServiceLocator()));
     return new RoleAssignment(DataProvider.getUserRoleEntry(user, roleAssignment.roleId, roleAssignment.scope, myBeanContext), user, myBeanContext);
   }
 
@@ -278,7 +285,7 @@ public class UserRequest {
   public Groups getGroups(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                           @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
-    return new Groups(user.getUserGroups(),  new Fields(fields), myBeanContext);
+    return new Groups(user.getUserGroups(), new Fields(fields), myBeanContext);
   }
 
   /**
@@ -293,7 +300,7 @@ public class UserRequest {
                               @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
     myDataUpdater.replaceUserGroups(user, groups.getFromPosted(myDataProvider.getServer()));
-    return new Groups(user.getUserGroups(),  new Fields(fields), myBeanContext);
+    return new Groups(user.getUserGroups(), new Fields(fields), myBeanContext);
   }
 
   @POST
@@ -306,7 +313,7 @@ public class UserRequest {
     SUser user = myUserFinder.getItem(userLocator, true);
     SUserGroup userGroup = group.getFromPosted(myBeanContext.getServiceLocator());
     userGroup.addUser(user);
-    return new Group(userGroup,  new Fields(fields), myBeanContext);
+    return new Group(userGroup, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -357,8 +364,54 @@ public class UserRequest {
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     final SUser user = myUserFinder.getItem(userLocator, true);
     try {
-      final AuthenticationToken authenticationToken = tokenAuthenticationModel.createToken(user.getId(), token.getName(), token.getExpirationTime());
-      return new Token(authenticationToken, authenticationToken.getValue(), new Fields(fields));
+      final AuthenticationToken authenticationToken;
+      if (token.getPermissionRestrictions() != null) {
+        final List<PermissionRestriction> permissionRestrictions = token.getPermissionRestrictions().myPermissionRestrictions;
+        if (permissionRestrictions == null) {
+          throw new IllegalArgumentException("Malformed permission restrictions");
+        }
+        final Map<RoleScope, Permissions> restrictions = new HashMap<>();
+        for (PermissionRestriction permissionRestriction : permissionRestrictions) {
+          final RoleScope roleScope;
+          if (BooleanUtils.isTrue(permissionRestriction.isGlobalScope)) {
+            roleScope = RoleScope.globalScope();
+          } else if (permissionRestriction.project != null && permissionRestriction.project.id != null) {
+            final SProject project = myBeanContext.getSingletonService(ProjectManager.class).findProjectByExternalId(permissionRestriction.project.id);
+            if (project == null) {
+              throw new NotFoundException("Project not found for external id [" + permissionRestriction.project.id + "]");
+            }
+            roleScope = RoleScope.projectScope(project.getProjectId());
+          } else {
+            throw new IllegalArgumentException("Malformed permission restrictions, either isGlobalScope should be set to true or project should not be null");
+          }
+          if (permissionRestriction.permission == null || permissionRestriction.permission.id == null) {
+            throw new IllegalArgumentException("Permission should not be null");
+          }
+          try {
+            final Permission permission = Permission.valueOf(permissionRestriction.permission.id.toUpperCase());
+            if (roleScope.isGlobal()) {
+              if (!user.isPermissionGrantedGlobally(permission)) {
+                throw new AuthorizationFailedException("User don't have " + permission + " to be restricted globally");
+              }
+            } else {
+              if (!(user.isPermissionGrantedGlobally(permission) || user.isPermissionGrantedForProject(roleScope.getProjectId(), permission))) {
+                throw new AuthorizationFailedException("User don't have permission " + permission + " to be restricted on project [" + roleScope.getProjectId() + "]");
+              }
+            }
+            restrictions.merge(roleScope, new Permissions(permission), Permissions::mergeWith);
+          } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Permission not found for input [" + permissionRestriction.permission.name + "]");
+          }
+        }
+        if (permissionRestrictions.isEmpty()) {
+          throw new BadRequestException("Malformed permission restrictions");
+        }
+        authenticationToken =
+          tokenAuthenticationModel.createToken(user.getId(), token.getName(), token.getExpirationTime(), new AuthenticationToken.PermissionsRestriction(restrictions));
+      } else {
+        authenticationToken = tokenAuthenticationModel.createToken(user.getId(), token.getName(), token.getExpirationTime());
+      }
+      return new Token(authenticationToken, authenticationToken.getValue(), new Fields(fields), myBeanContext);
     } catch (AuthenticationTokenStorage.CreationException e) {
       throw new BadRequestException(e.getMessage());
     }
@@ -377,7 +430,7 @@ public class UserRequest {
     final SUser user = myUserFinder.getItem(userLocator, true);
     try {
       final AuthenticationToken token = tokenAuthenticationModel.createToken(user.getId(), name, new Date(PermanentTokenConstants.NO_EXPIRE.getTime()));
-      return new Token(token, token.getValue(), new Fields(fields));
+      return new Token(token, token.getValue(), new Fields(fields), myBeanContext);
     } catch (AuthenticationTokenStorage.CreationException e) {
       throw new BadRequestException(e.getMessage());
     }
@@ -387,14 +440,13 @@ public class UserRequest {
   @Path("/{userLocator}/tokens")
   @Produces({"application/xml", "application/json"})
   public Tokens getTokens(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
-                          @QueryParam("fields") String fields,
-                          @Context @NotNull final BeanContext beanContext) {
+                          @QueryParam("fields") String fields) {
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
       myUserFinder.checkViewAllUsersPermission();
     }
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     SUser user = myUserFinder.getItem(userLocator, true);
-    return new Tokens(tokenAuthenticationModel.getUserTokens(user.getId()), new Fields(fields));
+    return new Tokens(tokenAuthenticationModel.getUserTokens(user.getId()), new Fields(fields), myBeanContext);
   }
 
   @DELETE
@@ -431,7 +483,7 @@ public class UserRequest {
   /**
    * Experimental use only
    * Can be used to check whether the user has the permission(s) specified by "permissionLocator"
-   *
+   * <p>
    * If project is specified, the permission is granted for this specific project, nothing can be derived about the subprojects
    * If the project is not specified, for project-level permission it means the permission is granted for all the projects on the server
    */

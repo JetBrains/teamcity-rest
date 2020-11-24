@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.util;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collection;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import org.jetbrains.annotations.NotNull;
@@ -26,7 +27,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
- *         Date: 10.01.14
+ * Date: 10.01.14
  */
 public class ValueWithDefault {
   final static Logger LOG = Logger.getInstance(ValueWithDefault.class.getName());
@@ -135,14 +136,10 @@ public class ValueWithDefault {
   }
 
 
-  public interface Value<S> {
-    public static Value NULL = new Value() {
-      @Nullable
-      public Object get() {
-        return null;
-      }
-    };
+  public interface Value<S> extends Supplier<S> {
+    Value<?> NULL = () -> null;
 
+    @Override
     @Nullable
     S get();
   }

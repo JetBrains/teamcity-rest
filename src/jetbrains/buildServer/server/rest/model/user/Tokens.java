@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.auth.AuthenticationToken;
 import org.jetbrains.annotations.NotNull;
@@ -30,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * @author Dmitrii Bogdanov
  */
-@SuppressWarnings({"PublicField", "WeakerAccess", "unused"})
+@SuppressWarnings({"PublicField", "unused"})
 @XmlRootElement(name = Tokens.TYPE)
 @XmlType(name = Tokens.TYPE)
 public class Tokens {
@@ -43,9 +44,9 @@ public class Tokens {
   public Tokens() {
   }
 
-  public Tokens(@NotNull final List<AuthenticationToken> tokenNames, @NotNull final Fields fields) {
+  public Tokens(@NotNull final List<AuthenticationToken> tokenNames, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     if (fields.isIncluded(Token.TYPE, false, true)) {
-      tokens = tokenNames.stream().map(token -> new Token(token, fields.getNestedField(Token.TYPE))).collect(Collectors.toList());
+      tokens = tokenNames.stream().map(token -> new Token(token, fields.getNestedField(Token.TYPE), beanContext)).collect(Collectors.toList());
     }
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), tokenNames.size());
   }

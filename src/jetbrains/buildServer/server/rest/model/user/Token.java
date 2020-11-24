@@ -20,6 +20,9 @@ import java.util.Date;
 import javax.xml.bind.annotation.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.FeatureToggle;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.auth.AuthenticationToken;
 import jetbrains.buildServer.serverSide.auth.PermanentTokenConstants;
 import jetbrains.buildServer.util.StringUtil;
@@ -32,12 +35,13 @@ import static jetbrains.buildServer.server.rest.model.user.Token.TYPE;
  * @author Dmitrii Bogdanov
  */
 @XmlRootElement(name = TYPE)
-@XmlAccessorType(XmlAccessType.PUBLIC_MEMBER)
+@XmlAccessorType
 @XmlType(name = TYPE, propOrder = {
   "name",
   "creationTime",
   "value",
-  "expirationTime"
+  "expirationTime",
+  "permissionRestrictions"
 })
 public class Token {
   @NotNull
@@ -50,17 +54,19 @@ public class Token {
   private Date creationTime;
   @Nullable
   private String value;
+  @Nullable
+  private PermissionRestrictions permissionRestrictions;
 
   public Token() {
     setCreationTime(null);
     setExpirationTime(null);
   }
 
-  public Token(@NotNull final AuthenticationToken t, @NotNull final Fields fields) {
-    this(t, null, fields);
+  public Token(@NotNull final AuthenticationToken t, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    this(t, null, fields, beanContext);
   }
 
-  public Token(@NotNull final AuthenticationToken t, @Nullable String tokenValue, @NotNull final Fields fields) {
+  public Token(@NotNull final AuthenticationToken t, @Nullable String tokenValue, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     if (fields.isIncluded("name", true, true)) {
       name = t.getName();
     }
@@ -73,6 +79,13 @@ public class Token {
     if (fields.isIncluded("value", true, true)) {
       value = tokenValue;
     }
+    permissionRestrictions = ValueWithDefault.decideDefault(fields.isIncluded("permissionRestrictions", false, true),
+                                                            FeatureToggle.withToggleDeferred("teamcity.internal.accessTokens.enablePermissionScopes", () -> {
+                                                              final AuthenticationToken.PermissionsRestriction permissionsRestriction = t.getPermissionsRestriction();
+                                                              return permissionsRestriction != null ? new PermissionRestrictions(permissionsRestriction,
+                                                                                                                                 fields.getNestedField("permissionRestrictions"),
+                                                                                                                                 beanContext) : null;
+                                                            }));
   }
 
   @XmlAttribute
@@ -104,6 +117,16 @@ public class Token {
     } else {
       this.expirationTime = expirationTime;
     }
+  }
+
+  @XmlElement(name = "permissionRestrictions")
+  @Nullable
+  public PermissionRestrictions getPermissionRestrictions() {
+    return permissionRestrictions;
+  }
+
+  public void setPermissionRestrictions(@Nullable PermissionRestrictions permissionRestrictions) {
+    FeatureToggle.withToggle("teamcity.internal.accessTokens.enablePermissionScopes", () -> this.permissionRestrictions = permissionRestrictions);
   }
 
   @XmlAttribute
