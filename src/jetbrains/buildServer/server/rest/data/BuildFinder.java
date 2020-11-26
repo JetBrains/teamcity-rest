@@ -41,9 +41,12 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Specifies build locator.
+ *
  * @author Yegor.Yarko
- *         Date: 18.01.12
+ * Date: 18.01.12
+ * @deprecated in favor of {@link BuildPromotionFinder}
  */
+@Deprecated
 public class BuildFinder {
   private static final Logger LOG = Logger.getInstance(BuildFinder.class.getName());
   public static final String DIMENSION_ID = "id";
