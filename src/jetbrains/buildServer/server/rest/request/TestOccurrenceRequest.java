@@ -124,6 +124,10 @@ public class TestOccurrenceRequest {
     }
 
     SUser user = SessionUser.getUser(request);
+    if(user == null) {
+      return locator;
+    }
+
     if(user.getBooleanProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS)) {
       return locator;
     }

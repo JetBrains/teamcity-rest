@@ -23,6 +23,9 @@ import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
+import jetbrains.buildServer.serverSide.impl.MockRunType;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -105,5 +108,15 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
       assertEquals(Boolean.valueOf(false), testOccurrence.getIgnored());
       assertEquals("error message\nstacktrace\nline 1\nline2", testOccurrence.getDetails());
     }
+  }
+
+  @Test
+  public void testWithoutSessionUser() {
+    final SFinishedBuild build = build().in(myBuildType).withTest(BuildBuilder.TestData.test("aaa").duration(76)).finish();
+
+    MockHttpServletRequest mockRequest = new MockHttpServletRequest("GET", "http://test/httpAuth/app/rest/testOccurrences?locator=build:" + build.getBuildId());
+    TestOccurrences testOccurrences = myRequest.getTestOccurrences("build:" + build.getBuildId(),"",null, mockRequest);
+
+    assertEquals(new Integer(1), testOccurrences.count);
   }
 }
