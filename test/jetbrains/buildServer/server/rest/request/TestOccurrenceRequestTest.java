@@ -17,15 +17,13 @@
 package jetbrains.buildServer.server.rest.request;
 
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
+import jetbrains.buildServer.controllers.fakes.FakeHttpServletRequest;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
-import jetbrains.buildServer.serverSide.impl.MockRunType;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -114,7 +112,8 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
   public void testWithoutSessionUser() {
     final SFinishedBuild build = build().in(myBuildType).withTest(BuildBuilder.TestData.test("aaa").duration(76)).finish();
 
-    MockHttpServletRequest mockRequest = new MockHttpServletRequest("GET", "http://test/httpAuth/app/rest/testOccurrences?locator=build:" + build.getBuildId());
+    FakeHttpServletRequest mockRequest = new FakeHttpServletRequest();
+    mockRequest.setRequestURL("http://test/httpAuth/app/rest/testOccurrences?locator=build:" + build.getBuildId());
     TestOccurrences testOccurrences = myRequest.getTestOccurrences("build:" + build.getBuildId(),"",null, mockRequest);
 
     assertEquals(new Integer(1), testOccurrences.count);
