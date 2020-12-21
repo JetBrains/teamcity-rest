@@ -33,7 +33,10 @@ import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import org.apache.commons.lang3.StringUtils;
+import jetbrains.buildServer.serverSide.maintenance.BackupProcessManager;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Optional;
@@ -46,9 +49,14 @@ public class ExtensionModelResolver extends ModelResolver {
   }
 
   private static final Logger LOGGER = Logger.getInstance(ExtensionModelResolver.class.getName());
+  private static final String BACKUP_PROCESS_MANAGER = "BackupProcessManager";
 
   @Override
   public Model resolve(JavaType type, ModelConverterContext context, Iterator<ModelConverter> next) {
+    if (type.getRawClass().getSimpleName().equals(BACKUP_PROCESS_MANAGER)) { // crude solution for TW-69356
+      return null;
+    }
+
     ModelImpl model = (ModelImpl) super.resolve(type, context, next);
 
     if (model != null) {

@@ -152,7 +152,7 @@ public class ServerRequest {
                             @QueryParam("includePersonalChanges") Boolean includePersonalChanges,
                             @QueryParam("includeRunningBuilds") Boolean includeRunningBuilds,
                             @QueryParam("includeSupplimentaryData") Boolean includeSupplimentaryData,
-                            @ApiParam(hidden = true) @InjectParam BackupProcessManager backupManager) {
+                            @InjectParam BackupProcessManager backupManager) {
     BackupConfig backupConfig = new BackupConfig();
     if (StringUtil.isNotEmpty(fileName)) {
       if (!TeamCityProperties.getBoolean("rest.request.server.backup.allowAnyTargetPath")) {
@@ -198,7 +198,7 @@ public class ServerRequest {
   @Path("/backup")
   @Produces({"text/plain"})
   @ApiOperation(value="Get the latest backup status.",nickname="getBackupStatus")
-  public String getBackupStatus(@ApiParam(hidden = true) @InjectParam BackupProcessManager backupManager) {
+  public String getBackupStatus(@InjectParam BackupProcessManager backupManager) {
     final BackupProcess backupProcess = backupManager.getCurrentBackupProcess();
     if (backupProcess == null) {
       return "Idle";
