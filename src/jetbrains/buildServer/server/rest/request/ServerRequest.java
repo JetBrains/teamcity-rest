@@ -151,8 +151,8 @@ public class ServerRequest {
                             @QueryParam("includeBuildLogs") Boolean includeBuildLogs,
                             @QueryParam("includePersonalChanges") Boolean includePersonalChanges,
                             @QueryParam("includeRunningBuilds") Boolean includeRunningBuilds,
-                            @QueryParam("includeSupplimentaryData") Boolean includeSupplimentaryData,
-                            @InjectParam BackupProcessManager backupManager) {
+                            @QueryParam("includeSupplimentaryData") Boolean includeSupplimentaryData) {
+    BackupProcessManager backupManager = myServiceLocator.getSingletonService(BackupProcessManager.class);
     BackupConfig backupConfig = new BackupConfig();
     if (StringUtil.isNotEmpty(fileName)) {
       if (!TeamCityProperties.getBoolean("rest.request.server.backup.allowAnyTargetPath")) {
@@ -198,7 +198,8 @@ public class ServerRequest {
   @Path("/backup")
   @Produces({"text/plain"})
   @ApiOperation(value="Get the latest backup status.",nickname="getBackupStatus")
-  public String getBackupStatus(@InjectParam BackupProcessManager backupManager) {
+  public String getBackupStatus() {
+    BackupProcessManager backupManager = myServiceLocator.getSingletonService(BackupProcessManager.class);
     final BackupProcess backupProcess = backupManager.getCurrentBackupProcess();
     if (backupProcess == null) {
       return "Idle";
