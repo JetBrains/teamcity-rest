@@ -428,7 +428,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
     }
 
     if (filterBranches != null) {
-      return getItemHolder(getBranchChanges(buildType, filterBranches, SelectPrevBuildPolicy.SINCE_FIRST_BUILD));
+      return getItemHolder(getBranchChanges(buildType, filterBranches, SelectPrevBuildPolicy.SINCE_NULL_BUILD));
     }
 
     locator.markUnused(BUILD_TYPE); //not used this time
