@@ -18,6 +18,11 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.collect.ComparisonChain;
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.parameters.ParametersProvider;
@@ -55,12 +60,6 @@ import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.*;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @author Yegor.Yarko
@@ -2000,12 +1999,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           if (associatedBuild != null) {
             final List<OrderedBuild> buildsBefore = ((BuildTypeEx)buildType).getBuildTypeOrderedBuilds().getBuildsBefore(associatedBuild);
             //consider performance optimization by converting id to build only on actual retrieve
-            return CollectionsUtil.convertAndFilterNulls(buildsBefore, new Converter<BuildPromotion, OrderedBuild>() {
-              @Override
-              public BuildPromotion createFrom(@NotNull final OrderedBuild source) {
-                return myBuildPromotionManager.findPromotionById(source.getPromotionId());
-              }
-            });
+            return getBuildPromotions(buildsBefore);
           } else {
             final Branch branch = item.getBranch();
             if (branch == null) {
@@ -2013,17 +2007,17 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
             }
             final List<OrderedBuild> buildsBefore = ((BuildTypeEx)buildType).getBuildTypeOrderedBuilds().getBuildsBeforeInBranches(item, new Filter<String>() {
               @Override
-              public boolean accept(@NotNull final String data) {
+              public boolean accept(@NotNull String data) {
                 return true;
               }
             });
-            return CollectionsUtil.convertAndFilterNulls(buildsBefore, new Converter<BuildPromotion, OrderedBuild>() {
-              @Override
-              public BuildPromotion createFrom(@NotNull final OrderedBuild source) {
-                return myBuildPromotionManager.findPromotionById(source.getPromotionId());
-              }
-            });
+            return getBuildPromotions(buildsBefore);
           }
+        }
+
+        @NotNull
+        private List<BuildPromotion> getBuildPromotions(@NotNull List<OrderedBuild> orderedBuilds) {
+          return new ArrayList<>(myBuildPromotionManager.findPromotionsByIds(orderedBuilds.stream().map(b -> b.getPromotionId()).collect(Collectors.toSet())));
         }
       };
     }
