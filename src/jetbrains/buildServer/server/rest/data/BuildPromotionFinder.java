@@ -2014,11 +2014,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
             return getBuildPromotions(buildsBefore);
           }
         }
-
-        @NotNull
-        private List<BuildPromotion> getBuildPromotions(@NotNull List<OrderedBuild> orderedBuilds) {
-          return new ArrayList<>(myBuildPromotionManager.findPromotionsByIds(orderedBuilds.stream().map(b -> b.getPromotionId()).collect(Collectors.toSet())));
-        }
       };
     }
 
@@ -2036,12 +2031,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           final SBuild associatedBuild = item.getAssociatedBuild();
           if (associatedBuild != null) {
             final List<OrderedBuild> buildsBefore = ((BuildTypeEx)buildType).getBuildTypeOrderedBuilds().getBuildsAfter(associatedBuild);
-            return CollectionsUtil.convertAndFilterNulls(buildsBefore, new Converter<BuildPromotion, OrderedBuild>() {
-              @Override
-              public BuildPromotion createFrom(@NotNull final OrderedBuild source) {
-                return myBuildPromotionManager.findPromotionById(source.getPromotionId());
-              }
-            });
+            return getBuildPromotions(buildsBefore);
           } else {
             return Collections.emptyList();
           }
@@ -2184,5 +2174,17 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (!parsedLocator.isAllDimensionsUsed()) return null;
     if (count <= result) return count;
     return null;
+  }
+
+  @NotNull
+  private List<BuildPromotion> getBuildPromotions(@NotNull List<OrderedBuild> orderedBuilds) {
+    List<BuildPromotion> res = new ArrayList<>();
+    List<Long> promotionIds = orderedBuilds.stream().map(b -> b.getPromotionId()).collect(Collectors.toList());
+    Map<Long, BuildPromotion> promosMap = myBuildPromotionManager.findPromotionsByIds(promotionIds).stream().collect(Collectors.toMap(k -> k.getId(), p -> p));
+    for (OrderedBuild ob: orderedBuilds) {
+      BuildPromotion bp = promosMap.get(ob.getPromotionId());
+      if (bp != null) res.add(bp);
+    }
+    return res;
   }
 }
