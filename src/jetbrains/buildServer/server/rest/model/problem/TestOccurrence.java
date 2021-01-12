@@ -210,6 +210,10 @@ public class TestOccurrence {
 
   @XmlElement
   public TestOccurrence getNextFixed() {
+    if (BooleanUtils.isNotTrue(myFields.isIncluded("nextFixed", false))) {
+      return null;
+    }
+
     try {
       if (!myTestRun.isFixed()) {
         return null;
