@@ -20,9 +20,13 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.request.ServerRequest;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.LicenseKeysManager;
@@ -37,6 +41,8 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings({"PublicField", "WeakerAccess"})
 @XmlRootElement(name = "licensingData")
 @XmlType(name = "licensingData")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION,
+    value = "Represents license state details (available build configurations, agents, etc.)."))
 public class LicensingData {
   @XmlAttribute
   public Boolean licenseUseExceeded;

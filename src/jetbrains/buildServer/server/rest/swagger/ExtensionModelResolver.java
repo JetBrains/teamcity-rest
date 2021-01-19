@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.openapi.diagnostic.Logger;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import io.swagger.annotations.ExtensionProperty;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
@@ -135,6 +136,17 @@ public class ExtensionModelResolver extends ModelResolver {
     }
   }
 
+  private String convertKebabCaseToCamelCase(String kebabCasedString) {
+    String[] words = kebabCasedString.split("-");
+    String result = "";
+
+    for (String word : words) {
+      result += StringUtils.capitalize(word);
+    }
+
+    return result;
+  }
+
   private void setDescriptionVendorExtension(ModelImpl model) {
     String baseType = (String) model.getVendorExtensions().get(ExtensionType.X_BASE_TYPE);
     Optional<Property> containerFilterResult = model.getProperties().values().stream().
@@ -142,7 +154,8 @@ public class ExtensionModelResolver extends ModelResolver {
         findFirst();
 
     if (containerFilterResult.isPresent()) {
-      String containerType = StringUtils.capitalize(containerFilterResult.get().getName());
+      String containerType = convertKebabCaseToCamelCase(containerFilterResult.get().getName());
+
       switch (baseType) {
         case (ObjectType.LIST):
           model.setVendorExtension(ExtensionType.X_DESCRIPTION, String.format("Represents a list of %s entities.", containerType));

@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings({"PublicField", "WeakerAccess"})
 @XmlRootElement(name = "operationResult")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a relation between message and related entity."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a relation between a message and a related entity."))
 public class OperationResult {
   @XmlElement
   public String message;

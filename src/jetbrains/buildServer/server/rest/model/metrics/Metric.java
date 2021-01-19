@@ -40,8 +40,8 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "metric")
 @XmlType(propOrder = {"name", "description", "prometheusName", "metricValues", "metricTags"})
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a specific server metric." + 
-"\nRelated Help article: [Metrics](https://www.jetbrains.com/help/teamcity/teamcity-monitoring-and-diagnostics.html#Metrics)"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the specific server metric." +
+"\n\nRelated Help article: [Metrics](https://www.jetbrains.com/help/teamcity/teamcity-monitoring-and-diagnostics.html#Metrics)"))
 public class Metric {
   private MetricValue myMetricValue;
   private Fields myFields;

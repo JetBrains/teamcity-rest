@@ -70,7 +70,7 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
   "project", "properties", "vcsRootInstances" , "repositoryIdStrings"})  //todo: add webUrl
 @SuppressWarnings("PublicField")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a VCS root." + 
-"\nRelated Help article: [VCS Root](https://www.jetbrains.com/help/teamcity/vcs-root.html)"))
+"\n\nRelated Help article: [VCS Root](https://www.jetbrains.com/help/teamcity/vcs-root.html)"))
 public class VcsRoot {
   @XmlAttribute
   public String id;

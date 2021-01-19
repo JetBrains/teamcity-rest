@@ -45,7 +45,7 @@ import org.jetbrains.annotations.NotNull;
 "project", "images"})
 @SuppressWarnings("PublicField")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a cloud agent profile." + 
-"\nRelated Help article: [Cloud Profile](https://www.jetbrains.com/help/teamcity/agent-cloud-profile.html)"))
+"\n\nRelated Help article: [Cloud Profile](https://www.jetbrains.com/help/teamcity/agent-cloud-profile.html)"))
 public class CloudProfile {
 
   @NotNull private final jetbrains.buildServer.clouds.CloudProfile myCloudProfile;

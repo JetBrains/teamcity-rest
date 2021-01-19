@@ -34,8 +34,8 @@ import org.jetbrains.annotations.NotNull;
   "status",
   "buildId"
 })
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a VCS-side label of this build sources." + 
-"\nRelated Help article: [Labeling Sources](https://www.jetbrains.com/help/teamcity/vcs-labeling.html)"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a VCS-side label of this build's sources." +
+"\n\nRelated Help article: [Labeling Sources](https://www.jetbrains.com/help/teamcity/vcs-labeling.html)"))
 public class VcsLabel {
   @NotNull
   private final jetbrains.buildServer.serverSide.vcs.VcsLabel myRealLabel;

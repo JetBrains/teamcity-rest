@@ -43,7 +43,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "tag")
 @XmlRootElement(name = "tag")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a single build tag." + 
-"\nRelated Help article: [Tagging Build](https://www.jetbrains.com/help/teamcity/build-tag.html)"))
+"\n\nRelated Help article: [Tagging Build](https://www.jetbrains.com/help/teamcity/build-tag.html)"))
 public class Tag {
   @XmlAttribute public String name;
   @XmlAttribute(name = "private") public Boolean privateTag;

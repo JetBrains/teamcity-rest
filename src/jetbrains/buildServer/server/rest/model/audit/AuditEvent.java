@@ -46,8 +46,8 @@ import org.jetbrains.annotations.NotNull;
 
 @XmlRootElement(name = "auditEvent")
 @XmlType(name = "auditEvent")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an audit event including user and affected entities." + 
-"\nRelated Help article: [Audit](https://www.jetbrains.com/help/teamcity/tracking-user-actions.html)"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an audit event including a user and affected entities." +
+"\n\nRelated Help article: [Audit](https://www.jetbrains.com/help/teamcity/tracking-user-actions.html)"))
 public class AuditEvent {
   private static final Logger LOG = Logger.getInstance(AuditEvent.class.getName());
 

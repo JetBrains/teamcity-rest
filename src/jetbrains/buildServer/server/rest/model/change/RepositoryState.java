@@ -42,7 +42,10 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "repositoryState")
 @XmlType(name = "repositoryState")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@Extension(properties = {
+    @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the list of the repository Branch entities with their recent revisions."),
+    @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST)
+})
 public class RepositoryState {
   @XmlAttribute
   public String timestamp;

@@ -38,7 +38,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "permissionAssignment")
 @XmlType(name = "permissionAssignment")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a relation between specific permission and project."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a relation between the specific permission and a project."))
 public class PermissionAssignment {
   @XmlElement
   public Permission permission;

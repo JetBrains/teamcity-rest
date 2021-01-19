@@ -42,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "compatibility")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a compatibility relation between agent and build configuration."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a compatibility relation between the agent and build configuration."))
 public class Compatibility {
   @XmlAttribute public Boolean compatible;
   @XmlElement public Agent agent;

@@ -49,7 +49,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "problem")
 @XmlType(name = "problem", propOrder = {"id", "type", "identity", "href",
   "description"/*experimental*/, "mutes", "investigations", "problemOccurrences"})
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an issue with test."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an issue with the test."))
 public class Problem {
   @XmlAttribute public String id;
   @XmlAttribute public String type;

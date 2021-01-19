@@ -65,8 +65,8 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
   "modificationCheckInterval", "commitHookMode", "lastVersion", "lastVersionInternal", "href",
   "parent", "status", "repositoryState", "properties", "repositoryIdStrings"})
 @SuppressWarnings("PublicField")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a relation between VCS root and unique settings set for this root." + 
-"\nRelated Help article: [VCS Settings](https://www.jetbrains.com/help/teamcity/configuring-vcs-settings.html#VCS+Settings+Overview)"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a relation between a VCS root and unique settings set for this root." +
+"\n\nRelated Help article: [VCS Settings](https://www.jetbrains.com/help/teamcity/configuring-vcs-settings.html#VCS+Settings+Overview)"))
 public class VcsRootInstance {
   public static final String LAST_VERSION_INTERNAL = "lastVersionInternal";
   public static final String LAST_VERSION = "lastVersion";

@@ -61,7 +61,7 @@ import org.jetbrains.annotations.Nullable;
   "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects", "cloudProfiles"})
 @SuppressWarnings("PublicField")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a project." + 
-"\nRelated Help article: [Project](https://www.jetbrains.com/help/teamcity/project.html)"))
+"\n\nRelated Help article: [Project](https://www.jetbrains.com/help/teamcity/project.html)"))
 public class Project {
   @XmlAttribute
   public String id;

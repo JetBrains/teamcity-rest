@@ -73,7 +73,7 @@ import org.jetbrains.annotations.NotNull;
   "storesProjectSettings"
 })
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a VCS change (commit)." + 
-"\nRelated Help article: [Change](https://www.jetbrains.com/help/teamcity/change.html)"))
+"\n\nRelated Help article: [Change](https://www.jetbrains.com/help/teamcity/change.html)"))
 public class Change {
   protected SVcsModification myModification;
   protected ApiUrlBuilder myApiUrlBuilder;

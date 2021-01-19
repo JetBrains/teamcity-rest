@@ -16,6 +16,10 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import io.swagger.annotations.ExtensionProperty;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import javax.xml.bind.annotation.XmlElement;
@@ -27,6 +31,8 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "items")
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION,
+    value = "Represents a list of items (strings)."))
 public class Items {
   @XmlElement(name = "item")
   public Collection<String> items;

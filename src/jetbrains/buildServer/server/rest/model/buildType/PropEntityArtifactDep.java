@@ -47,7 +47,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "artifact-dependency")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an artifact dependency relation." + 
-"\nRelated Help article: [Artifact Dependency](https://www.jetbrains.com/help/teamcity/dependent-build.html#Artifact+Dependency)"))
+"\n\nRelated Help article: [Artifact Dependency](https://www.jetbrains.com/help/teamcity/dependent-build.html#Artifact+Dependency)"))
 @XmlType
 public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<SArtifactDependency> {
 

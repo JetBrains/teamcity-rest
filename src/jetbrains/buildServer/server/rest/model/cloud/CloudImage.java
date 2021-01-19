@@ -51,8 +51,8 @@ import org.jetbrains.annotations.Nullable;
   "profile", "instances", "errorMessage", "agentTypeId"})
 
 @SuppressWarnings("PublicField")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a cloud instance image saved with profile." + 
-"\nRelated Help article: [Cloud Profile](https://www.jetbrains.com/help/teamcity/agent-cloud-profile.html)"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a cloud instance image saved with a profile." +
+"\n\nRelated Help article: [Cloud Profile](https://www.jetbrains.com/help/teamcity/agent-cloud-profile.html)"))
 public class CloudImage {
 
   @NotNull private final jetbrains.buildServer.clouds.CloudImage myCloudImage;

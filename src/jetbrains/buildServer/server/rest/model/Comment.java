@@ -37,7 +37,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlType(name= "comment")
 @XmlRootElement(name = "comment")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a dated comment by specific user."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a dated comment of the specific user."))
 public class Comment {
   @XmlElement(name = "user")
   public jetbrains.buildServer.server.rest.model.user.User user;

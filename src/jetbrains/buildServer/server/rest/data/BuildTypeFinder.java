@@ -56,11 +56,11 @@ import java.util.stream.Collectors;
  *         Date: 23.03.13
  */
 @LocatorResource(value = LocatorName.BUILD_TYPE,
-    extraDimensions = {Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
+    extraDimensions = {PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
     description = "Represents a locator string for filtering BuildType entities." +
         "\nExamples:" +
-        "\n* `name:MyBuildType` – find build configuration with MyBuildType name" +
-        "\n* `project:<projectLocator>` – find build configurations under project found by projectLocator")
+        "\n* `name:MyBuildType` – find build configuration with `MyBuildType` name" +
+        "\n* `project:<projectLocator>` – find build configurations under project found by `projectLocator`")
 public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   private static final Logger LOG = Logger.getInstance(BuildTypeFinder.class.getName());
 

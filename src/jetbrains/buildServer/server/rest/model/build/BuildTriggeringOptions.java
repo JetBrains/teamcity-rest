@@ -35,7 +35,7 @@ import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 @XmlType(name = "buildTriggeringOptions", propOrder = {"cleanSources", "cleanSourcesInAllDependencies", "rebuildAllDependencies", "rebuildFailedOrIncompleteDependencies", "queueAtTop", "freezeSettings", "tagDependencies",
   "rebuildDependencies"})
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the dependency/queue settings with which this build has been started." + 
-"\nRelated Help article: [Custom Build](https://www.jetbrains.com/help/teamcity/triggering-a-custom-build.html#Run+Custom+Build+dialog)"))
+"\n\nRelated Help article: [Custom Build](https://www.jetbrains.com/help/teamcity/triggering-a-custom-build.html#Run+Custom+Build+dialog)"))
 public class BuildTriggeringOptions {
     @XmlAttribute public Boolean cleanSources;
     @XmlAttribute public Boolean cleanSourcesInAllDependencies;

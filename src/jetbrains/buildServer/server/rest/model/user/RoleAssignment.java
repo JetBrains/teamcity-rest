@@ -48,7 +48,8 @@ import org.jetbrains.annotations.Nullable;
  */
 
 @XmlRootElement(name = "role")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "RoleAssignment"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a user/group role." +
+    "\n\nRelated Help article: [Roles](https://www.jetbrains.com/help/teamcity/role-and-permission.html)"))
 public class RoleAssignment {
   @XmlAttribute
   public String roleId;

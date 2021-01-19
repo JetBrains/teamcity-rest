@@ -35,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "permission")
 @XmlType(name = "permission")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a permission." + 
-"\nRelated Help article: [Roles](https://www.jetbrains.com/help/teamcity/role-and-permission.html)"))
+"\n\nRelated Help article: [Roles](https://www.jetbrains.com/help/teamcity/role-and-permission.html)"))
 public class Permission {
   @XmlAttribute
   public String id;

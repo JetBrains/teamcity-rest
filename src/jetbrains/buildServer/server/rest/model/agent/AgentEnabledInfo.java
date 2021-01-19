@@ -41,8 +41,8 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlType(name = "enabledInfo")
 @XmlRootElement(name = "enabledInfo")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents current enablement status of the agent." + 
-"\nRelated Help article: [Build Agent](https://www.jetbrains.com/help/teamcity/build-agent.html)"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the current enablement status of the agent." +
+"\n\nRelated Help article: [Build Agent](https://www.jetbrains.com/help/teamcity/build-agent.html)"))
 public class AgentEnabledInfo extends BooleanStatus {
   @XmlAttribute(name = "statusSwitchTime")
   public String statusSwitchTime;

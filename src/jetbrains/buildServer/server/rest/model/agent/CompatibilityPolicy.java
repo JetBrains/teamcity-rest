@@ -46,7 +46,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "compatibilityPolicy")
 @XmlType(name = "compatibilityPolicy")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents build configuration run policy and included build configurations."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a build configuration run policy and included build configurations."))
 public class CompatibilityPolicy {
   public static final String POLICY_ANY = "any";
   public static final String POLICY_SELECTED = "selected";

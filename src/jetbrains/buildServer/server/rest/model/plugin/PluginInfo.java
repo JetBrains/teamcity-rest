@@ -38,7 +38,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "plugin")
 @XmlType(propOrder = {"name", "displayName", "version", "loadPath",
   "parameters"})
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "PluginInfo"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a plugin."))
 public class PluginInfo {
   private ServerPluginInfo myPluginInfo;
   private Fields myFields;

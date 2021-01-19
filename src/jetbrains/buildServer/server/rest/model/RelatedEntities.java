@@ -37,7 +37,10 @@ import java.util.stream.Collectors;
  */
 @XmlRootElement(name = "relatedEntities")
 @XmlType(name = "relatedEntities")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@Extension(properties = {
+    @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a list of RelatedEntity entities."),
+    @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST)
+})
 public class RelatedEntities {
   @XmlElement(name = "entity")
   public List<RelatedEntity> entities;

@@ -47,7 +47,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "problemOccurrence")
 @XmlType(name = "problemOccurrence")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents instance of failed test in specific build."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an instance of a failed test in the specific build."))
 public class ProblemOccurrence {
   @XmlAttribute public String id;
   @XmlAttribute public String type;

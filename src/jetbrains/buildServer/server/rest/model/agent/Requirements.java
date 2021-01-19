@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "requirements")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "?"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a list of unmet requirements of a build."))
 public class Requirements {
   @XmlAttribute public String description;
 

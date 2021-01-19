@@ -44,7 +44,7 @@ import org.jetbrains.annotations.NotNull;
   "groupFlag", /*experimental, temporary*/
   "builds"})
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a branch on which this build has been started." + 
-"\nRelated Help article: [Feature Branches](https://www.jetbrains.com/help/teamcity/working-with-feature-branches.html)"))
+"\n\nRelated Help article: [Feature Branches](https://www.jetbrains.com/help/teamcity/working-with-feature-branches.html)"))
 public class Branch {
   private BranchData myBranch;
   private Fields myFields;

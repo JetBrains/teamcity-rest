@@ -24,7 +24,7 @@ import java.util.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents test metadata (package, method, class, etc.)."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents test metadata (package, method, class, and so on)."))
 public class ParsedTestName {
 
   @XmlAttribute public String testPackage;

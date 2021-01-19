@@ -46,8 +46,8 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 05.01.12
  */
 @XmlRootElement(name = "agent-requirement")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an agent parameters requirement." + 
-"\nRelated Help article: [Agent Requirements](https://www.jetbrains.com/help/teamcity/agent-requirements.html)"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a requirement to agent parameters." +
+"\n\nRelated Help article: [Agent Requirements](https://www.jetbrains.com/help/teamcity/agent-requirements.html)"))
 public class PropEntityAgentRequirement extends PropEntity implements PropEntityEdit<Requirement> {
 
   public static final String NAME_PROPERTY_VALUE = "property-value";

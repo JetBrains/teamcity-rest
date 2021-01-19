@@ -35,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "environment")
 @XmlType(name = "environment")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents OS details of the agent."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the details of the agent's OS."))
 @SuppressWarnings("PublicField")
 public class Environment {
   @XmlAttribute

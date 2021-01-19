@@ -55,11 +55,11 @@ import java.util.stream.Collectors;
  *         Date: 23.03.13
  */
 @LocatorResource(value = LocatorName.VCS_ROOT,
-    extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
+    extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
     description = "Represents a locator string for filtering VcsRoot entities." +
         "\nExamples:" +
-        "\n* `type:jetbrains.git` – find all Git-typed VCS roots." +
-        "\n* `project:<projectLocator>` – find all VCS roots defined under project found by projectLocator.")
+        "\n* `type:jetbrains.git` – find all `Git`-typed VCS roots." +
+        "\n* `project:<projectLocator>` – find all VCS roots defined under project found by `projectLocator`.")
 public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
   private static final Logger LOG = Logger.getInstance(VcsRootFinder.class.getName());
   public static final String REPOSITORY_ID_STRING = "repositoryIdString";

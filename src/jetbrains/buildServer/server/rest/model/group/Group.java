@@ -62,7 +62,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "group")
 @XmlType(name = "group")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a user group." + 
-"\nRelated Help article: [User Group](https://www.jetbrains.com/help/teamcity/user-group.html)"))
+"\n\nRelated Help article: [User Group](https://www.jetbrains.com/help/teamcity/user-group.html)"))
 public class Group {
   @XmlAttribute
   public String key;

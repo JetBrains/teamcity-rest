@@ -30,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a specific file change (in scope of the commit)."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the specific file change (in the scope of the commit)."))
 public class FileChange {
   @XmlAttribute(name = "before-revision")
   public String before;

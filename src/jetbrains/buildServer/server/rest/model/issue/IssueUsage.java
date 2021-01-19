@@ -39,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 28.07.2009
  */
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a relation between issue and Changes entity."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a relation between the issue and the Changes entity."))
 public class IssueUsage {
   private jetbrains.buildServer.issueTracker.Issue myIssue;
   private SBuild myBuild;

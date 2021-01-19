@@ -37,8 +37,8 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "VcsCheckStatus")
 @XmlType(name = "VcsCheckStatus")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents last known repository check status." + 
-"\nRelated Help article: [VCS Root](https://www.jetbrains.com/help/teamcity/configuring-vcs-roots.html)"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the last known repository check status." +
+"\n\nRelated Help article: [VCS Root](https://www.jetbrains.com/help/teamcity/configuring-vcs-roots.html)"))
 @SuppressWarnings("PublicField")
 public class VcsCheckStatus {
   @XmlAttribute

@@ -54,7 +54,7 @@ import java.util.stream.Collectors;
     description = "Represents a locator string for filtering ProblemOccurrence entities." +
         "\nExamples:" +
         "\n* `currentlyInvestigated:true` – find last 100 build problem occurrences which are being currently investigated." +
-        "\n* `build:<buildLocator>` – find build problem occurrences under build found by buildLocator.")
+        "\n* `build:<buildLocator>` – find build problem occurrences under build found by `buildLocator`.")
 public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   private static final Logger LOG = Logger.getInstance(ProblemOccurrenceFinder.class.getName());
 

@@ -51,11 +51,11 @@ import java.util.stream.Stream;
  *         Date: 25.12.13
  */
 @LocatorResource(value = LocatorName.AGENT,
-    extraDimensions = {FinderImpl.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
+    extraDimensions = {FinderImpl.DIMENSION_ID, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
     description = "Represents a locator string for filtering Agent entities." +
         "\nExamples:" +
-        "\n* `name:DefaultAgent` – find agent with DefaultAgent name." +
-        "\n* `pool:(<agentPoolLocator>),connected:true` – find all connected agents in a pool found by agentPoolLocator.")
+        "\n* `name:DefaultAgent` – find agent with `DefaultAgent` name." +
+        "\n* `pool:(<agentPoolLocator>),connected:true` – find all connected agents in a pool found by `agentPoolLocator`.")
 public class AgentFinder extends AbstractFinder<SBuildAgent> {
   private static final Logger LOG = Logger.getInstance(AgentFinder.class.getName());
 
@@ -71,7 +71,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   @LocatorDimension("ip") protected static final String IP = "ip";
   protected static final String PROTOCOL = "protocol";
   protected static final String DEFAULT_FILTERING = "defaultFilter";
-  @LocatorDimension(value = "pool", notes = "Agent pool ID.")
+  @LocatorDimension(value = "pool", format = LocatorName.AGENT_POOL, notes = "Agent pool locator.")
   protected static final String POOL = "pool";
   @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
   protected static final String BUILD = "build";

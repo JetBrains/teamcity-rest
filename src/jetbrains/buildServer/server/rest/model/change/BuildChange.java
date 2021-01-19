@@ -41,7 +41,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "buildChange")
 @XmlType(name = "buildChange", propOrder = {"nextBuild", "prevBuild"})
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents links on next or previous build"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents links to the next or previous build."))
 public class BuildChange {
   @XmlElement Build prevBuild;
   @XmlElement Build nextBuild;

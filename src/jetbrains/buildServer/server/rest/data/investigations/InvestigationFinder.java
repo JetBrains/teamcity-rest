@@ -56,7 +56,7 @@ import java.util.List;
     extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
     description = "Represents a locator string for filtering Investigation entities." +
         "\nExamples:" +
-        "\n* `assignee:John Doe` – find investigations assigned to John Doe." +
+        "\n* `assignee:John Smith` – find investigations assigned to `John Smith`." +
         "\n* `state:taken` – find investigations which are currently in work.")
 public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   @LocatorDimension(value = "problem", format = LocatorName.PROBLEM, notes = "Problem locator.")

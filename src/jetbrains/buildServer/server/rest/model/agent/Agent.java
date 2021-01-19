@@ -68,7 +68,7 @@ import java.util.Date;
  */
 @XmlRootElement(name = "agent")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a known agent instance." + 
-"\nRelated Help article: [Build Agent](https://www.jetbrains.com/help/teamcity/build-agent.html)"))
+"\n\nRelated Help article: [Build Agent](https://www.jetbrains.com/help/teamcity/build-agent.html)"))
 @SuppressWarnings({"PublicField", "WeakerAccess"})
 public class Agent {
   @NotNull

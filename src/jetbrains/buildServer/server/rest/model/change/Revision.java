@@ -39,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("PublicField")
 @XmlType(name = "revision")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a revision related to a VCS change." + 
-"\nRelated Help article: [Revision](https://www.jetbrains.com/help/teamcity/revision.html)"))
+"\n\nRelated Help article: [Revision](https://www.jetbrains.com/help/teamcity/revision.html)"))
 public class Revision {
   @XmlAttribute(name = "version")
   public String displayRevision;

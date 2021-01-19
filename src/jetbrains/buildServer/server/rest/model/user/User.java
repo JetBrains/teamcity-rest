@@ -62,7 +62,7 @@ import org.jetbrains.annotations.Nullable;
   "properties", "roles", "groups",
   "locator"/*only when triggering*/})
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a user." + 
-"\nRelated Help article: [User Account](https://www.jetbrains.com/help/teamcity/user-account.html)"))
+"\n\nRelated Help article: [User Account](https://www.jetbrains.com/help/teamcity/user-account.html)"))
 public class User {
   @Nullable
   public final SUser myUser;

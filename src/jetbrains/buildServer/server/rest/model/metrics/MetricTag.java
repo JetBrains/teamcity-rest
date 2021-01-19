@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "metricTag")
 @XmlType(name = "metricTag", propOrder = {"name", "value"})
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a metric tag." + 
-"\nRelated Help article: [Metrics](https://www.jetbrains.com/help/teamcity/teamcity-monitoring-and-diagnostics.html#Metrics)"))
+"\n\nRelated Help article: [Metrics](https://www.jetbrains.com/help/teamcity/teamcity-monitoring-and-diagnostics.html#Metrics)"))
 public class MetricTag {
   @XmlAttribute
   public String name;

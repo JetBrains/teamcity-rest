@@ -51,7 +51,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "agentPool")
 @XmlType(name = "agentPool")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an agent pool instance." + 
-"\nRelated Help article: [Agent Pool](https://www.jetbrains.com/help/teamcity/agent-pool.html)"))
+"\n\nRelated Help article: [Agent Pool](https://www.jetbrains.com/help/teamcity/agent-pool.html)"))
 @SuppressWarnings("PublicField")
 public class AgentPool {
   @XmlAttribute public Integer id;

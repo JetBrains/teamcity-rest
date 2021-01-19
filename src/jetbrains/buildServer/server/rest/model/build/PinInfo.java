@@ -35,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlType(name = "pinInfo")
 @XmlRootElement(name = "pinInfo")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the pinned status of this build." + 
-"\nRelated Help article: [Pinning Build](https://www.jetbrains.com/help/teamcity/pinned-build.html)"))
+"\n\nRelated Help article: [Pinning Build](https://www.jetbrains.com/help/teamcity/pinned-build.html)"))
 public class PinInfo extends BooleanStatus {
   public PinInfo() {
   }

@@ -36,8 +36,8 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "vcsStatus")
 @XmlType(name = "vcsStatus")
 @SuppressWarnings("PublicField")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents links on last or previous VCS root check." + 
-"\nRelated Help article: [VCS Root](https://www.jetbrains.com/help/teamcity/configuring-vcs-roots.html)"))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents links to the last or previous VCS root check." +
+"\n\nRelated Help article: [VCS Root](https://www.jetbrains.com/help/teamcity/configuring-vcs-roots.html)"))
 public class VcsStatus {
   @XmlElement
   public VcsCheckStatus current;

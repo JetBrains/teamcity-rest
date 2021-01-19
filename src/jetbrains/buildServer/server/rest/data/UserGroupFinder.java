@@ -37,8 +37,8 @@ import org.jetbrains.annotations.NotNull;
 @LocatorResource(value = LocatorName.USER_GROUP, extraDimensions = AbstractFinder.DIMENSION_ITEM,
     description = "Represents a locator string for filtering UserGroup entities." +
         "\nExamples:" +
-        "\n* 'name:MyGroupName' – find group with name MyGroupName." +
-        "\n* 'key:MyGroupKey' – find group with key MyGroupKey.")
+        "\n* 'name:MyGroupName' – find group with name `MyGroupName`." +
+        "\n* 'key:MyGroupKey' – find group with key `MyGroupKey`.")
 public class UserGroupFinder {
   @NotNull private final UserGroupManager myUserGroupManager;
 

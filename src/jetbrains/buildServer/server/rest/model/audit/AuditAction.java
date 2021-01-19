@@ -38,7 +38,7 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "auditAction")
 @XmlType(name = "auditAction")
 @Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an audit action." + 
-"\nRelated Help article: [Audit](https://www.jetbrains.com/help/teamcity/tracking-user-actions.html)"))
+"\n\nRelated Help article: [Audit](https://www.jetbrains.com/help/teamcity/tracking-user-actions.html)"))
 public class AuditAction {
   /**
    * Note that name can change from one TeamCity version to another

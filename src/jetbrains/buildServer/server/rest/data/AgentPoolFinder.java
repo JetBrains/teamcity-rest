@@ -48,8 +48,8 @@ import java.util.*;
 @LocatorResource(value = LocatorName.AGENT_POOL, extraDimensions = AbstractFinder.DIMENSION_ITEM,
     description = "Represents a locator string for filtering AgentPool entities." +
         "\nExamples:" +
-        "\n* `name:Default` – find Default agent pool details." +
-        "\n* `project:(<projectLocator>)` – find pool associated with project found by projectLocator.")
+        "\n* `name:Default` – find `Default` agent pool details." +
+        "\n* `project:(<projectLocator>)` – find pool associated with project found by `projectLocator`.")
 public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
   @NotNull private final AgentPoolManager myAgentPoolManager;
   @NotNull private final ServiceLocator myServiceLocator;

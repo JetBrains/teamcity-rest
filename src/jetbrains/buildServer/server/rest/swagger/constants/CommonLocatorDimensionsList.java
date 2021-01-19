@@ -58,7 +58,7 @@ public class CommonLocatorDimensionsList {
     );
     dimensionHashMap.put(
         AbstractFinder.DIMENSION_ITEM, new CommonLocatorDimension(
-            AbstractFinder.DIMENSION_ITEM, LocatorDimensionDataType.STRING, "item:(<locator1>),item:(<locator2>...)", "[EXPERIMENTAL] Supply multiple locators and return a union of the results."
+            AbstractFinder.DIMENSION_ITEM, LocatorDimensionDataType.STRING, "item:(<locator1>),item:(<locator2>...)", "Supply multiple locators and return a union of the results."
         )
     );
     dimensionHashMap.put(

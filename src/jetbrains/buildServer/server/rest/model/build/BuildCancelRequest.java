@@ -30,7 +30,7 @@ import javax.xml.bind.annotation.XmlType;
  */
 @XmlRootElement(name = "buildCancelRequest")
 @XmlType(name = "buildCancelRequest")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a cancel request for a specific build."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a cancel request for the specific build."))
 public class BuildCancelRequest {
   public BuildCancelRequest() {
   }

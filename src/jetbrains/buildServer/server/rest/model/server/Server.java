@@ -49,7 +49,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "server")
 @XmlType(name = "server", propOrder = {"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId", "role", "webUrl",
   "projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools", "investigations", "mutes"})
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents various details of this server including installation version."))
+@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents various details of this server including the installation version."))
 public class Server {
   private SBuildServer myServer;
   private ServerSettings myServerSettings;
