@@ -21,6 +21,7 @@ import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class FeatureToggle {
   @NotNull
   private static final Logger LOGGER = Logger.getInstance(FeatureToggle.class);
@@ -66,6 +67,49 @@ public class FeatureToggle {
     }
   }
 
+  @Nullable
+  public static <T> T withToggleOnByDefault(@NotNull final String toggle, @NotNull final ValueWithDefault.Value<T> supplier) {
+    return withToggleOnByDefault(toggle, supplier, (T)null);
+  }
+
+  @Nullable
+  public static <T> T withToggleOnByDefault(@NotNull final String toggle, @NotNull final ValueWithDefault.Value<T> supplier, @Nullable final T valueForDisabled) {
+    return withToggleOnByDefault(toggle, supplier, (ValueWithDefault.Value<T>)() -> valueForDisabled);
+  }
+
+  @Nullable
+  public static <T> T withToggleOnByDefault(@NotNull final String toggle,
+                                            @NotNull final ValueWithDefault.Value<T> supplier,
+                                            @NotNull final ValueWithDefault.Value<T> supplierForDisabled) {
+    return withToggleDeferred(toggle, supplier, supplierForDisabled).get();
+  }
+
+  @NotNull
+  public static <T> ValueWithDefault.Value<T> withToggleOnByDefaultDeferred(@NotNull final String toggle, @NotNull final ValueWithDefault.Value<T> supplier) {
+    return withToggleOnByDefaultDeferred(toggle, supplier, (T)null);
+  }
+
+  @NotNull
+  public static <T> ValueWithDefault.Value<T> withToggleOnByDefaultDeferred(@NotNull final String toggle,
+                                                                            @NotNull final ValueWithDefault.Value<T> supplier,
+                                                                            @Nullable final T valueForDisabled) {
+    return withToggleOnByDefaultDeferred(toggle, supplier, (ValueWithDefault.Value<T>)() -> valueForDisabled);
+  }
+
+  @NotNull
+  public static <T> ValueWithDefault.Value<T> withToggleOnByDefaultDeferred(@NotNull final String toggle,
+                                                                            @NotNull final ValueWithDefault.Value<T> supplier,
+                                                                            @NotNull final ValueWithDefault.Value<T> supplierForDisabled) {
+    if (TeamCityProperties.getBooleanOrTrue(toggle)) {
+      return supplier;
+    } else {
+      return () -> {
+        LOGGER.debug(() -> "Feature " + toggle + " is not enabled, " + supplier + " will not be executed. Returning default value instead");
+        return supplierForDisabled.get();
+      };
+    }
+  }
+
   public static void withToggle(@NotNull final String toggle, @NotNull final Runnable action) {
     if (TeamCityProperties.getBoolean(toggle)) {
       action.run();
@@ -77,6 +121,23 @@ public class FeatureToggle {
   @NotNull
   public static Runnable withToggleDeferred(@NotNull final String toggle, @NotNull final Runnable action) {
     if (TeamCityProperties.getBoolean(toggle)) {
+      return action;
+    } else {
+      return () -> LOGGER.debug(() -> "Feature " + toggle + " is not enabled, " + action + " will not be executed");
+    }
+  }
+
+  public static void withToggleOnByDefault(@NotNull final String toggle, @NotNull final Runnable action) {
+    if (TeamCityProperties.getBooleanOrTrue(toggle)) {
+      action.run();
+    } else {
+      LOGGER.debug(() -> "Feature " + toggle + " is not enabled, " + action + " will not be executed");
+    }
+  }
+
+  @NotNull
+  public static Runnable withToggleOnByDefaultDeferred(@NotNull final String toggle, @NotNull final Runnable action) {
+    if (TeamCityProperties.getBooleanOrTrue(toggle)) {
       return action;
     } else {
       return () -> LOGGER.debug(() -> "Feature " + toggle + " is not enabled, " + action + " will not be executed");

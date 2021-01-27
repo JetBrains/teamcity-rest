@@ -16,14 +16,13 @@
 
 package jetbrains.buildServer.server.rest.model.user;
 
+import io.swagger.annotations.ExtensionProperty;
 import java.util.Date;
 import javax.xml.bind.annotation.*;
-
-import io.swagger.annotations.ExtensionProperty;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.FeatureToggle;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -85,7 +84,7 @@ public class Token {
       value = tokenValue;
     }
     permissionRestrictions = ValueWithDefault.decideDefault(fields.isIncluded("permissionRestrictions", false, true),
-                                                            FeatureToggle.withToggleDeferred("teamcity.internal.accessTokens.enablePermissionScopes", () -> {
+                                                            FeatureToggle.withToggleOnByDefaultDeferred("teamcity.internal.accessTokens.enablePermissionScopes", () -> {
                                                               final AuthenticationToken.PermissionsRestriction permissionsRestriction = t.getPermissionsRestriction();
                                                               return permissionsRestriction != null ? new PermissionRestrictions(permissionsRestriction,
                                                                                                                                  fields.getNestedField("permissionRestrictions"),
@@ -131,7 +130,7 @@ public class Token {
   }
 
   public void setPermissionRestrictions(@Nullable PermissionRestrictions permissionRestrictions) {
-    FeatureToggle.withToggle("teamcity.internal.accessTokens.enablePermissionScopes", () -> this.permissionRestrictions = permissionRestrictions);
+    FeatureToggle.withToggleOnByDefaultDeferred("teamcity.internal.accessTokens.enablePermissionScopes", () -> this.permissionRestrictions = permissionRestrictions);
   }
 
   @XmlAttribute
@@ -140,6 +139,7 @@ public class Token {
     return creationTime;
   }
 
+  @SuppressWarnings("unused")
   public void setCreationTime(@Nullable Date ignored) {
     this.creationTime = new Date();
   }
