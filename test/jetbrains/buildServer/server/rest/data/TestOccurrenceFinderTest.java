@@ -33,10 +33,7 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.TypedValue;
-import jetbrains.buildServer.serverSide.RunningBuildEx;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.STestRun;
-import jetbrains.buildServer.serverSide.TestName2Index;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.tests.TestName;
@@ -490,7 +487,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
   }
 
   @Test
-  public void testTestFromPersonalBuilds() {
+  public void testTestRunFromPersonalBuild() {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
 
     SUser user = myFixture.createUserAccount("andrey");
@@ -504,41 +501,89 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
                                                 .withTest(BuildBuilder.TestData.test("aaa"))
                                                 .finish();
 
+
     TestRunDataWithBuild personalRun = t("aaa", Status.NORMAL, 1, personalBuild.getBuildId());
     TestRunDataWithBuild regularRun  = t("aaa", Status.NORMAL, 2, regularBuild.getBuildId());
 
     check("test:(name:aaa)", TEST_MATCHER, regularRun);
-    check("test:(name:aaa),includePersonal:true", TEST_MATCHER, personalRun, regularRun);
+    check("test:(name:aaa),includePersonal:true,personalForUser:" + user.getId(), TEST_MATCHER, personalRun, regularRun);
     check("test:(name:aaa),includePersonal:false", TEST_MATCHER, regularRun);
-
-    // Should return from personal build
-    check(String.format("build:(id:%d)", personalBuild.getBuildId()), TEST_MATCHER, personalRun);
-
-    STestRun testInPersonalBuild = personalBuild.getFullStatistics().getAllTests().get(0);
-    check(String.format("id:%d,build:(id:%d)", testInPersonalBuild.getTestRunId(), personalBuild.getBuildId()), TEST_MATCHER, personalRun);
   }
 
   @Test
-  public void testTestFinderRespectsProfilePersonalBuildsCheckbox() throws Exception {
+  public void testNoTestRunsFromOthersPersonalBuild() {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
 
     SUser user = myFixture.createUserAccount("andrey");
 
-    final SFinishedBuild myBuild = build().in(buildType)
+    final SFinishedBuild personalBuild = build().in(buildType)
                                                 .personalForUser(user.getUsername())
                                                 .withTest(BuildBuilder.TestData.test("aaa"))
                                                 .finish();
 
-    final SFinishedBuild notMyBuild = build().in(buildType)
-                                               .personalForUser("another_user_with_unique-name")
+    final SFinishedBuild regularBuild = build().in(buildType)
                                                .withTest(BuildBuilder.TestData.test("aaa"))
                                                .finish();
 
-    TestRunDataWithBuild myRun = t("aaa", Status.NORMAL, 1, myBuild.getBuildId());
-    TestRunDataWithBuild notMyRun = t("aaa", Status.NORMAL, 2, notMyBuild.getBuildId());
+    TestRunDataWithBuild regularRun  = t("aaa", Status.NORMAL, 2, regularBuild.getBuildId());
 
-    check("test:(name:aaa),includePersonal:true", TEST_MATCHER, myRun, notMyRun);
-    check("test:(name:aaa),includePersonal:true,personalForUser:" + user.getId(), TEST_MATCHER, myRun);
+    int anotherUserId = 999;
+    check("test:(name:aaa)", TEST_MATCHER, regularRun);
+    check("test:(name:aaa),includePersonal:true,personalForUser:" + anotherUserId, TEST_MATCHER, regularRun);
+    check("test:(name:aaa),includePersonal:false", TEST_MATCHER, regularRun);
+  }
+
+  @Test
+  public void testTestFromOtherUsersPersonalBuildByBuildLocator() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+
+    SUser user = myFixture.createUserAccount("andrey");
+
+    final SFinishedBuild personalBuild = build().in(buildType)
+                                                .personalForUser(user.getUsername())
+                                                .withTest(BuildBuilder.TestData.test("aaa"))
+                                                .finish();
+
+
+    TestRunDataWithBuild personalRun = t("aaa", Status.NORMAL, 1, personalBuild.getBuildId());
+
+    check(String.format("build:(id:%d)", personalBuild.getBuildId()), TEST_MATCHER, personalRun);
+  }
+
+  @Test
+  public void testTestFromOtherUsersPersonalBuildTestRunId() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+
+    SUser user = myFixture.createUserAccount("andrey");
+
+    final SFinishedBuild personalBuild = build().in(buildType)
+                                                .personalForUser(user.getUsername())
+                                                .withTest(BuildBuilder.TestData.test("aaa"))
+                                                .finish();
+
+    int testRunId = personalBuild.getBuildStatistics(BuildStatisticsOptions.ALL_TESTS_NO_DETAILS).getAllTests().get(0).getTestRunId();
+
+    TestRunDataWithBuild personalRun = t("aaa", Status.NORMAL, 1, personalBuild.getBuildId());
+
+    check(String.format("id:%d,build:%d", testRunId, personalBuild.getBuildId()), TEST_MATCHER, personalRun);
+  }
+
+  @Test
+  public void testDoesNotReturnOtherUsersPersonalBuilds() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+
+    SUser user = myFixture.createUserAccount("andrey");
+
+    final SFinishedBuild personalBuild = build().in(buildType)
+                                                .personalForUser(user.getUsername())
+                                                .withTest(BuildBuilder.TestData.test("aaa"))
+                                                .finish();
+
+    STestRun testInPersonalBuild = personalBuild.getFullStatistics().getAllTests().get(0);
+
+    TestRunDataWithBuild personalRun = t("aaa", Status.NORMAL, 1, personalBuild.getBuildId());
+
+    check(String.format("id:%d,build:%d", testInPersonalBuild.getTestRunId(), personalBuild.getBuildId()), TEST_MATCHER, personalRun);
   }
 
   @Test

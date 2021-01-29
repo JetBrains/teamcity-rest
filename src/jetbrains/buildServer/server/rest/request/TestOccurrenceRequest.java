@@ -116,23 +116,27 @@ public class TestOccurrenceRequest {
     return new TestOccurrence(myTestOccurrenceFinder.getItem(locator), myBeanContext, new Fields(fields));
   }
 
-  /** Checks if user has enabled "show personal builds" checkbox in profile and sets an internal dimension with user id. */
+  /** Ensures we don't include personal builds by default (except when build locator is provided) and sets an internal dimension with user id. */
   @Nullable
   private String patchLocatorForPersonalBuilds(@Nullable String locator, @Nullable HttpServletRequest request) {
     if(locator == null || request == null) {
       return locator;
     }
 
+    Locator patchedLocator = new Locator(locator);
+    if(patchedLocator.isAnyPresent(TestOccurrenceFinder.INCLUDE_ALL_PERSONAL)) {
+      // We do not want somebody to set this dimension explicitely.
+      throw new BadRequestException(String.format("%s dimension is not supported.", TestOccurrenceFinder.INCLUDE_ALL_PERSONAL));
+    }
+
+    patchedLocator.setDimensionIfNotPresent(TestOccurrenceFinder.INCLUDE_PERSONAL, Locator.BOOLEAN_FALSE);
+
     SUser user = SessionUser.getUser(request);
-    if(user == null) {
-      return locator;
+    if(user != null) {
+      patchedLocator.setDimension(TestOccurrenceFinder.PERSONAL_FOR_USER, Long.toString(user.getId()));
     }
 
-    if(user.getBooleanProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS)) {
-      return locator;
-    }
-
-    return Locator.setDimension(locator, TestOccurrenceFinder.PERSONAL_FOR_USER, user.getId());
+    return patchedLocator.getStringRepresentation();
   }
 
   void initForTests(@NotNull final BeanContext beanContext) {
@@ -162,7 +166,9 @@ public class TestOccurrenceRequest {
     if (!"package".equals(fieldName)) {
       throw new BadRequestException("Only grouping by 'package' is currently supported");
     }
-    final List<STestRun> items = myTestOccurrenceFinder.getItems(locatorText).myEntries;
+
+    String patchedLocator = patchLocatorForPersonalBuilds(locatorText, request);
+    final List<STestRun> items = myTestOccurrenceFinder.getItems(patchedLocator).myEntries;
     return new GroupedTestOccurrences(items, new Fields(fields), myBeanContext, depth);
   }
 }
