@@ -21,7 +21,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.problem.MuteData;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -30,8 +29,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemScope;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.request.MuteRequest;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
@@ -44,7 +42,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlType(name = "mute")
 @XmlRootElement(name = "mute")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a muted test."))
+@ModelDescription("Represents a muted test.")
 public class Mute {
   @XmlAttribute public Integer id;
   @XmlAttribute public String href;

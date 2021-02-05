@@ -41,7 +41,10 @@ import java.util.stream.Stream;
  * @author Yegor.Yarko
  *         Date: 26.11.2014
  */
-@LocatorResource(LocatorName.TAG)
+@LocatorResource(
+    value = LocatorName.TAG,
+    baseEntity = "Tag"
+)
 public class TagFinder extends AbstractFinder<TagData> {
 
   @LocatorDimension("name") public static final String NAME = "name";

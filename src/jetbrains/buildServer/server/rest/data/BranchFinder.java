@@ -38,11 +38,14 @@ import org.jetbrains.annotations.Nullable;
  * @author Yegor.Yarko
  *         Date: 22/01/2016
  */
-@LocatorResource(value = LocatorName.BRANCH, extraDimensions = AbstractFinder.DIMENSION_ITEM,
-    description = "Represents a locator string for filtering Branch entities." +
-        "\nExamples:" +
-        "\n* `build:<buildLocator>` – find branch with which the build found by `buildLocator` was started." +
-        "\n* `buildType:<buildTypeLocator>` – find branches of a build configuration found by `buildTypeLocator`.")
+@LocatorResource(value = LocatorName.BRANCH,
+    extraDimensions = AbstractFinder.DIMENSION_ITEM,
+    baseEntity = "Branch",
+    examples = {
+        "`build:<buildLocator>` – find branch with which the build found by `buildLocator` was started.",
+        "`buildType:<buildTypeLocator>` – find branches of a build configuration found by `buildTypeLocator`."
+    }
+)
 public class BranchFinder extends AbstractFinder<BranchData> {
   @LocatorDimension("name") protected static final String NAME = "name";
   @LocatorDimension(value = "default", format = LocatorDimensionDataType.BOOLEAN, notes = "Is default branch.")

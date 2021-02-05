@@ -67,11 +67,13 @@ import org.jetbrains.annotations.Nullable;
  */
 @LocatorResource(value = LocatorName.BUILD,
     extraDimensions = {FinderImpl.DIMENSION_ID, PagerData.START, PagerData.COUNT, FinderImpl.DIMENSION_LOOKUP_LIMIT, CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
-    description = "Represents a locator string for filtering Build entities." +
-        "\nExamples:" +
-        "\n* `id:1` – find build with ID `1`." +
-        "\n* `buildType:<buildTypeLocator>` – find builds under build configuration found by `buildTypeLocator`." +
-        "\n* `defaultFilter:false,agent:<agentLocator>` – find builds executed on agent found by `agentLocator`, with `defaultFilter` disabled (see below).")
+    baseEntity = "Build",
+    examples = {
+        "`id:1` – find build with ID `1`.",
+        "`buildType:<buildTypeLocator>` – find builds under build configuration found by `buildTypeLocator`.",
+        "`defaultFilter:false,agent:<agentLocator>` – find builds executed on agent found by `agentLocator`, with `defaultFilter` disabled (see below)."
+    }
+)
 public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private static final Logger LOG = Logger.getInstance(BuildPromotionFinder.class.getName());
 

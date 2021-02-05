@@ -16,12 +16,10 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.change.BuildChangeData;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
@@ -39,7 +37,7 @@ import java.util.stream.Collectors;
  */
 @XmlRootElement(name = "buildChanges")
 @XmlType(name = "buildChanges")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@ModelBaseType(ObjectType.LIST)
 public class BuildChanges { //implements DefaultValueAware
   @XmlElement(name = "buildChange")
   public List<BuildChange> myBuildChanges;

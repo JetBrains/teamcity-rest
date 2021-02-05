@@ -19,11 +19,9 @@ package jetbrains.buildServer.server.rest.model;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.BuildPromotionFinder;
 import jetbrains.buildServer.server.rest.model.build.Builds;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildPromotion;
@@ -35,7 +33,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "related")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a link to the Builds entity."))
+@ModelDescription("Represents a link to the Builds entity.")
 public class Related {
   @XmlElement
   public Builds builds;

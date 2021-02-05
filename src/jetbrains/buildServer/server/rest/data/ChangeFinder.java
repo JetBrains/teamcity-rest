@@ -56,10 +56,12 @@ import java.util.stream.Stream;
  */
 @LocatorResource(value = LocatorName.CHANGE,
     extraDimensions = {AbstractFinder.DIMENSION_ID, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
-    description = "Represents a locator string for filtering Change entities." +
-        "\nExamples:" +
-        "\n* `username:MyVCSUsername` – find last 100 changes made by user with `MyVCSUsername` VCS username." +
-        "\n* `pending:true,buildType:<buildTypeLocator>` – find all pending changes on build configuration found by `buildTypeLocator`.")
+    baseEntity = "Change",
+    examples = {
+        "`username:MyVCSUsername` – find last 100 changes made by user with `MyVCSUsername` VCS username.",
+        "`pending:true,buildType:<buildTypeLocator>` – find all pending changes on build configuration found by `buildTypeLocator`."
+    }
+)
 public class ChangeFinder extends AbstractFinder<SVcsModification> {
   public static final String IGNORE_CHANGES_FROM_DEPENDENCIES_OPTION = "rest.ignoreChangesFromDependenciesOption";
 

@@ -55,10 +55,12 @@ import java.util.stream.Stream;
  */
 @LocatorResource(value = LocatorName.VCS_ROOT_INSTANCE,
     extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
-    description = "Represents a locator string for filtering VcsRootInstance entities." +
-        "\nExamples:" +
-        "\n* `vcsRoot:<vcsRootLocator>` – find all VCS root instances of a VCS root found by `vcsRootLocator`." +
-        "\n* `project:<projectLocator>` – find all VCS root instances defined under project found by `projectLocator`.")
+    baseEntity = "VcsRootInstance",
+    examples = {
+        "`vcsRoot:<vcsRootLocator>` – find all VCS root instances of a VCS root found by `vcsRootLocator`.",
+        "`project:<projectLocator>` – find all VCS root instances defined under project found by `projectLocator`."
+    }
+)
 public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   private static final Logger LOG = Logger.getInstance(VcsRootInstanceFinder.class.getName());
   @LocatorDimension(value = "vcsRoot", format = LocatorName.VCS_ROOT, notes = "VCS root locator.")

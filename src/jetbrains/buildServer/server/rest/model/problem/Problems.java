@@ -16,15 +16,13 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -45,7 +43,7 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "problems")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
+@ModelBaseType(ObjectType.PAGINATED)
 public class Problems implements DefaultValueAware {
   @XmlElement(name = "problem") public List<Problem> items;
   @XmlAttribute public Integer count;

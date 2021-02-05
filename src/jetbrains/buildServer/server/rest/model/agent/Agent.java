@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.agent;
 
-import io.swagger.annotations.ExtensionProperty;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -37,8 +36,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.cloud.CloudImage;
 import jetbrains.buildServer.server.rest.model.cloud.CloudInstance;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
@@ -57,18 +55,16 @@ import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.Date;
-
 /**
  * @author Yegor.Yarko
  * Date: 01.08.2009
  */
 @XmlRootElement(name = "agent")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a known agent instance." + 
-"\n\nRelated Help article: [Build Agent](https://www.jetbrains.com/help/teamcity/build-agent.html)"))
+@ModelDescription(
+    value = "Represents a known agent instance.",
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/build-agent.html",
+    externalArticleName = "Build Agent"
+)
 @SuppressWarnings({"PublicField", "WeakerAccess"})
 public class Agent {
   @NotNull

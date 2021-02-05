@@ -27,7 +27,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.request.ProjectRequest;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -44,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 04/06/2016
  */
 @XmlRootElement(name = "projectFeatures")  //todo: ok that it clashes???\
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@ModelBaseType(ObjectType.LIST)
 public class PropEntitiesProjectFeature {
   @XmlAttribute
   public Integer count;

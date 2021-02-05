@@ -20,10 +20,8 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.VcsRootInstanceEx;
@@ -36,8 +34,11 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "vcsStatus")
 @XmlType(name = "vcsStatus")
 @SuppressWarnings("PublicField")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents links to the last or previous VCS root check." +
-"\n\nRelated Help article: [VCS Root](https://www.jetbrains.com/help/teamcity/configuring-vcs-roots.html)"))
+@ModelDescription(
+    value = "Represents links to the last or previous VCS root check.",
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/configuring-vcs-roots.html",
+    externalArticleName = "VCS Root"
+)
 public class VcsStatus {
   @XmlElement
   public VcsCheckStatus current;

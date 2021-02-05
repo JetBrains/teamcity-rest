@@ -21,15 +21,16 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import org.jetbrains.annotations.NotNull;
 
 @XmlRootElement(name = "metricTag")
 @XmlType(name = "metricTag", propOrder = {"name", "value"})
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a metric tag." + 
-"\n\nRelated Help article: [Metrics](https://www.jetbrains.com/help/teamcity/teamcity-monitoring-and-diagnostics.html#Metrics)"))
+@ModelDescription(
+    value = "Represents a metric tag.",
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/teamcity-monitoring-and-diagnostics.html#Metrics",
+    externalArticleName = "Metrics"
+)
 public class MetricTag {
   @XmlAttribute
   public String name;

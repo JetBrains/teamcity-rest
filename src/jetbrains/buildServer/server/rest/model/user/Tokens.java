@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.XmlType;
 import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -39,7 +39,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings({"PublicField", "unused"})
 @XmlRootElement(name = Tokens.TYPE)
 @XmlType(name = Tokens.TYPE)
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@ModelBaseType(ObjectType.LIST)
 public class Tokens {
   static final String TYPE = "tokens";
   @XmlAttribute

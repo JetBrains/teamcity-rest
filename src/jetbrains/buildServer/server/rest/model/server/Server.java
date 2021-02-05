@@ -22,7 +22,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.RootUrlHolder;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.maintenance.StartupContext;
@@ -33,8 +32,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.request.*;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
@@ -49,7 +47,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "server")
 @XmlType(name = "server", propOrder = {"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId", "role", "webUrl",
   "projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools", "investigations", "mutes"})
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents various details of this server including the installation version."))
+@ModelDescription("Represents various details of this server including the installation version.")
 public class Server {
   private SBuildServer myServer;
   private ServerSettings myServerSettings;

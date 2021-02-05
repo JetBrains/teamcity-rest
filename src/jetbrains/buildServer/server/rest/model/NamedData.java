@@ -16,17 +16,17 @@
 
 package jetbrains.buildServer.server.rest.model;
 
-import java.util.Map;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-
-import io.swagger.annotations.ExtensionProperty;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
+import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Map;
 
 /**
  * @author Yegor.Yarko
@@ -34,7 +34,11 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "metaData")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a named Entries entity."))
+@ModelDescription("Represents a named Entries entity.")
+@ModelBaseType(
+    value = ObjectType.DATA,
+    baseEntity = "Entries"
+)
 public class NamedData {
   @XmlAttribute
   public String id;

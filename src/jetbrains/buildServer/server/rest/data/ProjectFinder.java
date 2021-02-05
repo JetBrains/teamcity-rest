@@ -50,10 +50,12 @@ import java.util.stream.Collectors;
  */
 @LocatorResource(value = LocatorName.PROJECT,
     extraDimensions = {PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
-    description = "Represents a locator string for filtering Project entities." +
-        "\nExamples:" +
-        "\n* `name:MyProject` – find a project with name `MyProject`." +
-        "\n* `archived:false` – find projects which are not archived.")
+    baseEntity = "Project",
+    examples = {
+        "`name:MyProject` – find a project with name `MyProject`.",
+        "`archived:false` – find projects which are not archived."
+    }
+)
 public class ProjectFinder extends AbstractFinder<SProject> {
   private static final Logger LOG = Logger.getInstance(ProjectFinder.class.getName());
 

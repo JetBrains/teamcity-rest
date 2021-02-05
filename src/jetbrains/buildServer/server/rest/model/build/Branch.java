@@ -21,15 +21,13 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.BranchData;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildPromotion;
@@ -43,8 +41,11 @@ import org.jetbrains.annotations.NotNull;
 @XmlType(name = "branch", propOrder = {"name", "internalName", "default", "unspecified", "active", "lastActivity",
   "groupFlag", /*experimental, temporary*/
   "builds"})
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a branch on which this build has been started." + 
-"\n\nRelated Help article: [Feature Branches](https://www.jetbrains.com/help/teamcity/working-with-feature-branches.html)"))
+@ModelDescription(
+    value = "Represents a branch on which this build has been started.",
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/working-with-feature-branches.html",
+    externalArticleName = "Feature Branches"
+)
 public class Branch {
   private BranchData myBranch;
   private Fields myFields;

@@ -28,7 +28,8 @@ import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.BranchData;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -42,10 +43,11 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlRootElement(name = "repositoryState")
 @XmlType(name = "repositoryState")
-@Extension(properties = {
-    @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the list of the repository Branch entities with their recent revisions."),
-    @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST)
-})
+@ModelDescription("Represents the list of the repository Branch entities with their recent revisions.")
+@ModelBaseType(
+    value = ObjectType.LIST,
+    baseEntity = "BranchVersion"
+)
 public class RepositoryState {
   @XmlAttribute
   public String timestamp;

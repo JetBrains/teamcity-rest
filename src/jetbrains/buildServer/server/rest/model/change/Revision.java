@@ -20,11 +20,9 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootEntry;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildRevision;
@@ -38,8 +36,11 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings("PublicField")
 @XmlType(name = "revision")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a revision related to a VCS change." + 
-"\n\nRelated Help article: [Revision](https://www.jetbrains.com/help/teamcity/revision.html)"))
+@ModelDescription(
+    value = "Represents a revision related to a VCS change.",
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/revision.html",
+    externalArticleName = "Revision"
+)
 public class Revision {
   @XmlAttribute(name = "version")
   public String displayRevision;

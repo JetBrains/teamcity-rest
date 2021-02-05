@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.openapi.diagnostic.Logger;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import io.swagger.annotations.ExtensionProperty;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
@@ -30,14 +29,12 @@ import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.AbstractProperty;
 import io.swagger.models.properties.ArrayProperty;
 import io.swagger.models.properties.Property;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import org.apache.commons.lang3.StringUtils;
-import jetbrains.buildServer.serverSide.maintenance.BackupProcessManager;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Optional;
@@ -58,15 +55,31 @@ public class ExtensionModelResolver extends ModelResolver {
     if (model != null) {
       BeanDescription beanDesc = _mapper.getSerializationConfig().introspect(type);
 
-      final Extension extensions = beanDesc.getClassAnnotations().get(Extension.class);
-      if (extensions != null) {
-        for (ExtensionProperty property : extensions.properties()) {
-          model.setVendorExtension(property.name(), property.value());
+      final ModelBaseType baseTypeAnnotation = beanDesc.getClassAnnotations().get(ModelBaseType.class);
+      if (baseTypeAnnotation != null) {
+        model.setVendorExtension(ExtensionType.X_BASE_TYPE, baseTypeAnnotation.value());
+        if (!baseTypeAnnotation.baseEntity().isEmpty()) {
+          model.setVendorExtension(ExtensionType.X_BASE_ENTITY, baseTypeAnnotation.baseEntity());
+        }
+      }
+
+      final ModelDescription descriptionAnnotation = beanDesc.getClassAnnotations().get(ModelDescription.class);
+      if (descriptionAnnotation != null) {
+        model.setDescription(descriptionAnnotation.value());
+
+        if (!descriptionAnnotation.externalArticleLink().isEmpty()) {
+          if (!descriptionAnnotation.externalArticleName().isEmpty()) {
+            model.setVendorExtension(ExtensionType.X_HELP_ARTICLE_NAME, descriptionAnnotation.externalArticleName());
+          }
+          else {
+            model.setVendorExtension(ExtensionType.X_HELP_ARTICLE_NAME, model.getName());
+          }
+          model.setVendorExtension(ExtensionType.X_HELP_ARTICLE_LINK, descriptionAnnotation.externalArticleLink());
         }
       }
 
       //set default x-base-type vendor extension
-      if (extensions == null || !model.getVendorExtensions().containsKey(ExtensionType.X_BASE_TYPE)) {
+      if (baseTypeAnnotation == null || !model.getVendorExtensions().containsKey(ExtensionType.X_BASE_TYPE)) {
         model.setVendorExtension(ExtensionType.X_BASE_TYPE, ObjectType.DATA);
       }
 
@@ -115,6 +128,12 @@ public class ExtensionModelResolver extends ModelResolver {
               ExtensionType.X_IS_FIRST_CONTAINER_VAR, true
           )
       );
+
+      if (containerFilterResult.isPresent() && !model.getVendorExtensions().containsKey(ExtensionType.X_BASE_ENTITY)) {
+        model.setVendorExtension(
+            ExtensionType.X_BASE_ENTITY, convertKebabCaseToCamelCase(containerFilterResult.get().getName())
+        );
+      }
     }
   }
 
@@ -148,22 +167,23 @@ public class ExtensionModelResolver extends ModelResolver {
   }
 
   private void setDescriptionVendorExtension(ModelImpl model) {
-    String baseType = (String) model.getVendorExtensions().get(ExtensionType.X_BASE_TYPE);
-    Optional<Property> containerFilterResult = model.getProperties().values().stream().
-        filter(x -> x.getVendorExtensions().containsKey(ExtensionType.X_IS_FIRST_CONTAINER_VAR)).
-        findFirst();
 
-    if (containerFilterResult.isPresent()) {
-      String containerType = convertKebabCaseToCamelCase(containerFilterResult.get().getName());
+    if (
+        model.getVendorExtensions().containsKey(ExtensionType.X_BASE_ENTITY)
+            && (model.getDescription() == null || model.getDescription().isEmpty())
+    ) {
+      String baseType = (String) model.getVendorExtensions().get(ExtensionType.X_BASE_TYPE);
+      String baseEntity = (String) model.getVendorExtensions().get(ExtensionType.X_BASE_ENTITY);
 
       switch (baseType) {
         case (ObjectType.LIST):
-          model.setVendorExtension(ExtensionType.X_DESCRIPTION, String.format("Represents a list of %s entities.", containerType));
+          model.setDescription(String.format("Represents a list of %s entities.", baseEntity));
           break;
         case (ObjectType.PAGINATED):
-          model.setVendorExtension(ExtensionType.X_DESCRIPTION, String.format("Represents a paginated list of %s entities.", containerType));
+          model.setDescription(String.format("Represents a paginated list of %s entities.", baseEntity));
           break;
       }
     }
   }
+
 }

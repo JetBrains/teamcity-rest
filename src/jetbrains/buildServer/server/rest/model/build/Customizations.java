@@ -16,14 +16,12 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
-import io.swagger.annotations.ExtensionProperty;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 
-import java.util.Collection;
-import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Collection;
+import java.util.Map;
 
 import static java.util.Collections.emptyMap;
 
@@ -31,7 +29,7 @@ import static java.util.Collections.emptyMap;
  * @author kir
  */
 @XmlRootElement(name = "customizations")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents build customizations (artifact dependency overrides, custom parameters or changesets)."))
+@ModelDescription("Represents build customizations (artifact dependency overrides, custom parameters or changesets).")
 public class Customizations {
   @XmlElement public Map<String, String> parameters;
   @XmlElement public Map<String, String> changes;

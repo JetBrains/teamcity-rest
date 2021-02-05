@@ -16,18 +16,16 @@
 
 package jetbrains.buildServer.server.rest.model.issue;
 
-import javax.xml.bind.annotation.XmlAttribute;
-
-import io.swagger.annotations.ExtensionProperty;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import org.jetbrains.annotations.NotNull;
+
+import javax.xml.bind.annotation.XmlAttribute;
 
 /**
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an issue related to the specific change."))
+@ModelDescription("Represents an issue related to the specific change.")
 public class Issue {
   @NotNull protected jetbrains.buildServer.issueTracker.Issue myIssue;
 

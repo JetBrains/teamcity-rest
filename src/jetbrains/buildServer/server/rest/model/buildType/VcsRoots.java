@@ -30,7 +30,7 @@ import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -45,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "vcs-roots")
 @XmlType(name = "vcs-roots")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
+@ModelBaseType(ObjectType.PAGINATED)
 public class VcsRoots {
   @XmlElement(name = "vcs-root")
   public List<VcsRoot> vcsRoots;

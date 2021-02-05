@@ -22,15 +22,13 @@ import java.util.List;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -46,8 +44,11 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 05.01.12
  */
 @XmlRootElement(name = "agent-requirement")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a requirement to agent parameters." +
-"\n\nRelated Help article: [Agent Requirements](https://www.jetbrains.com/help/teamcity/agent-requirements.html)"))
+@ModelDescription(
+    value = "Represents a requirement to agent parameters.",
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/agent-requirements.html",
+    externalArticleName = "Agent Requirements"
+)
 public class PropEntityAgentRequirement extends PropEntity implements PropEntityEdit<Requirement> {
 
   public static final String NAME_PROPERTY_VALUE = "property-value";

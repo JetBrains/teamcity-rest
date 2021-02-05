@@ -40,10 +40,12 @@ import org.jetbrains.annotations.Nullable;
  */
 @LocatorResource(value = LocatorName.TEST,
     extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
-    description = "Represents a locator string for filtering Test entities." +
-        "\nExamples:" +
-        "\n* `currentlyInvestigated:true` – find last 100 tests which are being currently investigated." +
-        "\n* `build:<buildLocator>` – find tests under build found by `buildLocator`.")
+    baseEntity = "Test",
+    examples = {
+        "`currentlyInvestigated:true` – find last 100 tests which are being currently investigated.",
+        "`build:<buildLocator>` – find tests under build found by `buildLocator`."
+    }
+)
 public class TestFinder extends AbstractFinder<STest> {
   @LocatorDimension("name") private static final String NAME = "name";
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")

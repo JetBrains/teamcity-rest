@@ -21,11 +21,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target({ElementType.TYPE})
+@Target({ElementType.TYPE, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface LocatorResource {
+public @interface ModelBaseType {
   String value();
-  String[] extraDimensions() default {};
-  String baseEntity();
-  String[] examples() default {};
+  String baseEntity() default "";
 }

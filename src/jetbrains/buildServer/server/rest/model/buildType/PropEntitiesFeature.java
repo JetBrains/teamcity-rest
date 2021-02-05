@@ -20,7 +20,7 @@ import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -46,7 +46,7 @@ import java.util.Map;
  *         Date: 05.01.12
  */
 @XmlRootElement(name = "features")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@ModelBaseType(ObjectType.LIST)
 @SuppressWarnings("PublicField")
 public class PropEntitiesFeature {
   @XmlAttribute

@@ -53,10 +53,12 @@ import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimensio
  */
 @LocatorResource(value = LocatorName.MUTE,
     extraDimensions = AbstractFinder.DIMENSION_ITEM,
-    description = "Represents a locator string for filtering Mute entities." +
-        "\nExamples:" +
-        "\n* `project:<projectLocator>` – find muted problem under project found by `projectLocator`." +
-        "\n* `type:test` – find last 100 muted tests.")
+    baseEntity = "Mute",
+    examples = {
+        "`project:<projectLocator>` – find muted problem under project found by `projectLocator`.",
+        "`type:test` – find last 100 muted tests."
+    }
+)
 public class MuteFinder extends DelegatingFinder<MuteInfo> {
   @LocatorDimension(value = "id", dataType = LocatorDimensionDataType.INTEGER) private static final Dimension<Long> ID = new Dimension<>("id");
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")

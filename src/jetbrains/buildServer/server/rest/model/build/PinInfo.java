@@ -19,11 +19,9 @@ package jetbrains.buildServer.server.rest.model.build;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.agent.BooleanStatus;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuild;
 import org.jetbrains.annotations.NotNull;
@@ -34,8 +32,11 @@ import org.jetbrains.annotations.NotNull;
  */
 @XmlType(name = "pinInfo")
 @XmlRootElement(name = "pinInfo")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the pinned status of this build." + 
-"\n\nRelated Help article: [Pinning Build](https://www.jetbrains.com/help/teamcity/pinned-build.html)"))
+@ModelDescription(
+    value = "Represents the pinned status of this build.",
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/pinned-build.html",
+    externalArticleName = "Pinning Build"
+)
 public class PinInfo extends BooleanStatus {
   public PinInfo() {
   }

@@ -44,10 +44,12 @@ import java.util.*;
  */
 @LocatorResource(value = LocatorName.PROBLEM,
     extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
-    description = "Represents a locator string for filtering Problem entities." +
-        "\nExamples:" +
-        "\n* `currentlyInvestigated:true` – find last 100 build problems which are being currently investigated." +
-        "\n* `build:<buildLocator>` – find build problems under build found by `buildLocator`.")
+    baseEntity = "Problem",
+    examples = {
+        "`currentlyInvestigated:true` – find last 100 build problems which are being currently investigated.",
+        "`build:<buildLocator>` – find build problems under build found by `buildLocator`."
+    }
+)
 public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @LocatorDimension(value = "currentlyFailing", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently failing.")
   private static final String CURRENT = "currentlyFailing";

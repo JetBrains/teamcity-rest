@@ -22,14 +22,12 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -48,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "vcs-root-entry")
 @XmlType(name = "vcs-root-entry", propOrder = {"id", "inherited",
   "vcsRoot", "checkoutRules"})
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a VCS root assigned to this build configuration."))
+@ModelDescription("Represents a VCS root assigned to this build configuration.")
 public class VcsRootEntry {
   public static final String CHECKOUT_RULES = "checkout-rules";
 

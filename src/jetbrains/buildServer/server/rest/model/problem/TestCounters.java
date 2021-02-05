@@ -21,12 +21,10 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.Used;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
@@ -40,8 +38,7 @@ import org.jetbrains.annotations.Nullable;
   "all"
 })
 @XmlRootElement(name = "testCounters")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION,
-    value = "Represents a test results counter (how many times this test was successful/failed/muted/ignored)."))
+@ModelDescription("Represents a test results counter (how many times this test was successful/failed/muted/ignored).")
 public class TestCounters {
   @Nullable
   @XmlAttribute(name = "ignored")

@@ -22,11 +22,9 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SUser;
@@ -37,8 +35,7 @@ import org.jetbrains.annotations.NotNull;
  * Date: 12.04.2009
  */
 @XmlRootElement(name = "roles")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION,
-    value = "Represents a list of Role entities."))
+@ModelDescription("Represents a list of Role entities.")
 public class RoleAssignments {
   @XmlElement(name = "role")
   public List<RoleAssignment> roleAssignments;

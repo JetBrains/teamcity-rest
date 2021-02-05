@@ -21,13 +21,11 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.user.User;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.TagData;
@@ -42,8 +40,11 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("PublicField")
 @XmlType(name = "tag")
 @XmlRootElement(name = "tag")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a single build tag." + 
-"\n\nRelated Help article: [Tagging Build](https://www.jetbrains.com/help/teamcity/build-tag.html)"))
+@ModelDescription(
+    value = "Represents a single build tag.",
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/build-tag.html",
+    externalArticleName = "Tagging Build"
+)
 public class Tag {
   @XmlAttribute public String name;
   @XmlAttribute(name = "private") public Boolean privateTag;

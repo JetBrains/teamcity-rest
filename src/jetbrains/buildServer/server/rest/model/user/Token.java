@@ -16,13 +16,11 @@
 
 package jetbrains.buildServer.server.rest.model.user;
 
-import io.swagger.annotations.ExtensionProperty;
 import java.util.Date;
 import javax.xml.bind.annotation.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.FeatureToggle;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -46,7 +44,7 @@ import static jetbrains.buildServer.server.rest.model.user.Token.TYPE;
   "expirationTime",
   "permissionRestrictions"
 })
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents an authentication token."))
+@ModelDescription("Represents an authentication token.")
 public class Token {
   @NotNull
   static final String TYPE = "token";

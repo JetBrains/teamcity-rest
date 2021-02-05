@@ -54,10 +54,12 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
  */
 @LocatorResource(value = LocatorName.TEST_OCCURRENCE,
     extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
-    description = "Represents a locator string for filtering TestOccurrence entities." +
-        "\nExamples:" +
-        "\n* `currentlyInvestigated:true` – find last 100 test occurrences which are being currently investigated." +
-        "\n* `build:<buildLocator>` – find test occurrences under build found by `buildLocator`.")
+    baseEntity = "TestOccurrence",
+    examples = {
+        "`currentlyInvestigated:true` – find last 100 test occurrences which are being currently investigated.",
+        "`build:<buildLocator>` – find test occurrences under build found by `buildLocator`."
+    }
+)
 public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
   private static final String BUILD = "build";

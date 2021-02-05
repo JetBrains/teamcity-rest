@@ -20,7 +20,7 @@ import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -43,7 +43,7 @@ import java.util.*;
  */
 @XmlRootElement(name="artifact-dependencies")
 @SuppressWarnings("PublicField")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@ModelBaseType(ObjectType.LIST)
 public class PropEntitiesArtifactDep implements DefaultValueAware {
   @XmlAttribute
   public Integer count;

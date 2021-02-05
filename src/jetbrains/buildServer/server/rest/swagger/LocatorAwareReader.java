@@ -123,8 +123,15 @@ public class LocatorAwareReader extends Reader {
       definition.addProperty(dimension.value(), property);
     }
 
-    if (!locatorAnnotation.description().isEmpty()) {
-      definition.setVendorExtension(ExtensionType.X_DESCRIPTION, locatorAnnotation.description());
+    definition.setVendorExtension(ExtensionType.X_BASE_ENTITY, locatorAnnotation.baseEntity());
+    definition.setDescription(
+        String.format(
+            "Represents a locator string for filtering %s entities.", locatorAnnotation.baseEntity()
+        )
+    );
+
+    if (locatorAnnotation.examples().length != 0) {
+      definition.setVendorExtension(ExtensionType.X_MODEL_EXAMPLES, locatorAnnotation.examples());
     }
 
     swagger.addDefinition(locatorAnnotation.value(), definition);
@@ -153,7 +160,7 @@ public class LocatorAwareReader extends Reader {
     }
 
     if (!dimension.notes().isEmpty()) {
-      property.setVendorExtension(ExtensionType.X_DESCRIPTION, dimension.notes());
+      property.setDescription(dimension.notes());
     }
 
     return property;

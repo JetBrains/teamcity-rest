@@ -23,7 +23,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.ItemsProviders;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
  */
 @XmlRootElement(name = "builds")
 @XmlType(name = "builds")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
+@ModelBaseType(ObjectType.PAGINATED)
 public class Builds implements DefaultValueAware {
   @XmlElement(name = "build")
   public List<Build> builds;

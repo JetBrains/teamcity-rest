@@ -17,10 +17,8 @@
 package jetbrains.buildServer.server.rest.model;
 
 import com.intellij.util.containers.SortedList;
-import io.swagger.annotations.ExtensionProperty;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
@@ -41,7 +39,10 @@ import java.util.Map;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "datas")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@ModelBaseType(
+    value = ObjectType.LIST,
+    baseEntity = "MetaData"
+)
 public class NamedDatas implements DefaultValueAware{
   @XmlAttribute
   public Integer count;

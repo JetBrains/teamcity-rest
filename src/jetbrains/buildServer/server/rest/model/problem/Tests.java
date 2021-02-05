@@ -27,7 +27,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -44,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "tests")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
+@ModelBaseType(ObjectType.PAGINATED)
 public class Tests implements DefaultValueAware {
   @XmlElement(name = "test") public List<Test> items;
   @XmlAttribute public Integer count;

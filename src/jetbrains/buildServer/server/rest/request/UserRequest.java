@@ -127,7 +127,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/{field}")
   @Produces("text/plain")
-  @ApiOperation(value="Get a field of the matching user.",nickname="gerUserField")
+  @ApiOperation(value="Get a field of the matching user.",nickname="getUserField")
   public String serveUserField(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                @PathParam("field") String fieldName) {
     return User.getFieldValue(myUserFinder.getItem(userLocator, true), fieldName, myBeanContext.getServiceLocator());

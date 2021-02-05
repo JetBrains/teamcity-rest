@@ -24,7 +24,7 @@ import jetbrains.buildServer.server.rest.data.problem.MuteData;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "mutes")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
+@ModelBaseType(ObjectType.PAGINATED)
 public class Mutes implements DefaultValueAware{
 
   public static final String REST_MUTES_ACTUAL_STATE = "rest.mutes.actual.state"; // Setting this internal property fixes TW-53288 but makes requests slower

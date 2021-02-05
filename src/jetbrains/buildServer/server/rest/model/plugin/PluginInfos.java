@@ -16,12 +16,10 @@
 
 package jetbrains.buildServer.server.rest.model.plugin;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -44,7 +42,7 @@ import java.util.List;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "plugins")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@ModelBaseType(ObjectType.LIST)
 public class PluginInfos {
   @XmlAttribute
   public Integer count;

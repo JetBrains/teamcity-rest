@@ -24,7 +24,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
@@ -37,8 +36,7 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.group.Groups;
 import jetbrains.buildServer.server.rest.request.UserRequest;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -61,8 +59,11 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "user", propOrder = {"username", "name", "id", "email", "lastLogin", "password", "hasPassword", "realm" /*obsolete*/, "href",
   "properties", "roles", "groups",
   "locator"/*only when triggering*/})
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a user." + 
-"\n\nRelated Help article: [User Account](https://www.jetbrains.com/help/teamcity/user-account.html)"))
+@ModelDescription(
+    value = "Represents a user.",
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/user-account.html",
+    externalArticleName = "User Account"
+)
 public class User {
   @Nullable
   public final SUser myUser;

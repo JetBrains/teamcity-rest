@@ -17,11 +17,9 @@
 package jetbrains.buildServer.server.rest.model.server;
 
 import com.google.common.collect.Ordering;
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.LicenseKey;
@@ -45,7 +43,7 @@ import static com.google.common.collect.Ordering.natural;
  */
 @XmlRootElement(name = "licenseKeys")
 @XmlType(name = "licenseKeys")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@ModelBaseType(ObjectType.LIST)
 public class LicenseKeyEntities {
   @XmlElement(name = "licenseKey")
   public List<LicenseKeyEntity> licenseKeys;

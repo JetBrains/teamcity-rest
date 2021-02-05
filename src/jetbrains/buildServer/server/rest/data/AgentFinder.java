@@ -52,10 +52,12 @@ import java.util.stream.Stream;
  */
 @LocatorResource(value = LocatorName.AGENT,
     extraDimensions = {FinderImpl.DIMENSION_ID, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
-    description = "Represents a locator string for filtering Agent entities." +
-        "\nExamples:" +
-        "\n* `name:DefaultAgent` – find agent with `DefaultAgent` name." +
-        "\n* `pool:(<agentPoolLocator>),connected:true` – find all connected agents in a pool found by `agentPoolLocator`.")
+    baseEntity = "Agent",
+    examples = {
+        "`name:DefaultAgent` – find agent with `DefaultAgent` name.",
+        "`pool:(<agentPoolLocator>),connected:true` – find all connected agents in a pool found by `agentPoolLocator`."
+    }
+)
 public class AgentFinder extends AbstractFinder<SBuildAgent> {
   private static final Logger LOG = Logger.getInstance(AgentFinder.class.getName());
 

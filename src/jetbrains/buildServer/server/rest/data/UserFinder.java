@@ -54,11 +54,14 @@ import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimensio
  * @author Yegor.Yarko
  *         Date: 23.03.13
  */
-@LocatorResource(value = LocatorName.USER, extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
-    description = "Represents a locator string for filtering User entities." +
-        "\nExamples:" +
-        "\n* `name:John Smith` – find user with name `John Smith`." +
-        "\n* `group:<groupLocator>` – find all users in user group found by `groupLocator`.")
+@LocatorResource(value = LocatorName.USER,
+    extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
+    baseEntity = "User",
+    examples = {
+        "`name:John Smith` – find user with name `John Smith`.",
+        "`group:<groupLocator>` – find all users in user group found by `groupLocator`."
+    }
+)
 public class UserFinder extends DelegatingFinder<SUser> {
   private static final Logger LOG = Logger.getInstance(jetbrains.buildServer.serverSide.impl.audit.finders.UserFinder.class.getName());
   public static final String REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS = "rest.request.checkAdditionalPermissionsForUsersAndGroups";

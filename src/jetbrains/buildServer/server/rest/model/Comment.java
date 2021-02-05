@@ -22,9 +22,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.users.User;
@@ -37,7 +35,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlType(name= "comment")
 @XmlRootElement(name = "comment")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a dated comment of the specific user."))
+@ModelDescription("Represents a dated comment of the specific user.")
 public class Comment {
   @XmlElement(name = "user")
   public jetbrains.buildServer.server.rest.model.user.User user;

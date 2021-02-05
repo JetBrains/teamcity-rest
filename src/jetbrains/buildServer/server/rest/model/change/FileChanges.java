@@ -19,7 +19,8 @@ package jetbrains.buildServer.server.rest.model.change;
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -37,10 +38,10 @@ import java.util.List;
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
-@Extension(properties = {
-    @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a list of FileChange entities."),
-    @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST)
-})
+@ModelBaseType(
+    value = ObjectType.LIST,
+    baseEntity = "FileChange"
+)
 public class FileChanges {
   private static final Logger LOG = Logger.getInstance(FileChanges.class.getName());
   protected static final String REST_BEANS_FILES_NESTED_FILE_ITEMS_LIMIT = "rest.beans.change.files.nestedFileItemsLimit";

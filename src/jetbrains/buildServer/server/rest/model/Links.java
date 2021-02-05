@@ -19,7 +19,7 @@ package jetbrains.buildServer.server.rest.model;
 import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -42,7 +42,7 @@ import java.util.List;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "links")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@ModelBaseType(ObjectType.LIST)
 public class Links {
   @XmlAttribute
   public Integer count;

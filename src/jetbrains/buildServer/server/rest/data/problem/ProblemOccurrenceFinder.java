@@ -51,10 +51,12 @@ import java.util.stream.Collectors;
  */
 @LocatorResource(value = LocatorName.PROBLEM_OCCURRENCE,
     extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
-    description = "Represents a locator string for filtering ProblemOccurrence entities." +
-        "\nExamples:" +
-        "\n* `currentlyInvestigated:true` – find last 100 build problem occurrences which are being currently investigated." +
-        "\n* `build:<buildLocator>` – find build problem occurrences under build found by `buildLocator`.")
+    baseEntity = "ProblemOccurrence",
+    examples = {
+        "`currentlyInvestigated:true` – find last 100 build problem occurrences which are being currently investigated.",
+        "`build:<buildLocator>` – find build problem occurrences under build found by `buildLocator`."
+    }
+)
 public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   private static final Logger LOG = Logger.getInstance(ProblemOccurrenceFinder.class.getName());
 

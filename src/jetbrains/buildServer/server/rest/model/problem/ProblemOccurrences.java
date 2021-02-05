@@ -16,13 +16,11 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.OccurrencesSummary;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
@@ -44,7 +42,7 @@ import java.util.List;
 @XmlRootElement(name = "problemOccurrences")
 @XmlType(name = "problemOccurrences", propOrder = {"count", "href", "nextHref", "prevHref",
   "items"})
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
+@ModelBaseType(ObjectType.PAGINATED)
 public class ProblemOccurrences extends OccurrencesSummary {
   @XmlElement(name = "problemOccurrence") public List<ProblemOccurrence> items;
   @XmlAttribute public Integer count;

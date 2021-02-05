@@ -28,7 +28,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.data.Finder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -42,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings({"PublicField", "WeakerAccess"})
 @XmlRootElement(name = "multipleOperationResult")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.LIST))
+@ModelBaseType(ObjectType.LIST)
 public class MultipleOperationResult {
     @XmlAttribute
     public Integer count;

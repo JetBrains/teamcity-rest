@@ -25,8 +25,16 @@ public class ExtensionType {
   // reference to an abstract class which may be present in client implementation (to streamline code generation)
   public static final String X_BASE_TYPE = "x-object-type";
 
-  // Swagger models do not have built-in description field
+  // reference to a base entity (e.g. Agent for AgentFinder, AgentPool for AgentPools)
+  public static final String X_BASE_ENTITY = "x-base-entity";
+
+  // Swagger models do not have built-in description field or examples holder
   public static final String X_DESCRIPTION = "x-description";
+  public static final String X_MODEL_EXAMPLES = "x-model-examples";
+
+  // extension for the REST API documentation links
+  public static final String X_HELP_ARTICLE_LINK = "x-help-article-link";
+  public static final String X_HELP_ARTICLE_NAME = "x-help-article-name";
 
   // reference to subpackage of model class
   public static final String X_SUBPACKAGE = "x-subpackage";

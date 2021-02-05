@@ -16,21 +16,19 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
-import javax.xml.bind.annotation.XmlAttribute;
-
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.VcsFileModification;
 import org.jetbrains.annotations.NotNull;
+
+import javax.xml.bind.annotation.XmlAttribute;
 
 /**
  * @author Yegor.Yarko
  *         Date: 21.07.2009
  */
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents the specific file change (in the scope of the commit)."))
+@ModelDescription("Represents the specific file change (in the scope of the commit).")
 public class FileChange {
   @XmlAttribute(name = "before-revision")
   public String before;

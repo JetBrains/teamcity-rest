@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
@@ -28,8 +27,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -42,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 05.01.12
  */
 @XmlRootElement(name = "trigger")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a build trigger."))
+@ModelDescription("Represents a build trigger.")
 public class PropEntityTrigger extends PropEntity implements PropEntityEdit<BuildTriggerDescriptor> {
 
   public PropEntityTrigger() {

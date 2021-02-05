@@ -40,10 +40,12 @@ import java.util.TreeSet;
  */
 @LocatorResource(value = LocatorName.BUILD_QUEUE,
     extraDimensions = {FinderImpl.DIMENSION_ID, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
-    description = "Represents a locator string for filtering queued Build entities." +
-        "\nExamples:" +
-        "\n* `buildType:<buildTypeLocator>` – find queued builds under build configuration found by buildTypeLocator." +
-        "\n* `user:<userLocator>` – find queued builds started by user found by userLocator.")
+    baseEntity = "Build",
+    examples = {
+        "`buildType:<buildTypeLocator>` – find queued builds under build configuration found by buildTypeLocator.",
+        "`user:<userLocator>` – find queued builds started by user found by userLocator."
+    }
+)
 public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   @LocatorDimension(BuildFinder.PROMOTION_ID) public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
   @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")

@@ -27,7 +27,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.AgentRestrictor;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ServiceLocator;
@@ -64,8 +63,7 @@ import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.request.*;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.CachingValue;
@@ -144,7 +142,7 @@ import org.jetbrains.annotations.Nullable;
     "customized", /* Probably to be removed, replace with customization */
     "customization"
   })
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a build instance."))
+@ModelDescription("Represents a build instance.")
 public class Build {
   private static final Logger LOG = Logger.getInstance(Build.class.getName());
 

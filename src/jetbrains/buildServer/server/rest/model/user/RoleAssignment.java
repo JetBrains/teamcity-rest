@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.model.user;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -27,8 +26,7 @@ import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.Role;
@@ -48,8 +46,11 @@ import org.jetbrains.annotations.Nullable;
  */
 
 @XmlRootElement(name = "role")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_DESCRIPTION, value = "Represents a user/group role." +
-    "\n\nRelated Help article: [Roles](https://www.jetbrains.com/help/teamcity/role-and-permission.html)"))
+@ModelDescription(
+    value = "Represents a user/group role.",
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/role-and-permission.html",
+    externalArticleName = "Roles"
+)
 public class RoleAssignment {
   @XmlAttribute
   public String roleId;

@@ -22,7 +22,7 @@ import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrappe
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.swagger.annotations.Extension;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "investigations")
-@Extension(properties = @ExtensionProperty(name = ExtensionType.X_BASE_TYPE, value = ObjectType.PAGINATED))
+@ModelBaseType(ObjectType.PAGINATED)
 public class Investigations implements DefaultValueAware {
   @XmlAttribute public Integer count;
   @XmlAttribute(required = false) @Nullable public String nextHref;

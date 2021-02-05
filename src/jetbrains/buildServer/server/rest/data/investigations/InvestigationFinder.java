@@ -54,10 +54,12 @@ import java.util.List;
  */
 @LocatorResource(value = LocatorName.INVESTIGATION,
     extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
-    description = "Represents a locator string for filtering Investigation entities." +
-        "\nExamples:" +
-        "\n* `assignee:John Smith` – find investigations assigned to `John Smith`." +
-        "\n* `state:taken` – find investigations which are currently in work.")
+    baseEntity = "Investigation",
+    examples = {
+        "`assignee:John Smith` – find investigations assigned to `John Smith`.",
+        "`state:taken` – find investigations which are currently in work."
+    }
+)
 public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   @LocatorDimension(value = "problem", format = LocatorName.PROBLEM, notes = "Problem locator.")
   private static final String PROBLEM_DIMENSION = "problem";
