@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
@@ -185,12 +186,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       setDimension(BUILD, BuildRequest.getBuildLocator(testRun.getBuild())).getStringRepresentation();
   }
 
-  public static String getTestInvocationsLocator(final @NotNull STestRun testRun) {
-    return Locator.createEmptyLocator()
-                  .setDimension(TEST, TestFinder.getTestLocator(testRun.getTest()))
-                  .setDimension(BUILD, BuildRequest.getBuildLocator(testRun.getBuild()))
-                  .setDimension(EXPAND_INVOCATIONS, Locator.BOOLEAN_TRUE)
-                  .getStringRepresentation();
+  public PagingItemFilter<STestRun> getPagingInvocationsFilter(@NotNull Fields invocationField) {
+    Locator allowingAllPersonal = Locator.createEmptyLocator().setDimension(TestOccurrenceFinder.INCLUDE_ALL_PERSONAL, Locator.BOOLEAN_TRUE);
+    String completeLocator = Locator.merge(allowingAllPersonal.getStringRepresentation(), invocationField.getLocator());
+
+    ItemFilter<STestRun> filter = getFilter(completeLocator);
+
+    return getPagingFilter(new Locator(completeLocator), filter);
   }
 
   public static String getTestRunLocator(final @NotNull STest test) {
@@ -823,5 +825,4 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       return myComparators.keySet().toArray(new String[0]);
     }
   }
-  
 }

@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.ArrayList;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -24,7 +25,8 @@ import javax.xml.bind.annotation.XmlType;
 
 import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.messages.Status;
-import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.FilterItemProcessor;
+import jetbrains.buildServer.server.rest.data.PagingItemFilter;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -123,7 +125,6 @@ public class TestOccurrence {
   public Integer getDuration() { //test run duration in milliseconds
     return ValueWithDefault.decideDefault(myFields.isIncluded("duration"), myTestRun.getDuration());
   }
-
 
   /**
    * Experimental! "true" is the test occurrence was muted, not present otherwise
@@ -231,10 +232,30 @@ public class TestOccurrence {
   public TestOccurrences getInvocations() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("invocations", false, false), () -> {
       if (!(myTestRun instanceof MultiTestRun)) return null;
+      MultiTestRun multiTestRun = (MultiTestRun) myTestRun;
       Fields nestedField = myFields.getNestedField("invocations");
-      String invocationsLocator = Locator.merge(TestOccurrenceFinder.getTestInvocationsLocator(myTestRun), nestedField.getLocator());
-      return new TestOccurrences(myTestOccurrenceFinder.getItems(invocationsLocator).myEntries, myTestRun.getInvocationCount(), null, myTestRun.getFailedInvocationCount(), null,
-                                 null, null, null, null, nestedField, myBeanContext);
+
+      PagingItemFilter<STestRun> pagingFilter = myTestOccurrenceFinder.getPagingInvocationsFilter(nestedField);
+      FilterItemProcessor<STestRun> processor = new FilterItemProcessor<>(pagingFilter);
+
+      int passed = 0;
+      int failed = 0;
+      int muted = 0;
+      int ignored = 0;
+      int newFailed = 0;
+
+      multiTestRun.getTestRuns().forEach(processor::processItem);
+
+      ArrayList<STestRun> filtered = processor.getResult();
+      for (STestRun item : filtered) {
+        if(item.getStatus().isSuccessful()) passed++;
+        if(item.getStatus().isFailed()) failed++;
+        if(item.isIgnored()) ignored++;
+        if(item.isMuted()) muted++;
+        if(item.isNewFailure()) newFailed++;
+      };
+
+      return new TestOccurrences(filtered, filtered.size(), passed, failed, newFailed, ignored, muted, null, null, nestedField, myBeanContext);
     });
   }
 

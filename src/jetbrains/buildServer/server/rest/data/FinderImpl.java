@@ -289,12 +289,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         }
       }
 
-      final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
-      final Long count = getCountNotMarkingAsUsed(locator);
-      locator.markUsed(Collections.singleton(PagerData.COUNT));
-      final Long lookupLimit = getLookupLimit(locator);
-
-      pagingFilter = new PagingItemFilter<>(locatorDataBinding.getFilter(), start, count == null ? null : count.intValue(), lookupLimit);
+      pagingFilter = getPagingFilter(locator, locatorDataBinding.getFilter());
     } catch (LocatorProcessException | BadRequestException | IllegalArgumentException e) {
       if (!locator.isHelpRequested()) {
         throw e;
@@ -305,6 +300,16 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     locator.checkLocatorFullyProcessed();
     final FinderDataBinding.ItemHolder<ITEM> finalUnfilteredItems = unfilteredItems;
     return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Retrieving and filtering items", () -> getItems(pagingFilter, finalUnfilteredItems, locator, startTime));
+  }
+
+  @NotNull
+  protected PagingItemFilter<ITEM> getPagingFilter(@NotNull Locator locator, @NotNull ItemFilter<ITEM> filter) {
+    final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
+    final Long count = getCountNotMarkingAsUsed(locator);
+    locator.markUsed(Collections.singleton(PagerData.COUNT));
+    final Long lookupLimit = getLookupLimit(locator);
+
+    return new PagingItemFilter<>(filter, start, count == null ? null : count.intValue(), lookupLimit);
   }
 
   @Nullable
