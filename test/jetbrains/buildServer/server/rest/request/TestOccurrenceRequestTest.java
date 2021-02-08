@@ -53,7 +53,7 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
     {
       TestOccurrences testOccurrences = myRequest.getTestOccurrences("build:(id:" + build10.getBuildId() + "),status:FAILURE", "**", null, null);
 
-      assertEquals(Integer.valueOf(1), testOccurrences.count);
+      assertEquals(Integer.valueOf(1), testOccurrences.getCount());
       assertEquals(1, testOccurrences.items.size());
       TestOccurrence testOccurrence = testOccurrences.items.get(0);
       assertEquals("bbb", testOccurrence.getName());
@@ -74,7 +74,7 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
     {
       TestOccurrences testOccurrences = myRequest.getTestOccurrences("build:(id:" + build20.getBuildId() + "),ignored:true", "**", null, null);
 
-      assertEquals(Integer.valueOf(1), testOccurrences.count);
+      assertEquals(Integer.valueOf(1), testOccurrences.getCount());
       assertEquals(1, testOccurrences.items.size());
       TestOccurrence testOccurrence = testOccurrences.items.get(0);
       assertEquals("ccc", testOccurrence.getName());
@@ -96,7 +96,7 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
     {
       TestOccurrences testOccurrences = myRequest.getTestOccurrences("build:(id:" + build30.getBuildId() + "),test:(name:ccc)", "**", null, null);
 
-      assertEquals(Integer.valueOf(1), testOccurrences.count);
+      assertEquals(Integer.valueOf(1), testOccurrences.getCount());
       assertEquals(1, testOccurrences.items.size());
       TestOccurrence testOccurrence = testOccurrences.items.get(0);
       assertEquals("ccc", testOccurrence.getName());
@@ -116,6 +116,6 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
     mockRequest.setRequestURL("http://test/httpAuth/app/rest/testOccurrences?locator=build:" + build.getBuildId());
     TestOccurrences testOccurrences = myRequest.getTestOccurrences("build:" + build.getBuildId(),"",null, mockRequest);
 
-    assertEquals(new Integer(1), testOccurrences.count);
+    assertEquals(new Integer(1), testOccurrences.getCount());
   }
 }

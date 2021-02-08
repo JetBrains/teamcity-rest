@@ -16,101 +16,128 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import java.util.Collection;
+import java.util.function.Supplier;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
 import jetbrains.buildServer.Used;
-import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
+import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static jetbrains.buildServer.server.rest.model.problem.TestOccurrences.NULL_SUPPLIER;
 
 @XmlType(name = "testCounters", propOrder = {
   "ignored",
   "failed",
   "muted",
   "success",
-  "all"
+  "all",
+  "newFailed",
+  "duration"
 })
 @XmlRootElement(name = "testCounters")
 @ModelDescription("Represents a test results counter (how many times this test was successful/failed/muted/ignored).")
-public class TestCounters {
-  @Nullable
-  @XmlAttribute(name = "ignored")
-  private Integer ignored;
-  @Nullable
-  @XmlAttribute(name = "failed")
-  private Integer failed;
-  @Nullable
-  @XmlAttribute(name = "muted")
-  private Integer muted;
-  @Nullable
-  @XmlAttribute(name = "success")
-  private Integer success;
-  @Nullable
-  @XmlAttribute(name = "all")
-  private Integer all;
+public class TestCounters implements DefaultValueAware {
+  @NotNull
+  private Supplier<Integer> myAll = NULL_SUPPLIER;
+  @NotNull
+  private Supplier<Integer> myMuted = NULL_SUPPLIER;
+  @NotNull
+  private Supplier<Integer> mySuccess = NULL_SUPPLIER;
+  @NotNull
+  private Supplier<Integer> myFailed = NULL_SUPPLIER;
+  @NotNull
+  private Supplier<Integer> myIgnored = NULL_SUPPLIER;
+  @NotNull
+  private Supplier<Integer> myNewFailed = NULL_SUPPLIER;
+  @NotNull
+  private Supplier<Integer> myDuration = NULL_SUPPLIER;
+
+  @NotNull
+  private Fields myFields = Fields.NONE;
 
   @Used("javax.xml")
   public TestCounters() {
   }
 
-  public TestCounters(@Nullable final Collection<STestRun> testRuns, @NotNull final Fields fields) {
-    if (testRuns != null) {
-      all = ValueWithDefault.decideDefault(fields.isIncluded("all"), testRuns::size);
-      final boolean mutedIncluded = fields.isIncluded("muted", false, true);
-      final boolean successIncluded = fields.isIncluded("success", false, true);
-      final boolean failedIncluded = fields.isIncluded("failed", false, true);
-      final boolean ignoredIncluded = fields.isIncluded("ignored", false, true);
-      failed = failedIncluded ? 0 : null;
-      muted = mutedIncluded ? 0 : null;
-      success = successIncluded ? 0 : null;
-      ignored = ignoredIncluded ? 0 : null;
-      testRuns.forEach(sTestRun -> {
-        if (mutedIncluded && sTestRun.isMuted()) {
-          muted++;
-        }
-        if (ignoredIncluded && sTestRun.isIgnored()) {
-          ignored++;
-        }
-        final Status status = sTestRun.getStatus();
-        if (successIncluded && status.isSuccessful()) {
-          success++;
-        }
-        if (failedIncluded && status.isFailed() && !sTestRun.isMuted()) {
-          failed++;
-        }
-      });
-    }
+  /**
+   * @implNote DO NOT FORGET to check {@link jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder#makeCountersFromItems} in case of any changes to this class.
+   */
+  public TestCounters(
+    @NotNull final Fields fields,
+    @NotNull final Supplier<Integer> all,
+    @NotNull final Supplier<Integer> muted,
+    @NotNull final Supplier<Integer> success,
+    @NotNull final Supplier<Integer> failed,
+    @NotNull final Supplier<Integer> ignored,
+    @NotNull final Supplier<Integer> newFailed,
+    @NotNull final Supplier<Integer> totalDuration
+  ) {
+    myFields = fields;
+    myAll = all;
+    myMuted = muted;
+    mySuccess = success;
+    myFailed = failed;
+    myIgnored = ignored;
+    myNewFailed = newFailed;
+    myDuration = totalDuration;
   }
 
+  @XmlAttribute(name = "failed")
   @Nullable
   public Integer getFailed() {
-    return failed;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("failed", false, true), myFailed.get());
   }
 
+  @XmlAttribute(name = "muted")
   @Nullable
   public Integer getMuted() {
-    return muted;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("muted", false, true), myMuted.get());
   }
 
+  @XmlAttribute(name = "success")
   @Nullable
   public Integer getSuccess() {
-    return success;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("success", false, true), mySuccess.get());
   }
 
+  @XmlAttribute(name = "all")
   @Nullable
   public Integer getAll() {
-    return all;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("all"), myAll.get());
   }
 
+  @XmlAttribute(name = "ignored")
   @Nullable
   public Integer getIgnored() {
-    return ignored;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("ignored", false, true), myIgnored.get());
+  }
+
+  @XmlAttribute(name = "newFailed")
+  @Nullable
+  public Integer getNewFailed() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("newFailed", false, true), myNewFailed.get());
+  }
+
+  @XmlAttribute(name = "duration")
+  @Nullable
+  public Integer getDuration() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("duration", false, true), myDuration.get());
+  }
+
+  @Override
+  public boolean isDefault() {
+    return myAll == NULL_SUPPLIER &&
+           myFailed == NULL_SUPPLIER &&
+           myIgnored == NULL_SUPPLIER &&
+           myMuted == NULL_SUPPLIER &&
+           myNewFailed == NULL_SUPPLIER &&
+           mySuccess == NULL_SUPPLIER &&
+           myDuration == NULL_SUPPLIER;
   }
 }

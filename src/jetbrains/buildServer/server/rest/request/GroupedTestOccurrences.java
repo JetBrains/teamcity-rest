@@ -60,6 +60,7 @@ public class GroupedTestOccurrences {
         groups.forEach(g -> map.put(g.getName(), new TestOccurrences(g.getItems().stream().map(STestBean::getRun).collect(Collectors.toList()),
                                                                      null,
                                                                      null,
+                                                                     null,
                                                                      fields.getNestedField("testOccurrences"),
                                                                      beanContext)));
         groups = groups.stream().flatMap(sTestBeanNamedDataGroup -> sTestBeanNamedDataGroup.getGroups().stream()).collect(Collectors.toList());

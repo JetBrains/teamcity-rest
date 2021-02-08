@@ -1003,17 +1003,7 @@ public class Build {
                                                 return myServiceLocator.getSingletonService(TestOccurrenceFinder.class).getItems(actualLocatorText).myEntries;
                                               }
                                             );
-                                            return new TestOccurrences(tests,
-                                                                       statistics.getAllTestCount(),
-                                                                       statistics.getPassedTestCount(),
-                                                                       statistics.getFailedTestCount(),
-                                                                       statistics.getNewFailedCount(),
-                                                                       statistics.getIgnoredTestCount(),
-                                                                       statistics.getMutedTestsCount(),
-                                                                       TestOccurrenceRequest.getHref(myBuild),
-                                                                       null,
-                                                                       testOccurrencesFields, myBeanContext
-                                            );
+                                            return new TestOccurrences(tests, statistics, TestOccurrenceRequest.getHref(myBuild), null, testOccurrencesFields, myBeanContext);
                                           });
   }
 

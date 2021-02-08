@@ -604,8 +604,8 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     {
       TestOccurrence testOccurrence = new TestOccurrence(testRunAAA, getBeanContext(myServer), new Fields("invocations($long)"));
-      assertEquals(Integer.valueOf(4), testOccurrence.getInvocations().count);
-      assertEquals(Integer.valueOf(1), testOccurrence.getInvocations().failed);
+      assertEquals(Integer.valueOf(4), testOccurrence.getInvocations().getCount());
+      assertEquals(Integer.valueOf(1), testOccurrence.getInvocations().getFailed());
       assertNotNull(testOccurrence.getInvocations().items);
       assertEquals(4, testOccurrence.getInvocations().items.size());
       assertEquals("SUCCESS", testOccurrence.getInvocations().items.get(0).getStatus());
@@ -613,7 +613,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     }
     {
       TestOccurrence testOccurrence = new TestOccurrence(testRunAAA, getBeanContext(myServer), new Fields("invocations($long,$locator(status:FAILURE))"));
-      assertEquals(Integer.valueOf(1), testOccurrence.getInvocations().count);
+      assertEquals(Integer.valueOf(1), testOccurrence.getInvocations().getCount());
       assertNotNull(testOccurrence.getInvocations().items);
       assertEquals(1, testOccurrence.getInvocations().items.size());
       assertEquals("FAILURE", testOccurrence.getInvocations().items.get(0).getStatus());

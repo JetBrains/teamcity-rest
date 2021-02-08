@@ -110,7 +110,7 @@ public class Test {
       public TestOccurrences get() {
         //todo: add support for locator + filter here, like for builds in BuildType
         final Fields nestedFields = fields.getNestedField("testOccurrences");
-        return new TestOccurrences(null, null, null, null, null, null, null, TestOccurrenceRequest.getHref(test), null, nestedFields, beanContext);
+        return new TestOccurrences(null, null, TestOccurrenceRequest.getHref(test), null, nestedFields, beanContext);
       }
     });
 

@@ -97,6 +97,7 @@ public class TestOccurrenceRequest {
     final PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locator);
 
     return new TestOccurrences(result.myEntries,
+                               null,
                                uriInfo == null ? null : uriInfo.getRequestUri().toString(),
                                uriInfo == null ? null : new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
                                new Fields(fields),

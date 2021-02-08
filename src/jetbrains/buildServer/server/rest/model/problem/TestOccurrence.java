@@ -236,24 +236,11 @@ public class TestOccurrence {
       PagingItemFilter<STestRun> pagingFilter = myTestOccurrenceFinder.getPagingInvocationsFilter(nestedField);
       FilterItemProcessor<STestRun> processor = new FilterItemProcessor<>(pagingFilter);
 
-      int passed = 0;
-      int failed = 0;
-      int muted = 0;
-      int ignored = 0;
-      int newFailed = 0;
-
       multiTestRun.getTestRuns().forEach(processor::processItem);
 
       ArrayList<STestRun> filtered = processor.getResult();
-      for (STestRun item : filtered) {
-        if(item.getStatus().isSuccessful()) passed++;
-        if(item.getStatus().isFailed()) failed++;
-        if(item.isIgnored()) ignored++;
-        if(item.isMuted()) muted++;
-        if(item.isNewFailure()) newFailed++;
-      };
 
-      return new TestOccurrences(filtered, filtered.size(), passed, failed, newFailed, ignored, muted, null, null, nestedField, myBeanContext);
+      return new TestOccurrences(filtered, null, null, null, nestedField, myBeanContext);
     });
   }
 
