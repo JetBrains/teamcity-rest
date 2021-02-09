@@ -45,6 +45,7 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.*;
+import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import jetbrains.buildServer.users.UserModel;
@@ -79,7 +80,7 @@ public class UserRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get all users.",nickname="getAllUsers")
+  @ApiOperation(value = "Get all users.", nickname = "getAllUsers")
   public Users serveUsers(@QueryParam("locator") String locator, @QueryParam("fields") String fields) {
     return new Users(myUserFinder.getItems(locator).myEntries, new Fields(fields), myBeanContext);
   }
@@ -87,7 +88,7 @@ public class UserRequest {
   @POST
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Create a new user.",nickname="addUser")
+  @ApiOperation(value = "Create a new user.", nickname = "addUser")
   public User createUser(User userData, @QueryParam("fields") String fields) {
     final SUser user = myDataUpdater.createUser(userData.getSubmittedUsername());
     myDataUpdater.modify(user, userData, myBeanContext.getServiceLocator());
@@ -97,7 +98,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get user matching the locator.",nickname="getUser")
+  @ApiOperation(value = "Get user matching the locator.", nickname = "getUser")
   public User serveUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                         @QueryParam("fields") String fields) {
     return new User(myUserFinder.getItem(userLocator, true), new Fields(fields), myBeanContext);
@@ -105,17 +106,21 @@ public class UserRequest {
 
   @DELETE
   @Path("/{userLocator}")
-  @ApiOperation(value="Delete user matching the locator.",nickname="deleteUser")
+  @ApiOperation(value = "Delete user matching the locator.", nickname = "deleteUser")
   public void deleteUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
-    final SUser user = myUserFinder.getItem(userLocator, true);
-    myDataProvider.getServer().getSingletonService(UserModel.class).removeUserAccount(user.getId());
+    final SUser deletee = myUserFinder.getItem(userLocator, true);
+    final SUser deleter = myUserFinder.getCurrentUser();
+    if (!ServerAuthUtil.containsAllPermissionsOf(deleter, deletee)) {
+      throw new AccessDeniedException(deleter, "You cannot delete user that has more permissions than you");
+    }
+    myDataProvider.getServer().getSingletonService(UserModel.class).removeUserAccount(deletee.getId());
   }
 
   @PUT
   @Path("/{userLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Update user matching the locator.",nickname="replaceUser")
+  @ApiOperation(value = "Update user matching the locator.", nickname = "replaceUser")
   public User updateUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                          User userData,
                          @QueryParam("fields") String fields) {
@@ -127,7 +132,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/{field}")
   @Produces("text/plain")
-  @ApiOperation(value="Get a field of the matching user.",nickname="getUserField")
+  @ApiOperation(value = "Get a field of the matching user.", nickname = "getUserField")
   public String serveUserField(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                @PathParam("field") String fieldName) {
     return User.getFieldValue(myUserFinder.getItem(userLocator, true), fieldName, myBeanContext.getServiceLocator());
@@ -137,7 +142,7 @@ public class UserRequest {
   @Path("/{userLocator}/{field}")
   @Consumes("text/plain")
   @Produces("text/plain")
-  @ApiOperation(value="Update a field of the matching user.",nickname="setUserField")
+  @ApiOperation(value = "Update a field of the matching user.", nickname = "setUserField")
   public String setUserField(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                              @PathParam("field") String fieldName,
                              String value) {
@@ -147,7 +152,7 @@ public class UserRequest {
 
   @DELETE
   @Path("/{userLocator}/{field}")
-  @ApiOperation(value="Remove a property of the matching user.",nickname="deleteUserField")
+  @ApiOperation(value = "Remove a property of the matching user.", nickname = "deleteUserField")
   public void deleteUserField(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                               @PathParam("field") String fieldName) {
     final SUser user = myUserFinder.getItem(userLocator, true);
@@ -158,7 +163,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/properties")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get all properties of the matching user.",nickname="getUserProperties")
+  @ApiOperation(value = "Get all properties of the matching user.", nickname = "getUserProperties")
   public Properties serveUserProperties(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                         @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
@@ -169,7 +174,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/properties/{name}")
   @Produces("text/plain")
-  @ApiOperation(value="Get a property of the matching user.",nickname="getUserProperty")
+  @ApiOperation(value = "Get a property of the matching user.", nickname = "getUserProperty")
   public String serveUserProperty(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                   @PathParam("name") String parameterName) {
     return BuildTypeUtil.getParameter(parameterName, User.getProperties(myUserFinder.getItem(userLocator, true)), true, true, myBeanContext.getServiceLocator());
@@ -179,7 +184,7 @@ public class UserRequest {
   @Path("/{userLocator}/properties/{name}")
   @Consumes("text/plain")
   @Produces("text/plain")
-  @ApiOperation(value="Update a property of the matching user.",nickname="setUserProperty")
+  @ApiOperation(value = "Update a property of the matching user.", nickname = "setUserProperty")
   public String putUserProperty(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                 @PathParam("name") String name,
                                 String newValue) {
@@ -194,7 +199,7 @@ public class UserRequest {
 
   @DELETE
   @Path("/{userLocator}/properties/{name}")
-  @ApiOperation(value="Remove a property of the matching user.",nickname="removeUserProperty")
+  @ApiOperation(value = "Remove a property of the matching user.", nickname = "removeUserProperty")
   public void removeUserProperty(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                  @PathParam("name") String name) {
     SUser user = myUserFinder.getItem(userLocator, true);
@@ -209,7 +214,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/roles")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get all user roles of the matching user.",nickname="getAllUserRoles")
+  @ApiOperation(value = "Get all user roles of the matching user.", nickname = "getAllUserRoles")
   public RoleAssignments listRolesForUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
     SUser user = myUserFinder.getItem(userLocator, true);
     return new RoleAssignments(user.getRoles(), user, myBeanContext);
@@ -223,7 +228,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Update user roles of the matching user.",nickname="setUserRoles")
+  @ApiOperation(value = "Update user roles of the matching user.", nickname = "setUserRoles")
   public RoleAssignments replaceRoles(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                       RoleAssignments roleAssignments) {
     SUser user = myUserFinder.getItem(userLocator, true);
@@ -241,7 +246,7 @@ public class UserRequest {
   @Path("/{userLocator}/roles")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Add a role to the matching user.",nickname="addRoleToUser")
+  @ApiOperation(value = "Add a role to the matching user.", nickname = "addRoleToUser")
   public RoleAssignment addRoleToUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                       RoleAssignment roleAssignment) {
     SUser user = myUserFinder.getItem(userLocator, true);
@@ -253,7 +258,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get a user role with the specific scope from the matching user.",nickname="getUserRolesAtScope")
+  @ApiOperation(value = "Get a user role with the specific scope from the matching user.", nickname = "getUserRolesAtScope")
   public RoleAssignment listRoleForUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                         @PathParam("roleId") String roleId,
                                         @PathParam("scope") String scopeValue) {
@@ -263,7 +268,7 @@ public class UserRequest {
 
   @DELETE
   @Path("/{userLocator}/roles/{roleId}/{scope}")
-  @ApiOperation(value="Remove a role with the specific scope from the matching user.",nickname="removeUserRoleAtScope")
+  @ApiOperation(value = "Remove a role with the specific scope from the matching user.", nickname = "removeUserRoleAtScope")
   public void deleteRoleFromUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                  @PathParam("roleId") String roleId,
                                  @PathParam("scope") String scopeValue) {
@@ -288,7 +293,7 @@ public class UserRequest {
   @PUT
   @Path("/{userLocator}/roles/{roleId}/{scope}")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Add a role with the specific scope to the matching user.",nickname="addRoleToUserAtScope")
+  @ApiOperation(value = "Add a role with the specific scope to the matching user.", nickname = "addRoleToUserAtScope")
   public RoleAssignment addRoleToUserSimple(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                             @PathParam("roleId") String roleId,
                                             @PathParam("scope") String scopeValue) {
@@ -300,7 +305,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/groups")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get all groups of the matching user.",nickname="getAllUserGroups")
+  @ApiOperation(value = "Get all groups of the matching user.", nickname = "getAllUserGroups")
   public Groups getGroups(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                           @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
@@ -314,7 +319,7 @@ public class UserRequest {
   @Path("/{userLocator}/groups")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Update groups of the matching user.",nickname="setUserGroups")
+  @ApiOperation(value = "Update groups of the matching user.", nickname = "setUserGroups")
   public Groups replaceGroups(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                               Groups groups,
                               @QueryParam("fields") String fields) {
@@ -327,7 +332,7 @@ public class UserRequest {
   @Path("/{userLocator}/groups")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Add a user matching the locator to the group.", nickname="addUserToGroup", hidden = true)
+  @ApiOperation(value = "Add a user matching the locator to the group.", nickname = "addUserToGroup", hidden = true)
   public Group addGroupToUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                               Group group,
                               @QueryParam("fields") String fields) {
@@ -340,7 +345,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/groups/{groupLocator}")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get a user group of the matching user.",nickname="getUserGroup")
+  @ApiOperation(value = "Get a user group of the matching user.", nickname = "getUserGroup")
   public Group getGroup(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                         @PathParam("groupLocator") String groupLocator,
                         @QueryParam("fields") String fields) {
@@ -357,7 +362,7 @@ public class UserRequest {
 
   @DELETE
   @Path("/{userLocator}/groups/{groupLocator}")
-  @ApiOperation(value="Remove the matching user from the specific group.",nickname="removeUserFromGroup")
+  @ApiOperation(value = "Remove the matching user from the specific group.", nickname = "removeUserFromGroup")
   public void removeGroup(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                           @PathParam("groupLocator") String groupLocator,
                           @QueryParam("fields") String fields) {
@@ -375,7 +380,7 @@ public class UserRequest {
   @POST
   @Path("/{userLocator}/tokens")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Create a new authentication token for the matching user.",nickname="addUserToken")
+  @ApiOperation(value = "Create a new authentication token for the matching user.", nickname = "addUserToken")
   public Token createToken(Token token,
                            @PathParam("userLocator") String userLocator,
                            @QueryParam("fields") String fields) {
@@ -444,7 +449,7 @@ public class UserRequest {
   @POST
   @Path("/{userLocator}/tokens/{name}")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Create a new authentication token for the matching user.",nickname="addUserToken",hidden=true)
+  @ApiOperation(value = "Create a new authentication token for the matching user.", nickname = "addUserToken", hidden = true)
   public Token createToken(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                            @PathParam("name") @NotNull final String name,
                            @QueryParam("fields") String fields) {
@@ -464,7 +469,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/tokens")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get all authentication tokens of the matching user.",nickname="getUserTokens")
+  @ApiOperation(value = "Get all authentication tokens of the matching user.", nickname = "getUserTokens")
   public Tokens getTokens(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                           @QueryParam("fields") String fields) {
     if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
@@ -477,7 +482,7 @@ public class UserRequest {
 
   @DELETE
   @Path("/{userLocator}/tokens/{name}")
-  @ApiOperation(value="Remove an authentication token from the matching user.",nickname="deleteUserToken")
+  @ApiOperation(value = "Remove an authentication token from the matching user.", nickname = "deleteUserToken")
   public void deleteToken(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                           @PathParam("name") @NotNull final String name,
                           @Context @NotNull final BeanContext beanContext) {
@@ -499,7 +504,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/debug/permissions")
   @Produces({"text/plain"})
-  @ApiOperation(value="getPermissions",hidden=true)
+  @ApiOperation(value = "getPermissions", hidden = true)
   public String getPermissions(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
     if (!TeamCityProperties.getBoolean("rest.debug.permissionsList.enable")) {
       throw new BadRequestException("Request is not enabled. Set \"rest.debug.permissionsList.enable\" internal property to enable.");
@@ -518,7 +523,7 @@ public class UserRequest {
   @GET
   @Path("/{userLocator}/permissions")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get all permissions effective for the matching user.",nickname="getUserPermissions")
+  @ApiOperation(value = "Get all permissions effective for the matching user.", nickname = "getUserPermissions")
   public PermissionAssignments getPermissions(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                                               @QueryParam("locator") String permissionLocator,
                                               @QueryParam("fields") String fields) {
@@ -534,7 +539,7 @@ public class UserRequest {
   @DELETE
   @Path("/{userLocator}/debug/rememberMe")
   @Produces({"text/plain"})
-  @ApiOperation(value="Remove the RememberMe data of the matching user.",nickname="removeUserRememberMe")
+  @ApiOperation(value = "Remove the RememberMe data of the matching user.", nickname = "removeUserRememberMe")
   public void deleteRememberMe(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
     SUser user = myUserFinder.getItem(userLocator, true);
     PermissionChecker permissionChecker = myBeanContext.getSingletonService(PermissionChecker.class);
