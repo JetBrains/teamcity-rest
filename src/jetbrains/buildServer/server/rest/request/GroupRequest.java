@@ -41,6 +41,7 @@ import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import org.jetbrains.annotations.NotNull;
@@ -210,7 +211,11 @@ public class GroupRequest {
       throw new BadRequestException("Property name cannot be empty.");
     }
 
-    group.setGroupProperty(new SimplePropertyKey(name), newValue);
+    try {
+      group.setGroupProperty(new SimplePropertyKey(name), newValue);
+    } catch (AccessDeniedException e) {
+      throw new AccessDeniedException(e.getAuthorityHolder(), e.getMessage() + ". It's possible that you are trying to modify the group that has more permissions than you.");
+    }
     return BuildTypeUtil.getParameter(name, User.getProperties(group), false, true, myBeanContext.getServiceLocator());
   }
 
