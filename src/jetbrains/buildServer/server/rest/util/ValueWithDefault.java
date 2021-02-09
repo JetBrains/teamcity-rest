@@ -32,6 +32,26 @@ import org.jetbrains.annotations.Nullable;
 public class ValueWithDefault {
   final static Logger LOG = Logger.getInstance(ValueWithDefault.class.getName());
 
+  /**
+   * If given value is equal to the default value (see {@link ValueWithDefault#isDefault(Object)}) then return it if not excluded explicitly. <br/>
+   * If given value is a non-default value then return it if included explicitly. <br/>
+   * In all other cases return null. <br/><br/>
+   * Example: T=Integer, so value==0 is considered to be a default value. <br/>
+   * In the following table cells contain return value for a given pair of inputs. <br/>
+   * <pre>
+   * {@code
+   *                  include
+   *          | true | false | null |
+   *     -----+------+-------+------|
+   *  v  null | null |  null | null |
+   *  a  -----+------+-------+------|
+   *  l    0  |   0  |  null |   0  |
+   *  u  -----+------+-------+------|
+   *  e    X  |   X  |  null | null |
+   *     -----+------+-------+------|
+   * }
+   * </pre>
+   */
   @Nullable
   public static <T> T decideDefault(@Nullable Boolean include, @Nullable T value) {
     return decide(include, value, null, !ValueWithDefault.isDefault(value));
