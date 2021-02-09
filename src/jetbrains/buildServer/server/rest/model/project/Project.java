@@ -167,7 +167,7 @@ public class Project {
     name = ValueWithDefault.decideDefault(fields.isIncluded("name"), project::getName);
 
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), () -> beanContext.getApiUrlBuilder().getHref(project));
-    webUrl = ValueWithDefault.decideDefault(fields.isIncluded("webUrl"), () -> beanContext.getSingletonService(WebLinks.class).getProjectPageUrl(project.getExternalId()));
+    webUrl = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("webUrl"), () -> beanContext.getSingletonService(WebLinks.class).getProjectPageUrl(project.getExternalId()));
 
     links = getLinks(project, fields, beanContext);
 
@@ -176,7 +176,7 @@ public class Project {
     readOnlyUI = ValueWithDefault.decideDefault(fields.isIncluded("readOnlyUI"), () -> StateField.create(project.isReadOnly(), ((ProjectEx)project).isCustomSettingsFormatUsed() ? false : null, fields.getNestedField("readOnlyUI")));
 
     final CachingValue<BuildTypeFinder> buildTypeFinder = CachingValue.simple(() -> beanContext.getSingletonService(BuildTypeFinder.class));
-    buildTypes = ValueWithDefault.decideDefault(fields.isIncluded("buildTypes", false), new ValueWithDefault.Value<BuildTypes>() {
+    buildTypes = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("buildTypes", false), new ValueWithDefault.Value<BuildTypes>() {
       public BuildTypes get() {
         final Fields buildTypesFields = fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG);
         final String buildTypesLocator = buildTypesFields.getLocator();
@@ -222,7 +222,7 @@ public class Project {
                                                      });
 
 
-    projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
+    projects = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
       public Projects get() {
         final Fields projectsFields = fields.getNestedField("projects", Fields.NONE, Fields.LONG);
         final String projectsLocator = projectsFields.getLocator();

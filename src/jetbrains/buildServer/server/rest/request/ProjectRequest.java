@@ -46,6 +46,7 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.CyclicDependencyFoundException;
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
@@ -178,22 +179,22 @@ public class ProjectRequest {
         if (descriptor.name != null) resultingProject.setName(descriptor.name);
         //todo: TeamCity api: is this necessary? http://youtrack.jetbrains.com/issue/TW-28495
         resultingProject.setExternalId(descriptor.getId(myServiceLocator));
-      } catch (InvalidIdentifierException e) {
-        processCreatiedProjectFinalizationError(resultingProject, projectManager, e);
-      } catch (DuplicateExternalIdException e) {
-        processCreatiedProjectFinalizationError(resultingProject, projectManager, e);
+      } catch (InvalidIdentifierException | DuplicateExternalIdException e) {
+        processCreatedProjectFinalizationError(resultingProject, projectManager, e);
+      } catch (AccessDeniedException e) {
+        LOG.debug(() -> "Got access denied while setting project parameters. This is most probably because the token permissions don't propagate to a newly created child project", e);
       }
     }
 
     try {
       resultingProject.schedulePersisting("A new project was created");
     } catch (PersistFailedException e) {
-      processCreatiedProjectFinalizationError(resultingProject, projectManager, e);
+      processCreatedProjectFinalizationError(resultingProject, projectManager, e);
     }
     return new Project(resultingProject, Fields.LONG, myBeanContext);
   }
 
-  private void processCreatiedProjectFinalizationError(final SProject resultingProject, final ProjectManager projectManager, final Exception e) {
+  private void processCreatedProjectFinalizationError(final SProject resultingProject, final ProjectManager projectManager, final Exception e) {
     try {
       projectManager.removeProject(resultingProject.getProjectId());
     } catch (ProjectRemoveFailedException e1) {
