@@ -81,7 +81,7 @@ public class FeatureToggle {
   public static <T> T withToggleOnByDefault(@NotNull final String toggle,
                                             @NotNull final ValueWithDefault.Value<T> supplier,
                                             @NotNull final ValueWithDefault.Value<T> supplierForDisabled) {
-    return withToggleDeferred(toggle, supplier, supplierForDisabled).get();
+    return withToggleOnByDefaultDeferred(toggle, supplier, supplierForDisabled).get();
   }
 
   @NotNull
