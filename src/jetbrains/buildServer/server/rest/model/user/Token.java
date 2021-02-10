@@ -127,8 +127,8 @@ public class Token {
     return permissionRestrictions;
   }
 
-  public void setPermissionRestrictions(@Nullable PermissionRestrictions permissionRestrictions) {
-    FeatureToggle.withToggleOnByDefaultDeferred("teamcity.internal.accessTokens.enablePermissionScopes", () -> this.permissionRestrictions = permissionRestrictions);
+  public void setPermissionRestrictions(@Nullable final PermissionRestrictions permissionRestrictions) {
+    FeatureToggle.withToggleOnByDefault("teamcity.internal.accessTokens.enablePermissionScopes", () -> this.permissionRestrictions = permissionRestrictions);
   }
 
   @XmlAttribute
