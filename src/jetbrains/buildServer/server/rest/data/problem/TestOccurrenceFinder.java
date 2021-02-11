@@ -188,15 +188,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       setDimension(BUILD, BuildRequest.getBuildLocator(testRun.getBuild())).getStringRepresentation();
   }
 
-  public PagingItemFilter<STestRun> getPagingInvocationsFilter(@NotNull Fields invocationField) {
-    Locator allowingAllPersonal = Locator.createEmptyLocator().setDimension(TestOccurrenceFinder.INCLUDE_ALL_PERSONAL, Locator.BOOLEAN_TRUE);
-    String completeLocator = Locator.merge(allowingAllPersonal.getStringRepresentation(), invocationField.getLocator());
-
-    ItemFilter<STestRun> filter = getFilter(completeLocator);
-
-    return getPagingFilter(new Locator(completeLocator), filter);
-  }
-
   public static String getTestRunLocator(final @NotNull STest test) {
     return Locator.createEmptyLocator().setDimension(TEST, TestFinder.getTestLocator(test)).getStringRepresentation();
   }
@@ -378,6 +369,22 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
+  public List<STestRun> getInvocations(@NotNull Fields invocationField, @NotNull MultiTestRun testRun) {
+    Locator locator = Locator.createEmptyLocator()
+                             .setDimension(INCLUDE_ALL_PERSONAL, Locator.BOOLEAN_TRUE)
+                             .setDimension(TEST, Long.toString(testRun.getTest().getTestNameId()))
+                             .setDimension(EXPAND_INVOCATIONS, Locator.BOOLEAN_TRUE);
+
+    if(testRun.getCompositeBuildId() != null) {
+      locator.setDimension("build", testRun.getCompositeBuildId().toString());
+    }
+
+    String completeLocator = Locator.merge(locator.getStringRepresentation(), invocationField.getLocator());
+
+    return getItems(completeLocator).myEntries;
+  }
+
+  @NotNull
   private ItemHolder<STestRun> getPrefilteredItemsInternal(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
@@ -393,7 +400,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         for (BuildPromotion build : builds) {
           SBuild associatedBuild = build.getAssociatedBuild();
           if (associatedBuild != null) {
-            result.add(getPossibleExpandedTestsHolder(getBuildStatistics(associatedBuild, locator).getAllTests(), expandInvocations));
+            List<STestRun> allTests = getBuildStatistics(associatedBuild, locator).getAllTests();
+            result.add(getPossibleExpandedTestsHolder(allTests, expandInvocations));
           }
         }
         return result;
