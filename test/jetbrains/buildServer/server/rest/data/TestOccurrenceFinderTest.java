@@ -639,6 +639,88 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     assertTrue(items.contains(new TypedValue("some key3", "number", String.valueOf(44f), Fields.LONG)));
   }
 
+  @Test
+  public void testShortStatisticsIsEnoughWhenOnlyLegacyCountersRequested() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build = build().in(buildType)
+                                          .withTest(BuildBuilder.TestData.test("aaa"))
+                                          .withTest(BuildBuilder.TestData.test("bbb").failed())
+                                          .withTest(BuildBuilder.TestData.test("ccc").ignored("Ignore reason"))
+                                          .finish();
+
+    assertNotNull(
+      "Retrieving counters should be done via short statistics.",
+      myTestOccurrenceFinder.getShortStatisticsIfEnough("build:" + build.getBuildId(), "count,passed,failed,newFailed,ignored,muted")
+    );
+  }
+
+  @Test
+  public void testShortStatisticsIsNotEnoughWhenNoBuildInRequest() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build = build().in(buildType)
+                                          .withTest(BuildBuilder.TestData.test("aaa"))
+                                          .withTest(BuildBuilder.TestData.test("bbb").failed())
+                                          .withTest(BuildBuilder.TestData.test("ccc").ignored("Ignore reason"))
+                                          .finish();
+
+    assertNull(
+      "ShortStatistics can be used only if the build is specified.",
+      myTestOccurrenceFinder.getShortStatisticsIfEnough("test:(status:failed,affectedProject:project)", "count,passed,failed,newFailed,ignored,muted")
+    );
+  }
+
+  @Test
+  public void testShortStatisticsIsNotEnoughWhenThereIsMoreThanOneBuildInRequest() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build1 = build().in(buildType)
+                                          .withTest(BuildBuilder.TestData.test("aaa"))
+                                          .withTest(BuildBuilder.TestData.test("bbb").failed())
+                                          .withTest(BuildBuilder.TestData.test("ccc").ignored("Ignore reason"))
+                                          .finish();
+
+    final SFinishedBuild build2 = build().in(buildType)
+                                          .withTest(BuildBuilder.TestData.test("aaa"))
+                                          .withTest(BuildBuilder.TestData.test("bbb").failed())
+                                          .withTest(BuildBuilder.TestData.test("ccc").ignored("Ignore reason"))
+                                          .finish();
+
+
+    assertNull(
+      "ShortStatistics can be used only if there is a single build.",
+      myTestOccurrenceFinder.getShortStatisticsIfEnough("build:(status:failed)", "count,passed,failed,newFailed,ignored,muted")
+    );
+  }
+
+  @Test
+  public void testShortStatisticsIsEnoughWhenTestCountersRequested() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build = build().in(buildType)
+                                          .withTest(BuildBuilder.TestData.test("aaa"))
+                                          .withTest(BuildBuilder.TestData.test("bbb").failed())
+                                          .withTest(BuildBuilder.TestData.test("ccc").ignored("Ignore reason"))
+                                          .finish();
+
+    assertNotNull(
+      "Retrieving counters should be done via short statistics.",
+      myTestOccurrenceFinder.getShortStatisticsIfEnough("build:" + build.getBuildId(), "testCounters(all,success,failed,newFailed,ignored,muted)")
+    );
+  }
+
+  @Test
+  public void testShortStatisticsIsNotEnoughWhenTestCountersWithDurationRequested() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build = build().in(buildType)
+                                          .withTest(BuildBuilder.TestData.test("aaa"))
+                                          .withTest(BuildBuilder.TestData.test("bbb").failed())
+                                          .withTest(BuildBuilder.TestData.test("ccc").ignored("Ignore reason"))
+                                          .finish();
+
+    assertNull(
+      "Can't retrieve duration without detching all tests.",
+      myTestOccurrenceFinder.getShortStatisticsIfEnough("build:" + build.getBuildId(), "testCounters(all,duration)")
+    );
+  }
+
   private static final Matcher<TestRunData, STestRun> TEST_MATCHER = new Matcher<TestRunData, STestRun>() {
     @Override
     public boolean matches(@NotNull final TestRunData data, @NotNull final STestRun sTestRun) {

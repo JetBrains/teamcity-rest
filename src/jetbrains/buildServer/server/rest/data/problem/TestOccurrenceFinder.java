@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
+import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
@@ -671,6 +672,35 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     final Set<SProject> projects = currentMuteInfo.getProjectsMuteInfo().keySet();
     return ProjectFinder.isSameOrParent(projects, buildType.getProject());
+  }
+
+  /**
+   * Checks whether response can be built only using ShortStatistics without fetching test occurrences given locator and fields. If so, get this statistics.
+   * @implNote This is a workaround for TW-70154. In short, fetching all test occurrences just for test counters can be a performance hit.
+   * @return ShortStatisitcs if it is enough to build the response, null otherwise.
+   */
+  @Nullable
+  public ShortStatistics getShortStatisticsIfEnough(@Nullable final String locatorText, @NotNull final String fieldsText) {
+    if(locatorText == null)
+      return null;
+
+    if(!TestOccurrences.isShortStatisticsEnoughForConstruction(fieldsText))
+      return null;
+
+    Locator locator = Locator.locator(locatorText);
+    String buildDimension = locator.getSingleDimensionValue(BUILD);
+    if(buildDimension == null)
+      return null;
+
+    List<BuildPromotion> buildPromotions = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+    if(buildPromotions.size() != 1)
+      return null;
+
+    SBuild build = buildPromotions.get(0).getAssociatedBuild();
+    if(build == null)
+      return null;
+
+    return build.getShortStatistics();
   }
 
   @NotNull

@@ -95,6 +95,13 @@ public class TestOccurrenceRequest {
                                             @Context UriInfo uriInfo,
                                             @Context HttpServletRequest request) {
     String locator = patchLocatorForPersonalBuilds(locatorText, request);
+
+    ShortStatistics statistics = myTestOccurrenceFinder.getShortStatisticsIfEnough(locator, fields);
+    if(statistics != null) {
+      // Short href and pager data are meaningless in a case when we need only some counters.
+      return new TestOccurrences(null, statistics, null, null, new Fields(fields), myBeanContext);
+    }
+
     final PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locator);
 
     return new TestOccurrences(result.myEntries,
