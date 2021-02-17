@@ -42,6 +42,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestRun;
+import jetbrains.buildServer.serverSide.ShortStatistics;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.StandardProperties;
 import jetbrains.buildServer.web.util.SessionUser;
@@ -140,10 +141,14 @@ public class TestOccurrenceRequest {
     return patchedLocator.getStringRepresentation();
   }
 
-  void initForTests(@NotNull final BeanContext beanContext) {
-    myServiceLocator = beanContext.getSingletonService(ServiceLocator.class);
-    myTestOccurrenceFinder = beanContext.getSingletonService(TestOccurrenceFinder.class);
-    myApiUrlBuilder = beanContext.getApiUrlBuilder();
+  void initForTests(
+    @NotNull ServiceLocator serviceLocator,
+    @NotNull TestOccurrenceFinder testOccurrenceFinder,
+    @NotNull ApiUrlBuilder apiUrlBuilder,
+    @NotNull final BeanContext beanContext) {
+    myServiceLocator = serviceLocator;
+    myTestOccurrenceFinder = testOccurrenceFinder;
+    myApiUrlBuilder = apiUrlBuilder;
     myBeanContext = beanContext;
   }
 

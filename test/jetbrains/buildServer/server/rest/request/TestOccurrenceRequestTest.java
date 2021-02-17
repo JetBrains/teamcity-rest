@@ -18,12 +18,19 @@ package jetbrains.buildServer.server.rest.request;
 
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.controllers.fakes.FakeHttpServletRequest;
-import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.problem.TestFinder;
+import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.CurrentProblemsManager;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
+import jetbrains.buildServer.serverSide.tests.TestHistory;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -39,7 +46,13 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
   public void setUp() throws Exception {
     super.setUp();
     myRequest = new TestOccurrenceRequest();
-    myRequest.initForTests(BaseFinderTest.getBeanContext(myFixture));
+    BeanContext ctx = BaseFinderTest.getBeanContext(myFixture);
+    myRequest.initForTests(
+      ctx.getServiceLocator(),
+      ctx.getSingletonService(TestOccurrenceFinder.class),
+      ctx.getApiUrlBuilder(),
+      ctx
+    );
   }
 
   @Test
@@ -117,5 +130,70 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
     TestOccurrences testOccurrences = myRequest.getTestOccurrences("build:" + build.getBuildId(),"",null, mockRequest);
 
     assertEquals(new Integer(1), testOccurrences.getCount());
+  }
+
+  @Test
+  public void testWontFetchItemsWhenNotNeededWithDefaultFieldsValue() {
+    BeanContext ctx = BaseFinderTest.getBeanContext(myFixture);
+    myRequest.initForTests(
+      ctx.getServiceLocator(),
+      new TestOccurrenceFinderDenyingItemsFetch(),
+      ctx.getApiUrlBuilder(),
+      ctx
+
+    );
+    final SFinishedBuild build = build().in(myBuildType).withTest(BuildBuilder.TestData.test("aaa").duration(76)).finish();
+
+    FakeHttpServletRequest mockRequest = new FakeHttpServletRequest();
+    mockRequest.setRequestURL("http://test/httpAuth/app/rest/testOccurrences?locator=build:" + build.getBuildId());
+    TestOccurrences testOccurrences = myRequest.getTestOccurrences("build:" + build.getBuildId(),"",null, mockRequest);
+
+    assertEquals(new Integer(1), testOccurrences.getCount());
+  }
+
+  @Test
+  public void testWontFetchItemsWhenNotNeededWithExplicitFieldsValue() {
+    BeanContext ctx = BaseFinderTest.getBeanContext(myFixture);
+    myRequest.initForTests(
+      ctx.getServiceLocator(),
+      new TestOccurrenceFinderDenyingItemsFetch(),
+      ctx.getApiUrlBuilder(),
+      ctx
+
+    );
+    final SFinishedBuild build = build().in(myBuildType).withTest(BuildBuilder.TestData.test("aaa").duration(76)).finish();
+
+    FakeHttpServletRequest mockRequest = new FakeHttpServletRequest();
+    mockRequest.setRequestURL("http://test/httpAuth/app/rest/testOccurrences?locator=build:" + build.getBuildId() + "&fields=id,count,failed,testCounters(all,success)");
+    TestOccurrences testOccurrences = myRequest.getTestOccurrences("build:" + build.getBuildId(),"",null, mockRequest);
+
+    assertEquals(new Integer(1), testOccurrences.getCount());
+  }
+
+  private class TestOccurrenceFinderDenyingItemsFetch extends TestOccurrenceFinder {
+    public TestOccurrenceFinderDenyingItemsFetch() {
+      super(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myFixture.getTestsHistory(), myServer.getSingletonService(CurrentProblemsManager.class), myBranchFinder);
+    }
+
+    @NotNull
+    @Override
+    public PagedSearchResult<STestRun> getItems(@Nullable String locatorText) {
+      fail("Should not get items when possible");
+      throw new RuntimeException();
+    }
+
+    @NotNull
+    @Override
+    public PagedSearchResult<STestRun> getItems(@Nullable String locatorText, @Nullable Locator locatorDefaults) {
+      fail("Should not get items when possible");
+      throw new RuntimeException();
+    }
+
+    @NotNull
+    @Override
+    public STestRun getItem(@Nullable String locatorText) {
+      fail("Should not get items when possible");
+      throw new RuntimeException();
+    }
   }
 }
