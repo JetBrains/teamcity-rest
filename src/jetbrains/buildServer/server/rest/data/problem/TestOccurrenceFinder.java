@@ -680,8 +680,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
    * @return ShortStatisitcs if it is enough to build the response, null otherwise.
    */
   @Nullable
-  public ShortStatistics getShortStatisticsIfEnough(@Nullable final String locatorText, @NotNull final String fieldsText) {
-    if(locatorText == null)
+  public ShortStatistics getShortStatisticsIfEnough(@Nullable final String locatorText, @Nullable final String fieldsText) {
+    if(locatorText == null || fieldsText == null)
       return null;
 
     if(!TestOccurrences.isShortStatisticsEnoughForConstruction(fieldsText))
