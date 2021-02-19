@@ -26,7 +26,6 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.model.build.OccurrencesSummary;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -53,7 +52,7 @@ import org.jetbrains.annotations.Nullable;
   "testCounters"
 })
 @ModelBaseType(ObjectType.PAGINATED)
-public class TestOccurrences extends OccurrencesSummary {
+public class TestOccurrences {
   public static final Supplier<Integer> NULL_SUPPLIER = () -> null;
 
   @NotNull
@@ -238,7 +237,6 @@ public class TestOccurrences extends OccurrencesSummary {
     return !needsActualOccurrence && !needsDurationInTestCounters;
   }
 
-  @Override
   public boolean isDefault() {
     return ValueWithDefault.isAllDefault(href, items, myTestCounters) &&
            myCount == NULL_SUPPLIER &&
