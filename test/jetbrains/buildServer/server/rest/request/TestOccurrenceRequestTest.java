@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.request;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.controllers.fakes.FakeHttpServletRequest;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
@@ -28,10 +27,10 @@ import jetbrains.buildServer.serverSide.CurrentProblemsManager;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
-import jetbrains.buildServer.serverSide.tests.TestHistory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 /**
@@ -130,6 +129,53 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
     TestOccurrences testOccurrences = myRequest.getTestOccurrences("build:" + build.getBuildId(),"",null, mockRequest);
 
     assertEquals(new Integer(1), testOccurrences.getCount());
+  }
+
+  @Test(description = "TW-70206")
+  @Ignore // Ignored as current implementation does work only in a very specific number of cases when specific build is available when preparing TestOccurrences
+  public void testInvocationsAreFoundCorrectly() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build = build().in(buildType)
+                                        .withTest("aaa", false)
+                                        .withTest("aaa", true)
+                                        .withTest("aaa", true)
+                                        .finish();
+
+    String fields = "testCounters(failed,success,all,duration),testOccurrence(id,name,muted,status,invocations($locator(count:90000),testCounters(all,success,failed),testOccurrence(id,name,status,muted)))";
+    String locator = "currentlyFailing:true,affectedProject:" + buildType.getProject().getExternalId();
+    FakeHttpServletRequest mockRequest = new FakeHttpServletRequest();
+    mockRequest.setRequestURL(String.format("http://test/httpAuth/app/rest/testOccurrences?locator=%s&fields=%s", locator, fields));
+
+    TestOccurrences testOccurrences = myRequest.getTestOccurrences(locator, fields,null, mockRequest);
+
+    assertEquals("Should return exactly one 'grouping' test run.",1, testOccurrences.items.size());
+
+    TestOccurrence grouping = testOccurrences.items.get(0);
+    assertNotNull("Should contain invocations node.", grouping.getInvocations());
+    assertEquals("Should contain exactly 3 occurrences.",3, grouping.getInvocations().items.size());
+  }
+
+  @Test(description = "TW-70206")
+  public void testInvocationsAreFoundCorrectly2() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build = build().in(buildType)
+                                        .withTest("aaa", false)
+                                        .withTest("aaa", false)
+                                        .withTest("aaa", true)
+                                        .finish();
+
+    String fields = "testCounters(failed,success,all,duration),testOccurrence(id,name,muted,status,invocations($locator(count:90000),testCounters(all,success,failed),testOccurrence(id,name,status,muted)))";
+    String locator = "currentlyFailing:true,affectedProject:" + buildType.getProject().getExternalId();
+    FakeHttpServletRequest mockRequest = new FakeHttpServletRequest();
+    mockRequest.setRequestURL(String.format("http://test/httpAuth/app/rest/testOccurrences?locator=%s&fields=%s", locator, fields));
+
+    TestOccurrences testOccurrences = myRequest.getTestOccurrences(locator, fields,null, mockRequest);
+
+    assertEquals("Should return exactly one 'grouping' test run.",1, testOccurrences.items.size());
+
+    TestOccurrence grouping = testOccurrences.items.get(0);
+    assertNotNull("Should contain invocations node.", grouping.getInvocations());
+    assertEquals("Should contain exactly 3 occurrences.",3, grouping.getInvocations().items.size());
   }
 
   @Test
