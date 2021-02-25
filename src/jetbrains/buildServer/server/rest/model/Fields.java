@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model;
 
 import com.intellij.openapi.util.text.StringUtil;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -261,6 +262,12 @@ public class Fields {
   public String getCustomDimension(@NotNull final String fieldName) {
     final Locator parsedCustomFields = getParsedCustomFields();
     return parsedCustomFields == null ? null : parsedCustomFields.lookupSingleDimensionValue(fieldName); //should use getSingleDimensionValue here, but since locator check is not invoked so far, can improve performance a bit by using lookupSingleDimensionValue
+  }
+
+  @NotNull
+  public Collection<String> getAllCustomDimensions() {
+    final Locator parsedCustomFields = getParsedCustomFields();
+    return parsedCustomFields == null ? Collections.emptyList() : parsedCustomFields.getDefinedDimensions();
   }
 
   @Nullable

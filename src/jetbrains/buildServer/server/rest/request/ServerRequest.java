@@ -16,9 +16,10 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.sun.jersey.api.core.InjectParam;
+import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.log.Loggers;
@@ -27,6 +28,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -41,11 +43,13 @@ import jetbrains.buildServer.server.rest.model.server.Server;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.maintenance.BackupConfig;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcess;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcessManager;
 import jetbrains.buildServer.serverSide.maintenance.MaintenanceProcessAlreadyRunningException;
+import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.Element;
@@ -58,8 +62,6 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import java.io.File;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -71,6 +73,8 @@ import java.util.stream.Stream;
 @Path(ServerRequest.API_SERVER_URL)
 @Api("Server")
 public class ServerRequest {
+  private static final Logger LOG = Logger.getInstance(ServerRequest.class.getName());
+
   public static final String SERVER_VERSION_RQUEST_PATH = "version";
   public static final String SERVER_REQUEST_PATH = "/server";
   public static final String API_SERVER_URL = Constants.API_URL + SERVER_REQUEST_PATH;
@@ -88,6 +92,19 @@ public class ServerRequest {
   @SuppressWarnings("NullableProblems") @Context @NotNull private BeanContext myBeanContext;
 
   @SuppressWarnings("NullableProblems") @Context @NotNull private PermissionChecker myPermissionChecker;
+
+  public void initForTests(
+    @NotNull ServiceLocator serviceLocator,
+    @NotNull ApiUrlBuilder apiUrlBuilder,
+    @NotNull BeanFactory beanFactory,
+    @NotNull BeanContext beanContext,
+    @NotNull PermissionChecker permissionChecker) {
+    myServiceLocator = serviceLocator;
+    myApiUrlBuilder = apiUrlBuilder;
+    myFactory = beanFactory;
+    myBeanContext = beanContext;
+    myPermissionChecker = permissionChecker;
+  }
 
   public static String getLicenseKeysListHref() {
     return API_SERVER_URL + LICENSING_KEYS;
@@ -213,9 +230,34 @@ public class ServerRequest {
   @Path(LICENSING_DATA)
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value="Get the licensing data.",nickname="getLicensingData")
-  public LicensingData getLicensingData(@QueryParam("fields") String fields) {
-    myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
-    return new LicensingData(myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager(), new Fields(fields), myBeanContext);
+  public LicensingData getLicensingData(@QueryParam("fields") String fieldsText) {
+    Fields fields = new Fields(fieldsText);
+
+    Collection<String> fieldsDimensions = fields.getAllCustomDimensions();
+    if(fieldsDimensions.size() == 1 && fieldsDimensions.contains("agentsLeft")) {
+      myPermissionChecker.checkGlobalPermission(Permission.VIEW_AGENT_DETAILS);
+
+      try {
+        SecurityContextEx context = myBeanContext.getSingletonService(SecurityContextEx.class);
+        LicenseKeysManager manager = context.runAsSystem(() -> {
+          return myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager();
+        });
+
+        LicensingData result = new LicensingData();
+        result.setAgentsLeft(manager.getLicensingPolicy().getAgentsLicensesLeft());
+        return result;
+      } catch (AccessDeniedException ade) {
+        throw ade;
+      } catch (Throwable t) {
+        String message = "Unable to retrieve licensing data.";
+        LOG.infoAndDebugDetails(message, t);
+
+        throw new BadRequestException(message);
+      }
+    } else {
+      myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
+    }
+    return new LicensingData(myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager(), fields, myBeanContext);
   }
 
   @GET

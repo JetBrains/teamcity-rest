@@ -31,6 +31,7 @@ import jetbrains.buildServer.serverSide.LicenseKeysManager;
 import jetbrains.buildServer.serverSide.LicenseList;
 import jetbrains.buildServer.serverSide.LicensingPolicyEx;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -50,8 +51,7 @@ public class LicensingData {
   @XmlAttribute
   public Boolean unlimitedAgents;
 
-  @XmlAttribute
-  public Integer agentsLeft;
+  private Integer agentsLeft;
 
   @XmlAttribute
   public Integer maxBuildTypes;
@@ -77,10 +77,14 @@ public class LicensingData {
 
   //todo: check getActiveLicensesNum() is visible in the keys list
 
+  private Fields myFields;
+
   public LicensingData() {
   }
 
   public LicensingData(final @NotNull LicenseKeysManager licenseKeysManager, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    myFields = fields;
+
     final LicenseList licenseList = licenseKeysManager.getLicenseList();
 
     licenseKeys = ValueWithDefault.decideDefault(fields.isIncluded("licenseKeys"),
@@ -107,13 +111,21 @@ public class LicensingData {
 
     serverEffectiveReleaseDate = ValueWithDefault.decideDefault(fields.isIncluded("serverEffectiveReleaseDate"), Util.formatTime(licenseList.getReleaseDate()));
 
-    if (licensingPolicy.getAgentsLicensesLeft() != -1) {
-      agentsLeft = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("agentsLeft"), licensingPolicy.getAgentsLicensesLeft());
-    }
+    agentsLeft = licensingPolicy.getAgentsLicensesLeft();
 
     if (licensingPolicy.getBuildTypesLicensesLeft() != -1) {
       buildTypesLeft = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("buildTypesLeft"), licensingPolicy.getBuildTypesLicensesLeft());
     }
+  }
+
+  @Nullable
+  @XmlAttribute(name = "agentsLeft")
+  public Integer getAgentsLeft() {
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("agentsLeft"), agentsLeft);
+  }
+
+  public void setAgentsLeft(@Nullable Integer agentsLeft) {
+    this.agentsLeft = agentsLeft;
   }
 
   protected static final String SERVER_LICENSE_TYPE_ENTERPRISE = "enterprise";

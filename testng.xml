@@ -41,6 +41,7 @@
       <class name="jetbrains.buildServer.server.rest.request.TestOccurrenceRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.UserRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.HealthRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.ServerRequestTest"/>
     </classes>
   </test>
 </suite>
