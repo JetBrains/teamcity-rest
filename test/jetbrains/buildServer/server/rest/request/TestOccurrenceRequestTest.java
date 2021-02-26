@@ -221,6 +221,27 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
     assertEquals(new Integer(1), testOccurrences.getCount());
   }
 
+  @Test
+  @TestFor(issues = {"TW-70331"})
+  public void testShouldRespectExpandInvocationsDimension() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build = build().in(buildType)
+                                        .withTest("aaa", false)
+                                        .withTest("aaa", false)
+                                        .withTest("aaa", true)
+                                        .finish();
+
+    FakeHttpServletRequest mockRequest = new FakeHttpServletRequest();
+    String fields = "testCounters(all,success,failed)";
+    String locator = "build:" + build.getBuildId() + ",expandInvocations:true";
+    mockRequest.setRequestURL(String.format("http://test/httpAuth/app/rest/testOccurrences?locator=%s&fields=%s", locator, fields));
+    TestOccurrences testOccurrences = myRequest.getTestOccurrences(locator, fields,null, mockRequest);
+
+    assertEquals(new Integer(3), testOccurrences.getTestCounters().getAll());
+    assertEquals(new Integer(2), testOccurrences.getTestCounters().getFailed());
+    assertEquals(new Integer(1), testOccurrences.getTestCounters().getSuccess());
+  }
+
   private class TestOccurrenceFinderDenyingItemsFetch extends TestOccurrenceFinder {
     public TestOccurrenceFinderDenyingItemsFetch() {
       super(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myFixture.getTestsHistory(), myServer.getSingletonService(CurrentProblemsManager.class), myBranchFinder);

@@ -692,6 +692,10 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if(buildDimension == null)
       return null;
 
+    if(locator.getSingleDimensionValueAsStrictBoolean(EXPAND_INVOCATIONS, false)) {
+      return null;
+    }
+
     List<BuildPromotion> buildPromotions = myBuildFinder.getBuilds(null, buildDimension).myEntries;
     if(buildPromotions.size() != 1)
       return null;
