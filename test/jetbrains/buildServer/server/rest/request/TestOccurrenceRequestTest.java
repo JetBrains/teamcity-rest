@@ -27,10 +27,11 @@ import jetbrains.buildServer.serverSide.CurrentProblemsManager;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
+import jetbrains.buildServer.util.TestFor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.testng.SkipException;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 /**
@@ -131,9 +132,12 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
     assertEquals(new Integer(1), testOccurrences.getCount());
   }
 
-  @Test(description = "TW-70206")
-  @Ignore // Ignored as current implementation does work only in a very specific number of cases when specific build is available when preparing TestOccurrences
+  @Test
+  @TestFor(issues = {"TW-70206"})
   public void testInvocationsAreFoundCorrectly() {
+    if(true)
+      throw new SkipException("Ignored as current implementation does work only in a very specific number of cases when specific build is available when preparing TestOccurrences");
+
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
     final SFinishedBuild build = build().in(buildType)
                                         .withTest("aaa", false)
@@ -155,7 +159,8 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
     assertEquals("Should contain exactly 3 occurrences.",3, grouping.getInvocations().items.size());
   }
 
-  @Test(description = "TW-70206")
+  @Test
+  @TestFor(issues = {"TW-70206"})
   public void testInvocationsAreFoundCorrectly2() {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
     final SFinishedBuild build = build().in(buildType)
