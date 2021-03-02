@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.cloud;
 
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -45,8 +46,10 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 21.08.2019
  */
 @XmlRootElement(name = "cloudImage")
-@XmlType(name = "cloudImage", propOrder = {"id", "name", "href",
-  "profile", "instances", "errorMessage", "agentTypeId"})
+@XmlType(
+  name = "cloudImage",
+  propOrder = {"id", "name", "href", "profile", "instances", "errorMessage", "agentTypeId", "agentPoolId", "operatingSystemName"}
+)
 
 @SuppressWarnings("PublicField")
 @ModelDescription(
@@ -107,18 +110,34 @@ public class CloudImage {
   @Nullable
   @XmlElement(name = "agentTypeId")
   public Integer getAgentTypeId() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("agentTypeId", false, false),
-                                          () -> {
-                                            final jetbrains.buildServer.clouds.CloudProfile profile = myBeanContext.getSingletonService(CloudUtil.class).getProfile(myCloudImage);
-                                            if (profile == null) {
-                                              return null;
-                                            }
-                                            final SAgentType agentType = myBeanContext.getSingletonService(CloudManager.class).getDescriptionFor(profile, myCloudImage.getId());
-                                            if (agentType == null) {
-                                              return null;
-                                            }
-                                            return agentType.getAgentTypeId();
-                                          });
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("agentTypeId", false, false),
+      () -> getAgentType().map(SAgentType::getAgentTypeId).orElse(null)
+    );
+  }
+
+  @Nullable
+  @XmlElement(name = "agentPoolId")
+  public Integer getAgentPoolId() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("agentPoolId", false, false), () -> myCloudImage.getAgentPoolId());
+  }
+
+  @Nullable
+  @XmlElement(name = "operatingSystemName")
+  public String getOperatingSystemName() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("operatingSystemName", false, false),
+      () -> getAgentType().map(SAgentType::getOperatingSystemName).orElse(null)
+    );
+  }
+
+  @NotNull
+  private Optional<SAgentType> getAgentType() {
+    final jetbrains.buildServer.clouds.CloudProfile profile = myBeanContext.getSingletonService(CloudUtil.class).getProfile(myCloudImage);
+    if (profile == null) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(myBeanContext.getSingletonService(CloudManager.class).getDescriptionFor(profile, myCloudImage.getId()));
   }
 
   @XmlElement(name = "errorMessage")
