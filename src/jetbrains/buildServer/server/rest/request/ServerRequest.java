@@ -233,6 +233,7 @@ public class ServerRequest {
   public LicensingData getLicensingData(@QueryParam("fields") String fieldsText) {
     Fields fields = new Fields(fieldsText);
 
+    /*
     Collection<String> fieldsDimensions = fields.getAllCustomDimensions();
     if(fieldsDimensions.size() == 1 && fieldsDimensions.contains("agentsLeft")) {
       myPermissionChecker.checkGlobalPermission(Permission.VIEW_AGENT_DETAILS);
@@ -256,7 +257,9 @@ public class ServerRequest {
       }
     } else {
       myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
-    }
+    }*/
+
+
     return new LicensingData(myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager(), fields, myBeanContext);
   }
 

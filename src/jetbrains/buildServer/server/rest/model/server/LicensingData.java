@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.request.ServerRequest;
@@ -30,6 +31,10 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.LicenseKeysManager;
 import jetbrains.buildServer.serverSide.LicenseList;
 import jetbrains.buildServer.serverSide.LicensingPolicyEx;
+import jetbrains.buildServer.serverSide.SecurityContextEx;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -85,11 +90,24 @@ public class LicensingData {
   public LicensingData(final @NotNull LicenseKeysManager licenseKeysManager, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     myFields = fields;
 
-    final LicenseList licenseList = licenseKeysManager.getLicenseList();
+    initLicenceListDependantFields(licenseKeysManager, fields, beanContext);
+    initLicensingPolicyDependantFields(licenseKeysManager, fields, beanContext);
+  }
 
-    licenseKeys = ValueWithDefault.decideDefault(fields.isIncluded("licenseKeys"),
-                                                 () -> new LicenseKeyEntities(licenseList.getAllLicenses(), licenseList.getActiveLicenses(), ServerRequest.getLicenseKeysListHref(),
-                                                                              fields.getNestedField("licenseKeys", Fields.SHORT, Fields.LONG), beanContext));
+  private void initLicenceListDependantFields(@NotNull LicenseKeysManager licenseKeysManager, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    LicenseList licenseList;
+    try {
+      licenseList = licenseKeysManager.getLicenseList();
+
+    } catch (Throwable ignored) {
+      // Leave all fields uninitialized
+      return;
+    }
+
+    this.licenseKeys = ValueWithDefault.decideDefault(
+      fields.isIncluded("licenseKeys"),
+      () -> new LicenseKeyEntities(licenseList.getAllLicenses(), licenseList.getActiveLicenses(), ServerRequest.getLicenseKeysListHref(), fields.getNestedField("licenseKeys", Fields.SHORT, Fields.LONG), beanContext)
+    );
 
     final boolean unlimitedBuildTypes = licenseList.isUnlimitedBuildTypes();
     this.unlimitedBuildTypes = ValueWithDefault.decideDefault(fields.isIncluded("unlimitedBuildTypes"), unlimitedBuildTypes);
@@ -103,19 +121,41 @@ public class LicensingData {
       maxAgents = ValueWithDefault.decideDefault(fields.isIncluded("maxAgents"), licenseList.getLicensedAgentCount());
     }
 
-    final LicensingPolicyEx licensingPolicy = licenseKeysManager.getLicensingPolicy();
-
-    licenseUseExceeded = ValueWithDefault.decideDefault(fields.isIncluded("licenseUseExceeded"), licensingPolicy.isMaxNumberOfBuildTypesExceeded());
-
     serverLicenseType = ValueWithDefault.decideDefault(fields.isIncluded("serverLicenseType"), getServerLicenseType(licenseList));
 
     serverEffectiveReleaseDate = ValueWithDefault.decideDefault(fields.isIncluded("serverEffectiveReleaseDate"), Util.formatTime(licenseList.getReleaseDate()));
+  }
 
-    agentsLeft = licensingPolicy.getAgentsLicensesLeft();
+  private void initLicensingPolicyDependantFields(@NotNull LicenseKeysManager licenseKeysManager, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    final LicensingPolicyEx licensingPolicy = licenseKeysManager.getLicensingPolicy();
+    final PermissionChecker permissionChecker = beanContext.getSingletonService(PermissionChecker.class);
 
-    if (licensingPolicy.getBuildTypesLicensesLeft() != -1) {
-      buildTypesLeft = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("buildTypesLeft"), licensingPolicy.getBuildTypesLicensesLeft());
-    }
+    licenseUseExceeded = ValueWithDefault.decideDefaultIgnoringAccessDenied(
+      fields.isIncluded("licenseUseExceeded"),
+      () -> {
+        permissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_LICENSES);
+        return licensingPolicy.isMaxNumberOfBuildTypesExceeded();
+      }
+    );
+
+    agentsLeft = ValueWithDefault.decideIncludeByDefault(
+      myFields.isIncluded("agentsLeft"),
+      () -> {
+        if(permissionChecker.hasGlobalPermission(Permission.MANAGE_SERVER_LICENSES) || permissionChecker.hasGlobalPermission(Permission.VIEW_AGENT_DETAILS))
+          return licensingPolicy.getAgentsLicensesLeft();
+
+        return null;
+      }
+    );
+
+    buildTypesLeft = ValueWithDefault.decideDefaultIgnoringAccessDenied(
+      fields.isIncluded("buildTypesLeft"),
+      () -> {
+        permissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_LICENSES);
+        int result = licensingPolicy.getBuildTypesLicensesLeft();
+        return result == -1 ? null : result;
+      }
+    );
   }
 
   @Nullable
