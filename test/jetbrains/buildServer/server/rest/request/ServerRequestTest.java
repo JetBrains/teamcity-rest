@@ -25,12 +25,21 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.users.SUser;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class ServerRequestTest extends BaseServerTestCase {
 
   private ServerRequest myRequest;
+
+  @BeforeClass
+  public void refresh() {
+    if(myFixture != null) {
+      // When running as an ant task, we do not recreate the server for each test class, so let's do that manually instead.
+      myFixture.recreateServer(true);
+    }
+  }
 
   @Override
   @BeforeMethod
