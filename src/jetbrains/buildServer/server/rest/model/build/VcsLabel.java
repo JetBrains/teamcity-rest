@@ -34,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
   "failureReason",
   "status",
   "buildId",
-  "vcs-root-instance"
+  "vcsRootInstance"
 })
 @ModelDescription(
     value = "Represents a VCS-side label of this build's sources.",
