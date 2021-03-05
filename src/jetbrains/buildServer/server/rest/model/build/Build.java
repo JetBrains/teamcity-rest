@@ -219,7 +219,7 @@ public class Build {
       Fields labelFields = myFields.getNestedField("vcsLabels");
 
       return labelManager.getLabels(myBuild).stream()
-                         .map(l -> new VcsLabel(l, labelFields))
+                         .map(l -> new VcsLabel(l, labelFields, myBeanContext))
                          .collect(Collectors.toList());
     });
   }

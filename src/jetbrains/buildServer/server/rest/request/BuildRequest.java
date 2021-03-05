@@ -485,7 +485,7 @@ public class BuildRequest {
     VcsLabelManager labelManager = myBeanContext.getSingletonService(VcsLabelManager.class);
     Fields returnFields = new Fields(fields);
     return new VcsLabels(labelManager.getLabels(build).stream()
-                                     .map(l -> new VcsLabel(l, returnFields))
+                                     .map(l -> new VcsLabel(l, returnFields, myBeanContext))
                                      .collect(Collectors.toList()), returnFields);
   }
 
@@ -534,7 +534,7 @@ public class BuildRequest {
     Fields returnFields = new Fields(fields);
     return new VcsLabels(labelManager.getLabels(build).stream()
                                      .filter(l -> l.getLabelText().equals(labelValue))
-                                     .map(l -> new VcsLabel(l, returnFields))
+                                     .map(l -> new VcsLabel(l, returnFields, myBeanContext))
                                      .collect(Collectors.toList()), returnFields);
   }
 

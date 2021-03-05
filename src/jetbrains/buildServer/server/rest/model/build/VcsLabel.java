@@ -17,11 +17,14 @@
 package jetbrains.buildServer.server.rest.model.build;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,7 +33,8 @@ import org.jetbrains.annotations.NotNull;
   "text",
   "failureReason",
   "status",
-  "buildId"
+  "buildId",
+  "vcs-root-instance"
 })
 @ModelDescription(
     value = "Represents a VCS-side label of this build's sources.",
@@ -39,13 +43,13 @@ import org.jetbrains.annotations.NotNull;
 )
 public class VcsLabel {
   @NotNull
-  private final jetbrains.buildServer.serverSide.vcs.VcsLabel myRealLabel;
+  private jetbrains.buildServer.serverSide.vcs.VcsLabel myRealLabel;
   @NotNull
-  private final Fields myFields;
+  private Fields myFields;
+  @NotNull
+  private BeanContext myBeanContext;
 
   public VcsLabel() {
-    myRealLabel = null;
-    myFields = null;
   }
 
   @XmlAttribute
@@ -72,8 +76,15 @@ public class VcsLabel {
     return ValueWithDefault.decideDefault(isIncluded, myRealLabel.getBuild().getBuildId());
   }
 
-  public VcsLabel(@NotNull jetbrains.buildServer.serverSide.vcs.VcsLabel realLabel, @NotNull Fields fields) {
+  @XmlElement(name = "vcs-root-instance")
+  public VcsRootInstance getVcsRootInstance() {
+    boolean isIncluded = myFields.isIncluded("vcs-root-instance", false, false);
+    return ValueWithDefault.decideDefault(isIncluded, new VcsRootInstance(myRealLabel.getRoot(), myFields.getNestedField("vcs-root-instance"), myBeanContext));
+  }
+
+  public VcsLabel(@NotNull jetbrains.buildServer.serverSide.vcs.VcsLabel realLabel, @NotNull Fields fields, @NotNull BeanContext beanContext) {
     myRealLabel = realLabel;
     myFields = fields;
+    myBeanContext = beanContext;
   }
 }
