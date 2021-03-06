@@ -272,11 +272,11 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(btLocator, m210, m200, m40, m30, m20); //documenting current behavior
     check(btLocator + ",branch:(default:any)", m210, m200, m40, m30, m20); //documenting current behavior
 
-    check(btLocator + ",pending:true", m210, m40, m30); //documenting current behavior, m40, m30 should not be here
+    check(btLocator + ",pending:true", m210);
     check(btLocator + ",pending:true,branch:branch1", m200);
-    check(btLocator + ",pending:true,branch:(default:true)", m210, m40, m30); //documenting current behavior, m40, m30 should not be here
+    check(btLocator + ",pending:true,branch:(default:true)", m210);
     check(btLocator + ",pending:true,branch:(default:false)", m200);
-    check(btLocator + ",pending:true,branch:(default:any)", m210, m200, m40, m30); //documenting current behavior, m40, m30 should not be here
+    check(btLocator + ",pending:true,branch:(default:any)", m210, m200);
   }
 
   @Test
