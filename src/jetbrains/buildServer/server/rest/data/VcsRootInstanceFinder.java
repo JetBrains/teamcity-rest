@@ -405,8 +405,10 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
       for (SVcsRoot vcsRoot : vcsRoots) {
         if (versionedSettingsUsagesOnly == null || !versionedSettingsUsagesOnly) {
-          vcsRoot.getUsagesInConfigurations().stream().filter(filter).collect(Collectors.toList()).stream().map(buildType -> buildType.getVcsRootInstanceForParent(vcsRoot)).filter(Objects::nonNull)
-                 .filter(rootInstance -> hasPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance)) //minor performance optimization not to return roots which will be filtered in the filter
+          vcsRoot.getUsagesInConfigurations().stream()
+                 .filter(filter)
+                 .map(buildType -> buildType.getVcsRootInstanceForParent(vcsRoot))
+                 .filter(rootInstance -> ( (rootInstance != null) && hasPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance))) //minor performance optimization not to return roots which will be filtered in the filter
                  .forEach(result::add);
         }
 
