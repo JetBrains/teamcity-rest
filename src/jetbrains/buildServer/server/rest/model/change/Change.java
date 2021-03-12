@@ -38,6 +38,8 @@ import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.ChangeDescriptor;
+import jetbrains.buildServer.serverSide.ChangeDescriptorConstants;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
@@ -63,6 +65,7 @@ import org.jetbrains.annotations.NotNull;
   "webUrl",
   "comment",
   "user",
+  "type",
   "fileChanges",
   "vcsRootInstance",
   "parentChanges",
@@ -192,6 +195,16 @@ public class Change {
   @XmlElement
   public String getComment() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("comment", false), () -> escapeNonPrintedCharacters(myModification.getDescription()));
+  }
+
+  @XmlElement
+  public String getType() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("type", false), () -> {
+      if(myModification instanceof ChangeDescriptor) {
+        return ((ChangeDescriptor) myModification).getType();
+      }
+      return ChangeDescriptorConstants.VCS_CHANGE;
+    });
   }
 
   @NotNull
