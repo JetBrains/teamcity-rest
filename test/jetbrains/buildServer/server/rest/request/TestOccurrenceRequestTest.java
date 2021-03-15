@@ -162,6 +162,9 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
   @Test
   @TestFor(issues = {"TW-70206"})
   public void testInvocationsAreFoundCorrectly2() {
+    if(true)
+      throw new SkipException("Reverted correct behaviour due to TW-70587");
+
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
     final SFinishedBuild build = build().in(buildType)
                                         .withTest("aaa", false)

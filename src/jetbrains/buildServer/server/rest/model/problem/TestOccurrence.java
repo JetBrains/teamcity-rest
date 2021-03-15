@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.model.problem;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.ArrayList;
-import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -26,7 +25,7 @@ import javax.xml.bind.annotation.XmlType;
 
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.server.rest.data.FilterItemProcessor;
-import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PagingItemFilter;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -234,8 +233,14 @@ public class TestOccurrence {
       MultiTestRun multiTestRun = (MultiTestRun) myTestRun;
       Fields nestedField = myFields.getNestedField("invocations");
 
-      List<STestRun> invocations = myTestOccurrenceFinder.getInvocations(nestedField, multiTestRun);
-      return new TestOccurrences(invocations, null, null, null, nestedField, myBeanContext);
+      PagingItemFilter<STestRun> pagingFilter = myTestOccurrenceFinder.getPagingInvocationsFilter(nestedField);
+      FilterItemProcessor<STestRun> processor = new FilterItemProcessor<>(pagingFilter);
+
+      multiTestRun.getTestRuns().forEach(processor::processItem);
+
+      ArrayList<STestRun> filtered = processor.getResult();
+
+      return new TestOccurrences(filtered, null, null, null, nestedField, myBeanContext);
     });
   }
 
