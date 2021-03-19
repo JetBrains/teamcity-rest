@@ -19,11 +19,13 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
-import javax.validation.constraints.Null;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -31,12 +33,14 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.problem.scope.TestOccurrenceCollector;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
+import jetbrains.buildServer.server.rest.model.problem.scope.GroupedOccurrences;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -44,11 +48,9 @@ import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.ShortStatistics;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.users.StandardProperties;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.omg.PortableInterceptor.LOCATION_FORWARD;
 
 /**
  * @author Yegor.Yarko
@@ -183,5 +185,40 @@ public class TestOccurrenceRequest {
     String patchedLocator = patchLocatorForPersonalBuilds(locatorText, request);
     final List<STestRun> items = myTestOccurrenceFinder.getItems(patchedLocator).myEntries;
     return new GroupedTestOccurrences(items, new Fields(fields), myBeanContext, depth);
+  }
+
+  // Very highly experimental
+  @GET
+  @Path("/scope/{fieldName}")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(hidden = true, value = "highly experimental")
+  public GroupedOccurrences serveGroupedTestOccurrences(@QueryParam("locator") String locatorText,
+                                                        @PathParam("fieldName") String fieldName,
+                                                        @QueryParam("fields") String fields,
+                                                        @Context UriInfo uriInfo,
+                                                        @Context HttpServletRequest request) {
+    Set<String> supportedGroupings = new HashSet<>(Arrays.asList("package", "test", "suite", "class"));
+    if (!supportedGroupings.contains(fieldName)) {
+      throw new BadRequestException("Only scopes " + String.join(",", supportedGroupings) + " are currently supported");
+    }
+
+    Locator patchedLocator = new Locator(patchLocatorForPersonalBuilds(locatorText, request));
+
+    String scopeLocator = patchedLocator.getSingleDimensionValue("scope");
+    String dataLocator = patchedLocator.getSingleDimensionValue("data");
+
+    final List<STestRun> items = myTestOccurrenceFinder.getItems(dataLocator).myEntries;
+
+    switch (fieldName) {
+      case "package":
+        return TestOccurrenceCollector.groupByPackage(items, new Locator(scopeLocator), new Fields(fields), myBeanContext);
+      case "test":
+        return TestOccurrenceCollector.groupByTest(items, new Locator(scopeLocator), new Fields(fields), myBeanContext);
+      case "suite":
+        return TestOccurrenceCollector.groupBySuite(items, new Locator(scopeLocator), new Fields(fields), myBeanContext);
+      case "class":
+        return TestOccurrenceCollector.groupByClass(items, new Locator(scopeLocator), new Fields(fields), myBeanContext);
+    }
+    throw new BadRequestException("Scope " + fieldName + " is not supported");
   }
 }
