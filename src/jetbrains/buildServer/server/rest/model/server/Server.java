@@ -46,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "server")
 @XmlType(name = "server", propOrder = {"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId", "role", "webUrl",
-  "projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools", "investigations", "mutes"})
+  "projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools", "investigations", "mutes", "artifactsUrl"})
 @ModelDescription("Represents various details of this server including the installation version.")
 public class Server {
   private SBuildServer myServer;
@@ -136,6 +136,11 @@ public class Server {
     return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("webUrl"), myServer.getRootUrl());
   }
 
+  @XmlAttribute
+  public String getArtifactsUrl() {
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("artifactsUrl"), myServerSettings.getArtifactsRootUrl());
+  }
+
   @XmlElement
   public Href getProjects() {
     return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("projects"), new Href(ProjectRequest.API_PROJECTS_URL, myApiUrlBuilder));
@@ -213,6 +218,8 @@ public class Server {
       return serverRole(serviceLocator.getSingletonService(TeamCityNodes.class).getCurrentNode());
     } else if ("webUrl".equals(field) || "url".equals(field)) {
       return serviceLocator.getSingletonService(RootUrlHolder.class).getRootUrl();
+    } else if ("artifactsUrl".equals(field)) {
+      return serviceLocator.getSingletonService(ServerSettings.class).getArtifactsRootUrl();
     }
     throw new NotFoundException("Field '" + field + "' is not supported. Supported are: version, versionMajor, versionMinor, buildNumber, startTime, currentTime, internalId.");
   }
