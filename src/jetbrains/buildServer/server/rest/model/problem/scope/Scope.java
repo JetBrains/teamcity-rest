@@ -31,13 +31,9 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "scope")
 @XmlType(name = "scope")
 public class Scope {
-  private static long idCounter = 0;
   private Fields myFields;
   private BeanContext myContext;
-
   private jetbrains.buildServer.server.rest.data.problem.scope.Scope myRealScope;
-
-  private final long myId = idCounter++;
 
   public Scope() { }
 
@@ -45,15 +41,6 @@ public class Scope {
     myRealScope = scope;
     myFields = fields;
     myContext = context;
-  }
-
-  @XmlAttribute(name = "id")
-  public String getId() {
-    // TODO: Implement id generation
-    return ValueWithDefault.decideIncludeByDefault(
-      myFields.isIncluded("id"),
-      () -> String.join(":", myRealScope.getSuite(), myRealScope.getPackage(), myRealScope.getClass1(), Long.toString(myId))
-    );
   }
 
   @XmlAttribute(name = "suite")
