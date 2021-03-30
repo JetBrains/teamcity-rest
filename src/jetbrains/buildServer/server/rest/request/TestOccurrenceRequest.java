@@ -19,10 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
-import java.util.List;
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -30,7 +27,6 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
@@ -51,7 +47,7 @@ import org.jetbrains.annotations.NotNull;
 @Api("TestOccurrence")
 public class TestOccurrenceRequest {
   public static final String API_SUB_URL = Constants.API_URL + "/testOccurrences";
-  @Context @NotNull public BeanContext myBeanContext;
+  @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private TestOccurrenceFinder myTestOccurrenceFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
@@ -127,31 +123,5 @@ public class TestOccurrenceRequest {
     myTestOccurrenceFinder = testOccurrenceFinder;
     myApiUrlBuilder = apiUrlBuilder;
     myBeanContext = beanContext;
-  }
-
-  @GET
-  @Path("/groupBy/{fieldName}")
-  @Produces({"application/xml", "application/json"})
-  @ApiOperation(hidden = true, value = "highly experimental")
-  public GroupedTestOccurrences serveGroupedTestOccurrences(@QueryParam("locator") String locatorText,
-                                                            @PathParam("fieldName") String fieldName,
-                                                            @QueryParam("fields") String fields,
-                                                            @QueryParam("depth")
-                                                            @NotNull
-                                                            @DefaultValue("3")
-                                                            @Min(value = 1, message = "The value must be > 0")
-                                                            @Max(value = 16, message = "The value must <= 16") final Integer depth,
-                                                            @Context UriInfo uriInfo,
-                                                            @Context HttpServletRequest request) {
-    if (depth < 1 || depth > 16) {
-      throw new BadRequestException("depth should be between 0 and 17");
-    }
-    if (!"package".equals(fieldName)) {
-      throw new BadRequestException("Only grouping by 'package' is currently supported");
-    }
-
-    String patchedLocator = TestOccurrenceFinder.patchLocatorForPersonalBuilds(locatorText, request);
-    final List<STestRun> items = myTestOccurrenceFinder.getItems(patchedLocator).myEntries;
-    return new GroupedTestOccurrences(items, new Fields(fields), myBeanContext, depth);
   }
 }
