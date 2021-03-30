@@ -41,9 +41,11 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.tests.TestHistory;
 import jetbrains.buildServer.tests.TestName;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.NamedThreadFactory;
 import jetbrains.buildServer.util.filters.Filter;
+import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -187,6 +189,29 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static String getTestRunLocator(final @NotNull STestRun testRun) {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(testRun.getTestRunId())).
       setDimension(BUILD, BuildRequest.getBuildLocator(testRun.getBuild())).getStringRepresentation();
+  }
+
+  /** Ensures we don't include personal builds by default (except when build locator is provided) and sets an internal dimension with user id. */
+  @Nullable
+  public static String patchLocatorForPersonalBuilds(@Nullable String locator, @Nullable HttpServletRequest request) {
+    if(locator == null || request == null) {
+      return locator;
+    }
+
+    Locator patchedLocator = new Locator(locator);
+    if(patchedLocator.isAnyPresent(INCLUDE_ALL_PERSONAL)) {
+      // We do not want somebody to set this dimension explicitely.
+      throw new BadRequestException(String.format("%s dimension is not supported.", INCLUDE_ALL_PERSONAL));
+    }
+
+    patchedLocator.setDimensionIfNotPresent(INCLUDE_PERSONAL, Locator.BOOLEAN_FALSE);
+
+    SUser user = SessionUser.getUser(request);
+    if(user != null) {
+      patchedLocator.setDimension(PERSONAL_FOR_USER, Long.toString(user.getId()));
+    }
+
+    return patchedLocator.getStringRepresentation();
   }
 
   public PagingItemFilter<STestRun> getPagingInvocationsFilter(@NotNull Fields invocationField) {
