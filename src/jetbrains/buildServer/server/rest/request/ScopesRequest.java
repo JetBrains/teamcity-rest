@@ -46,24 +46,24 @@ import org.jetbrains.annotations.NotNull;
 @Api("Scopes")
 public class ScopesRequest {
   public static final String API_SUB_URL = Constants.API_URL + "/scopes";
-  @Context @NotNull public BeanContext myBeanContext;
+  @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private TestOccurrenceFinder myTestOccurrenceFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
 
   // Very highly experimental
   @GET
-  @Path("/{fieldName}")
+  @Path("/{scopeName}")
   @Produces({"application/xml", "application/json"})
   @ApiOperation(hidden = true, value = "highly experimental")
   public Scopes serveGroupedTestOccurrences(@QueryParam("locator") String locatorText,
-                                                        @PathParam("fieldName") String fieldName,
-                                                        @QueryParam("fields") String fields,
-                                                        @Context UriInfo uriInfo,
-                                                        @Context HttpServletRequest request) {
+                                            @PathParam("scopeName") String scopeName,
+                                            @QueryParam("fields") String fields,
+                                            @Context UriInfo uriInfo,
+                                            @Context HttpServletRequest request) {
     Set<String> supportedGroupings = new HashSet<>(Arrays.asList("package", "suite", "class"));
-    if (!supportedGroupings.contains(fieldName)) {
-      throw new BadRequestException("Only scopes " + String.join(",", supportedGroupings) + " are currently supported");
+    if (!supportedGroupings.contains(scopeName)) {
+      throw new BadRequestException("Invalid scope. Only scopes " + String.join(",", supportedGroupings) + " are supported.");
     }
 
     Locator patchedLocator = new Locator(TestOccurrenceFinder.patchLocatorForPersonalBuilds(locatorText, request));
@@ -75,7 +75,7 @@ public class ScopesRequest {
     final List<STestRun> items = myTestOccurrenceFinder.getItemsViaLocator(patchedLocator).myEntries;
 
     Stream<Scope> scopes;
-    switch (fieldName) {
+    switch (scopeName) {
       case "package":
         scopes = ScopesCollector.groupByPackage(items, filter);
         break;
@@ -86,7 +86,7 @@ public class ScopesRequest {
         scopes = ScopesCollector.groupByClass(items, filter);
         break;
       default:
-        throw new BadRequestException("Only scopes " + String.join(",", supportedGroupings) + " are currently supported");
+        throw new BadRequestException("Invalid scope. Only scopes " + String.join(",", supportedGroupings) + " are supported.");
     }
 
     return new Scopes(scopes.collect(Collectors.toList()), new Fields(fields), null, uriInfo, myBeanContext);
