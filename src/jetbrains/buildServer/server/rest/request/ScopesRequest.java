@@ -41,6 +41,7 @@ import jetbrains.buildServer.server.rest.model.problem.scope.Scopes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @Path(ScopesRequest.API_SUB_URL)
 @Api("Scopes")
@@ -67,9 +68,7 @@ public class ScopesRequest {
     }
 
     Locator patchedLocator = new Locator(TestOccurrenceFinder.patchLocatorForPersonalBuilds(locatorText, request));
-    Locator scopeLocator = new Locator(patchedLocator.getSingleDimensionValue("scope"));
-
-    ScopeFilter filter = new ScopeFilter(scopeLocator);
+    ScopeFilter filter = new ScopeFilter(getScopeFilterDefinition(patchedLocator));
     patchedLocator.removeDimension("scope");
 
     final List<STestRun> items = myTestOccurrenceFinder.getItemsViaLocator(patchedLocator).myEntries;
@@ -90,5 +89,14 @@ public class ScopesRequest {
     }
 
     return new Scopes(scopes.collect(Collectors.toList()), new Fields(fields), null, uriInfo, myBeanContext);
+  }
+
+  @Nullable
+  private String getScopeFilterDefinition(@NotNull Locator locator) {
+    if(!locator.isAnyPresent("scope")) {
+      return null;
+    }
+
+    return locator.getSingleDimensionValue("scope");
   }
 }

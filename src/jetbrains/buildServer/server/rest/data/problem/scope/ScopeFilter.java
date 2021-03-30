@@ -25,34 +25,37 @@ import jetbrains.buildServer.server.rest.data.ValueCondition;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ScopeFilter implements Predicate<STestRun> {
+  private static final String[] SUPPORTED_DIMENSIONS = {"suite", "package", "class" };
+
   @NotNull
   private final List<Filter<STestRun>> myConditions;
 
-  public ScopeFilter(@NotNull Locator definition) {
+  public ScopeFilter(@Nullable String definition) {
+    Locator locator = Locator.createPotentiallyEmptyLocator(definition);
+    locator.addSupportedDimensions(SUPPORTED_DIMENSIONS);
+
     myConditions = new ArrayList<>();
 
-    String suiteConditionDef = definition.getSingleDimensionValue("suite");
+    String suiteConditionDef = locator.getSingleDimensionValue("suite");
     if(suiteConditionDef != null) {
       ValueCondition condition = ParameterCondition.createValueCondition(suiteConditionDef);
       myConditions.add(item -> condition.matches(item.getTest().getName().getSuite()));
     }
-    String packageConditionDef = definition.getSingleDimensionValue("package");
+    String packageConditionDef = locator.getSingleDimensionValue("package");
     if(packageConditionDef != null) {
       ValueCondition condition = ParameterCondition.createValueCondition(packageConditionDef);
       myConditions.add(item -> condition.matches(item.getTest().getName().getPackageName()));
     }
-    String classConditionDef = definition.getSingleDimensionValue("class");
+    String classConditionDef = locator.getSingleDimensionValue("class");
     if(classConditionDef != null) {
       ValueCondition condition = ParameterCondition.createValueCondition(classConditionDef);
       myConditions.add(item -> condition.matches(item.getTest().getName().getClassName()));
     }
-    String testConditionDef = definition.getSingleDimensionValue("test");
-    if(testConditionDef != null) {
-      ValueCondition condition = ParameterCondition.createValueCondition(testConditionDef);
-      myConditions.add(item -> condition.matches(item.getTest().getName().getTestNameWithParameters()));
-    }
+
+    locator.checkLocatorFullyProcessed();
   }
 
   @Override
