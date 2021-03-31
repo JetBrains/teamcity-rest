@@ -107,13 +107,6 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   @NotNull
-  public PagedSearchResult<ITEM> getItemsViaLocator(@NotNull final Locator locator) {
-    // Use createLocator here to add hidden dimensions to the locator
-    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Using " + getName() + " to get items for locator \"" + locator.getStringRepresentation() + "\"",
-                                                                () -> getItemsByLocator(createLocator(null, locator), true));
-  }
-
-  @NotNull
   @Override
   public ItemFilter<ITEM> getFilter(@NotNull final String locatorText) {
     final Locator locator = createLocator(locatorText, null);
