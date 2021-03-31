@@ -23,39 +23,50 @@ import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
 import jetbrains.buildServer.server.rest.data.ValueCondition;
 import jetbrains.buildServer.serverSide.STestRun;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class TestScopeFilter implements Predicate<STestRun> {
-  private static final String[] SUPPORTED_DIMENSIONS = {"suite", "package", "class" };
+  public static final String[] SUPPORTED_DIMENSIONS = {"suite", "package", "class" };
 
   @NotNull
   private final List<Filter<STestRun>> myConditions;
 
-  public TestScopeFilter(@Nullable String filterLocator) {
-    Locator locator = Locator.createPotentiallyEmptyLocator(filterLocator);
+  private final String mySuiteConditionDef;
+  private final String myPackageConditionDef;
+  private final String myClassConditionDef;
+
+  public TestScopeFilter(@Nullable String locator) {
+    this(Locator.createPotentiallyEmptyLocator(locator));
+  }
+
+  public TestScopeFilter(@NotNull Locator locator) {
     locator.addSupportedDimensions(SUPPORTED_DIMENSIONS);
 
     myConditions = new ArrayList<>();
 
-    String suiteConditionDef = locator.getSingleDimensionValue("suite");
-    if(suiteConditionDef != null) {
-      ValueCondition condition = ParameterCondition.createValueCondition(suiteConditionDef);
+    mySuiteConditionDef = locator.getSingleDimensionValue("suite");
+    if(mySuiteConditionDef != null) {
+      ValueCondition condition = ParameterCondition.createValueCondition(mySuiteConditionDef);
       myConditions.add(item -> condition.matches(item.getTest().getName().getSuite()));
     }
-    String packageConditionDef = locator.getSingleDimensionValue("package");
-    if(packageConditionDef != null) {
-      ValueCondition condition = ParameterCondition.createValueCondition(packageConditionDef);
+    myPackageConditionDef = locator.getSingleDimensionValue("package");
+    if(myPackageConditionDef != null) {
+      ValueCondition condition = ParameterCondition.createValueCondition(myPackageConditionDef);
       myConditions.add(item -> condition.matches(item.getTest().getName().getPackageName()));
     }
-    String classConditionDef = locator.getSingleDimensionValue("class");
-    if(classConditionDef != null) {
-      ValueCondition condition = ParameterCondition.createValueCondition(classConditionDef);
+    myClassConditionDef = locator.getSingleDimensionValue("class");
+    if(myClassConditionDef != null) {
+      ValueCondition condition = ParameterCondition.createValueCondition(myClassConditionDef);
       myConditions.add(item -> condition.matches(item.getTest().getName().getClassName()));
     }
+  }
 
-    locator.checkLocatorFullyProcessed();
+  @NotNull
+  public String getLocatorString() {
+    return StringUtil.join(",", mySuiteConditionDef, myPackageConditionDef, myClassConditionDef);
   }
 
   @Override

@@ -20,10 +20,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -31,17 +28,15 @@ import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScope;
-import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilter;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.scope.TestScopes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 @Path(TestScopesRequest.API_SUB_URL)
 @Api("Scopes")
@@ -49,8 +44,8 @@ public class TestScopesRequest {
   public static final String API_SUB_URL = Constants.API_URL + "/testScopes";
   @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private ServiceLocator myServiceLocator;
-  @Context @NotNull private TestOccurrenceFinder myTestOccurrenceFinder;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
+  @Context @NotNull private TestScopesCollector myTestScopesCollector;
 
   // Very highly experimental
   @GET
@@ -67,36 +62,14 @@ public class TestScopesRequest {
       throw new BadRequestException("Invalid scope. Only scopes " + String.join(",", supportedGroupings) + " are supported.");
     }
 
-    Locator patchedLocator = new Locator(TestOccurrenceFinder.patchLocatorForPersonalBuilds(locatorText, request));
-    TestScopeFilter filter = new TestScopeFilter(getScopeFilterDefinition(patchedLocator));
-    patchedLocator.removeDimension("scope");
+    Locator patchedLocator = new Locator(locatorText);
 
-    final List<STestRun> items = myTestOccurrenceFinder.getItemsViaLocator(patchedLocator).myEntries;
+    String nonPatchedDimension = patchedLocator.getSingleDimensionValue(TestScopesCollector.DIMENSION_TEST_OCCURRENCES);
+    patchedLocator.setDimension(TestScopesCollector.DIMENSION_TEST_OCCURRENCES, TestOccurrenceFinder.patchLocatorForPersonalBuilds(nonPatchedDimension, request));
+    patchedLocator.setDimension(TestScopesCollector.DIMENSION_SCOPE_TYPE, scopeName);
 
-    Stream<TestScope> scopes;
-    switch (scopeName) {
-      case "package":
-        scopes = TestScopesCollector.groupByPackage(items, filter);
-        break;
-      case "suite":
-        scopes = TestScopesCollector.groupBySuite(items, filter);
-        break;
-      case "class":
-        scopes = TestScopesCollector.groupByClass(items, filter);
-        break;
-      default:
-        throw new BadRequestException("Invalid scope. Only scopes " + String.join(",", supportedGroupings) + " are supported.");
-    }
+    PagedSearchResult<TestScope> items = myTestScopesCollector.getItems(patchedLocator);
 
-    return new TestScopes(scopes.collect(Collectors.toList()), new Fields(fields), null, uriInfo, myBeanContext);
-  }
-
-  @Nullable
-  private String getScopeFilterDefinition(@NotNull Locator locator) {
-    if(!locator.isAnyPresent("scope")) {
-      return null;
-    }
-
-    return locator.getSingleDimensionValue("scope");
+    return new TestScopes(items.myEntries, new Fields(fields), null, uriInfo, myBeanContext);
   }
 }

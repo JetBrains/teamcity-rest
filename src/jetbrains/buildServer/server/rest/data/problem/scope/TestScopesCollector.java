@@ -16,32 +16,96 @@
 
 package jetbrains.buildServer.server.rest.data.problem.scope;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
 
 
 public class TestScopesCollector {
-  public static Stream<TestScope> groupBySuite(@NotNull List<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
+  private static final List<String> SUPPORTED_SCOPES = Arrays.asList("suite", "package", "class");
+
+  public static final String DIMENSION_TEST_OCCURRENCES = "testOccurrences";
+  public static final String DIMENSION_SCOPE_TYPE = "scopeType";
+  @NotNull
+  private final TestOccurrenceFinder myTestOccurrenceFinder;
+
+  public TestScopesCollector(final @NotNull TestOccurrenceFinder finder) {
+    myTestOccurrenceFinder = finder;
+  }
+
+  public PagedSearchResult<TestScope> getItems(@NotNull Locator locator) {
+    locator.addSupportedDimensions("scopeType", DIMENSION_TEST_OCCURRENCES, PagerData.START, PagerData.COUNT);
+    locator.addSupportedDimensions(TestScopeFilter.SUPPORTED_DIMENSIONS);
+
+    String scopeName = locator.getSingleDimensionValue("scopeType");
+    if(scopeName == null || !SUPPORTED_SCOPES.contains(scopeName)) {
+      throw new BadRequestException("Invalid scope. Only scopes " + String.join(",", SUPPORTED_SCOPES) + " are supported.");
+    }
+
+    TestScopeFilter filter = new TestScopeFilter(locator);
+
+    Locator testOccurrencesLocator = new Locator(locator.getSingleDimensionValue(DIMENSION_TEST_OCCURRENCES));
+    testOccurrencesLocator.setDimension(TestOccurrenceFinder.SCOPE, filter.getLocatorString());
+
+    PagedSearchResult<STestRun> items = myTestOccurrenceFinder.getItems(testOccurrencesLocator.getStringRepresentation());
+
+    Stream<TestScope> scopes;
+    switch (scopeName) {
+      case "suite":
+        scopes = groupBySuite(items, filter);
+        break;
+      case "package":
+        scopes = groupByPackage(items, filter);
+        break;
+      case "class":
+        scopes = groupByClass(items, filter);
+        break;
+      default:
+        // Should never happen as we checked that before, just make java happy.
+        throw new BadRequestException("Invalid scope. Only scopes " + String.join(",", SUPPORTED_SCOPES) + " are supported.");
+    }
+
+    locator.setDimensionIfNotPresent("count", "100");
+    Long count = locator.getSingleDimensionValueAsLong("count");
+    Long start = locator.getSingleDimensionValueAsLong("start");
+
+    if(start != null) {
+      scopes = scopes.skip(start);
+    }
+
+    if(count != null && count != -1) {
+      scopes = scopes.limit(count);
+    }
+
+    return new PagedSearchResult<TestScope>(scopes.collect(Collectors.toList()), start, count.intValue());
+  }
+
+  private Stream<TestScope> groupBySuite(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
     return groupBySuiteInternal(testRuns, testScopeFilter);
   }
 
-  public static Stream<TestScope> groupByPackage(@NotNull List<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
+  public Stream<TestScope> groupByPackage(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
     Stream<TestScope> bySuite = groupBySuiteInternal(testRuns, testScopeFilter);
     return groupByPackageInternal(bySuite);
   }
 
-  public static Stream<TestScope> groupByClass(@NotNull List<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
+  public Stream<TestScope> groupByClass(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
     Stream<TestScope> bySuite   = groupBySuiteInternal(testRuns, testScopeFilter);
     Stream<TestScope> byPackage = groupByPackageInternal(bySuite);
     return groupByClassInternal(byPackage);
   }
 
-  private static Stream<TestScope> groupBySuiteInternal(@NotNull List<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
-    Map<String, List<STestRun>> scopes = testRuns.stream()
+  private static Stream<TestScope> groupBySuiteInternal(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
+    Map<String, List<STestRun>> scopes = testRuns.myEntries.stream()
                                                  .filter(testScopeFilter)
                                                  .collect(Collectors.groupingBy(item -> item.getTest().getName().getSuite()));
 

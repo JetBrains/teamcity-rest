@@ -47,6 +47,7 @@ import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.NamedThreadFactory;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.web.util.SessionUser;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -196,7 +197,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   /** Ensures we don't include personal builds by default (except when build locator is provided) and sets an internal dimension with user id. */
-  @Nullable
+  @Contract("!null, _ -> !null; _, !null -> !null")
   public static String patchLocatorForPersonalBuilds(@Nullable String locator, @Nullable HttpServletRequest request) {
     if(locator == null || request == null) {
       return locator;
