@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilter;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -133,6 +134,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @LocatorDimension("newFailure") public static final String NEW_FAILURE = "newFailure";
   @LocatorDimension(value = "includePersonal", dataType = LocatorDimensionDataType.BOOLEAN)
   public static final String INCLUDE_PERSONAL = "includePersonal";
+
+  /** Experimental dimension, defines scope filter **/
+  public static final String SCOPE = "scope";
 
   /** Internal dimension, indicates that test runs must be returned from any builds regardles of them being personal or not.*/
   public static final String INCLUDE_ALL_PERSONAL = "includeAllPersonal";
@@ -642,6 +646,12 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         //todo: is this the same as the test occurring in current problems???
         result.add(item -> FilterUtil.isIncludedByBooleanFilter(currentDimension , !item.isFixed()));
       }
+    }
+
+    final String scopeDimension = locator.getSingleDimensionValue(SCOPE);
+    if(scopeDimension != null) {
+      final TestScopeFilter filter = new TestScopeFilter(scopeDimension);
+      result.add(item -> filter.test(item));
     }
 
     if (locator.getUnusedDimensions().contains(INVOCATIONS)) {

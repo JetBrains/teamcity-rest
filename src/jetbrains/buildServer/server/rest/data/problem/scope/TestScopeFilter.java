@@ -33,8 +33,8 @@ public class TestScopeFilter implements Predicate<STestRun> {
   @NotNull
   private final List<Filter<STestRun>> myConditions;
 
-  public TestScopeFilter(@Nullable String definition) {
-    Locator locator = Locator.createPotentiallyEmptyLocator(definition);
+  public TestScopeFilter(@Nullable String filterLocator) {
+    Locator locator = Locator.createPotentiallyEmptyLocator(filterLocator);
     locator.addSupportedDimensions(SUPPORTED_DIMENSIONS);
 
     myConditions = new ArrayList<>();
