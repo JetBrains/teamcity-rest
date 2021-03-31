@@ -483,6 +483,27 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
   }
 
   @Test
+  public void testScopeFilter() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build10 = build().in(buildType)
+                                          .withTest("package1.class1.aaa", true)
+                                          .withTest("package1.class2.bbb", true)
+                                          .withTest("package2.class1.ccc", true)
+                                          .withTest("package2.class2.ddd", true)
+                                          .finish();
+
+    check("build:(id:" + build10.getBuildId() + "),scope:(package:(value:(package1),matchType:equals))", TEST_MATCHER,
+          t("package1.class1.aaa", Status.NORMAL, 1),
+          t("package1.class2.bbb", Status.NORMAL, 2)
+    );
+
+    check("build:(id:" + build10.getBuildId() + "),scope:(class:(value:(class2),matchType:equals))", TEST_MATCHER,
+          t("package1.class2.bbb", Status.NORMAL, 2),
+          t("package2.class2.ddd", Status.NORMAL, 4)
+    );
+  }
+
+  @Test
   public void testTestRunFromPersonalBuild() {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
 
