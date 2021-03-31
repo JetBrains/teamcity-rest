@@ -21,7 +21,7 @@ import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class Scope {
+public class TestScope {
   private final List<STestRun> myTestRuns;
   @Nullable
   private final String mySuite;
@@ -30,21 +30,21 @@ public class Scope {
   @Nullable
   private final String myClass;
 
-  public Scope(@NotNull List<STestRun> testRuns, @NotNull String suite) {
+  public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite) {
     myTestRuns = testRuns;
     mySuite = suite;
     myPackage = null;
     myClass = null;
   }
 
-  public Scope(@NotNull List<STestRun> testRuns, @Nullable String suite, @Nullable String pack) {
+  public TestScope(@NotNull List<STestRun> testRuns, @Nullable String suite, @Nullable String pack) {
     myTestRuns = testRuns;
     mySuite = suite;
     myPackage = pack;
     myClass = null;
   }
 
-  public Scope(@NotNull List<STestRun> testRuns, @NotNull String suite, @NotNull String pack, @NotNull String clazz) {
+  public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite, @NotNull String pack, @NotNull String clazz) {
     myTestRuns = testRuns;
     mySuite = suite;
     myPackage = pack;

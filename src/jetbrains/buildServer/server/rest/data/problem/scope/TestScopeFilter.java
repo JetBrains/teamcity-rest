@@ -27,13 +27,13 @@ import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ScopeFilter implements Predicate<STestRun> {
+public class TestScopeFilter implements Predicate<STestRun> {
   private static final String[] SUPPORTED_DIMENSIONS = {"suite", "package", "class" };
 
   @NotNull
   private final List<Filter<STestRun>> myConditions;
 
-  public ScopeFilter(@Nullable String definition) {
+  public TestScopeFilter(@Nullable String definition) {
     Locator locator = Locator.createPotentiallyEmptyLocator(definition);
     locator.addSupportedDimensions(SUPPORTED_DIMENSIONS);
 

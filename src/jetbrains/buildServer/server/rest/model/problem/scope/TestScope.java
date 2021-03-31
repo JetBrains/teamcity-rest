@@ -28,34 +28,34 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-@XmlRootElement(name = "scope")
-@XmlType(name = "scope")
-public class Scope {
+@XmlRootElement(name = "testScope")
+@XmlType(name = "testScope")
+public class TestScope {
   private Fields myFields;
   private BeanContext myContext;
-  private jetbrains.buildServer.server.rest.data.problem.scope.Scope myRealScope;
+  private jetbrains.buildServer.server.rest.data.problem.scope.TestScope myRealTestScope;
 
-  public Scope() { }
+  public TestScope() { }
 
-  public Scope(@NotNull jetbrains.buildServer.server.rest.data.problem.scope.Scope scope, @NotNull Fields fields, @NotNull BeanContext context, @Nullable PagerData pagerData) {
-    myRealScope = scope;
+  public TestScope(@NotNull jetbrains.buildServer.server.rest.data.problem.scope.TestScope testScope, @NotNull Fields fields, @NotNull BeanContext context, @Nullable PagerData pagerData) {
+    myRealTestScope = testScope;
     myFields = fields;
     myContext = context;
   }
 
   @XmlAttribute(name = "suite")
   public String getSuite() {
-    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("suite"), myRealScope.getSuite());
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("suite"), myRealTestScope.getSuite());
   }
 
   @XmlAttribute(name = "package")
   public String getPackage() {
-    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("package"), myRealScope.getPackage());
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("package"), myRealTestScope.getPackage());
   }
 
   @XmlAttribute(name = "class")
   public String getClass1() {
-    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("class"), myRealScope.getClass1());
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("class"), myRealTestScope.getClass1());
   }
 
   @XmlElement(name = "testOccurrences")
@@ -63,7 +63,7 @@ public class Scope {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("testOccurrences"),
       // TODO: add pager data
-      new TestOccurrences(myRealScope.getTestRuns(), null, null, null, myFields.getNestedField("testOccurrences"), myContext)
+      new TestOccurrences(myRealTestScope.getTestRuns(), null, null, null, myFields.getNestedField("testOccurrences"), myContext)
     );
   }
 }

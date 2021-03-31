@@ -32,20 +32,20 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-@XmlRootElement(name = "scopes")
-@XmlType(name = "scopes")
+@XmlRootElement(name = "testScopes")
+@XmlType(name = "testScopes")
 @ModelBaseType(ObjectType.PAGINATED)
-public class Scopes {
-  private List<jetbrains.buildServer.server.rest.data.problem.scope.Scope> myScopes;
+public class TestScopes {
+  private List<jetbrains.buildServer.server.rest.data.problem.scope.TestScope> myTestScopes;
   private Fields myFields;
   private BeanContext myContext;
   private UriInfo myUriInfo;
   private PagerData myPagerData;
 
-  public Scopes() { }
+  public TestScopes() { }
 
-  public Scopes(@NotNull List<jetbrains.buildServer.server.rest.data.problem.scope.Scope> scopes, @NotNull Fields fields, @Nullable final PagerData pagerData, @Nullable UriInfo uriInfo, @NotNull BeanContext beanContext) {
-    myScopes = scopes;
+  public TestScopes(@NotNull List<jetbrains.buildServer.server.rest.data.problem.scope.TestScope> testScopes, @NotNull Fields fields, @Nullable final PagerData pagerData, @Nullable UriInfo uriInfo, @NotNull BeanContext beanContext) {
+    myTestScopes = testScopes;
     myFields = fields;
     myContext = beanContext;
     myUriInfo = uriInfo;
@@ -54,14 +54,14 @@ public class Scopes {
 
   @XmlAttribute(name = "count")
   public Integer getCount() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("count"), myScopes.size());
+    return ValueWithDefault.decideDefault(myFields.isIncluded("count"), myTestScopes.size());
   }
 
-  @XmlElement(name = "scope")
-  public List<Scope> getScopes() {
+  @XmlElement(name = "testScope")
+  public List<TestScope> getScopes() {
     return ValueWithDefault.decideDefault(
-      myFields.isIncluded("scope"),
-      () -> myScopes.stream().map(s -> new Scope(s, myFields.getNestedField("scope"), myContext, myPagerData)).collect(Collectors.toList())
+      myFields.isIncluded("testScope"),
+      () -> myTestScopes.stream().map(s -> new TestScope(s, myFields.getNestedField("testScope"), myContext, myPagerData)).collect(Collectors.toList())
     );
   }
 }
