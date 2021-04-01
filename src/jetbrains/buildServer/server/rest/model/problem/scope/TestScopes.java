@@ -23,12 +23,15 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.problem.TestCounters;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,6 +65,21 @@ public class TestScopes {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("testScope"),
       () -> myTestScopes.stream().map(s -> new TestScope(s, myFields.getNestedField("testScope"), myContext, myPagerData)).collect(Collectors.toList())
+    );
+  }
+
+  @XmlElement(name = "testCounters")
+  public TestCounters getTestCounters() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("testCounters"),
+      () -> {
+        Fields testCounters = myFields.getNestedField("testCounters");
+        List<STestRun> runs = myTestScopes.stream().flatMap(scope -> scope.getTestRuns().stream()).collect(Collectors.toList());
+        // Will just calculate all counters for simplicity
+        TestCountersData data = new TestCountersData(runs, true,true,true,true,true,true);
+
+        return new TestCounters(testCounters, data);
+      }
     );
   }
 }
