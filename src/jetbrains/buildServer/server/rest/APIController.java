@@ -612,6 +612,7 @@ public class APIController extends BaseController implements ServletContextAware
     return result;
   }
 
+  // TODO: it has been copied to CorsOrigins class, should be re-used from there in 2021.1
   private boolean processCorsOrigin(final HttpServletRequest request, final HttpServletResponse response) {
     final String originHeader = request.getHeader(HttpHeaders.ORIGIN);
     if (StringUtil.isNotEmpty(originHeader)) {
