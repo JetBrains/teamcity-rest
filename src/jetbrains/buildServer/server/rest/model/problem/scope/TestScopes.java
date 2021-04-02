@@ -76,7 +76,7 @@ public class TestScopes {
         Fields testCounters = myFields.getNestedField("testCounters");
         List<STestRun> runs = myTestScopes.stream().flatMap(scope -> scope.getTestRuns().stream()).collect(Collectors.toList());
         // Will just calculate all counters for simplicity
-        TestCountersData data = new TestCountersData(runs, true,true,true,true,true,true);
+        TestCountersData data = new TestCountersData(runs);
 
         return new TestCounters(testCounters, data);
       }

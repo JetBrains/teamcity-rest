@@ -64,9 +64,9 @@ public class TestScopesRequest {
 
     Locator patchedLocator = new Locator(locatorText);
 
-    String nonPatchedDimension = patchedLocator.getSingleDimensionValue(TestScopesCollector.DIMENSION_TEST_OCCURRENCES);
-    patchedLocator.setDimension(TestScopesCollector.DIMENSION_TEST_OCCURRENCES, TestOccurrenceFinder.patchLocatorForPersonalBuilds(nonPatchedDimension, request));
-    patchedLocator.setDimension(TestScopesCollector.DIMENSION_SCOPE_TYPE, scopeName);
+    String nonPatchedDimension = patchedLocator.getSingleDimensionValue(TestScopesCollector.TEST_OCCURRENCES);
+    patchedLocator.setDimension(TestScopesCollector.TEST_OCCURRENCES, TestOccurrenceFinder.patchLocatorForPersonalBuilds(nonPatchedDimension, request));
+    patchedLocator.setDimension(TestScopesCollector.SCOPE_TYPE, scopeName);
 
     PagedSearchResult<TestScope> items = myTestScopesCollector.getItems(patchedLocator);
 

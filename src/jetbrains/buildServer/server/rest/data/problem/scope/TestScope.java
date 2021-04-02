@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data.problem.scope;
 
 import java.util.List;
+import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -29,12 +30,17 @@ public class TestScope {
   private final String myPackage;
   @Nullable
   private final String myClass;
+  @NotNull
+  private final Type myType;
+  @Nullable
+  private TestCountersData myCountersData;
 
   public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite) {
     myTestRuns = testRuns;
     mySuite = suite;
     myPackage = null;
     myClass = null;
+    myType = Type.SUITE;
   }
 
   public TestScope(@NotNull List<STestRun> testRuns, @Nullable String suite, @Nullable String pack) {
@@ -42,6 +48,7 @@ public class TestScope {
     mySuite = suite;
     myPackage = pack;
     myClass = null;
+    myType = Type.PACKAGE;
   }
 
   public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite, @NotNull String pack, @NotNull String clazz) {
@@ -49,10 +56,34 @@ public class TestScope {
     mySuite = suite;
     myPackage = pack;
     myClass = clazz;
+    myType = Type.CLASS;
   }
 
+  @NotNull
   public List<STestRun> getTestRuns() {
     return myTestRuns;
+  }
+
+  @NotNull
+  public TestCountersData getOrCalcCountersData() {
+    if(myCountersData == null) {
+      myCountersData = new TestCountersData(myTestRuns);
+    }
+
+    return myCountersData;
+  }
+
+  @Nullable
+  public String getName() {
+    switch (myType) {
+      case SUITE:
+        return mySuite;
+      case CLASS:
+        return myClass;
+      case PACKAGE:
+        return myPackage;
+    }
+    return null; // never happens
   }
 
   @Nullable
@@ -68,5 +99,9 @@ public class TestScope {
   @Nullable
   public String getClass1() {
     return myClass;
+  }
+
+  private enum Type {
+    SUITE, PACKAGE, CLASS
   }
 }

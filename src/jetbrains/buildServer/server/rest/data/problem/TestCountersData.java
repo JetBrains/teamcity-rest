@@ -56,6 +56,10 @@ public class TestCountersData {
     }
   }
 
+  public TestCountersData(@NotNull final List<STestRun> testRuns) {
+    this(testRuns, true, true, true, true, true, true);
+  }
+
   public TestCountersData(@NotNull final List<STestRun> testRuns,
                           boolean calcSuccess,
                           boolean calcFailed,
