@@ -781,36 +781,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   private static Comparator<STestRun> getComparator(@NotNull final Locator locator) {
     String orderBy = locator.getSingleDimensionValue(ORDER);
     if (orderBy == null) return null;
-    return getComparator(SUPPORTED_ORDERS, orderBy);
-  }
-
-  @NotNull
-  private static <T> Comparator<T> getComparator(@NotNull final Orders<T> orders, @NotNull final String orderLocatorText) {
-    String[] names = orders.getNames();
-    Locator locator = new Locator(orderLocatorText, names);
-    if (locator.isSingleValue()) {
-      return orders.get(locator.getSingleValue());
-    }
-    Comparator<T> ALL_EQUAL = (o1, o2) -> 0;
-    Comparator<T> comparator = ALL_EQUAL;
-    for (String name : locator.getDefinedDimensions()) {
-      Comparator<T> comp = orders.get(name);
-      String dimension = locator.getSingleDimensionValue(name);
-      if (dimension != null) {
-        if ("asc".equals(dimension) || "".equals(dimension)) {
-          comparator = comparator.thenComparing(comp);
-        } else if ("desc".equals(dimension)) {
-          comparator = comparator.thenComparing(comp.reversed());
-        } else {
-          throw new BadRequestException("Dimension \"" + name + "\" has invalid value \"" + dimension + "\". Should be \"asc\" or \"desc\"");
-        }
-      }
-    }
-    locator.checkLocatorFullyProcessed();
-    if (comparator == ALL_EQUAL) {
-      throw new BadRequestException("No order is defined by the supplied ordering locator");
-    }
-    return comparator;
+    return SUPPORTED_ORDERS.getComparator(orderBy);
   }
 
   private static class DelegatingAbstractFinder<T> extends AbstractFinder<T> {
@@ -876,25 +847,4 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
      .add("status", Comparator.comparing(tr -> tr.getStatus().getPriority()))
      .add("newFailure", Comparator.comparing(STestRun::isNewFailure)) //even more experimental than entire sorting feature
      .add("buildStartDate", Comparator.comparing(tr -> tr.getBuild().getStartDate()));
-
-  private static class Orders<T> {
-    private final Map<String, Comparator<T>> myComparators = new LinkedHashMap<>();
-    @NotNull
-    Orders<T> add(@NotNull String orderName, @NotNull Comparator<T> comparator) {
-      myComparators.put(orderName, comparator);
-      return this;
-    }
-
-    @NotNull
-    Comparator<T> get(@NotNull String orderName) {
-      Comparator<T> result = myComparators.get(orderName);
-      if (result == null) throw new BadRequestException("Order \"" + orderName + "\" is not supported. Supported orders are: " + Arrays.toString(getNames()));
-      return result;
-    }
-
-    @NotNull
-    public String[] getNames() {
-      return myComparators.keySet().toArray(new String[0]);
-    }
-  }
 }
