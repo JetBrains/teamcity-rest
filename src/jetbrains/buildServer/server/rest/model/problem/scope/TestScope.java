@@ -45,7 +45,7 @@ public class TestScope {
 
   @XmlAttribute(name = "name")
   public String getName() {
-    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("name"), myRealTestScope.getSuite());
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("name"), myRealTestScope.getName());
   }
 
   @XmlAttribute(name = "suite")
