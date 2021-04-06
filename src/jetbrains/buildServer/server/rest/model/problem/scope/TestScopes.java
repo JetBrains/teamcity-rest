@@ -82,4 +82,22 @@ public class TestScopes {
       }
     );
   }
+
+  @XmlAttribute(name = "href")
+  @Nullable
+  public String getHref() {
+    return myPagerData.getHref();
+  }
+
+  @XmlAttribute(name = "nextHref")
+  @Nullable
+  public String getNextHref() {
+    return myPagerData.getNextHref();
+  }
+
+  @XmlAttribute(name = "prevHref")
+  @Nullable
+  public String getPrevHref() {
+    return myPagerData.getPrevHref();
+  }
 }

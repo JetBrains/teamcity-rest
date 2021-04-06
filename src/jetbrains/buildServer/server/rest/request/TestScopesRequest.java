@@ -34,6 +34,7 @@ import jetbrains.buildServer.server.rest.data.problem.scope.TestScope;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.scope.TestScopes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import org.jetbrains.annotations.NotNull;
@@ -70,6 +71,8 @@ public class TestScopesRequest {
 
     PagedSearchResult<TestScope> items = myTestScopesCollector.getItems(patchedLocator);
 
-    return new TestScopes(items.myEntries, new Fields(fields), null, uriInfo, myBeanContext);
+    PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), items, locatorText, "locator");
+
+    return new TestScopes(items.myEntries, new Fields(fields), pager, uriInfo, myBeanContext);
   }
 }
