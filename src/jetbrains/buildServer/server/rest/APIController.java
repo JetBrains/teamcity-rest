@@ -73,7 +73,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.http.HttpHeaders;
 import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
@@ -116,7 +115,7 @@ public class APIController extends BaseController implements ServletContextAware
   @NotNull private final HttpAuthenticationManager myAuthManager;
   @NotNull private final PluginManager myPluginManager;
 
-  private ClassLoader myClassloader;
+  private final ClassLoader myClassloader;
   private String myAuthToken;
   private final RequestPathTransformInfo myRequestPathTransformInfo;
   private final PathSet myUnauthenticatedPathSet = new PathSet();
@@ -238,7 +237,7 @@ public class APIController extends BaseController implements ServletContextAware
 
             myWebComponentInitialized.set(true);
           } catch (Throwable e) {
-            LOG.error("Error initializing REST API " + contextDetails.get() + ": " + e.toString() + ExceptionMapperBase.addKnownExceptionsData(e, ""), e);
+            LOG.error("Error initializing REST API " + contextDetails.get() + ": " + e + ExceptionMapperBase.addKnownExceptionsData(e, ""), e);
             ExceptionUtil.rethrowAsRuntimeException(e);
           }
         }
@@ -451,7 +450,7 @@ public class APIController extends BaseController implements ServletContextAware
     final boolean runAsSystemActual = runAsSystem;
     try {
 
-      final boolean corsRequest = processCorsOrigin(request, response);
+      final boolean corsRequest = myAllowedOrigins.processCorsOriginHeaders(request, response, LOG);
       if (corsRequest && request.getMethod().equalsIgnoreCase("OPTIONS")){
         //handling browser pre-flight requests
         LOG.debug("Pre-flight OPTIONS request detected, replying with status 204");
@@ -612,48 +611,6 @@ public class APIController extends BaseController implements ServletContextAware
     return result;
   }
 
-  // TODO: it has been copied to CorsOrigins class, should be re-used from there in 2021.1
-  private boolean processCorsOrigin(final HttpServletRequest request, final HttpServletResponse response) {
-    final String originHeader = request.getHeader(HttpHeaders.ORIGIN);
-    if (StringUtil.isNotEmpty(originHeader)) {
-
-      for (String origin : originHeader.split(" ")) {
-        if (myAllowedOrigins.allows(origin)) {
-          addOriginHeaderToResponse(response, originHeader);
-          addOtherHeadersToResponse(request, response);
-          return true;
-        }
-      }
-
-      if (myAllowedOrigins.allowsAllHosts()) {
-        LOG.debug("Got CORS request from origin '" + originHeader + "', but this origin is not allowed. However, '*' is. Replying with '*'." +
-                  " Add the origin to '" + CorsOrigins.CORS_ORIGINS_PROPERTY +
-                  "' internal property (comma-separated) to trust the applications hosted on the domain. Current allowed origins are: " +
-                  myAllowedOrigins.describe(false));
-        addOriginHeaderToResponse(response, "*");
-        return true;
-      }
-
-      LOG.debug("Got CORS request from origin '" + originHeader + "', but this origin is not allowed. Add the origin to '" +
-                CorsOrigins.CORS_ORIGINS_PROPERTY +
-                "' internal property (comma-separated) to trust the applications hosted on the domain. Current allowed origins are: " +
-                myAllowedOrigins.describe(false));
-    }
-    return false;
-  }
-
-  private void addOriginHeaderToResponse(final HttpServletResponse response, final String origin) {
-    response.addHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
-  }
-
-  private void addOtherHeadersToResponse(final HttpServletRequest request, final HttpServletResponse response) {
-    response.addHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, request.getHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD));
-    response.addHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-
-    //this will actually not function for OPTION request until http://youtrack.jetbrains.com/issue/TW-22019 is fixed
-    response.addHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, request.getHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS));
-  }
-
   @NotNull
   public String[] getBasePackages() {
     return new String[]{
@@ -702,7 +659,7 @@ public class APIController extends BaseController implements ServletContextAware
       response.setContentType("text/plain");
       response.getWriter().print(responseText);
     } catch (Throwable nestedException) {
-      final String message1 = "Error while adding error description into response: " + nestedException.toString();
+      final String message1 = "Error while adding error description into response: " + nestedException;
       if (!ExceptionMapperBase.isCommonExternalError(nestedException)) {
         LOG.warn(message1);
       }
