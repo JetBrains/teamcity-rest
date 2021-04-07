@@ -126,7 +126,7 @@ public class TestScopesCollector {
   private static Stream<TestScope> groupBySuiteInternal(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
     Map<String, List<STestRun>> scopes = testRuns.myEntries.stream()
                                                  .filter(testScopeFilter)
-                                                 .collect(Collectors.groupingBy(item -> item.getTest().getName().getSuite()));
+                                                 .collect(Collectors.groupingBy(item -> item.getTest().getName().getSuiteWithoutSeparator()));
 
     return scopes.entrySet().stream().map(entry -> new TestScope(entry.getValue(), entry.getKey()));
   }

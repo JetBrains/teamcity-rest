@@ -50,7 +50,7 @@ public class TestScopeFilter implements Predicate<STestRun> {
     mySuiteConditionDef = locator.getSingleDimensionValue("suite");
     if(mySuiteConditionDef != null) {
       ValueCondition condition = ParameterCondition.createValueCondition(mySuiteConditionDef);
-      myConditions.add(item -> condition.matches(item.getTest().getName().getSuite()));
+      myConditions.add(item -> condition.matches(item.getTest().getName().getSuiteWithoutSeparator()));
     }
     myPackageConditionDef = locator.getSingleDimensionValue("package");
     if(myPackageConditionDef != null) {
