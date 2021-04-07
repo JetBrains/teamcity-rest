@@ -18,8 +18,6 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Set;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
-import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScope;
@@ -34,7 +32,7 @@ import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-public class TestScopeCollectorTest extends BaseServerTestCase {
+public class TestScopesCollectorTest extends BaseServerTestCase {
   private PermissionChecker myPermissionChecker;
   private ProjectFinder myProjectFinder;
   private AgentFinder myAgentFinder;
@@ -121,6 +119,7 @@ public class TestScopeCollectorTest extends BaseServerTestCase {
 
     Set<String> packages = result.myEntries.stream()
                                            .peek(scope -> assertEquals(1, scope.getTestRuns().size()))
+                                           .peek(scope -> scope.getName().equals(scope.getPackage()))
                                            .map(scope -> scope.getPackage())
                                            .collect(Collectors.toSet());
 
@@ -146,12 +145,11 @@ public class TestScopeCollectorTest extends BaseServerTestCase {
 
     Set<String> classes = result.myEntries.stream()
                                            .peek(scope -> assertEquals(1, scope.getTestRuns().size()))
+                                           .peek(scope -> scope.getName().equals(scope.getClass1()))
                                            .map(scope -> scope.getClass1())
                                            .collect(Collectors.toSet());
 
-    for(int i = 1; i <= 2; i++) {
-      assertTrue(classes.contains("class" + i));
-    }
+    assertContains(classes, "class1", "class2");
   }
 
   @Test
@@ -170,11 +168,17 @@ public class TestScopeCollectorTest extends BaseServerTestCase {
                                           .finish();
 
     PagedSearchResult<TestScope> result = myCollector.getItems(Locator.createPotentiallyEmptyLocator("testOccurrences:(build:(id:" + build10.getBuildId() + ")),scopeType:suite"));
-
-    assertEquals(2, result.myEntries.size());
-
     for(TestScope scope : result.myEntries) {
       assertEquals(2, scope.getTestRuns().size());
     }
+
+    Set<String> suites = result.myEntries.stream()
+                                         .peek(scope -> assertEquals(2, scope.getTestRuns().size()))
+                                         .peek(scope -> scope.getName().equals(scope.getSuite()))
+                                         .map(scope -> scope.getSuite())
+                                         .collect(Collectors.toSet());
+
+    assertEquals(2, suites.size());
+    assertContains(suites, "suite1", "suite2");
   }
 }
