@@ -16,10 +16,8 @@
 
 package jetbrains.buildServer.server.rest.data.problem.scope;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.server.rest.data.Locator;
@@ -28,7 +26,10 @@ import jetbrains.buildServer.server.rest.data.problem.Orders;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.serverSide.MultiTestRun;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.STestRun;
+import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 
 
@@ -42,6 +43,7 @@ public class TestScopesCollector {
   public static final String TEST_OCCURRENCES = "testOccurrences";
   public static final String SCOPE_TYPE = "scopeType";
   public static final String ORDER_BY = "orderBy";
+  public static final String SPLIT_BY_BUILD_TYPE = "splitByBuildType";
   @NotNull
   private final TestOccurrenceFinder myTestOccurrenceFinder;
 
@@ -71,6 +73,13 @@ public class TestScopesCollector {
       String orderDimension = locator.getSingleDimensionValue(ORDER_BY);
       //noinspection ConstantConditions
       scopes = scopes.sorted(SUPPORTED_ORDERS.getComparator(orderDimension));
+    }
+
+    if(locator.isAnyPresent(SPLIT_BY_BUILD_TYPE)) {
+      Boolean split = locator.getSingleDimensionValueAsBoolean(SPLIT_BY_BUILD_TYPE);
+      if(BooleanUtils.isTrue(split)) {
+        scopes = splitByBuildType(scopes);
+      }
     }
 
     locator.setDimensionIfNotPresent("count", "100");
@@ -106,6 +115,33 @@ public class TestScopesCollector {
     }
 
     return scopes;
+  }
+
+  private Stream<TestScope> splitByBuildType(@NotNull Stream<TestScope> testScopes) {
+    Map<String, SBuildType> encounteredBuildTypes = new HashMap<>();
+
+    Function<STestRun, String> getIdAndRememberBuildType = (STestRun testRun) -> {
+      SBuildType bt = testRun.getBuild().getBuildType();
+      encounteredBuildTypes.put(bt.getInternalId(), bt);
+      return bt.getInternalId();
+    };
+
+    return testScopes.flatMap(scope -> {
+      Map<String, List<STestRun>> byBuildType = scope.getTestRuns()
+                                                     .stream()
+                                                     .flatMap(tr -> {
+                                                       if (tr instanceof MultiTestRun) return ((MultiTestRun)tr).getTestRuns().stream();
+                                                       else return Stream.of(tr);
+                                                     })
+                                                     .collect(Collectors.groupingBy(getIdAndRememberBuildType));
+
+      return byBuildType.entrySet().stream()
+                        .map(entry -> TestScope.withBuildType(
+                          scope,
+                          MultiTestRun.mergeByTestName(entry.getValue(), false),
+                          encounteredBuildTypes.get(entry.getKey())
+                        ));
+    });
   }
 
   private Stream<TestScope> groupBySuite(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {

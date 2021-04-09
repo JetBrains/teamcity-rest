@@ -22,8 +22,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -61,6 +63,17 @@ public class TestScope {
   @XmlAttribute(name = "class")
   public String getClass1() {
     return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("class"), myRealTestScope.getClass1());
+  }
+
+  @XmlElement(name = "buildType")
+  public BuildType getBuildType() {
+    if(myRealTestScope.getBuildType() == null)
+      return null;
+
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("buildType"),
+      new BuildType(new BuildTypeOrTemplate(myRealTestScope.getBuildType()), myFields.getNestedField("buildType"), myContext)
+    );
   }
 
   @XmlElement(name = "testOccurrences")

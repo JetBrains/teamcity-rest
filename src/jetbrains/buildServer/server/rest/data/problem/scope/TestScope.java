@@ -18,13 +18,14 @@ package jetbrains.buildServer.server.rest.data.problem.scope;
 
 import java.util.List;
 import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class TestScope {
   private final List<STestRun> myTestRuns;
-  @Nullable
+  @NotNull
   private final String mySuite;
   @Nullable
   private final String myPackage;
@@ -33,30 +34,33 @@ public class TestScope {
   @NotNull
   private final Type myType;
   @Nullable
+  private final SBuildType myBuildType;
+  @Nullable
   private TestCountersData myCountersData;
 
-  public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite) {
-    myTestRuns = testRuns;
-    mySuite = suite;
-    myPackage = null;
-    myClass = null;
-    myType = Type.SUITE;
+  public static TestScope withBuildType(@NotNull TestScope source, @NotNull List<STestRun> testRuns, @NotNull SBuildType buildType) {
+    return new TestScope(testRuns, source.getSuite(), source.getPackage(), source.getClass1(), source.myType, buildType);
   }
 
-  public TestScope(@NotNull List<STestRun> testRuns, @Nullable String suite, @Nullable String pack) {
-    myTestRuns = testRuns;
-    mySuite = suite;
-    myPackage = pack;
-    myClass = null;
-    myType = Type.PACKAGE;
+  public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite) {
+    this(testRuns, suite, null, null, Type.SUITE, null);
+  }
+
+  public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite, @NotNull String pack) {
+    this(testRuns, suite, pack, null, Type.PACKAGE, null);
   }
 
   public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite, @NotNull String pack, @NotNull String clazz) {
+    this(testRuns, suite, pack, clazz, Type.CLASS, null);
+  }
+
+  private TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite, @Nullable String pack, @Nullable String clazz, @NotNull Type type, @Nullable SBuildType buildType) {
     myTestRuns = testRuns;
     mySuite = suite;
     myPackage = pack;
     myClass = clazz;
-    myType = Type.CLASS;
+    myBuildType = buildType;
+    myType = type;
   }
 
   @NotNull
@@ -86,7 +90,7 @@ public class TestScope {
     return null; // never happens
   }
 
-  @Nullable
+  @NotNull
   public String getSuite() {
     return mySuite;
   }
@@ -99,6 +103,11 @@ public class TestScope {
   @Nullable
   public String getClass1() {
     return myClass;
+  }
+
+  @Nullable
+  public SBuildType getBuildType() {
+    return myBuildType;
   }
 
   private enum Type {
