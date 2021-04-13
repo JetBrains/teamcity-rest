@@ -179,6 +179,29 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
                                          .collect(Collectors.toSet());
 
     assertEquals(2, suites.size());
-    assertContains(suites, "suite1", "suite2");
+    assertContains(suites, "suite1: ", "suite2: ");
+  }
+
+  @Test
+  public void testCanFilterSuites() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+
+    final SFinishedBuild build10 = build().in(buildType)
+                                          .startSuite("suite1")
+                                          .withTest("packageA.class1.aaa", true)
+                                          .withTest("packageA.class2.bbb", true)
+                                          .endSuite()
+                                          .startSuite("suite2")
+                                          .withTest("packageB.class1.ccc", true)
+                                          .withTest("packageB.class2.ddd", true)
+                                          .endSuite()
+                                          .finish();
+
+    // $base64:c3VpdGUxOiA= is a base64 representation of a string 'suite1: '
+    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+      "testOccurrences:(build:(id:" + build10.getBuildId() + ")),scopeType:suite,suite:(value:($base64:c3VpdGUxOiA=),matchType:equals)"
+    ));
+    assertEquals(1, result.myEntries.size());
+    assertEquals("suite1: ", result.myEntries.get(0).getName());
   }
 }
