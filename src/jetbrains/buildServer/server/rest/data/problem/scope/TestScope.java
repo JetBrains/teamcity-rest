@@ -32,7 +32,7 @@ public class TestScope {
   @Nullable
   private final String myClass;
   @NotNull
-  private final Type myType;
+  private final TestScopeType myType;
   @Nullable
   private final SBuildType myBuildType;
   @Nullable
@@ -43,18 +43,18 @@ public class TestScope {
   }
 
   public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite) {
-    this(testRuns, suite, null, null, Type.SUITE, null);
+    this(testRuns, suite, null, null, TestScopeType.SUITE, null);
   }
 
   public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite, @NotNull String pack) {
-    this(testRuns, suite, pack, null, Type.PACKAGE, null);
+    this(testRuns, suite, pack, null, TestScopeType.PACKAGE, null);
   }
 
   public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite, @NotNull String pack, @NotNull String clazz) {
-    this(testRuns, suite, pack, clazz, Type.CLASS, null);
+    this(testRuns, suite, pack, clazz, TestScopeType.CLASS, null);
   }
 
-  private TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite, @Nullable String pack, @Nullable String clazz, @NotNull Type type, @Nullable SBuildType buildType) {
+  private TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite, @Nullable String pack, @Nullable String clazz, @NotNull TestScopeType type, @Nullable SBuildType buildType) {
     myTestRuns = testRuns;
     mySuite = suite;
     myPackage = pack;
@@ -87,7 +87,7 @@ public class TestScope {
       case PACKAGE:
         return myPackage;
     }
-    return null; // never happens
+    return null;
   }
 
   @NotNull
@@ -108,9 +108,5 @@ public class TestScope {
   @Nullable
   public SBuildType getBuildType() {
     return myBuildType;
-  }
-
-  private enum Type {
-    SUITE, PACKAGE, CLASS
   }
 }
