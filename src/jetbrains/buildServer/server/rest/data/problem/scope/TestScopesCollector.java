@@ -47,6 +47,8 @@ public class TestScopesCollector {
   @NotNull
   private final TestOccurrenceFinder myTestOccurrenceFinder;
 
+  private static final String DEFAULT_COUNT = "100";
+
   public TestScopesCollector(final @NotNull TestOccurrenceFinder finder) {
     myTestOccurrenceFinder = finder;
   }
@@ -82,9 +84,9 @@ public class TestScopesCollector {
       }
     }
 
-    locator.setDimensionIfNotPresent("count", "100");
-    Long count = locator.getSingleDimensionValueAsLong("count");
-    Long start = locator.getSingleDimensionValueAsLong("start");
+    locator.setDimensionIfNotPresent(PagerData.COUNT, DEFAULT_COUNT);
+    Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+    Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
 
     if(start != null) {
       scopes = scopes.skip(start);
