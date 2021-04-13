@@ -20,6 +20,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -31,6 +32,8 @@ import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScope;
+import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTree;
+import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -47,6 +50,7 @@ public class TestScopesRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private TestScopesCollector myTestScopesCollector;
+  @Context @NotNull private TestScopeTreeCollector myTestScopeTreeCollector;
 
   // Very highly experimental
   @GET
@@ -74,5 +78,25 @@ public class TestScopesRequest {
     PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), items, locatorText, "locator");
 
     return new TestScopes(items.myEntries, new Fields(fields), pager, uriInfo, myBeanContext);
+  }
+
+  // Very highly experimental
+  @GET
+  @Path("/tree")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(hidden = true, value = "highly experimental")
+  public jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree serveScopesTree(@QueryParam("locator") String locatorText,
+                                    @QueryParam("fields") String fields,
+                                    @Context HttpServletRequest request) {
+
+
+    Locator patchedLocator = new Locator(locatorText);
+
+    String nonPatchedDimension = patchedLocator.getSingleDimensionValue(TestScopesCollector.TEST_OCCURRENCES);
+    patchedLocator.setDimension(TestScopesCollector.TEST_OCCURRENCES, TestOccurrenceFinder.patchLocatorForPersonalBuilds(nonPatchedDimension, request));
+
+    List<TestScopeTree.Node> items = myTestScopeTreeCollector.getSlicedTree(patchedLocator);
+
+    return new jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree(items, new Fields(fields), myBeanContext);
   }
 }

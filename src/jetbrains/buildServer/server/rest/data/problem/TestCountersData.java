@@ -24,8 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class TestCountersData {
-  @Nullable
-  private Integer myCount;
+  @NotNull
+  private Integer myCount = 0;
   @Nullable
   private Integer myMuted = 0;
   @Nullable
@@ -98,7 +98,23 @@ public class TestCountersData {
     myCount = testRuns.size();
   }
 
-  @Nullable
+  public TestCountersData(@NotNull Integer count,
+                          @Nullable Integer passed,
+                          @Nullable Integer failed,
+                          @Nullable Integer muted,
+                          @Nullable Integer ignored,
+                          @Nullable Integer newFailed,
+                          @Nullable Integer duration) {
+    myCount = count;
+    myPassed = passed;
+    myFailed = failed;
+    myMuted = muted;
+    myIgnored = ignored;
+    myNewFailed = newFailed;
+    myDuration = duration;
+  }
+
+  @NotNull
   public Integer getCount() {
     return myCount;
   }

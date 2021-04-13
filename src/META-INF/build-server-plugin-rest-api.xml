@@ -65,6 +65,7 @@
   <bean id="restAuditEventFinder" class="jetbrains.buildServer.server.rest.data.AuditEventFinder"/>
   <bean id="healthStatusItemFinder" class="jetbrains.buildServer.server.rest.data.HealthItemFinder"/>
   <bean id="testScopesCollector" class="jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector" />
+  <bean id="testScopeTreeCollector" class="jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector" />
 
 
   <bean id="timeCondition" class="jetbrains.buildServer.server.rest.data.TimeCondition"/>
@@ -102,6 +103,7 @@
   <bean id="restAuditEventFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AuditEventFinderProvider"/>
   <bean id="healthStatusItemFinderProvider" class="jetbrains.buildServer.server.rest.jersey.HealthItemFinderProvider"/>
   <bean id="testScopesCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.TestScopesCollectorProvider"/>
+  <bean id="testScopeTreeCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.TestScopeTreeCollectorProvider"/>
 
   <bean id="restCloudUtil" class="jetbrains.buildServer.server.rest.data.CloudUtil"/>
   <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataUpdaterContextProvider"/>
