@@ -69,7 +69,7 @@ public class TestScopesRequest {
     patchedLocator.setDimension(TestScopesCollector.TEST_OCCURRENCES, TestOccurrenceFinder.patchLocatorForPersonalBuilds(nonPatchedDimension, request));
     patchedLocator.setDimension(TestScopesCollector.SCOPE_TYPE, scopeName);
 
-    PagedSearchResult<TestScope> items = myTestScopesCollector.getItems(patchedLocator);
+    PagedSearchResult<TestScope> items = myTestScopesCollector.getPagedItems(patchedLocator);
 
     PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), items, locatorText, "locator");
 

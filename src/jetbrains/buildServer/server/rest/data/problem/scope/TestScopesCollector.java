@@ -53,7 +53,26 @@ public class TestScopesCollector {
     myTestOccurrenceFinder = finder;
   }
 
-  public PagedSearchResult<TestScope> getItems(@NotNull Locator locator) {
+  public PagedSearchResult<TestScope> getPagedItems(@NotNull Locator locator) {
+    locator.setDimensionIfNotPresent(PagerData.COUNT, DEFAULT_COUNT);
+    Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+    Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
+
+    Stream<TestScope> scopes = getItems(locator);
+
+    if(start != null) {
+      scopes = scopes.skip(start);
+    }
+
+    if(count != null && count != -1) {
+      scopes = scopes.limit(count);
+    }
+
+    // We set count value to DEFAULT_COUNT earlier if it was not present
+    return new PagedSearchResult<TestScope>(scopes.collect(Collectors.toList()), start, count.intValue());
+  }
+
+  public Stream<TestScope> getItems(@NotNull Locator locator) {
     locator.addSupportedDimensions(SCOPE_TYPE, TEST_OCCURRENCES, ORDER_BY, PagerData.START, PagerData.COUNT);
     locator.addSupportedDimensions(TestScopeFilter.SUPPORTED_DIMENSIONS);
 
@@ -84,19 +103,7 @@ public class TestScopesCollector {
       }
     }
 
-    locator.setDimensionIfNotPresent(PagerData.COUNT, DEFAULT_COUNT);
-    Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
-    Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
-
-    if(start != null) {
-      scopes = scopes.skip(start);
-    }
-
-    if(count != null && count != -1) {
-      scopes = scopes.limit(count);
-    }
-
-    return new PagedSearchResult<TestScope>(scopes.collect(Collectors.toList()), start, count.intValue());
+    return scopes;
   }
 
   private Stream<TestScope> groupByScope(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter filter, @NotNull String scopeName) {

@@ -113,7 +113,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
                                           .withTest("package4.class2.ddd", true)
                                           .finish();
     String locator = "scopeType:package,testOccurrences:(build:(id:" + build10.getBuildId() + "))";
-    PagedSearchResult<TestScope> result = myCollector.getItems(Locator.locator(locator));
+    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.locator(locator));
 
     assertEquals(4, result.myEntries.size());
 
@@ -139,7 +139,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
                                           .finish();
 
     String locator = "scopeType:class,testOccurrences:(build:(id:" + build10.getBuildId() + "))";
-    PagedSearchResult<TestScope> result = myCollector.getItems(Locator.locator(locator));
+    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.locator(locator));
 
     assertEquals("Although there are only class1 and class 2, packageA.classX and packageB.classX are expected to be different", 4, result.myEntries.size());
 
@@ -167,7 +167,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
                                           .endSuite()
                                           .finish();
 
-    PagedSearchResult<TestScope> result = myCollector.getItems(Locator.createPotentiallyEmptyLocator("testOccurrences:(build:(id:" + build10.getBuildId() + ")),scopeType:suite"));
+    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator("testOccurrences:(build:(id:" + build10.getBuildId() + ")),scopeType:suite"));
     for(TestScope scope : result.myEntries) {
       assertEquals(2, scope.getTestRuns().size());
     }
