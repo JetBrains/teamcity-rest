@@ -20,11 +20,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import org.jetbrains.annotations.NotNull;
 
 public class TestScopeTreeCollector {
-  public static final String TEST_OCCURRENCES = "testOccurrences";
+  public static final String BUILD = "build";
   public static final String ORDER_BY = "orderBy";
   public static final String MAX_CHILDREN = "maxChildren";
 
@@ -36,17 +38,26 @@ public class TestScopeTreeCollector {
     myScopeCollector = scopesCollector;
   }
 
-  public List<TestScopeTree.Node> getSlicedTree(@NotNull Locator locator) {
-    locator.addSupportedDimensions(TEST_OCCURRENCES);
+  private Locator prepareScopesLocator(@NotNull Locator locator, @NotNull HttpServletRequest request) {
+    Locator occurrencesLocator = Locator.createEmptyLocator();
+    occurrencesLocator.setDimension("status", "FAILURE");
+    occurrencesLocator.setDimension("count", "-1");
+    occurrencesLocator.setDimension("build", locator.getDimensionValue(BUILD));
 
-    String occurrencesLocator = locator.getSingleDimensionValue(TEST_OCCURRENCES);
-    String scopesLocator = String.format("%s:%s,%s:class,%s:true",
-                                         TestScopesCollector.TEST_OCCURRENCES, occurrencesLocator,
-                                         TestScopesCollector.SCOPE_TYPE,
-                                         TestScopesCollector.SPLIT_BY_BUILD_TYPE);
+    Locator scopesLocator = Locator.createEmptyLocator();
+    scopesLocator.setDimension(TestScopesCollector.TEST_OCCURRENCES, TestOccurrenceFinder.patchLocatorForPersonalBuilds(occurrencesLocator.toString(), request));
+    scopesLocator.setDimension(TestScopesCollector.SCOPE_TYPE, "class");
+    scopesLocator.setDimension(TestScopesCollector.SPLIT_BY_BUILD_TYPE, "true");
 
+    return scopesLocator;
+  }
 
-    Stream<TestScope> testScopes = myScopeCollector.getItems(Locator.locator(scopesLocator));
+  public List<TestScopeTree.Node> getSlicedTree(@NotNull Locator locator, @NotNull HttpServletRequest request) {
+    locator.addSupportedDimensions(BUILD, ORDER_BY, MAX_CHILDREN);
+
+    Locator scopesLocator = prepareScopesLocator(locator, request);
+
+    Stream<TestScope> testScopes = myScopeCollector.getItems(scopesLocator);
 
     TestScopeTree scopeTree = new TestScopeTree(testScopes.collect(Collectors.toList()));
 
@@ -61,6 +72,8 @@ public class TestScopeTreeCollector {
     if(maxChildren == null) {
       maxChildren = DEFAULT_MAX_CHILDREN;
     }
+
+    locator.checkLocatorFullyProcessed();
 
     return scopeTree.getSlicedOrderedTree(Integer.parseInt(maxChildren), order);
   }

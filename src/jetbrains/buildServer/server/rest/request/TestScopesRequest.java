@@ -88,15 +88,8 @@ public class TestScopesRequest {
   public jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree serveScopesTree(@QueryParam("locator") String locatorText,
                                     @QueryParam("fields") String fields,
                                     @Context HttpServletRequest request) {
+    List<TestScopeTree.Node> treeNodes = myTestScopeTreeCollector.getSlicedTree(Locator.locator(locatorText), request);
 
-
-    Locator patchedLocator = new Locator(locatorText);
-
-    String nonPatchedDimension = patchedLocator.getSingleDimensionValue(TestScopesCollector.TEST_OCCURRENCES);
-    patchedLocator.setDimension(TestScopesCollector.TEST_OCCURRENCES, TestOccurrenceFinder.patchLocatorForPersonalBuilds(nonPatchedDimension, request));
-
-    List<TestScopeTree.Node> items = myTestScopeTreeCollector.getSlicedTree(patchedLocator);
-
-    return new jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree(items, new Fields(fields), myBeanContext);
+    return new jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree(treeNodes, new Fields(fields), myBeanContext);
   }
 }

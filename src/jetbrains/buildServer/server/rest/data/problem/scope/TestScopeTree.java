@@ -83,7 +83,19 @@ public class TestScopeTree {
 
     while (!nodeQueue.isEmpty()) {
       Node top = nodeQueue.poll();
+
+      if(top.getTestRuns().size() > maxChildren) {
+        // this is a leaf node and there are more children then asked, so let's create a replacement node with less testRuns
+        // also is is not a root node, so there always is a parent
+        Map<String, Node> parentChildren = top.getParent().getChildren();
+
+        Node replacement = new Node(top.getName(), top.getTestRuns().subList(0, maxChildren), top.getCountersData(), top.getParent());
+        parentChildren.put(top.getName(), replacement);
+
+        top = replacement;
+      }
       slicedNodes.add(top);
+
       List<Node> sortedChildren = new ArrayList<>(top.getChildren().values());
       if(order != null)
         sortedChildren.sort(order);
