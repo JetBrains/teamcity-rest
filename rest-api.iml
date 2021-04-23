@@ -20,6 +20,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src/main/resources" type="java-resource" />
       <excludeFolder url="file://$MODULE_DIR$/dist" />
       <excludeFolder url="file://$MODULE_DIR$/temp" />
+      <excludeFolder url="file://$MODULE_DIR$/test-output" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
@@ -30,6 +31,7 @@
     <orderEntry type="library" exported="" name="Tomcat" level="project" />
     <orderEntry type="library" exported="" name="Jackson" level="project" />
     <orderEntry type="library" exported="" name="Swagger" level="project" />
+    <orderEntry type="library" exported="" name="GraphQL" level="project" />
     <orderEntry type="library" exported="" name="TeamCity Closed API server" level="project" />
     <orderEntry type="library" scope="TEST" name="TestNG &amp; Mockito" level="project" />
     <orderEntry type="library" scope="TEST" name="TeamCity Server Tests" level="project" />

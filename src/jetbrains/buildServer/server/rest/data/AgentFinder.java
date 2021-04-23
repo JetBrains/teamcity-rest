@@ -543,6 +543,9 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return ((BuildAgentEx)agent).getAgentType();
   }
 
+  public static Set<String> getAssignedBuildTypes(@NotNull final SBuildAgent agent) {
+    return getAgentType(agent).getPolicy().getAllowedBuildTypes();
+  }
 
   @NotNull
   @Override

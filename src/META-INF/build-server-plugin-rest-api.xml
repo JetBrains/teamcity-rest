@@ -14,7 +14,7 @@
       included implicitly when using the component-scan element.
       That means that the two components are autodetected and  wired together
   -->
-  <context:component-scan base-package="jetbrains.buildServer.server.rest"/>
+  <context:component-scan base-package="jetbrains.buildServer.server"/>
 
   <!-- <aop:aspectj-autoproxy/> -->
 

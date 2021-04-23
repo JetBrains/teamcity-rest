@@ -26,6 +26,7 @@ public class Constants {
   public static final int DEFAULT_PAGE_ITEMS_COUNT = 100;
 
   public static final String API_URL = "/app/rest";
+  public static final String GRAPHQL_API_URL = "/app/graphql";
 
   public static final String BIND_PATH_PROPERTY_NAME = "api.path";
   public static final String ORIGINAL_REQUEST_URI_HEADER_NAME = "original-request-uri";

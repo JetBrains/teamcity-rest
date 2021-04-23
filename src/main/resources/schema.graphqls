@@ -1,0 +1,412 @@
+enum BuildTypeType {
+  REGULAR
+  COMPOSITE
+  DEPLOYMENT
+}
+
+type BuildType {
+  id: ID!
+  name: String
+  type: BuildTypeType
+  ancestorProjects: ProjectsConnection
+}
+
+type AgentEdge {
+  node: Agent!
+}
+
+type AgentPoolAgentEdge {
+  node: Agent!
+}
+
+type PageInfo {
+  hasPreviousPage: Boolean
+  hasNextPage: Boolean
+}
+
+type AgentPoolAgentsConnection {
+  edges: [AgentPoolAgentEdge!]!
+  count: Int!
+  pageInfo: PageInfo!
+}
+
+type AgentPoolProjectEdge {
+  node: Project!
+}
+
+type AgentPoolProjectsConnection {
+  edges: [AgentPoolProjectEdge!]!
+}
+
+type CloudImageInstancesConnection {
+  edges: [AgentEdge!]!
+}
+
+type CloudImage {
+  id: ID!
+  name: String
+  agentTypeId: ID
+  environment: AgentEnvironment
+  instances: CloudImageInstancesConnection
+  project: Project
+  agentPool: AgentPool
+  assignableAgentPools: AgentPoolsConnection
+}
+
+type AgentPoolCloudImageEdge {
+  node: CloudImage!
+}
+
+type AgentPoolCloudImagesConnection {
+  edges: [AgentPoolCloudImageEdge!]!
+}
+
+type AgentPoolPermissions {
+  manage: Boolean,
+  authorizeAgents: Boolean,
+}
+
+type AgentPool {
+  id: ID!
+  name: String
+  maxAgentsNumber: Int
+  cloudImages: AgentPoolCloudImagesConnection
+  agents: AgentPoolAgentsConnection
+  projects: AgentPoolProjectsConnection
+  permissions: AgentPoolPermissions
+}
+
+input AgentBuildTypesFilter {
+  compatible: Boolean
+  assigned: Boolean
+}
+
+type RunnerAgentBuildTypeIncompatibility {
+  displayName: String!
+}
+
+type MissedVCSPluginAgentBuildTypeIncompatibility {
+  name: String!
+}
+
+type InvalidRunParameterAgentBuildTypeIncompatibility {
+  name: String!
+  reason: String
+}
+
+type UndefinedRunParameterAgentBuildTypeIncompatibility { # Run?
+  name: String!
+  origin: String
+}
+
+type UnmetRequirementAgentBuildTypeIncompatibility {
+  propertyName: String!
+  propertyValue: String
+  type: String
+}
+
+union AgentBuildTypeIncompatibility =
+  RunnerAgentBuildTypeIncompatibility |
+  MissedVCSPluginAgentBuildTypeIncompatibility |
+  InvalidRunParameterAgentBuildTypeIncompatibility |
+  UndefinedRunParameterAgentBuildTypeIncompatibility |
+  UnmetRequirementAgentBuildTypeIncompatibility
+
+type AgentBuildTypeEdge {
+  node: BuildType!
+  assigned: Boolean
+  compatible: Boolean
+  incompatibilities: [AgentBuildTypeIncompatibility!]!
+}
+
+enum AgentRunPolicy {
+  ALL
+  ASSIGNED
+}
+
+type AssociatedAgentBuildTypesConnection {
+  edges: [AgentBuildTypeEdge!]!
+  count: Int!
+  pageInfo: PageInfo!
+  runPolicy: AgentRunPolicy
+}
+
+type DiassociatedAgentBuildTypesConnection {
+  edges: [AgentBuildTypeEdge!]!
+  count: Int!
+  pageInfo: PageInfo!
+}
+
+type OS {
+  name: String!
+  version: String
+}
+
+type AgentEnvironment {
+  os: OS
+}
+
+type Agent {
+  id: ID!
+  name: String
+  agentPool: AgentPool
+  associatedBuildTypes(filter: AgentBuildTypesFilter): AssociatedAgentBuildTypesConnection
+  dissociatedBuildTypes(filter: AgentBuildTypesFilter): DiassociatedAgentBuildTypesConnection
+  environment: AgentEnvironment
+  authorized: Boolean
+}
+
+type ProjectEdge {
+  node: Project!
+}
+
+type ProjectsConnection {
+  edges: [ProjectEdge!]!
+  count: Int!
+  pageInfo: PageInfo!
+}
+
+type BuildTypeEdge {
+  node: BuildType!
+}
+
+type BuildTypesConnection {
+  edges: [BuildTypeEdge!]!
+  pageInfo: PageInfo!
+  count: Int!
+}
+
+type ProjectAgentPoolEdge {
+  node: AgentPool!
+}
+
+type ProjectAgentPoolsConnection {
+  edges: [ProjectAgentPoolEdge!]!
+}
+
+type ProjectPermissions {
+  manageAgentPoolsForProject: Boolean
+}
+
+type Project {
+  id: ID!
+  name: String
+  ancestorProjects(filter: ProjectsFilter): ProjectsConnection
+  buildTypes: BuildTypesConnection
+  agentPools: ProjectAgentPoolsConnection
+  archived: Boolean
+  permissions: ProjectPermissions
+}
+
+input ProjectsFilter {
+  archived: Boolean
+}
+
+type GlobalPermissions {
+  manageAgentPools: Boolean
+}
+
+input AgentsFilter {
+  authorized: Boolean
+}
+
+type AgentsConnection {
+  edges: [AgentEdge!]!
+}
+
+type AgentPoolEdge {
+  node: AgentPool!
+}
+
+type AgentPoolsConnection {
+  edges: [AgentPoolEdge!]!
+}
+
+type Query {
+  agent(id: ID!): Agent
+  agents(filter: AgentsFilter): AgentsConnection
+  agentPool(id: ID!): AgentPool
+  agentPools: AgentPoolsConnection
+  projects(filter: ProjectsFilter = {archived: false}): ProjectsConnection
+  globalPermissions: GlobalPermissions
+}
+
+input CreateAgentPoolInput {
+  name: String!
+  maxAgents: Int
+}
+
+type CreateAgentPoolPayload {
+  agentPool: AgentPool
+}
+
+input UpdateAgentPoolInput {
+  id: ID!
+  name: String
+  maxAgents: Int
+}
+
+type UpdateAgentPoolPayload {
+  agentPool: AgentPool
+}
+
+input RemoveAgentPoolInput {
+  agentPoolId: ID!
+}
+
+type ShallowAgentPool {
+  id: ID!,
+  name: String,
+}
+
+type RemoveAgentPoolPayload {
+  agentPool: ShallowAgentPool
+}
+
+input AssignAgentWithAgentPoolInput {
+  agentId: ID!,
+  agentPoolId: ID!
+}
+
+type AssignAgentWithAgentPoolPayload {
+  agent: Agent,
+  agentPool: AgentPool
+}
+
+input UnassignAgentFromAgentPoolInput {
+  agentId: ID!,
+  agentPoolId: ID!
+}
+
+type UnassignAgentFromAgentPoolPayload {
+  agent: Agent,
+  agentPool: AgentPool,
+  defaultAgentPool: AgentPool
+}
+
+input SetAgentRunPolicyInput {
+  agentId: ID!
+  agentRunPolicy: AgentRunPolicy
+}
+
+type SetAgentRunPolicyPayload {
+  agent: Agent
+}
+
+input AssignProjectWithAgentPoolInput {
+  projectId: ID!,
+  agentPoolId: ID!
+}
+
+type AssignProjectWithAgentPoolPayload {
+  project: Project,
+  agentPool: AgentPool
+}
+
+input UnassignProjectFromAgentPoolInput {
+  projectId: ID!,
+  agentPoolId: ID!
+}
+
+type UnassignProjectFromAgentPoolPayload {
+  project: Project,
+  agentPool: AgentPool
+}
+
+input AssignCloudImageWIthAgentPoolInput {
+  agentTypeId: ID!,
+  agentPoolId: ID!
+}
+
+type AssignCloudImageWithAgentPoolPayload {
+  cloudImage: CloudImage,
+  agentPool: AgentPool
+}
+
+input UnassignCloudImageFromAgentPoolInput {
+  agentTypeId: ID!,
+  agentPoolId: ID!
+}
+
+type UnassignCloudImageFromAgentPoolPayload {
+  cloudImage: CloudImage,
+  agentPool: AgentPool
+}
+
+input AssignBuildTypeWithAgentInput {
+  agentId: ID!,
+  buildTypeId: ID!
+}
+
+type AssignBuildTypeWithAgentPayload {
+  agent: Agent,
+  buildType: BuildType
+}
+
+input UnassignBuildTypeFromAgentInput {
+  agentId: ID!,
+  buildTypeId: ID!
+}
+
+type UnassignBuildTypeFromAgentPayload {
+  agent: Agent,
+  buildType: BuildType
+}
+
+input AssignProjectBuildTypesWithAgentInput {
+  agentId: ID!,
+  projectId: ID!
+}
+
+type AssignProjectBuildTypesWithAgentPayload {
+  agent: Agent,
+  project: Project
+}
+
+input UnassignProjectBuildTypesFromAgentInput {
+  agentId: ID!,
+  projectId: ID!
+}
+
+type UnassignProjectBuildTypesFromAgentPayload {
+  agent: Agent,
+  project: Project
+}
+
+input UnassignAllAgentBuildTypesInput {
+  agentId: ID!
+}
+
+type UnassignAllAgentBuildTypesPayload {
+  agent: Agent
+}
+
+type Mutation {
+  createAgentPool(input: CreateAgentPoolInput): CreateAgentPoolPayload
+  updateAgentPool(input: UpdateAgentPoolInput): UpdateAgentPoolPayload
+  removeAgentPool(input: RemoveAgentPoolInput): RemoveAgentPoolPayload
+
+  setAgentRunPolicy(input: SetAgentRunPolicyInput): SetAgentRunPolicyPayload
+
+  assignAgentWithAgentPool(input: AssignAgentWithAgentPoolInput): AssignAgentWithAgentPoolPayload
+  unassignAgentFromAgentPool(input: UnassignAgentFromAgentPoolInput): UnassignAgentFromAgentPoolPayload
+
+  assignProjectWithAgentPool(input: AssignProjectWithAgentPoolInput): AssignProjectWithAgentPoolPayload
+  unassignProjectFromAgentPool(input: UnassignProjectFromAgentPoolInput): UnassignProjectFromAgentPoolPayload
+
+  assignCloudImageWithAgentPool(input: AssignCloudImageWIthAgentPoolInput): AssignCloudImageWithAgentPoolPayload
+  unassignCloudImageFromAgentPool(input: UnassignCloudImageFromAgentPoolInput): UnassignCloudImageFromAgentPoolPayload
+
+  assignBuildTypeWithAgent(input: AssignBuildTypeWithAgentInput): AssignBuildTypeWithAgentPayload
+  unassignBuildTypeFromAgent(input: UnassignBuildTypeFromAgentInput): UnassignBuildTypeFromAgentPayload
+
+  assignProjectBuildTypesWithAgent(input: AssignProjectBuildTypesWithAgentInput): AssignProjectBuildTypesWithAgentPayload
+  unassignProjectBuildTypesFromAgent(input: UnassignProjectBuildTypesFromAgentInput): UnassignProjectBuildTypesFromAgentPayload
+
+  unassignAllAgentBuildTypes(input: UnassignAllAgentBuildTypesInput): UnassignAllAgentBuildTypesPayload
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}

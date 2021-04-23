@@ -20,6 +20,8 @@ ext.versions = [
         'jersey' : '1.19',
         'jackson': '2.10.4',
         'swagger': '1.6.1',
+        'graphql': '15.0',
+        'graphqlTools': '6.2.0'
 ]
 
 apply plugin: 'java'
@@ -33,6 +35,7 @@ configurations {
   jersey
   jackson
   swagger
+  graphql
 }
 
 def dep(String coordinates, javadoc = false, sources = true) {
@@ -85,6 +88,8 @@ dependencies {
           dep(group: 'io.swagger', name: 'swagger-jersey-jaxrs', version: versions.swagger),
   )
 
+  graphql dep("com.graphql-java:graphql-java:${versions.graphql}")
+  graphql dep("com.graphql-java-kickstart:graphql-java-tools:${versions.graphqlTools}")
 }
 
 
@@ -109,6 +114,14 @@ configurations.jersey.exclude module: 'commons-logging' // TC core
 configurations.swagger.exclude group: 'com.sun.jersey', module: 'jersey-servlet'
 configurations.swagger.exclude group: 'com.sun.jersey', module: 'jersey-server'
 configurations.swagger.exclude group: 'com.sun.jersey', module: 'jersey-client'
+
+// newer version in graphql-java-tools
+configurations.swagger.exclude group: 'org.apache.commons', module: 'commons-lang3'
+
+configurations.graphql.exclude module: 'slf4j-api' // TC core
+configurations.graphql.exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+configurations.graphql.exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+configurations.graphql.exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
 
 task fetchJersey(type: Copy) {
   from configurations.jersey.grep { !it.name.contains("sources") }
@@ -140,10 +153,20 @@ task fetchSwaggerSrc(type: Copy) {
   into 'lib/src'
 }
 
+task fetchGraphQL(type: Copy) {
+  from configurations.graphql.grep { !it.name.contains("sources") }
+  into 'lib'
+}
 
-task sources(dependsOn: [fetchJerseySrc, fetchJacksonSrc, fetchSwaggerSrc])
+task fetchGraphQLSrc(type: Copy) {
+  from configurations.graphql.grep { it.name.contains("sources") }
+  into 'lib/src'
+}
 
-task fetchLibs(dependsOn: [fetchJersey, fetchJackson, fetchSwagger])
+
+task sources(dependsOn: [fetchJerseySrc, fetchJacksonSrc, fetchSwaggerSrc, fetchGraphQLSrc])
+
+task fetchLibs(dependsOn: [fetchJersey, fetchJackson, fetchSwagger, fetchGraphQL])
 
 task update(dependsOn: fetchLibs)
 

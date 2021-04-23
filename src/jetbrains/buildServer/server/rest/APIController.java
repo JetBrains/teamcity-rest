@@ -28,6 +28,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -185,6 +186,10 @@ public class APIController extends BaseController implements ServletContextAware
 
     LOG.info("Listening for paths " + originalBindPaths + " in " + getPluginIdentifyingText());
 
+    // For GraphQL API we don't want path-related features that we have for REST paths.
+    List<String> graphqlPaths = originalBindPaths.stream().filter(path -> path.startsWith(Constants.GRAPHQL_API_URL)).collect(Collectors.toList());
+    originalBindPaths.removeAll(graphqlPaths);
+
     List<String> bindPaths = new ArrayList<>(originalBindPaths);
     bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.HTTP_AUTH_PREFIX)));
     bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.GUEST_AUTH_PREFIX)));
@@ -196,6 +201,7 @@ public class APIController extends BaseController implements ServletContextAware
     myRequestPathTransformInfo.setPathMapping(transformBindPaths);
     LOG.debug("Will use request mapping: " + myRequestPathTransformInfo);
 
+    originalBindPaths.addAll(graphqlPaths);
     registerController(originalBindPaths);
 
     if (LATEST_REST_API_PLUGIN_NAME.equals(myPluginDescriptor.getPluginName())) {

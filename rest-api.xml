@@ -61,6 +61,24 @@
   
   
   <!-- Project Libraries -->
+
+  <path id="library.graphql.classpath">
+    <pathelement location="${basedir}/lib/graphql-java-15.0.jar/" />
+    <pathelement location="${basedir}/lib/graphql-java-tools-6.2.0.jar/" />
+    <pathelement location="${basedir}/lib/java-dataloader-2.2.3.jar/" />
+    <pathelement location="${basedir}/lib/antlr4-runtime-4.7.2.jar/" />
+    <pathelement location="${basedir}/lib/classmate-1.5.0.jar/" />
+    <pathelement location="${basedir}/lib/commons-lang3-3.9.jar/" />
+    <pathelement location="${basedir}/lib/graphql-java-tools-6.2.0.jar/" />
+    <pathelement location="${basedir}/lib/jackson-datatype-jdk8-2.10.3.jar/" />
+    <pathelement location="${basedir}/lib/jackson-module-kotlin-2.10.3.jar/" />
+    <pathelement location="${basedir}/lib/kotlin-reflect-1.3.70.jar/" />
+    <pathelement location="${basedir}/lib/kotlin-stdlib-1.3.70.jar/" />
+    <pathelement location="${basedir}/lib/kotlinx-coroutines-core-1.2.1.jar/" />
+    <pathelement location="${basedir}/lib/kotlinx-coroutines-jdk8-1.2.1.jar/" />
+    <pathelement location="${basedir}/lib/kotlinx-coroutines-reactive-1.2.1.jar/" />
+    <pathelement location="${basedir}/lib/reactive-streams-1.0.2.jar/" />
+  </path>
   
   <path id="library.jackson.classpath">
     <pathelement location="${basedir}/lib/jackson-annotations-2.10.4.jar"/>
@@ -72,8 +90,8 @@
     <pathelement location="${basedir}/lib/jackson-jaxrs-base-2.10.4.jar"/>
     <pathelement location="${basedir}/lib/jackson-jaxrs-json-provider-2.10.4.jar"/>
     <pathelement location="${basedir}/lib/jackson-module-jaxb-annotations-2.10.4.jar"/>
-    <pathelement location="${basedir}/lib/snakeyaml-1.15.jar"/>
-    <pathelement location="${basedir}/lib/stax2-api-3.1.4.jar"/>
+    <pathelement location="${basedir}/lib/snakeyaml-1.26.jar"/>
+    <pathelement location="${basedir}/lib/stax2-api-4.2.jar"/>
   </path>
   
   <path id="library.jersey.classpath">
@@ -89,10 +107,10 @@
   </path>
   
   <path id="library.swagger.classpath">
-    <pathelement location="${basedir}/lib/annotations-2.0.1.jar"/>
-    <pathelement location="${basedir}/lib/commons-lang3-3.2.1.jar"/>
-    <pathelement location="${basedir}/lib/javassist-3.18.2-GA.jar"/>
-    <pathelement location="${basedir}/lib/reflections-0.9.10.jar"/>
+    <pathelement location="${basedir}/lib/annotations-13.0.jar"/>
+    <pathelement location="${basedir}/lib/commons-lang3-3.9.jar"/>
+    <pathelement location="${basedir}/lib/javassist-3.21.0-GA.jar"/>
+    <pathelement location="${basedir}/lib/reflections-0.9.11.jar"/>
     <pathelement location="${basedir}/lib/swagger-annotations-1.6.1.jar"/>
     <pathelement location="${basedir}/lib/swagger-core-1.6.1.jar"/>
     <pathelement location="${basedir}/lib/swagger-jaxrs-1.6.1.jar"/>
@@ -211,6 +229,7 @@
     <path refid="library.tomcat.classpath"/>
     <path refid="library.jackson.classpath"/>
     <path refid="library.swagger.classpath"/>
+    <path refid="library.graphql.classpath"/>
     <path refid="library.teamcity_closed_api_server.classpath"/>
   </path>
   
@@ -223,6 +242,7 @@
     <path refid="library.tomcat.classpath"/>
     <path refid="library.jackson.classpath"/>
     <path refid="library.swagger.classpath"/>
+    <path refid="library.graphql.classpath"/>
     <path refid="library.teamcity_closed_api_server.classpath"/>
   </path>
   
@@ -235,6 +255,7 @@
     <path refid="library.tomcat.classpath"/>
     <path refid="library.jackson.classpath"/>
     <path refid="library.swagger.classpath"/>
+    <path refid="library.graphql.classpath"/>
     <path refid="library.teamcity_closed_api_server.classpath"/>
     <path refid="library.testng_&amp;_mockito.classpath"/>
     <path refid="library.teamcity_server_tests.classpath"/>
@@ -250,6 +271,7 @@
     <path refid="library.tomcat.classpath"/>
     <path refid="library.jackson.classpath"/>
     <path refid="library.swagger.classpath"/>
+    <path refid="library.graphql.classpath"/>
     <path refid="library.teamcity_closed_api_server.classpath"/>
     <path refid="library.testng_&amp;_mockito.classpath"/>
     <path refid="library.teamcity_server_tests.classpath"/>
@@ -345,6 +367,7 @@
     <path refid="library.tomcat.classpath"/>
     <path refid="library.jackson.classpath"/>
     <path refid="library.swagger.classpath"/>
+    <path refid="library.graphql.classpath"/>
     <path refid="library.teamcity_closed_api_server.classpath"/>
   </path>
   
@@ -364,6 +387,7 @@
     <path refid="library.tomcat.classpath"/>
     <path refid="library.jackson.classpath"/>
     <path refid="library.swagger.classpath"/>
+    <path refid="library.graphql.classpath"/>
     <path refid="library.teamcity_closed_api_server.classpath"/>
   </path>
   

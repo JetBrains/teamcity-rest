@@ -45,4 +45,9 @@
       <class name="jetbrains.buildServer.server.rest.request.ServerRequestTest"/>
     </classes>
   </test>
+  <test name="GraphQL API Test" preserve-order="false">
+    <classes>
+      <class name="jetbrains.buildServer.server.graphql.resolver.ProjectResolverTest" />
+    </classes>
+  </test>
 </suite>
