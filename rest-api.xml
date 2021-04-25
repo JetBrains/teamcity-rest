@@ -57,6 +57,7 @@
     <include name="**/?*.ftl"/>
     <include name="**/?*.js"/>
     <include name="**/?*.css"/>
+    <include name="**/schema.graphqls"/>
   </patternset>
   
   
