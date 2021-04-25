@@ -86,7 +86,7 @@ public class GraphQLProvider {
     // disable excessive logging
     org.apache.log4j.Logger.getLogger("notprivacysafe.graphql").setLevel(Level.ERROR);
 
-    URL url = GraphQLProvider.class.getClassLoader().getResource("schema.graphqls");
+    URL url = GraphQLProvider.class.getClassLoader().getResource("main/resources/schema.graphqls");
     if(url == null) {
       throw new IOException("Can't find schema.graphls");
     }
