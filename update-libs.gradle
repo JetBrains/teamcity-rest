@@ -119,6 +119,8 @@ configurations.swagger.exclude group: 'com.sun.jersey', module: 'jersey-client'
 configurations.swagger.exclude group: 'org.apache.commons', module: 'commons-lang3'
 
 configurations.graphql.exclude module: 'slf4j-api' // TC core
+configurations.graphql.exclude group: 'jakarta.xml.bind', module: 'jakarta.xml.bind-api'           // JRE
+configurations.graphql.exclude group: 'jakarta.activation', module: 'jakarta.activation-api:1.2.1' // JRE
 configurations.graphql.exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
 configurations.graphql.exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
 configurations.graphql.exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
