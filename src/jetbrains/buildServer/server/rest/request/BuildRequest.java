@@ -97,6 +97,7 @@ import org.jetbrains.annotations.Nullable;
 public class BuildRequest {
   private static final Logger LOG = Logger.getInstance(BuildRequest.class.getName());
   private static final String IMG_STATUS_WIDGET_ROOT_DIRECTORY = "/img/statusWidget";
+  private static final String IMG_STATUS_WIDGET_DEFAULT_SUFFIX = ".svg";
   public static final String RELATED_ISSUES = "/relatedIssues";
   public static final String TESTS = "testOccurrences";
   public static final String STATISTICS = "/statistics";
@@ -1542,7 +1543,7 @@ public class BuildRequest {
   }
 
   private Response processIconRequest(final String stateName, final String suffix, final @Context HttpServletRequest request) {
-    final String iconFileName = IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/" + stateName + (StringUtil.isEmpty(suffix) ? ".png" : suffix);
+    final String iconFileName = IMG_STATUS_WIDGET_ROOT_DIRECTORY + "/" + stateName + (StringUtil.isEmpty(suffix) ? IMG_STATUS_WIDGET_DEFAULT_SUFFIX : suffix);
     final String resultIconFileName;
     try {
       resultIconFileName = getRealFileName(iconFileName);
