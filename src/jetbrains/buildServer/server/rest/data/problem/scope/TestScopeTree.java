@@ -17,7 +17,9 @@
 package jetbrains.buildServer.server.rest.data.problem.scope;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.server.rest.data.problem.Orders;
+import jetbrains.buildServer.server.rest.data.problem.SortTestRunsByNewComparator;
 import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
@@ -89,7 +91,12 @@ public class TestScopeTree {
         // also is is not a root node, so there always is a parent
         Map<String, Node> parentChildren = top.getParent().getChildren();
 
-        Node replacement = new Node(top.getName(), top.getTestRuns().subList(0, maxChildren), top.getCountersData(), top.getParent());
+        List<STestRun> testRuns = top.getTestRuns().stream()
+                                     .sorted(new SortTestRunsByNewComparator())
+                                     .limit(maxChildren)
+                                     .collect(Collectors.toList());;
+
+        Node replacement = new Node(top.getName(), testRuns, top.getCountersData(), top.getParent());
         parentChildren.put(top.getName(), replacement);
 
         top = replacement;
