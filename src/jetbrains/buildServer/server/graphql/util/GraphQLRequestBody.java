@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.graphql.util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.jetbrains.annotations.Nullable;
@@ -41,7 +42,10 @@ public class GraphQLRequestBody {
     this.query = query;
     this.operationName = operationName;
 
-    this.variables = new ObjectMapper().readValue(variables, new TypeReference<Map<String,Object>>(){});
+    if(variables != null)
+      this.variables = new ObjectMapper().readValue(variables, new TypeReference<Map<String,Object>>(){});
+    else
+      this.variables = Collections.emptyMap();
   }
 
   public static GraphQLRequestBody fromJson(@Nullable String json) throws JsonProcessingException {
