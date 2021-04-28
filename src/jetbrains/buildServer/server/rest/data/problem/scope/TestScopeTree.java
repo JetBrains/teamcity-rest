@@ -37,6 +37,7 @@ public class TestScopeTree {
   private final Map<Integer, Node> myTree = new HashMap<>();
   private final Node myHead;
   private int myNodeIdCounter = 0;
+  private final SortTestRunsByNewComparator myNewTestRunsFirstComparator = new SortTestRunsByNewComparator();
 
   public TestScopeTree(@NotNull Iterable<TestScope> testScopes) {
     myHead = new Node(SProject.ROOT_PROJECT_ID, TestScopeType.PROJECT, new TestCountersData(0, 0, 0, 0, 0, 0, 0), null);
@@ -92,7 +93,7 @@ public class TestScopeTree {
         Map<String, Node> parentChildren = top.getParent().getChildren();
 
         List<STestRun> testRuns = top.getTestRuns().stream()
-                                     .sorted(new SortTestRunsByNewComparator())
+                                     .sorted(myNewTestRunsFirstComparator)
                                      .limit(maxChildren)
                                      .collect(Collectors.toList());;
 

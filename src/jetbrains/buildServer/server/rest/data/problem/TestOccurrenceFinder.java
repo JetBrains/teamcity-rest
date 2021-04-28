@@ -105,6 +105,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   protected static final String INVOCATIONS = "invocations"; //experimental
   protected static final String ORDER = "orderBy"; //highly experimental
 
+  private static final SortTestRunsByNewComparator TEST_RUN_COMPARATOR = new SortTestRunsByNewComparator();
+
   @NotNull private final TestFinder myTestFinder;
   @NotNull private final BuildFinder myBuildFinder;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
@@ -258,7 +260,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     final CurrentProblems currentProblems = currentProblemsManager.getProblemsForProject(affectedProject);
     final Map<TestName, List<STestRun>> failingTests = currentProblems.getFailingTests();
     final Map<TestName, List<STestRun>> mutedTestFailures = currentProblems.getMutedTestFailures();
-    final TreeSet<STestRun> result = new TreeSet<>(new SortTestRunsByNewComparator());
+    final TreeSet<STestRun> result = new TreeSet<>(TEST_RUN_COMPARATOR);
     //todo: check whether STestRun is OK to put into the set
     for (List<STestRun> testRuns : failingTests.values()) {
       result.addAll(testRuns);
