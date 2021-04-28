@@ -43,6 +43,8 @@ public class TestScopeTreeCollector {
     occurrencesLocator.setDimension("status", "FAILURE");
     occurrencesLocator.setDimension("count", "-1");
     occurrencesLocator.setDimension("build", locator.getDimensionValue(BUILD));
+    occurrencesLocator.setDimension("muted", Locator.BOOLEAN_FALSE);
+    occurrencesLocator.setDimension("ignore", Locator.BOOLEAN_FALSE);
 
     Locator scopesLocator = Locator.createEmptyLocator();
     scopesLocator.setDimension(TestScopesCollector.TEST_OCCURRENCES, TestOccurrenceFinder.patchLocatorForPersonalBuilds(occurrencesLocator.toString(), request));
