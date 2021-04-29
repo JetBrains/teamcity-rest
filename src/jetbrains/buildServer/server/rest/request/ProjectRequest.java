@@ -666,7 +666,7 @@ public class ProjectRequest {
     try {
       agentPoolManager.dissociateProjectsFromPool(agentPoolId, Collections.singleton(project.getProjectId()));
     } catch (NoSuchAgentPoolException e) {
-      throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
+      throw new BadRequestException("Agent pool with id \'" + agentPoolId + "' is not found.");
     }
   }
 
@@ -697,7 +697,7 @@ public class ProjectRequest {
     try {
       agentPoolManager.associateProjectsWithPool(agentPoolId, Collections.singleton(project.getProjectId()));
     } catch (NoSuchAgentPoolException e) {
-      throw new IllegalStateException("Agent pool with id \'" + agentPoolId + "' is not found.");
+      throw new BadRequestException("Agent pool with id \'" + agentPoolId + "' is not found.");
     }
     return new AgentPool(agentPoolFromPosted, Fields.LONG, myBeanContext);
   }
