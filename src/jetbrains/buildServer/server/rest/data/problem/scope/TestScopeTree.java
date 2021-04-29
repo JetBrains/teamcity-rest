@@ -40,7 +40,7 @@ public class TestScopeTree {
   private final SortTestRunsByNewComparator myNewTestRunsFirstComparator = new SortTestRunsByNewComparator();
 
   public TestScopeTree(@NotNull Iterable<TestScope> testScopes) {
-    myHead = new Node(SProject.ROOT_PROJECT_ID, TestScopeType.PROJECT, new TestCountersData(0, 0, 0, 0, 0, 0, 0), null);
+    myHead = new Node(SProject.ROOT_PROJECT_ID, TestScopeType.PROJECT, new TestCountersData(0, 0, 0, 0, 0, 0, 0l), null);
     myTree.put(myHead.getId(), myHead);
 
     buildTree(testScopes);
@@ -170,7 +170,7 @@ public class TestScopeTree {
       Integer ignored   = (myCountersData.getIgnored() != null && additionalData.getIgnored() != null) ? myCountersData.getIgnored() + additionalData.getIgnored() : null;
       Integer muted     = (myCountersData.getMuted() != null && additionalData.getMuted() != null) ? myCountersData.getMuted() + additionalData.getMuted() : null;
       Integer newFailed = (myCountersData.getNewFailed() != null && additionalData.getNewFailed() != null) ? myCountersData.getNewFailed() + additionalData.getNewFailed() : null;
-      Integer duration  = (myCountersData.getDuration() != null && additionalData.getDuration() != null) ? myCountersData.getDuration() + additionalData.getDuration() : null;
+      Long    duration  = (myCountersData.getDuration() != null && additionalData.getDuration() != null) ? myCountersData.getDuration() + additionalData.getDuration() : null;
 
       myCountersData = new TestCountersData(
         myCountersData.getCount() + additionalData.getCount(),

@@ -697,18 +697,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     assertNotNull(
       "Retrieving counters should be done via short statistics.",
-      myTestOccurrenceFinder.getShortStatisticsIfEnough("build:" + build.getBuildId(), "testCounters(all,success,failed,newFailed,ignored,muted)")
-    );
-  }
-
-  @Test
-  public void testShortStatisticsIsNotEnoughWhenTestCountersWithDurationRequested() {
-    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
-    final SFinishedBuild build = createBuildWithSuccessFailedIgnoredTests(buildType);
-
-    assertNull(
-      "Can't retrieve duration without detching all tests.",
-      myTestOccurrenceFinder.getShortStatisticsIfEnough("build:" + build.getBuildId(), "testCounters(all,duration)")
+      myTestOccurrenceFinder.getShortStatisticsIfEnough("build:" + build.getBuildId(), "testCounters(all,success,failed,newFailed,ignored,muted,duration)")
     );
   }
 

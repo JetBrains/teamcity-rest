@@ -28,6 +28,7 @@ import jetbrains.buildServer.serverSide.TestName2IndexImpl;
 import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -203,5 +204,53 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
     ));
     assertEquals(1, result.myEntries.size());
     assertEquals("suite1: ", result.myEntries.get(0).getName());
+  }
+
+  @Test
+  public void testReturnsCorrectTree() {
+
+    final BuildTypeImpl buildType1 = registerBuildType("buildConf1", "project");
+
+    final SFinishedBuild build1 = build().in(buildType1)
+                                         .startSuite("suite1")
+                                         .withTest("packageA.class1.aaa", true)
+                                         .withTest("packageA.class2.aaa", true)
+                                         .withTest("packageB.class1.aaa", true)
+                                         .endSuite()
+                                         .finish();
+
+    final BuildTypeImpl buildType2 = registerBuildType("buildConf2", "project");
+
+    final SFinishedBuild build2 = build().in(buildType2)
+                                         .startSuite("suite1")
+                                         .withTest("packageA.class1.aaa", true)
+                                         .withTest("packageA.class2.aaa", true)
+                                         .withTest("packageB.class1.aaa", true)
+                                         .endSuite()
+                                         .finish();
+
+  }
+
+  private void buildTree() {
+    /* Builds a following tree:
+
+        aaa  bbb    aaa       aaa                     aaa      aaa
+          \   |      |         |                      |        |
+          class1  class2    class1                     class1  class2
+              \    /          |                       \    /
+              packageA     packageB                                 suite2
+                    \      /                |             |
+                     suite1             buildConf2
+                       |                    |
+                  buildConf1            subproject
+                          \              /
+                              project
+                                |
+                             _Root
+     */
+
+    ProjectEx project = myFixture.getProject();
+    ProjectEx subproject = myFixture.createProject("subproject", project);
+
   }
 }

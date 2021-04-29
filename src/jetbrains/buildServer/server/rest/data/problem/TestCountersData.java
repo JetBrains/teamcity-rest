@@ -37,7 +37,7 @@ public class TestCountersData {
   @Nullable
   private Integer myNewFailed = 0;
   @Nullable
-  private Integer myDuration = 0;
+  private Long myDuration = 0l;
 
   public TestCountersData() { }
 
@@ -48,12 +48,7 @@ public class TestCountersData {
     myFailed    = statistics.getFailedTestCount();
     myNewFailed = statistics.getNewFailedCount();
     myMuted     = statistics.getMutedTestsCount();
-
-    // There is no information about total duration in ShortStatistics
-    if(items != null && calcDuration) {
-      myDuration = 0;
-      items.forEach(tr -> myDuration += tr.getDuration());
-    }
+    myDuration  = statistics.getTotalDuration();
   }
 
   public TestCountersData(@NotNull final List<STestRun> testRuns) {
@@ -72,7 +67,7 @@ public class TestCountersData {
     if (calcSuccess) myPassed = 0;
     if (calcIgnored) myIgnored = 0;
     if (calcNewFailure) myNewFailed = 0;
-    if (calcDuration) myDuration = 0;
+    if (calcDuration) myDuration = 0l;
 
     for(STestRun testRun : testRuns) {
       if (calcMuted && testRun.isMuted()) {
@@ -104,7 +99,7 @@ public class TestCountersData {
                           @Nullable Integer muted,
                           @Nullable Integer ignored,
                           @Nullable Integer newFailed,
-                          @Nullable Integer duration) {
+                          @Nullable Long duration) {
     myCount = count;
     myPassed = passed;
     myFailed = failed;
@@ -145,7 +140,7 @@ public class TestCountersData {
   }
 
   @Nullable
-  public Integer getDuration() {
+  public Long getDuration() {
     return myDuration;
   }
 }

@@ -142,11 +142,7 @@ public class TestOccurrences {
   public static boolean isShortStatisticsEnoughForConstruction(@NotNull final String fieldsText) {
     Fields fields = new Fields(fieldsText);
     boolean needsActualOccurrence = fields.isIncluded("testOccurrence", false, false);
-    boolean needsDurationInTestCounters = fields.isIncluded("testCounters", false, false)
-                                          && fields.getNestedField("testCounters").isIncluded("duration", false, false);
-
-    // Duration is unfortunately not included in ShortStatistics.
-    return !needsActualOccurrence && !needsDurationInTestCounters;
+    return !needsActualOccurrence;
   }
 
   public boolean isDefault() {

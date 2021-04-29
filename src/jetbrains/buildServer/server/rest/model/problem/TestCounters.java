@@ -99,7 +99,7 @@ public class TestCounters implements DefaultValueAware {
 
   @XmlAttribute(name = "duration")
   @Nullable
-  public Integer getDuration() {
+  public Long getDuration() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("duration", false, true), myTestCountersData.getDuration());
   }
 
