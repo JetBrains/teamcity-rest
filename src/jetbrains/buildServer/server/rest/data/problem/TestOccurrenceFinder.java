@@ -67,7 +67,7 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
 )
 public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
-  private static final String BUILD = "build";
+  public static final String BUILD = "build";
   @LocatorDimension(value = "test", format = LocatorName.TEST, notes = "Test locator.")
   private static final String TEST = "test";
   @LocatorDimension("name") private static final String NAME = "name"; //value condition for the test's name
@@ -78,10 +78,10 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @LocatorDimension(value = "currentlyFailing", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently failing.")
   private static final String CURRENT = "currentlyFailing";
   @LocatorDimension(value = "status", notes = "Supported values: unknown/normal/warning/failure/error.")
-  private static final String STATUS = "status";
+  public static final String STATUS = "status";
   @LocatorDimension("branch") private static final String BRANCH = "branch";
   @LocatorDimension(value = "ignored", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is ignored.")
-  private static final String IGNORED = "ignored";
+  public static final String IGNORED = "ignored";
   @LocatorDimension(value = "currentlyInvestigated", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently investigated.")
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   @LocatorDimension(value = "muted", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is muted.")

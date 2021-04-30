@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
+import jetbrains.buildServer.server.rest.model.PagerData;
 import org.jetbrains.annotations.NotNull;
 
 public class TestScopeTreeCollector {
@@ -40,11 +41,11 @@ public class TestScopeTreeCollector {
 
   private Locator prepareScopesLocator(@NotNull Locator locator, @NotNull HttpServletRequest request) {
     Locator occurrencesLocator = Locator.createEmptyLocator();
-    occurrencesLocator.setDimension("status", "FAILURE");
-    occurrencesLocator.setDimension("count", "-1");
-    occurrencesLocator.setDimension("build", locator.getDimensionValue(BUILD));
-    occurrencesLocator.setDimension("muted", Locator.BOOLEAN_FALSE);
-    occurrencesLocator.setDimension("ignore", Locator.BOOLEAN_FALSE);
+    occurrencesLocator.setDimension(TestOccurrenceFinder.STATUS, "FAILURE");
+    occurrencesLocator.setDimension(PagerData.COUNT, "-1");
+    occurrencesLocator.setDimension(TestOccurrenceFinder.BUILD, locator.getDimensionValue(BUILD));
+    occurrencesLocator.setDimension(TestOccurrenceFinder.MUTED, Locator.BOOLEAN_FALSE);
+    occurrencesLocator.setDimension(TestOccurrenceFinder.IGNORED, Locator.BOOLEAN_FALSE);
 
     Locator scopesLocator = Locator.createEmptyLocator();
     scopesLocator.setDimension(TestScopesCollector.TEST_OCCURRENCES, TestOccurrenceFinder.patchLocatorForPersonalBuilds(occurrencesLocator.toString(), request));
