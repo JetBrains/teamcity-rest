@@ -97,7 +97,7 @@ public class TestOccurrences {
     }
 
     if(buildStatistics != null) {
-      makeCountersFromBuildStatistics(buildStatistics, items);
+      myTestCountersData = new TestCountersData(buildStatistics);
     } else if(items != null) {
       makeCountersFromItems(items);
     }
@@ -123,11 +123,6 @@ public class TestOccurrences {
     boolean durationIncluded = countersFields.isIncluded("duration", false, true);
 
     myTestCountersData = new TestCountersData(testRuns, successIncluded, failedIncluded, mutedIncluded, ignoredIncluded, newFailureIncluded, durationIncluded);
-  }
-
-  private void makeCountersFromBuildStatistics(@NotNull final ShortStatistics statistics, @Nullable List<STestRun> items) {
-    boolean calcDuration = myFields.getNestedField("testCounters").isIncluded("duration", false, true);
-    myTestCountersData = new TestCountersData(statistics, items, calcDuration);
   }
 
   @Nullable

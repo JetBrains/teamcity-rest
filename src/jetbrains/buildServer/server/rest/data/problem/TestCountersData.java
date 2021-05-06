@@ -41,7 +41,7 @@ public class TestCountersData {
 
   public TestCountersData() { }
 
-  public TestCountersData(@NotNull final ShortStatistics statistics, @Nullable List<STestRun> items, boolean calcDuration) {
+  public TestCountersData(@NotNull final ShortStatistics statistics) {
     myCount     = statistics.getAllTestCount();
     myIgnored   = statistics.getIgnoredTestCount();
     myPassed    = statistics.getPassedTestCount();
