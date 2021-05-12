@@ -107,6 +107,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   private static final SortTestRunsByNewComparator TEST_RUN_COMPARATOR = new SortTestRunsByNewComparator();
 
+  // Data for requests with these TestOccurrence fields can be retrieved from ShortStatistics.
+  private static final Set<String> FASTPATH_ALLOWED_FIELDS = new HashSet<String>(Arrays.asList("id", "href", "name", "status", "duration", "runOrder", "build", "test"));
+
   @NotNull private final TestFinder myTestFinder;
   @NotNull private final BuildFinder myBuildFinder;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
@@ -660,35 +663,62 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   /**
    * Checks whether response can be built only using ShortStatistics without fetching test occurrences given locator and fields. If so, get this statistics.
-   * @implNote This is a workaround for TW-70154. In short, fetching all test occurrences just for test counters can be a performance hit.
-   * @return ShortStatisitcs if it is enough to build the response, null otherwise.
+   * In addition, check if test runs in a returned statistics require filtering.
+   * @return ShortStatistics with a post filtering flag if there is enough data to produce the response, TestOccurrencesCachedInfo.empty() otherwise.
    */
-  @Nullable
-  public ShortStatistics getShortStatisticsIfEnough(@Nullable final String locatorText, @Nullable final String fieldsText) {
+  @NotNull
+  public TestOccurrencesCachedInfo tryGetCachedInfo(@Nullable final String locatorText, @Nullable final String fieldsText) {
     if(locatorText == null || fieldsText == null)
-      return null;
-
-    if(!TestOccurrences.isShortStatisticsEnoughForConstruction(fieldsText))
-      return null;
+      return TestOccurrencesCachedInfo.empty();
 
     Locator locator = Locator.locator(locatorText);
+    Fields fields = new Fields(fieldsText);
+    boolean postFilteringRequired = false;
+
+    boolean needsActualOccurrence = fields.isIncluded("testOccurrence", false, false);
+    if(needsActualOccurrence) {
+      Status status = Util.resolveNull(locator.lookupSingleDimensionValue(STATUS), TestOccurrence::getStatusFromPosted);
+      if(status == null || status != Status.FAILURE) {
+        return TestOccurrencesCachedInfo.empty();
+      }
+
+      Fields occurrenceFields = fields.getNestedField("testOccurrence");
+      if(!FASTPATH_ALLOWED_FIELDS.containsAll(occurrenceFields.getAllCustomDimensions())) {
+        return TestOccurrencesCachedInfo.empty();
+      }
+
+      // let's just do it always if we need items
+      postFilteringRequired = true;
+    }
+
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if(buildDimension == null)
-      return null;
+      return TestOccurrencesCachedInfo.empty();
 
     if(locator.getSingleDimensionValueAsStrictBoolean(EXPAND_INVOCATIONS, false)) {
-      return null;
+      // Expand invocations requires additional logic
+      return TestOccurrencesCachedInfo.empty();
     }
 
     List<BuildPromotion> buildPromotions = myBuildFinder.getBuilds(null, buildDimension).myEntries;
-    if(buildPromotions.size() != 1)
-      return null;
+    if(buildPromotions.size() != 1) {
+      // If there is not a single build to the criteria,
+      return TestOccurrencesCachedInfo.empty();
+    }
 
     SBuild build = buildPromotions.get(0).getAssociatedBuild();
     if(build == null)
-      return null;
+      return TestOccurrencesCachedInfo.empty();
 
-    return build.getShortStatistics();
+    // let's not construct a filter if we already know that we want to filter anyways
+    if(!postFilteringRequired) {
+      // If any kind of filter is defined then post filtering is necessary
+      MultiCheckerFilter<STestRun> filter = (MultiCheckerFilter<STestRun>)getFilter(locator);
+      // Personal builds filter is always there
+      postFilteringRequired = filter.getSubFiltersCount() > 1;
+    }
+
+    return new TestOccurrencesCachedInfo(build.getShortStatistics(), postFilteringRequired);
   }
 
   @NotNull

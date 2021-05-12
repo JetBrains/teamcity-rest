@@ -19,14 +19,16 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import java.util.Collections;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
+import jetbrains.buildServer.server.rest.data.problem.TestOccurrencesCachedInfo;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
@@ -36,7 +38,6 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.serverSide.STestRun;
-import jetbrains.buildServer.serverSide.ShortStatistics;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -84,11 +85,36 @@ public class TestOccurrenceRequest {
                                             @Context UriInfo uriInfo,
                                             @Context HttpServletRequest request) {
     String locator = TestOccurrenceFinder.patchLocatorForPersonalBuilds(locatorText, request);
-
-    ShortStatistics statistics = myTestOccurrenceFinder.getShortStatisticsIfEnough(locator, fields);
-    if(statistics != null) {
+    TestOccurrencesCachedInfo info = myTestOccurrenceFinder.tryGetCachedInfo(locator, fields);
+    if(info.getShortStatistics() != null) {
       // Short href and pager data are meaningless in a case when we need only some counters.
-      return new TestOccurrences(null, statistics, null, null, new Fields(fields), myBeanContext);
+
+      if(info.filteringRequired()) {
+        // We need a locator as getLocator(String) calls locator.isFullyProcessed() which breaks everything
+        Locator locator1 = Locator.createPotentiallyEmptyLocator(locator);
+
+        // Due to reasons, in composite builds MultiTestRun.getBuild() will return different build than specified in the locator.
+        // At the time of writing this, the returned build will be one of the non-composite snapshot dependencies.
+        // We are okay with it as we account for a BUILD dimension when retrieving short statistics in the first place.
+        // However, let's skip filtering as it will filter out legitimate results.
+        locator1.markUsed(Collections.singleton(TestOccurrenceFinder.BUILD));
+        ItemFilter<STestRun> filter = myTestOccurrenceFinder.getFilter(locator1);
+        PagingItemFilter<STestRun> pagingFilter = myTestOccurrenceFinder.getPagingFilter(locator1, filter);
+        FilterItemProcessor<STestRun> processor = new FilterItemProcessor<>(pagingFilter);
+
+        info.getShortStatistics().getFailedTestsIncludingMuted().forEach(processor::processItem);
+
+        PagedSearchResult<STestRun> pagedResult = new PagedSearchResult<>(processor.getResult(),
+                                                                          pagingFilter.getStart(), pagingFilter.getCount(), processor.getProcessedItemsCount(),
+                                                                          pagingFilter.getLookupLimit(), pagingFilter.isLookupLimitReached(), pagingFilter.getLastProcessedItem());
+
+        return new TestOccurrences(pagedResult.myEntries, null,
+                                   uriInfo == null ? null : uriInfo.getRequestUri().toString(),
+                                   uriInfo == null ? null : new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult, locatorText, "locator"),
+                                   new Fields(fields), myBeanContext);
+      }
+
+      return new TestOccurrences(null, info.getShortStatistics(), null, null, new Fields(fields), myBeanContext);
     }
 
     final PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locator);

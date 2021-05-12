@@ -38,8 +38,6 @@ import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.users.StandardProperties;
-import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -663,7 +661,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     assertNotNull(
       "Retrieving counters should be done via short statistics.",
-      myTestOccurrenceFinder.getShortStatisticsIfEnough("build:" + build.getBuildId(), "count,passed,failed,newFailed,ignored,muted")
+      myTestOccurrenceFinder.tryGetCachedInfo("build:" + build.getBuildId(), "count,passed,failed,newFailed,ignored,muted").getShortStatistics()
     );
   }
 
@@ -674,7 +672,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     assertNull(
       "ShortStatistics can be used only if the build is specified.",
-      myTestOccurrenceFinder.getShortStatisticsIfEnough("test:(status:failed,affectedProject:project)", "count,passed,failed,newFailed,ignored,muted")
+      myTestOccurrenceFinder.tryGetCachedInfo("test:(status:failed,affectedProject:project)", "count,passed,failed,newFailed,ignored,muted").getShortStatistics()
     );
   }
 
@@ -686,7 +684,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     assertNull(
       "ShortStatistics can be used only if there is a single build.",
-      myTestOccurrenceFinder.getShortStatisticsIfEnough("build:(status:failed)", "count,passed,failed,newFailed,ignored,muted")
+      myTestOccurrenceFinder.tryGetCachedInfo("build:(status:failed)", "count,passed,failed,newFailed,ignored,muted").getShortStatistics()
     );
   }
 
@@ -697,7 +695,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     assertNotNull(
       "Retrieving counters should be done via short statistics.",
-      myTestOccurrenceFinder.getShortStatisticsIfEnough("build:" + build.getBuildId(), "testCounters(all,success,failed,newFailed,ignored,muted,duration)")
+      myTestOccurrenceFinder.tryGetCachedInfo("build:" + build.getBuildId(), "testCounters(all,success,failed,newFailed,ignored,muted,duration)").getShortStatistics()
     );
   }
 
