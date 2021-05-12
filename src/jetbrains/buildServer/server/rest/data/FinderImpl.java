@@ -303,7 +303,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   @NotNull
-  protected PagingItemFilter<ITEM> getPagingFilter(@NotNull Locator locator, @NotNull ItemFilter<ITEM> filter) {
+  public PagingItemFilter<ITEM> getPagingFilter(@NotNull Locator locator, @NotNull ItemFilter<ITEM> filter) {
     final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
     final Long count = getCountNotMarkingAsUsed(locator);
     locator.markUsed(Collections.singleton(PagerData.COUNT));
