@@ -62,7 +62,7 @@ public class Fields {
   private Context myContext = null;
 
   private Fields(@NotNull String actualFieldsSpec, @Nullable Map<String, Fields> restrictedFields, @Nullable Context context, boolean isInternal) {
-    myFieldsSpec = RestContext.getThreadLocalStringPool().reuse(actualFieldsSpec);
+    myFieldsSpec = RestContext.tryReuseString(actualFieldsSpec);
     myRestrictedFields = restrictedFields != null ? new HashMap<String, Fields>(restrictedFields) : Collections.emptyMap();
     myContext = context;
   }

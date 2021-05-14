@@ -18,9 +18,9 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.function.Function;
 import jetbrains.buildServer.server.rest.errors.OperationException;
-import jetbrains.buildServer.server.rest.util.SimpleStringPool;
-import jetbrains.buildServer.server.rest.util.StringPool;
 import jetbrains.buildServer.util.FuncThrow;
+import jetbrains.buildServer.util.StringPoolInstance;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,7 +32,7 @@ public class RestContext {
   private final static ThreadLocal<RestContext> ourThreadLocalInstance = new ThreadLocal<>();
 
   private final Function<String, Object> myFunction;
-  private final StringPool myStringPool = new SimpleStringPool();
+  private final StringPoolInstance myStringPool = new StringPoolInstance(1000);
 
   public RestContext(@NotNull Function<String, Object> function) {
     myFunction = function;
@@ -43,14 +43,14 @@ public class RestContext {
     return ourThreadLocalInstance.get();
   }
 
-  @NotNull
-  public static StringPool getThreadLocalStringPool() {
+  @Contract("null->null;!null->!null")
+  public static String tryReuseString(@Nullable String value) {
     RestContext ctx = ourThreadLocalInstance.get();
     if(ctx == null) {
-      // noop StringPool
-      return s -> s;
+      return value;
     }
-    return ctx.myStringPool;
+
+    return ctx.myStringPool.getFromPool(value);
   }
 
   private static void setThreadLocal(@NotNull RestContext context) {
