@@ -40,9 +40,9 @@ public class PagerDataTest extends BaseServerTestCase {
     check("/smth", null, new PagedSearchResult<String>(items, null, null, null, null, false, null), "/smth", null, null);
     check("/smth", "a:b", new PagedSearchResult<String>(items, null, null, null, null, false, null), "/smth?locator=a:b", null, null);
     check("/smth", "start:0,a:b", new PagedSearchResult<String>(items, 0L, null, null, null, false, null), "/smth?locator=start:0,a:b", null, null);
-    check("/smth", "start:5,a:b", new PagedSearchResult<String>(items, 5L, null, null, null, false, null), "/smth?locator=start:5,a:b", null, "/smth?locator=start:0,a:b,count:5");
+    check("/smth", "start:5,a:b", new PagedSearchResult<String>(items, 5L, null, null, null, false, null), "/smth?locator=start:5,a:b", null, "/smth?locator=a:b,count:5,start:0");
     check("/smth", "start:0,count:3,a:b", new PagedSearchResult<String>(items, 0L, 3, null, null, false, null), "/smth?locator=start:0,count:3,a:b", null, null);
-    check("/smth", "start:5,count:3,a:b", new PagedSearchResult<String>(items, 5L, 3, null, null, false, null), "/smth?locator=start:5,count:3,a:b", null, "/smth?locator=start:2,count:3,a:b");
+    check("/smth", "start:5,count:3,a:b", new PagedSearchResult<String>(items, 5L, 3, null, null, false, null), "/smth?locator=start:5,count:3,a:b", null, "/smth?locator=a:b,count:3,start:2");
     check("/smth", "count:3,a:b", new PagedSearchResult<String>(items, null, 3, null, null, false, null), "/smth?locator=count:3,a:b", null, null);
   }
 
@@ -52,13 +52,13 @@ public class PagerDataTest extends BaseServerTestCase {
     check("/smth", null, new PagedSearchResult<String>(items, null, null, null, null, false, null), "/smth", null, null);
     check("/smth", "a:b", new PagedSearchResult<String>(items, null, null, null, null, false, null), "/smth?locator=a:b", null, null);
     check("/smth", "start:0,a:b", new PagedSearchResult<String>(items, 0L, null, null, null, false, null), "/smth?locator=start:0,a:b", null, null);
-    check("/smth", "start:5,a:b", new PagedSearchResult<String>(items, 5L, null, null, null, false, null), "/smth?locator=start:5,a:b", null, "/smth?locator=start:0,a:b,count:5");
+    check("/smth", "start:5,a:b", new PagedSearchResult<String>(items, 5L, null, null, null, false, null), "/smth?locator=start:5,a:b", null, "/smth?locator=a:b,count:5,start:0");
     check("/smth", "start:0,count:3,a:b", new PagedSearchResult<String>(items, 0L, 3, null, null, false, null), "/smth?locator=start:0,count:3,a:b", null, null);
-    check("/smth", "start:0,count:2,a:b", new PagedSearchResult<String>(items, 0L, 2, null, null, false, null), "/smth?locator=start:0,count:2,a:b", "/smth?locator=start:2,count:2,a:b", null);
-    check("/smth", "start:5,count:3,a:b", new PagedSearchResult<String>(items, 5L, 3, null, null, false, null), "/smth?locator=start:5,count:3,a:b", null, "/smth?locator=start:2,count:3,a:b");
-    check("/smth", "start:5,count:2,a:b", new PagedSearchResult<String>(items, 5L, 2, null, null, false, null), "/smth?locator=start:5,count:2,a:b", "/smth?locator=start:7,count:2,a:b", "/smth?locator=start:3,count:2,a:b");
+    check("/smth", "start:0,count:2,a:b", new PagedSearchResult<String>(items, 0L, 2, null, null, false, null), "/smth?locator=start:0,count:2,a:b", "/smth?locator=a:b,count:2,start:2", null);
+    check("/smth", "start:5,count:3,a:b", new PagedSearchResult<String>(items, 5L, 3, null, null, false, null), "/smth?locator=start:5,count:3,a:b", null, "/smth?locator=a:b,count:3,start:2");
+    check("/smth", "start:5,count:2,a:b", new PagedSearchResult<String>(items, 5L, 2, null, null, false, null), "/smth?locator=start:5,count:2,a:b", "/smth?locator=a:b,count:2,start:7", "/smth?locator=a:b,count:2,start:3");
     check("/smth", "count:3,a:b", new PagedSearchResult<String>(items, null, 3, null, null, false, null), "/smth?locator=count:3,a:b", null, null);
-    check("/smth", "count:2,a:b", new PagedSearchResult<String>(items, null, 2, null, null, false, null), "/smth?locator=count:2,a:b", "/smth?locator=count:2,a:b,start:2", null);
+    check("/smth", "count:2,a:b", new PagedSearchResult<String>(items, null, 2, null, null, false, null), "/smth?locator=count:2,a:b", "/smth?locator=a:b,count:2,start:2", null);
  }
 
   @Test
@@ -69,27 +69,27 @@ public class PagerDataTest extends BaseServerTestCase {
     check("/smth", "a:b", new PagedSearchResult<String>(items, null, null, null, 10L, false, null), "/smth?locator=a:b", null, null);
     check("/smth", "a:b", new PagedSearchResult<String>(items, null, null, null, 10L, true, null), "/smth?locator=a:b", "/smth?locator=a:b,lookupLimit:20", null);
     check("/smth", "start:0,a:b", new PagedSearchResult<String>(items, 0L, null, null, 10L, false, null), "/smth?locator=start:0,a:b", null, null);
-    check("/smth", "start:0,a:b", new PagedSearchResult<String>(items, 0L, null, null, 10L, true, null), "/smth?locator=start:0,a:b", "/smth?locator=start:0,a:b,lookupLimit:20", null);
-    check("/smth", "start:5,a:b", new PagedSearchResult<String>(items, 5L, null, null, 10L, false, null), "/smth?locator=start:5,a:b", null, "/smth?locator=start:0,a:b,count:5");
-    check("/smth", "start:5,a:b", new PagedSearchResult<String>(items, 5L, null, null, 10L, true, null), "/smth?locator=start:5,a:b", "/smth?locator=start:5,a:b,lookupLimit:20", "/smth?locator=start:0,a:b,count:5");
+    check("/smth", "start:0,a:b", new PagedSearchResult<String>(items, 0L, null, null, 10L, true, null), "/smth?locator=start:0,a:b", "/smth?locator=a:b,lookupLimit:20,start:0", null);
+    check("/smth", "start:5,a:b", new PagedSearchResult<String>(items, 5L, null, null, 10L, false, null), "/smth?locator=start:5,a:b", null, "/smth?locator=a:b,count:5,start:0");
+    check("/smth", "start:5,a:b", new PagedSearchResult<String>(items, 5L, null, null, 10L, true, null), "/smth?locator=start:5,a:b", "/smth?locator=a:b,lookupLimit:20,start:5", "/smth?locator=a:b,count:5,start:0");
     check("/smth", "start:0,count:3,a:b", new PagedSearchResult<String>(items, 0L, 3, null, 10L, false, null), "/smth?locator=start:0,count:3,a:b", null, null);
-    check("/smth", "start:0,count:3,a:b", new PagedSearchResult<String>(items, 0L, 3, null, 10L, true, null), "/smth?locator=start:0,count:3,a:b", "/smth?locator=start:0,count:3,a:b,lookupLimit:20", null);
-    check("/smth", "start:5,count:3,a:b", new PagedSearchResult<String>(items, 5L, 3, null, 10L, false, null), "/smth?locator=start:5,count:3,a:b", null, "/smth?locator=start:2,count:3,a:b");
-    check("/smth", "start:5,count:3,a:b", new PagedSearchResult<String>(items, 5L, 3, null, 10L, true, null), "/smth?locator=start:5,count:3,a:b", "/smth?locator=start:5,count:3,a:b,lookupLimit:20", "/smth?locator=start:2,count:3,a:b");
+    check("/smth", "start:0,count:3,a:b", new PagedSearchResult<String>(items, 0L, 3, null, 10L, true, null), "/smth?locator=start:0,count:3,a:b", "/smth?locator=a:b,count:3,lookupLimit:20,start:0", null);
+    check("/smth", "start:5,count:3,a:b", new PagedSearchResult<String>(items, 5L, 3, null, 10L, false, null), "/smth?locator=start:5,count:3,a:b", null, "/smth?locator=a:b,count:3,start:2");
+    check("/smth", "start:5,count:3,a:b", new PagedSearchResult<String>(items, 5L, 3, null, 10L, true, null), "/smth?locator=start:5,count:3,a:b", "/smth?locator=a:b,count:3,lookupLimit:20,start:5", "/smth?locator=a:b,count:3,start:2");
     check("/smth", "count:3,a:b", new PagedSearchResult<String>(items, null, 3, null, 10L, false, null), "/smth?locator=count:3,a:b", null, null);
-    check("/smth", "count:3,a:b", new PagedSearchResult<String>(items, null, 3, null, 10L, true, null), "/smth?locator=count:3,a:b", "/smth?locator=count:3,a:b,lookupLimit:20", null);
-    check("/smth", "count:3,lookupLimit:5,a:b", new PagedSearchResult<String>(items, null, 3, null, 5L, true, null), "/smth?locator=count:3,lookupLimit:5,a:b", "/smth?locator=count:3,lookupLimit:10,a:b", null);
+    check("/smth", "count:3,a:b", new PagedSearchResult<String>(items, null, 3, null, 10L, true, null), "/smth?locator=count:3,a:b", "/smth?locator=a:b,count:3,lookupLimit:20", null);
+    check("/smth", "count:3,lookupLimit:5,a:b", new PagedSearchResult<String>(items, null, 3, null, 5L, true, null), "/smth?locator=count:3,lookupLimit:5,a:b", "/smth?locator=a:b,count:3,lookupLimit:10", null);
 
     items = Arrays.<String>asList("a", "b");
-    check("/smth", "start:5,count:3,a:b", new PagedSearchResult<String>(items, 5L, 3, null, 10L, false, null), "/smth?locator=start:5,count:3,a:b", null, "/smth?locator=start:2,count:3,a:b");
-    check("/smth", "start:5,count:3,a:b", new PagedSearchResult<String>(items, 5L, 3, null, 10L, true, null), "/smth?locator=start:5,count:3,a:b", "/smth?locator=start:7,count:3,a:b,lookupLimit:20", "/smth?locator=start:2,count:3,a:b");
-    check("/smth", "start:5,count:2,a:b", new PagedSearchResult<String>(items, 5L, 2, null, 10L, false, null), "/smth?locator=start:5,count:2,a:b", "/smth?locator=start:7,count:2,a:b", "/smth?locator=start:3,count:2,a:b");
-    check("/smth", "start:5,count:2,a:b", new PagedSearchResult<String>(items, 5L, 2, null, 10L, true, null), "/smth?locator=start:5,count:2,a:b", "/smth?locator=start:7,count:2,a:b,lookupLimit:20", "/smth?locator=start:3,count:2,a:b");
+    check("/smth", "start:5,count:3,a:b", new PagedSearchResult<String>(items, 5L, 3, null, 10L, false, null), "/smth?locator=start:5,count:3,a:b", null, "/smth?locator=a:b,count:3,start:2");
+    check("/smth", "start:5,count:3,a:b", new PagedSearchResult<String>(items, 5L, 3, null, 10L, true, null), "/smth?locator=start:5,count:3,a:b", "/smth?locator=a:b,count:3,lookupLimit:20,start:7", "/smth?locator=a:b,count:3,start:2");
+    check("/smth", "start:5,count:2,a:b", new PagedSearchResult<String>(items, 5L, 2, null, 10L, false, null), "/smth?locator=start:5,count:2,a:b", "/smth?locator=a:b,count:2,start:7", "/smth?locator=a:b,count:2,start:3");
+    check("/smth", "start:5,count:2,a:b", new PagedSearchResult<String>(items, 5L, 2, null, 10L, true, null), "/smth?locator=start:5,count:2,a:b", "/smth?locator=a:b,count:2,lookupLimit:20,start:7", "/smth?locator=a:b,count:2,start:3");
 
     check("/smth", "count:3,a:b", new PagedSearchResult<String>(items, null, 3, null, 10L, false, null), "/smth?locator=count:3,a:b", null, null);
-    check("/smth", "count:3,a:b", new PagedSearchResult<String>(items, null, 3, null, 10L, true, null), "/smth?locator=count:3,a:b", "/smth?locator=count:3,a:b,start:2,lookupLimit:20", null);
-    check("/smth", "count:2,a:b", new PagedSearchResult<String>(items, null, 2, null, 10L, false, null), "/smth?locator=count:2,a:b", "/smth?locator=count:2,a:b,start:2", null);
-    check("/smth", "count:2,a:b", new PagedSearchResult<String>(items, null, 2, null, 10L, true, null), "/smth?locator=count:2,a:b", "/smth?locator=count:2,a:b,start:2,lookupLimit:20", null);
+    check("/smth", "count:3,a:b", new PagedSearchResult<String>(items, null, 3, null, 10L, true, null), "/smth?locator=count:3,a:b", "/smth?locator=a:b,count:3,lookupLimit:20,start:2", null);
+    check("/smth", "count:2,a:b", new PagedSearchResult<String>(items, null, 2, null, 10L, false, null), "/smth?locator=count:2,a:b", "/smth?locator=a:b,count:2,start:2", null);
+    check("/smth", "count:2,a:b", new PagedSearchResult<String>(items, null, 2, null, 10L, true, null), "/smth?locator=count:2,a:b", "/smth?locator=a:b,count:2,lookupLimit:20,start:2", null);
   }
 
   @Test
@@ -100,8 +100,8 @@ public class PagerDataTest extends BaseServerTestCase {
     final PagerData pagerData = new PagerData(uriBuilder, "/teamcity", pagedResult, "start:5,count:3,a:(eight-[{~!@#$%^&*_+`=\\|'\";:/?,<.>]})", "locator");
 
     assertEquals("href is different", "/smth?locator=start:5,count:3,a:%25", pagerData.getHref());
-    assertEquals("nextHref is different", (Object)"/smth?locator=start:5,count:3,a:(eight-%5B%7B%7E%21%40%23$%25%5E%26*_%2B%60%3D%5C%7C%27%22%3B:%2F%3F,%3C.%3E%5D%7D),lookupLimit:20", pagerData.getNextHref());
-    assertEquals("prevHref is different", (Object)"/smth?locator=start:2,count:3,a:(eight-%5B%7B%7E%21%40%23$%25%5E%26*_%2B%60%3D%5C%7C%27%22%3B:%2F%3F,%3C.%3E%5D%7D)", pagerData.getPrevHref());
+    assertEquals("nextHref is different", (Object)"/smth?locator=a:(eight-%5B%7B%7E%21%40%23$%25%5E%26*_%2B%60%3D%5C%7C%27%22%3B:%2F%3F,%3C.%3E%5D%7D),count:3,lookupLimit:20,start:5", pagerData.getNextHref());
+    assertEquals("prevHref is different", (Object)"/smth?locator=a:(eight-%5B%7B%7E%21%40%23$%25%5E%26*_%2B%60%3D%5C%7C%27%22%3B:%2F%3F,%3C.%3E%5D%7D),count:3,start:2", pagerData.getPrevHref());
   }
 
   private void check(@NotNull final String currentHrefPath, @Nullable final String currentLocator, @NotNull final PagedSearchResult<String> pagedResult,

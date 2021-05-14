@@ -178,7 +178,7 @@ public class LocatorTest {
 
   @Test
   public void testSetDimension() {
-    assertEquals("a:b,x:y,aa:z", Locator.setDimensionIfNotPresent("a:b,x:y", "aa","z"));
+    assertEquals("a:b,aa:z,x:y", Locator.setDimensionIfNotPresent("a:b,x:y", "aa","z"));
     assertEquals("a:b,x:y", Locator.setDimensionIfNotPresent("a:b,x:y", "a","z"));
     assertEquals("a:$any,x:y", Locator.setDimensionIfNotPresent("a:$any,x:y", "a","z"));
 
@@ -599,13 +599,13 @@ public class LocatorTest {
   public void testStringRepresentation() {
     assertEquals("aaa:bbb", Locator.getStringLocator("aaa", "bbb"));
     assertEquals("a:b,c:d", Locator.getStringLocator("a", "b", "c", "d"));
-    assertEquals("c:d,a:b", Locator.getStringLocator("c", "d", "a", "b"));
+    assertEquals("a:b,c:d", Locator.getStringLocator("c", "d", "a", "b"));
 
     //several values not supported yet
     //assertEquals("a:1,a:2", Locator.getStringLocator("a", "1", "a", "2"));
     //assertEquals("a:2,a:1", Locator.getStringLocator("a", "2", "a", "1"));
 
-    assertEquals("c:(1:2),a:(,,)", Locator.getStringLocator("c", "1:2", "a", ",,"));
+    assertEquals("a:(,,),c:(1:2)", Locator.getStringLocator("c", "1:2", "a", ",,"));
 
     assertEquals("c:d,a:b", new Locator("c:d,a:b").getStringRepresentation());
     assertEquals("a:b,c:d", new Locator("a:b,c:d").getStringRepresentation());
@@ -618,7 +618,7 @@ public class LocatorTest {
     locator = new Locator("c:d,a:b");
     locator.setDimension("c", "y");
     locator.setDimension("a", "x");
-    assertEquals("c:y,a:x", locator.getStringRepresentation());
+    assertEquals("a:x,c:y", locator.getStringRepresentation());
 
     assertEquals("a", new Locator("a").getStringRepresentation());
     assertEquals("a", new Locator("(a)").getStringRepresentation());
@@ -632,7 +632,7 @@ public class LocatorTest {
     assertEquals("a:(((y)))", Locator.getStringLocator("a", "((y))"));
     assertEquals("a:(x,,y)", Locator.getStringLocator("a", "x,,y"));
     assertEquals("a:(x(y))", Locator.getStringLocator("a", "x(y)"));
-    assertEquals("u:v,a:((y))", Locator.getStringLocator("u", "v", "a", "(y)"));
+    assertEquals("a:((y)),u:v", Locator.getStringLocator("u", "v", "a", "(y)"));
     assertEquals("a:($base64:" +base64("y)")+ ")", Locator.getStringLocator("a", "y)"));
     assertEquals("a:($base64:" + base64("(y") + ")", Locator.getStringLocator("a", "(y"));
     assertEquals("a:($base64:" + base64("((y)") + ")", Locator.getStringLocator("a", "((y)"));

@@ -1345,7 +1345,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     {
       Build build = new Build(build2, new Fields("changes($long,$locator(count(1)))"), getBeanContext(myFixture));
       Changes changes = build.getChanges();
-      assertEquals("/app/rest/changes?locator=count:1,build:(id:" + build2.getBuildId() + ")", changes.getHref());
+      assertEquals("/app/rest/changes?locator=build:(id:" + build2.getBuildId() + "),count:1", changes.getHref());
       assertEquals(Integer.valueOf(1), changes.getCount());
       assertEquals(1, changes.getChanges().size());
     }
