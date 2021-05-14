@@ -22,6 +22,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
+import jetbrains.buildServer.server.rest.util.StringPool;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
@@ -63,7 +64,7 @@ public class Locator {
   private final String myRawValue;
   @NotNull private final Metadata myMetadata;
   private boolean modified = false;
-  private final LinkedHashMap<String, List<String>> myDimensions;
+  private final Dimensions myDimensions;
   private final String mySingleValue;
 
   @NotNull private final Set<String> myUsedDimensions;
@@ -84,11 +85,8 @@ public class Locator {
   public Locator(@NotNull final Locator locator) {
     myRawValue = locator.myRawValue;
     modified = locator.modified;
-    myDimensions = new LinkedHashMap<String, List<String>>();
-    for (Map.Entry<String, List<String>> entry : locator.myDimensions.entrySet()) {
-      myDimensions.put(entry.getKey(), new ArrayList<String>(entry.getValue()));
-    }
 
+    myDimensions = new Dimensions(locator.myDimensions);
     mySingleValue = locator.mySingleValue;
     myUsedDimensions = new HashSet<String>(locator.myUsedDimensions);
     mySupportedDimensions = locator.mySupportedDimensions != null ? locator.mySupportedDimensions.clone() : null;
@@ -127,7 +125,7 @@ public class Locator {
    * @throws LocatorProcessException
    */
   public Locator(@Nullable final String locator, final Metadata metadata, @Nullable final String... supportedDimensions) throws LocatorProcessException {
-    myRawValue = locator;
+    myRawValue = RestContext.getThreadLocalStringPool().reuse(locator);
     myMetadata = new Metadata(metadata);
     if (StringUtil.isEmpty(locator)) {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
@@ -138,10 +136,10 @@ public class Locator {
     
     if (escapedValue != null) {
       mySingleValue = escapedValue;
-      myDimensions = new LinkedHashMap<String, List<String>>();
+      myDimensions = new Dimensions();
     } else if (!myMetadata.extendedMode && !hasDimensions(locator)) {
       mySingleValue = locator;
-      myDimensions = new LinkedHashMap<String, List<String>>();
+      myDimensions = new Dimensions();
     } else {
       mySingleValue = null;
       myHiddenSupportedDimensions.add(HELP_DIMENSION);
@@ -156,7 +154,7 @@ public class Locator {
   private Locator(@Nullable final String... supportedDimensions) {
     myRawValue = "";
     mySingleValue = null;
-    myDimensions = new LinkedHashMap<String, List<String>>();
+    myDimensions = new Dimensions();
     mySupportedDimensions = supportedDimensions;
     if (mySupportedDimensions == null) {
       myUsedDimensions = new HashSet<String>();
@@ -191,7 +189,7 @@ public class Locator {
       return null;
     }
 
-    LinkedHashMap<String, List<String>> parsedDimensions;
+    Dimensions parsedDimensions;
     try {
       parsedDimensions = parse(text, new String[]{BASE64_ESCAPE_FAKE_DIMENSION}, Collections.emptyList(), extendedMode);
     } catch (LocatorProcessException e) {
@@ -203,7 +201,7 @@ public class Locator {
       return null;
     }
 
-    List<String> base64EncodedValues = parsedDimensions.get(BASE64_ESCAPE_FAKE_DIMENSION);
+    List<String> base64EncodedValues = parsedDimensions.getDimensionValue(BASE64_ESCAPE_FAKE_DIMENSION);
     if (base64EncodedValues.isEmpty()) return null;
     if (base64EncodedValues.size() != 1) throw new LocatorProcessException("More then 1 " + BASE64_ESCAPE_FAKE_DIMENSION + " values, only single one is supported");
     String base64EncodedValue = base64EncodedValues.get(0);
@@ -261,7 +259,7 @@ public class Locator {
     }
 
     if (defaults != null && !result.isSingleValue()) {
-      for (String dimensionName : defaults.myDimensions.keySet()) {
+      defaults.myDimensions.getDimensionNames().forEach(dimensionName -> {
         List<String> values = defaults.getDimensionValue(dimensionName);
         if (!values.isEmpty()) {
           result.setDimensionIfNotPresent(dimensionName, values);
@@ -272,7 +270,7 @@ public class Locator {
             result.myIgnoreUnusedDimensions.add(dimensionName);
           }
         }
-      }
+      });
     }
 
     return result;
@@ -331,10 +329,11 @@ public class Locator {
   }
 
   @NotNull
-  private static LinkedHashMap<String, List<String>> parse(@NotNull final String locator,
-                                                           @Nullable final String[] supportedDimensions, @NotNull final Collection<String> hiddenSupportedDimensions,
-                                                           final boolean extendedMode) {
-    LinkedHashMap<String, List<String>> result = new LinkedHashMap<String, List<String>>();
+  private static Dimensions parse(@NotNull final String locator,
+                                  @Nullable final String[] supportedDimensions, @NotNull final Collection<String> hiddenSupportedDimensions,
+                                  final boolean extendedMode) {
+    StringPool stringPool = RestContext.getThreadLocalStringPool();
+    Dimensions result = new Dimensions();
     String currentDimensionName;
     String currentDimensionValue;
     int parsedIndex = 0;
@@ -425,9 +424,11 @@ public class Locator {
           if (unescapedValue != null) currentDimensionValue = unescapedValue;
         }
       }
-      final List<String> currentList = result.get(currentDimensionName);
+      currentDimensionName = stringPool.reuse(currentDimensionName);
+      final List<String> currentList = result.getDimensionValue(currentDimensionName);
       final List<String> newList = currentList == null ? new ArrayList<String>(1) : new ArrayList<String>(currentList);
-      newList.add(currentDimensionValue);
+      newList.add(stringPool.reuse(currentDimensionValue));
+
       result.put(currentDimensionName, newList);
     }
 
@@ -777,13 +778,13 @@ public class Locator {
 
   @NotNull
   public List<String> lookupDimensionValue(@NotNull final String dimensionName) {
-    Collection<String> idDimension = myDimensions.get(dimensionName);
+    Collection<String> idDimension = myDimensions.getDimensionValue(dimensionName);
     return idDimension != null ? new ArrayList<String>(idDimension) : Collections.<String>emptyList();
   }
 
   public Boolean isAnyPresent(@NotNull final String... dimensionName) {
     for (String name : dimensionName) {
-      if (myDimensions.get(name) != null) return true;
+      if (myDimensions.getDimensionValue(name) != null) return true;
     }
     return false;
   }
@@ -793,7 +794,7 @@ public class Locator {
    */
   @Nullable
   public String lookupSingleDimensionValue(@NotNull final String dimensionName) {
-    Collection<String> idDimension = myDimensions.get(dimensionName);
+    Collection<String> idDimension = myDimensions.getDimensionValue(dimensionName);
     if (idDimension == null || idDimension.isEmpty()) {
       return null;
     }
@@ -814,7 +815,7 @@ public class Locator {
   }
 
   public Collection<String> getDefinedDimensions() {
-    return new ArrayList<String>(myDimensions.keySet());
+    return myDimensions.getDimensionNames();
   }
 
   /**
@@ -839,7 +840,7 @@ public class Locator {
     if (isSingleValue()) {
       throw new IllegalArgumentException("Attempt to set dimension '" + name + "' for single value locator.");
     }
-    myDimensions.put(name, new ArrayList<>(values));
+    myDimensions.put(name, values);
     markUnused(name);
     modified = true; // todo: use setDimension to replace the dimension in myRawValue
     return this;
@@ -853,7 +854,7 @@ public class Locator {
    * @param value value of the dimension
    */
   public Locator setDimensionIfNotPresent(@NotNull final String name, @NotNull final String value) {
-    Collection<String> idDimension = myDimensions.get(name);
+    Collection<String> idDimension = myDimensions.getDimensionValue(name);
     if (idDimension == null || idDimension.isEmpty()) {
       setDimension(name, value);
     }
@@ -861,7 +862,7 @@ public class Locator {
   }
 
   public Locator setDimensionIfNotPresent(@NotNull final String name, @NotNull final List<String> values) {
-    Collection<String> idDimension = myDimensions.get(name);
+    Collection<String> idDimension = myDimensions.getDimensionValue(name);
     if (idDimension == null || idDimension.isEmpty()) {
       setDimension(name, values);
     }
@@ -878,7 +879,7 @@ public class Locator {
     if (isSingleValue()) {
       throw new LocatorProcessException("Attempt to remove dimension '" + name + "' for single value locator.");
     }
-    boolean result = myDimensions.get(name) != null;
+    boolean result = myDimensions.getDimensionValue(name) != null;
     myDimensions.remove(name);
     modified = true; // todo: use setDimension to replace the dimension in myRawValue
     return result;
@@ -895,7 +896,7 @@ public class Locator {
     if (isSingleValue()) {
       result = new HashSet<String>(Collections.singleton(LOCATOR_SINGLE_VALUE_UNUSED_NAME));
     } else {
-      result = new HashSet<String>(myDimensions.keySet());
+      result = new HashSet<>(myDimensions.getDimensionNames());
     }
     result.removeAll(myUsedDimensions);
     result.removeAll(myIgnoreUnusedDimensions);
@@ -911,7 +912,7 @@ public class Locator {
   }
 
   public boolean isUnused(@NotNull final String dimensionName) {
-    return myDimensions.containsKey(dimensionName) && !myUsedDimensions.contains(dimensionName);
+    return myDimensions.contains(dimensionName) && !myUsedDimensions.contains(dimensionName);
   }
 
   /**
@@ -1013,16 +1014,19 @@ public class Locator {
     if (!modified) {
       return myRawValue;
     }
-    String result = "";
-    for (Map.Entry<String, List<String>> dimensionEntries : myDimensions.entrySet()) {
-      for (String value : dimensionEntries.getValue()) {
-        if (!StringUtil.isEmpty(result)) {
-          result += DIMENSIONS_DELIMITER;
+    StringBuilder result = new StringBuilder();
+    myDimensions.getDimensionNames().forEach(name -> {
+      List<String> values = myDimensions.getDimensionValue(name);
+
+      for (String value : values) {
+        if (result.length() > 0) {
+          result.append(DIMENSIONS_DELIMITER);
         }
-        result += dimensionEntries.getKey() + DIMENSION_NAME_VALUE_DELIMITER + getValueForRendering(value);
+        result.append(name).append(DIMENSION_NAME_VALUE_DELIMITER).append(getValueForRendering(value));
       }
-    }
-    return result;
+    });
+
+    return result.toString();
   }
 
   @NotNull
@@ -1096,6 +1100,70 @@ public class Locator {
     public Metadata(final boolean extendedMode, final boolean surroundingBracesHaveSpecialMeaning) {
       this.extendedMode = extendedMode;
       this.surroundingBracesHaveSpecialMeaning = surroundingBracesHaveSpecialMeaning;
+    }
+  }
+
+  private static class Dimensions {
+    private static final List<String> EMPTY_STRING_VALUE = Arrays.asList("");
+    private final StringPool myStringPool = RestContext.getThreadLocalStringPool();
+
+    private final ArrayList<String> myNames;
+    private final HashMap<String, List<String>> myValues;
+
+    public Dimensions() {
+      myNames = new ArrayList<>();
+      myValues = new HashMap<>();
+    }
+
+    public Dimensions(@NotNull Dimensions other) {
+      myNames = new ArrayList<>(other.myNames);
+      myValues = new HashMap<>(other.myValues);
+    }
+
+    public void put(@NotNull String dimName, @NotNull List<String> values) {
+      dimName = myStringPool.reuse(dimName);
+      if(!myValues.containsKey(dimName)) {
+        myNames.add(dimName);
+      }
+
+      if(values.size() == 1 && values.get(0).equals("")) {
+        // Helpful for locators used in Fields
+        myValues.put(dimName, EMPTY_STRING_VALUE);
+        return;
+      }
+
+      ArrayList<String> reusedValues = new ArrayList<>(values.size());
+      for(String v: values) {
+        reusedValues.add(myStringPool.reuse(v));
+      }
+      myValues.put(dimName, reusedValues);
+    }
+
+    public List<String> getDimensionNames() {
+      return myNames;
+    }
+
+    public List<String> getDimensionValue(@NotNull String dimName) {
+      return myValues.get(dimName);
+    }
+
+    public void remove(@NotNull String dimName) {
+      if(myValues.containsKey(dimName)) {
+        myValues.remove(dimName);
+        myNames.remove(dimName);
+      }
+    }
+
+    public int size() {
+      return myNames.size();
+    }
+
+    public boolean isEmpty() {
+      return myNames.isEmpty();
+    }
+
+    public boolean contains(@NotNull String dimName) {
+      return myValues.containsKey(dimName);
     }
   }
 }

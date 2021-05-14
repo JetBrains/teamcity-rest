@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.RestContext;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
@@ -61,7 +62,7 @@ public class Fields {
   private Context myContext = null;
 
   private Fields(@NotNull String actualFieldsSpec, @Nullable Map<String, Fields> restrictedFields, @Nullable Context context, boolean isInternal) {
-    myFieldsSpec = actualFieldsSpec;
+    myFieldsSpec = RestContext.getThreadLocalStringPool().reuse(actualFieldsSpec);
     myRestrictedFields = restrictedFields != null ? new HashMap<String, Fields>(restrictedFields) : Collections.emptyMap();
     myContext = context;
   }

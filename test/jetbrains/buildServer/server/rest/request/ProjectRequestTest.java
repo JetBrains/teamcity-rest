@@ -16,15 +16,16 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import com.intellij.openapi.util.Pair;
+import java.util.*;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.BuildFinderTestBase;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.RestContext;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.Branches;
+import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.SProject;
@@ -37,6 +38,7 @@ import jetbrains.buildServer.util.Option;
 import jetbrains.buildServer.vcs.OperationRequestor;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import org.apache.commons.lang3.StringUtils;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -313,6 +315,68 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
                          "bBb", null, null,
                          "bbb", null, null,
                          "ccc", null, null);
+  }
+
+  //@Test
+  public void memoryTest() throws InterruptedException {
+    final ProjectRequest request = new ProjectRequest();
+    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext);
+
+    final String locator = "archived:false,affectedProject:_Root";
+    final String fields = "count,project(id,internalId,name,parentProjectId,archived,readOnlyUI,buildTypes(buildType(id,paused,internalId,projectId,name,type,description)),description)";
+
+    Queue<Pair<Integer, ProjectEx>> q = new ArrayDeque<>();
+    q.add(new Pair<>(0, myProject));
+    final int max = 2;
+    final int children = 4;
+
+    int counter = 0;
+    while (!q.isEmpty()) {
+      Pair<Integer, ProjectEx> p = q.poll();
+
+      String prefix = "Bt" + StringUtils.repeat('a', 10 * p.getFirst());
+      for (int i = 0; i < children; i++) {
+        ProjectEx c = myFixture.createProject("z-" + p.first + "-" + counter++, p.second);
+        if (p.first < max) {
+          q.add(new Pair<>(p.first + 1, c));
+        }
+
+        for (int j = 0; j < children * 4; j++)
+          c.createBuildType(prefix + j);
+      }
+    }
+
+    System.out.println(counter + " projects created.");
+
+    Thread[] ts = new Thread[100];
+    for (int i = 0; i < ts.length; i++) {
+      final int threadIdx = i;
+      ts[i] = new Thread(() -> {
+        new RestContext(z -> null).run(() -> {
+          for (int j = 0; j < 100; j++) {
+            final PagedSearchResult<SProject> result = myProjectFinder.getItems(locator);
+            Projects projects = new Projects(result.myEntries, null, new Fields(fields), myBeanContext);
+
+            projects.projects.stream()
+                             .flatMap(p -> p.buildTypes.buildTypes.stream())
+                             .forEach(bt -> {
+                               bt.getId();
+                               bt.isPaused();
+                               bt.getInternalId();
+                               bt.getProjectId();
+                               bt.getName();
+                               bt.getType();
+                               bt.getDescription();
+                             });
+            System.out.println(String.format("Finished %d requests in thread %d", j, threadIdx));
+          }
+          return null;
+        });
+      });
+      ts[i].start();
+    }
+
+    for (Thread t : ts) t.join();
   }
 
   private void setCurrentBranches(final BuildTypeEx bt,
