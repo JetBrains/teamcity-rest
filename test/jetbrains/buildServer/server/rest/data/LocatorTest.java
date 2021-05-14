@@ -570,6 +570,18 @@ public class LocatorTest {
   }
 
   @Test
+  public void testItemsOrder() {
+    List<String> items = Arrays.asList("C", "B", "A");
+    final Locator locator = new Locator("item:C,item:B,item:A");
+    // modify locator
+    locator.setDimension("zzz", "unimportant");
+
+    assertEquals(2, locator.getDimensionsCount());
+    assertEquals(items, locator.getDimensionValue("item"));
+    assertEquals("item:C,item:B,item:A,zzz:unimportant", locator.getStringRepresentation());
+  }
+
+  @Test
   public void testCreatelLocator() {
     {
       Locator locator = Locator.createLocator("x:a,y:b", new Locator("x:AA,z:c"), new String[]{"v", "y"});
