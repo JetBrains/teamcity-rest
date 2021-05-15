@@ -71,7 +71,7 @@ import org.jetbrains.annotations.Nullable;
   "href", "webUrl", "inherited" /*used only for list of build configuration templates*/,
   "links", "project", "templates", "template" /*deprecated*/, "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements",
-  "branches", "builds", "investigations", "compatibleAgents", "vcsRootInstances" /*experimental*/})
+  "branches", "builds", "investigations", "compatibleAgents", "vcsRootInstances", "externalStatusAllowed" /*experimental*/})
 @ModelDescription(
     value = "Represents a build configuration.",
     externalArticleLink = "https://www.jetbrains.com/help/teamcity/build-configuration.html",
@@ -204,6 +204,11 @@ public class BuildType {
   @XmlAttribute (name = "type")
   public String getType() {
     return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("type",false, false), () -> Util.resolveNull(myBuildType.getSettingsEx(), (e) -> e.getOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE).toLowerCase()), s -> BuildTypeOptions.BuildConfigurationType.REGULAR.name().equalsIgnoreCase(s));
+  }
+
+  @XmlAttribute
+  public Boolean isExternalStatusAllowed() {
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("externalStatusAllowed"), () -> myBuildType.getSettingsEx().getOption(BuildTypeOptions.BT_ALLOW_EXTERNAL_STATUS));
   }
 
   @XmlAttribute
