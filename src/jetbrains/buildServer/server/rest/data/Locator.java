@@ -22,6 +22,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
+import jetbrains.buildServer.server.rest.util.StringPool;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
@@ -126,7 +127,7 @@ public class Locator {
    * @throws LocatorProcessException
    */
   public Locator(@Nullable final String locator, final Metadata metadata, @Nullable final String... supportedDimensions) throws LocatorProcessException {
-    myRawValue = RestContext.tryReuseString(locator);
+    myRawValue = RestContext.getThreadLocalStringPool().reuse(locator);
     myMetadata = new Metadata(metadata);
     if (StringUtil.isEmpty(locator)) {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
@@ -333,6 +334,7 @@ public class Locator {
   private static HashMap<String, List<String>> parse(@NotNull final String locator,
                                   @Nullable final String[] supportedDimensions, @NotNull final Collection<String> hiddenSupportedDimensions,
                                   final boolean extendedMode) {
+    StringPool stringPool = RestContext.getThreadLocalStringPool();
     HashMap<String, List<String>> result = new HashMap<>();
     String currentDimensionName;
     String currentDimensionValue;
@@ -424,9 +426,7 @@ public class Locator {
           if (unescapedValue != null) currentDimensionValue = unescapedValue;
         }
       }
-      currentDimensionName = RestContext.tryReuseString(currentDimensionName);
-      currentDimensionValue = RestContext.tryReuseString(currentDimensionValue);
-
+      currentDimensionName = stringPool.reuse(currentDimensionName);
       final List<String> currentList = result.get(currentDimensionName);
       final List<String> newList;
       if(currentList == null) {
@@ -434,7 +434,7 @@ public class Locator {
         newList = currentDimensionValue.equals("") ? LIST_WITH_EMPTY_STRING : Arrays.asList(currentDimensionValue);
       } else {
         newList = new ArrayList<>(currentList);
-        newList.add(currentDimensionValue);
+        newList.add(stringPool.reuse(currentDimensionValue));
       }
 
       result.put(currentDimensionName, newList);
