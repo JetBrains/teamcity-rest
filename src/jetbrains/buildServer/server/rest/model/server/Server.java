@@ -21,7 +21,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.RootUrlHolder;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.maintenance.StartupContext;
@@ -124,7 +123,7 @@ public class Server {
 
   @NotNull
   private static String serverRole(@NotNull TeamCityNode node) {
-    if (!node.isMainNode()) {
+    if (node.isMainNode()) {
       return "main_server";
     }
 
