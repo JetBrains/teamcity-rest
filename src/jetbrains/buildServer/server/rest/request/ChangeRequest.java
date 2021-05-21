@@ -20,12 +20,15 @@ import com.intellij.openapi.util.text.StringUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.change.CommiterData;
+import jetbrains.buildServer.server.rest.data.change.CommitersUtil;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Entries;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -35,6 +38,7 @@ import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.change.Change;
 import jetbrains.buildServer.server.rest.model.change.Changes;
+import jetbrains.buildServer.server.rest.model.change.Commiters;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
 import jetbrains.buildServer.server.rest.model.issue.Issues;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
@@ -265,5 +269,22 @@ public class ChangeRequest {
                                      @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator);
     return Builds.createFromBuildPromotions(BuildFinder.toBuildPromotions(change.getFirstBuilds().values()), null,  new Fields(fields), myBeanContext);
+  }
+
+  /**
+   * Experimental support only!
+   * @since 2021.1.1
+   */
+  @GET
+  @Path("/{changeLocator}/commiters")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get unique commiters of the matching changes.",nickname="getUniqueCommiters")
+  public Commiters getUniqueCommiters(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
+                                      @QueryParam("fields") String fields) {
+    PagedSearchResult<SVcsModification> changes = myChangeFinder.getItems(changeLocator);
+
+    List<CommiterData> commiters = CommitersUtil.getUniqueCommiters(changes.myEntries);
+
+    return new Commiters(commiters, new Fields(fields), myBeanContext);
   }
 }
