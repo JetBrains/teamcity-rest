@@ -30,4 +30,5 @@ public @interface LocatorDimension {
   String dataType() default LocatorDimensionDataType.STRING;
   String format() default "";
   String notes() default "";
+  String allowableValues() default "";
 }

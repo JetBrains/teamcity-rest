@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.swagger;
 
 import com.intellij.openapi.diagnostic.Logger;
+import io.swagger.annotations.ApiModelProperty;
 import io.swagger.jaxrs.Reader;
 import io.swagger.jaxrs.config.ReaderConfig;
 import io.swagger.models.*;
@@ -30,6 +31,8 @@ import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class LocatorAwareReader extends Reader {
 
@@ -155,6 +158,11 @@ public class LocatorAwareReader extends Reader {
         property = new StringProperty();
         if (!dimension.format().isEmpty()) {
           property.setFormat(dimension.format());
+        }
+        if (!dimension.allowableValues().isEmpty()) {
+          List<String> values = Stream.of(dimension.allowableValues().split(",", -1))
+              .collect(Collectors.toList());
+          ((StringProperty) property).setEnum(values);
         }
         break;
     }

@@ -58,8 +58,8 @@ import java.util.stream.Collectors;
     extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "VcsRoot",
     examples = {
-        "`type:jetbrains.git` – find all `Git`-typed VCS roots.",
-        "`project:<projectLocator>` – find all VCS roots defined under project found by `projectLocator`."
+        "`type:jetbrains.git` — find all `Git`-typed VCS roots.",
+        "`project:<projectLocator>` — find all VCS roots defined under project found by `projectLocator`."
     }
 )
 public class VcsRootFinder extends AbstractFinder<SVcsRoot> {

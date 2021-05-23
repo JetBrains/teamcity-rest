@@ -67,7 +67,7 @@ public class InvestigationRequestTest extends BaseFinderTest<InvestigationWrappe
     test.name = "testname";
     investigation.target.tests.items = Collections.singletonList(test);
     investigation.resolution = new Resolution();
-    investigation.resolution.type = "manually";
+    investigation.resolution.type = Resolution.ResolutionType.manually;
     investigation.resolution.time = "20900512T163700";
 
     assertEmpty(myInvestigationFinder.getItems(null).myEntries);

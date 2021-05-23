@@ -57,8 +57,8 @@ import java.util.stream.Stream;
     extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "VcsRootInstance",
     examples = {
-        "`vcsRoot:<vcsRootLocator>` – find all VCS root instances of a VCS root found by `vcsRootLocator`.",
-        "`project:<projectLocator>` – find all VCS root instances defined under project found by `projectLocator`."
+        "`vcsRoot:<vcsRootLocator>` — find all VCS root instances of a VCS root found by `vcsRootLocator`.",
+        "`project:<projectLocator>` — find all VCS root instances defined under project found by `projectLocator`."
     }
 )
 public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {

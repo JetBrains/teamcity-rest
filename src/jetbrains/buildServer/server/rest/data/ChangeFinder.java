@@ -58,8 +58,8 @@ import java.util.stream.Stream;
     extraDimensions = {AbstractFinder.DIMENSION_ID, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "Change",
     examples = {
-        "`username:MyVCSUsername` – find last 100 changes made by user with `MyVCSUsername` VCS username.",
-        "`pending:true,buildType:<buildTypeLocator>` – find all pending changes on build configuration found by `buildTypeLocator`."
+        "`username:MyVCSUsername` — find last 100 changes made by user with `MyVCSUsername` VCS username.",
+        "`pending:true,buildType:<buildTypeLocator>` — find all pending changes on build configuration found by `buildTypeLocator`."
     }
 )
 public class ChangeFinder extends AbstractFinder<SVcsModification> {

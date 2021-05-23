@@ -33,41 +33,33 @@ public class CommonLocatorDimensionsList {
     Map<String, CommonLocatorDimension> dimensionHashMap = new HashMap<>();
     dimensionHashMap.put(
         PagerData.COUNT, new CommonLocatorDimension(
-            PagerData.COUNT, LocatorDimensionDataType.INTEGER, "", "For paginated calls, how many entities to return per page."
+            PagerData.COUNT, LocatorDimensionDataType.INTEGER, "", "For paginated calls, how many entities to return per page.", ""
         )
     );
     dimensionHashMap.put(
         PagerData.START, new CommonLocatorDimension(
-            PagerData.START, LocatorDimensionDataType.INTEGER, "", "For paginated calls, from which entity to start rendering the page."
+            PagerData.START, LocatorDimensionDataType.INTEGER, "", "For paginated calls, from which entity to start rendering the page.", ""
         )
     );
     dimensionHashMap.put(
         AbstractFinder.DIMENSION_LOOKUP_LIMIT, new CommonLocatorDimension(
-            AbstractFinder.DIMENSION_LOOKUP_LIMIT, LocatorDimensionDataType.INTEGER, "", "Limit processing to the latest `<lookupLimit>` entities."
+            AbstractFinder.DIMENSION_LOOKUP_LIMIT, LocatorDimensionDataType.INTEGER, "", "Limit processing to the latest `<lookupLimit>` entities.", ""
         )
     );
     dimensionHashMap.put(
         AbstractFinder.DIMENSION_ID, new CommonLocatorDimension(
-            AbstractFinder.DIMENSION_ID, LocatorDimensionDataType.INTEGER, "", "Entity ID."
-        )
-    );
-    dimensionHashMap.put(
-        Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, new CommonLocatorDimension(
-            Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME, LocatorDimensionDataType.BOOLEAN, "", "Return a single value."
+            AbstractFinder.DIMENSION_ID, LocatorDimensionDataType.INTEGER, "", "Entity ID.", ""
         )
     );
     dimensionHashMap.put(
         AbstractFinder.DIMENSION_ITEM, new CommonLocatorDimension(
-            AbstractFinder.DIMENSION_ITEM, LocatorDimensionDataType.STRING, "item:(<locator1>),item:(<locator2>...)", "Supply multiple locators and return a union of the results."
+            AbstractFinder.DIMENSION_ITEM, LocatorDimensionDataType.STRING, "item:(<locator1>),item:(<locator2>...)", "Supply multiple locators and return a union of the results.", ""
         )
     );
     dimensionHashMap.put(
         PROPERTY, new CommonLocatorDimension(
-            PROPERTY, LocatorDimensionDataType.STRING, "property:(name:<name>,value:<value>,matchType:<matchType>)", "Supported matchType values: \n" +
-            "- generic: exists/not-exists/equals/does-not-equal/starts-with/contains/does-not-contain/ends-with/any; \n" +
-            "- regular expressions: matches/does-not-match; \n" +
-            "- numeric: more-than/no-more-than/less-than/no-less-than; \n" +
-            "- version-specific: ver-more-than/ver-no-more-than/ver-less-than/ver-no-less-than."
+            PROPERTY, LocatorDimensionDataType.STRING, "property:(name:<name>,value:<value>,matchType:<matchType>)", "",
+            "exists,not-exists,equals,does-not-equal,starts-with,contains,does-not-contain,ends-with,any,matches,does-not-match,more-than,no-more-than,less-than,no-less-than,ver-more-than,ver-no-more-than,ver-less-than,ver-no-less-than"
         )
     );
     return dimensionHashMap;

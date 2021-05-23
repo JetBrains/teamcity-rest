@@ -42,8 +42,8 @@ import org.jetbrains.annotations.Nullable;
     extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "Test",
     examples = {
-        "`currentlyInvestigated:true` – find last 100 tests which are being currently investigated.",
-        "`build:<buildLocator>` – find tests under build found by `buildLocator`."
+        "`currentlyInvestigated:true` — find last 100 tests which are being currently investigated.",
+        "`build:<buildLocator>` — find tests under build found by `buildLocator`."
     }
 )
 public class TestFinder extends AbstractFinder<STest> {

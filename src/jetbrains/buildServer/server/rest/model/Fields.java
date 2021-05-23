@@ -51,7 +51,7 @@ public class Fields {
   public static final Fields SHORT = new Fields(DEFAULT_FIELDS_SHORT_PATTERN, null, null, true); // short (reference) form. Uses short or none form for the fields.
   public static final Fields ALL = new Fields(ALL_FIELDS_PATTERN, null, null, true); // all fields are present and are in the short form
   public static final Fields LONG = new Fields(DEFAULT_FIELDS_LONG_PATTERN, null, null, true);
-    // long form. Uses long, short or none form for the fields. Generally fields with default values are not included.
+  // long form. Uses long, short or none form for the fields. Generally fields with default values are not included.
   public static final Fields ALL_NESTED = new Fields(ALL_NESTED_FIELDS_PATTERN, null, null, true); // maximum, all fields are included in the same maximum form
 
   @NotNull private final String myFieldsSpec;
@@ -335,8 +335,8 @@ public class Fields {
     if (myFieldsSpecLocator == null && !StringUtil.isEmpty(myFieldsSpec)) {
       try {
         myFieldsSpecLocator = new Locator(myFieldsSpec, true,
-                                          NONE_FIELDS_PATTERN, DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE, DEFAULT_FIELDS_LONG_PATTERN, ALL_FIELDS_PATTERN, ALL_NESTED_FIELDS_PATTERN,
-                                          LOCATOR_CUSTOM_NAME, OPTIONAL_FIELDS_PATTERN);
+            NONE_FIELDS_PATTERN, DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE, DEFAULT_FIELDS_LONG_PATTERN, ALL_FIELDS_PATTERN, ALL_NESTED_FIELDS_PATTERN,
+            LOCATOR_CUSTOM_NAME, OPTIONAL_FIELDS_PATTERN);
         //should add to hidden dimension, but since the locator is not currently checked, save performance by not doing it so far
         //myFieldsSpecLocator.addHiddenDimensions(OPTIONAL_FIELDS_PATTERN);
       } catch (LocatorProcessException e) {

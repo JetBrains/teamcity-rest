@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.data.TimeCondition;
 import jetbrains.buildServer.server.rest.data.TimeWithPrecision;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.RelatedEntity;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -43,44 +44,51 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "resolution")
 @ModelDescription("Represents an investigation resolution timestamp and details.")
 public class Resolution {
-  protected static final String MANUALLY = "manually";
-  protected static final String WHEN_FIXED = "whenFixed";
-  protected static final String TIME = "atTime";
-
-  @XmlAttribute public String type;
+  @XmlAttribute public ResolutionType type;
   @XmlElement public String time;
 
   public Resolution() {
   }
 
   public Resolution(@NotNull final UnmuteOptions unmuteOptions, @NotNull final Fields fields) {
-    type = ValueWithDefault.decideDefault(fields.isIncluded("type"), getType(unmuteOptions));
+    type = ValueWithDefault.decideDefault(fields.isIncluded("type"), ResolutionType.getType(unmuteOptions));
 
     Date unmuteByTime = unmuteOptions.getUnmuteByTime();
     if (unmuteByTime != null) {
       time = ValueWithDefault.decideDefault(fields.isIncluded("time"), Util.formatTime(unmuteByTime));
     }
   }
+  
+  public enum ResolutionType {
+    manually, whenFixed, atTime;
 
-  @Nullable
-  public static String getType(final @NotNull UnmuteOptions unmuteOptions) {
-    if (unmuteOptions.isUnmuteManually()) {
-      return MANUALLY;
-    } else if (unmuteOptions.isUnmuteWhenFixed()) {
-      return WHEN_FIXED;
-    } else {
-      if (unmuteOptions.getUnmuteByTime() != null) {
-        return TIME;
-      }
+    public boolean equalsIgnoreCase(ResolutionType type) {
+      return equalsIgnoreCase(type.toString());
     }
-    return null;
+    
+    public boolean equalsIgnoreCase(String s) {
+      return toString().equalsIgnoreCase(s);
+    }
+
+    public static ResolutionType getType(final @NotNull UnmuteOptions unmuteOptions) {
+      if (unmuteOptions.isUnmuteManually()) {
+        return ResolutionType.manually;
+      } else if (unmuteOptions.isUnmuteWhenFixed()) {
+        return ResolutionType.whenFixed;
+      } else {
+        if (unmuteOptions.getUnmuteByTime() != null) {
+          return ResolutionType.atTime;
+        }
+      }
+      return null;
+    }
   }
 
   public Resolution(@NotNull final ResponsibilityEntry.RemoveMethod removeMethod, @NotNull final Fields fields) {
     if (removeMethod.isManually()) {
-      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), MANUALLY);
+      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), ResolutionType.manually);
     } else if (removeMethod.isWhenFixed()) {
-      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), WHEN_FIXED);
+      type = ValueWithDefault.decideDefault(fields.isIncluded("type"), ResolutionType.whenFixed);
     }
   }
 
@@ -90,7 +98,7 @@ public class Resolution {
       throw new BadRequestException("Invalid 'resolution' entity: 'type' should be specified");
     }
     try {
-      return getRemoveMethodForInvestigation(type);
+      return getRemoveMethodForInvestigation(type.toString());
     } catch (BadRequestException e) {
       throw new BadRequestException("Invalid 'resolution' entity for investigation: " + e.getMessage(), e);
     }
@@ -98,11 +106,11 @@ public class Resolution {
 
   @NotNull
   public static ResponsibilityEntry.RemoveMethod getRemoveMethodForInvestigation(@NotNull final String resolutionTextValue) {
-    switch (resolutionTextValue) {
-      case MANUALLY: return ResponsibilityEntry.RemoveMethod.MANUALLY;
-      case WHEN_FIXED: return ResponsibilityEntry.RemoveMethod.WHEN_FIXED;
+    try {
+      return ResponsibilityEntry.RemoveMethod.from(resolutionTextValue);
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException(e.getMessage(), e);
     }
-    throw new BadRequestException("Unknown resolution type '" + resolutionTextValue + "', supported are: " + MANUALLY + ", " + WHEN_FIXED);
   }
 
   @NotNull
@@ -117,22 +125,22 @@ public class Resolution {
     return new UnmuteOptions() {
       @Override
       public boolean isUnmuteManually() {
-        return MANUALLY.equalsIgnoreCase(type);
+        return ResolutionType.manually.equalsIgnoreCase(type);
       }
 
       @Override
       public boolean isUnmuteWhenFixed() {
-        return WHEN_FIXED.equalsIgnoreCase(type);
+        return ResolutionType.whenFixed.equalsIgnoreCase(type);
       }
 
       @Nullable
       @Override
       public Date getUnmuteByTime() {
-        if (!TIME.equalsIgnoreCase(type)) {
+        if (!ResolutionType.atTime.equalsIgnoreCase(type)) {
           return null;
         }
         if (time == null) {
-          throw new BadRequestException("Invalid 'resolution' entity for mute: no 'time' is present for '" + TIME + "' type");
+          throw new BadRequestException("Invalid 'resolution' entity for mute: no 'time' is present for '" + ResolutionType.atTime + "' type");
         }
         return TimeWithPrecision.parse(time, TimeCondition.getTimeService(serviceLocator)).getTime();
       }
@@ -141,7 +149,7 @@ public class Resolution {
 
   @NotNull
   public static String[] getKnownTypesForMute() {
-    return new String[]{MANUALLY, WHEN_FIXED, TIME};
+    return Arrays.stream(ResolutionType.values()).map(Enum::name).toArray(String[]::new);
   }
 
 }

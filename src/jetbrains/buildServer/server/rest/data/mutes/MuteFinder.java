@@ -55,8 +55,8 @@ import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimensio
     extraDimensions = AbstractFinder.DIMENSION_ITEM,
     baseEntity = "Mute",
     examples = {
-        "`project:<projectLocator>` – find muted problem under project found by `projectLocator`.",
-        "`type:test` – find last 100 muted tests."
+        "`project:<projectLocator>` — find muted problem under project found by `projectLocator`.",
+        "`type:test` — find last 100 muted tests."
     }
 )
 public class MuteFinder extends DelegatingFinder<MuteInfo> {
@@ -70,9 +70,9 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
   @LocatorDimension(value = "unmuteDate", dataType = LocatorDimensionDataType.TIMESTAMP, notes = "yyyyMMddTHHmmss+ZZZZ")
   private static final Dimension<TimeCondition.ParsedTimeCondition> UNMUTE_DATE = new Dimension<>("unmuteDate");  //differs from investigation: sinceDate
   @LocatorDimension(value = "reporter", notes = "User who muted this test.") private static final Dimension<List<SUser>> REPORTER = new Dimension<>("reporter"); //todo: review naming?
-  @LocatorDimension(value = "type", notes = "Supported values: test/problem/anyProblem/unknown.")
+  @LocatorDimension(value = "type", allowableValues = "test,problem,anyProblem,unknown")
   private static final Dimension<String> TYPE = new Dimension<>("type"); // target
-  @LocatorDimension(value = "resolution", notes = "Supported values: manually/whenFixed/atTime.")
+  @LocatorDimension(value = "resolution", allowableValues = "manually,whenFixed,atTime")
   private static final Dimension<String> RESOLUTION = new Dimension<>("resolution");
   @LocatorDimension(value = "test", format = LocatorName.TEST, notes = "Test locator.")
   private static final Dimension<List<STest>> TEST = new Dimension<>("test");
@@ -273,7 +273,7 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
                                                                       throw new OperationException("Unexpected mute type '" + dimension + "'");
                                                                     });
       dimensionFixedText(RESOLUTION, Resolution.getKnownTypesForMute()).description("unmute condition").
-        valueForDefaultFilter(muteInfo -> Resolution.getType(muteInfo.getAutoUnmuteOptions()));
+        valueForDefaultFilter(muteInfo -> String.valueOf(Resolution.ResolutionType.getType(muteInfo.getAutoUnmuteOptions())));
 
       multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> FinderDataBinding.getItemHolder(getMuteInfosForProject(myProjectFinder.getRootProject())));
 

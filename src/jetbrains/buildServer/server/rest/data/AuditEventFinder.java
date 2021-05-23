@@ -49,8 +49,8 @@ import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimensio
     extraDimensions = {PagerData.COUNT, PagerData.START, FinderImpl.DIMENSION_LOOKUP_LIMIT, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "AuditEvent",
     examples = {
-        "`count:1000` – find last `1000` audit events.",
-        "`user:(<userLocator>)` – find last 100 events by user found by `userLocator`."
+        "`count:1000` — find last `1000` audit events.",
+        "`user:(<userLocator>)` — find last 100 events by user found by `userLocator`."
     }
 )
 public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {

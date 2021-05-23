@@ -68,7 +68,7 @@ public class LicensingData {
   public Integer buildTypesLeft;
 
   @XmlAttribute
-  public String serverLicenseType;
+  public LicenseType serverLicenseType;
 
   /**
    * Effective release date of the server (the date which is compared to license's maintenance end date)
@@ -177,23 +177,23 @@ public class LicensingData {
   /**
    * See also {@link jetbrains.buildServer.server.rest.model.server.LicenseKeyEntity#getLicenseType(jetbrains.buildServer.serverSide.LicenseKey)}
    */
-  private String getServerLicenseType(final LicenseList licenseList) {
+  private LicenseType getServerLicenseType(final LicenseList licenseList) {
     if (licenseList.isEvaluationMode()) {
-      return SERVER_LICENSE_TYPE_EVALUATION;
+      return LicenseType.evaluation;
     }
 
     if (licenseList.isEAPEvaluationMode()) {
-      return SERVER_LICENSE_TYPE_EAP;
+      return LicenseType.eap;
     }
 
     if (licenseList.isOpenSourceMode()) {
-      return SERVER_LICENSE_TYPE_OPEN_SOURCE;
+      return LicenseType.open_source;
     }
 
     if (licenseList.hasEnterpriseLicense()) {
-      return SERVER_LICENSE_TYPE_ENTERPRISE;
+      return LicenseType.enterprise;
     }
 
-    return SERVER_LICENSE_TYPE_PROFESSIONAL;
+    return LicenseType.professional;
   }
 }

@@ -49,8 +49,8 @@ import java.util.*;
     extraDimensions = AbstractFinder.DIMENSION_ITEM,
     baseEntity = "AgentPool",
     examples = {
-        "`name:Default` – find `Default` agent pool details.",
-        "`project:(<projectLocator>)` – find pool associated with project found by `projectLocator`."
+        "`name:Default` — find `Default` agent pool details.",
+        "`project:(<projectLocator>)` — find pool associated with project found by `projectLocator`."
     }
 )
 public class AgentPoolFinder extends DelegatingFinder<AgentPool> {

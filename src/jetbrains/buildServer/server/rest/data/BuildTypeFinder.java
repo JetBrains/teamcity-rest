@@ -59,8 +59,8 @@ import java.util.stream.Collectors;
     extraDimensions = {PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "BuildType",
     examples = {
-        "`name:MyBuildType` – find build configuration with `MyBuildType` name",
-        "`project:<projectLocator>` – find build configurations under project found by `projectLocator`"
+        "`name:MyBuildType` — find build configuration with `MyBuildType` name",
+        "`project:<projectLocator>` — find build configurations under project found by `projectLocator`"
     }
 )
 public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {

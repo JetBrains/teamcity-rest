@@ -27,6 +27,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
+import io.swagger.annotations.ApiModelProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.*;
@@ -202,6 +203,7 @@ public class BuildType {
    * Unlike "settings", this one does not identify if the value is coming from a template.
    */
   @XmlAttribute (name = "type")
+  @ApiModelProperty(allowableValues = "regular, composite, deployment")
   public String getType() {
     return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("type",false, false), () -> Util.resolveNull(myBuildType.getSettingsEx(), (e) -> e.getOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE).toLowerCase()), s -> BuildTypeOptions.BuildConfigurationType.REGULAR.name().equalsIgnoreCase(s));
   }

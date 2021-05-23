@@ -52,8 +52,8 @@ import java.util.stream.Collectors;
     extraDimensions = {PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "Project",
     examples = {
-        "`name:MyProject` – find a project with name `MyProject`.",
-        "`archived:false` – find projects which are not archived."
+        "`name:MyProject` — find a project with name `MyProject`.",
+        "`archived:false` — find projects which are not archived."
     }
 )
 public class ProjectFinder extends AbstractFinder<SProject> {

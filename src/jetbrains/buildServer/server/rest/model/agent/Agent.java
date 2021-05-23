@@ -85,7 +85,7 @@ public class Agent {
   @XmlAttribute public Boolean pluginsOutdated;
   @XmlAttribute public Boolean javaOutdated;
   @XmlAttribute public String ip;
-  @XmlAttribute public String protocol;
+  @XmlAttribute public AgentProtocol protocol;
   @XmlAttribute public String version; //experimental
   @XmlAttribute public String currentAgentVersion; //experimental
   @XmlAttribute public String lastActivityTime; //experimental
@@ -311,12 +311,16 @@ public class Agent {
     }
   }
 
+  public enum AgentProtocol {
+    unidirectional, bidirectional
+  }
+
   @NotNull
-  private static String getAgentProtocol(final @NotNull SBuildAgent agent) {
+  private static AgentProtocol getAgentProtocol(final @NotNull SBuildAgent agent) {
     final String protocolType = agent.getCommunicationProtocolType();
-    if (PollingRemoteAgentConnection.TYPE.equals(protocolType)) return "unidirectional";
+    if (PollingRemoteAgentConnection.TYPE.equals(protocolType)) return AgentProtocol.unidirectional;
     // would be better to check, but that is in another module: if (XmlRpcRemoteAgentConnection.DESCRIPTION.equals(communicationProtocolDescription)) return "bidirectional";
-    return "bidirectional";
+    return AgentProtocol.bidirectional;
   }
 
   public static String getFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name, @NotNull final ServiceLocator serviceLocator) {
@@ -347,7 +351,7 @@ public class Agent {
     } else if ("ip".equals(name)) {
       return agent.getHostAddress();
     } else if ("protocol".equals(name)) {
-      return getAgentProtocol(agent);
+      return getAgentProtocol(agent).toString();
     }
     throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, connected, enabled, authorized, ip, authToken");
   }

@@ -54,8 +54,8 @@ import java.util.stream.Stream;
     extraDimensions = {FinderImpl.DIMENSION_ID, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "Agent",
     examples = {
-        "`name:DefaultAgent` – find agent with `DefaultAgent` name.",
-        "`pool:(<agentPoolLocator>),connected:true` – find all connected agents in a pool found by `agentPoolLocator`."
+        "`name:DefaultAgent` — find agent with `DefaultAgent` name.",
+        "`pool:(<agentPoolLocator>),connected:true` — find all connected agents in a pool found by `agentPoolLocator`."
     }
 )
 public class AgentFinder extends AbstractFinder<SBuildAgent> {

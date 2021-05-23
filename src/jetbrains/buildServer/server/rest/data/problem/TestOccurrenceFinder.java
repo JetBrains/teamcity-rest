@@ -61,8 +61,8 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
     extraDimensions = {AbstractFinder.DIMENSION_ID, AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "TestOccurrence",
     examples = {
-        "`currentlyInvestigated:true` – find last 100 test occurrences which are being currently investigated.",
-        "`build:<buildLocator>` – find test occurrences under build found by `buildLocator`."
+        "`currentlyInvestigated:true` — find last 100 test occurrences which are being currently investigated.",
+        "`build:<buildLocator>` — find test occurrences under build found by `buildLocator`."
     }
 )
 public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
@@ -77,7 +77,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static final String AFFECTED_PROJECT = "affectedProject";
   @LocatorDimension(value = "currentlyFailing", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently failing.")
   private static final String CURRENT = "currentlyFailing";
-  @LocatorDimension(value = "status", notes = "Supported values: unknown/normal/warning/failure/error.")
+  @LocatorDimension(value = "status", allowableValues = "unknown,normal,warning,failure,error")
   public static final String STATUS = "status";
   @LocatorDimension("branch") private static final String BRANCH = "branch";
   @LocatorDimension(value = "ignored", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is ignored.")
@@ -294,9 +294,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @NotNull
   public TreeSet<STestRun> createContainerSet() {
     return new TreeSet<>((o1, o2) -> ComparisonChain.start()
-                                                    .compare(o1.getBuildId(), o2.getBuildId())
-                                                    .compare(o1.getTestRunId(), o2.getTestRunId())
-                                                    .result());
+        .compare(o1.getBuildId(), o2.getBuildId())
+        .compare(o1.getTestRunId(), o2.getTestRunId())
+        .result());
   }
 
   /**
@@ -438,7 +438,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (currentDimension != null && currentDimension) {
       locator.markUsed(Collections.singleton(CURRENT));
       return getPossibleExpandedTestsHolder(getCurrentOccurrences(getAffectedProject(locator), myCurrentProblemsManager),
-                                            locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+          locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
     }
 
     Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
@@ -459,7 +459,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     exampleLocators.add(Locator.getStringLocator(CURRENT, "true", AFFECTED_PROJECT, "XXX"));
     exampleLocators.add(Locator.getStringLocator(CURRENTLY_MUTED, "true", AFFECTED_PROJECT, "XXX"));
     throw new BadRequestException(
-      "Unsupported test occurrence locator '" + locator.getStringRepresentation() + "'. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
+        "Unsupported test occurrence locator '" + locator.getStringRepresentation() + "'. Try one of locator dimensions: " + DataProvider.dumpQuoted(exampleLocators));
   }
 
   @NotNull
@@ -620,19 +620,19 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         result.add(item -> {
           Collection<STestRun> testRuns = getInvocations(item);
           FinderSearchMatcher<STestRun> matcher =
-            new FinderSearchMatcher<>(dimensionValue, new DelegatingAbstractFinder<STestRun>(TestOccurrenceFinder.this) {
-              @Nullable
-              @Override
-              public STestRun findSingleItem(@NotNull final Locator locator1) {
-                return null;
-              }
+              new FinderSearchMatcher<>(dimensionValue, new DelegatingAbstractFinder<STestRun>(TestOccurrenceFinder.this) {
+                @Nullable
+                @Override
+                public STestRun findSingleItem(@NotNull final Locator locator1) {
+                  return null;
+                }
 
-              @NotNull
-              @Override
-              public ItemHolder<STestRun> getPrefilteredItems(@NotNull final Locator locator1) {
-                return getItemHolder(testRuns);
-              }
-            });
+                @NotNull
+                @Override
+                public ItemHolder<STestRun> getPrefilteredItems(@NotNull final Locator locator1) {
+                  return getItemHolder(testRuns);
+                }
+              });
           return matcher.matches(null);
         });
       }
@@ -729,7 +729,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     //ideally, need to check what will be used in the response and request only those details
     int optionsMask = TeamCityProperties.getInteger("rest.request.testOccurrences.buildStatOpts.default",
-                                                    0);
+        0);
     boolean loadAllTests = TeamCityProperties.getBoolean("rest.request.testOccurrences.loadAllTestsForBuild");
     if (locator == null || loadAllTests || FilterUtil.isIncludingBooleanFilter(locator.lookupSingleDimensionValueAsBoolean(IGNORED))) { //todo: consider not loading ignored tests if only failed are requested via status:FAILURE (if that does not change the result)
       optionsMask |= BuildStatisticsOptions.IGNORED_TESTS;
@@ -740,7 +740,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     }
 
     return build.getBuildStatistics(
-      new BuildStatisticsOptions(optionsMask, TeamCityProperties.getInteger("rest.request.testOccurrences.buildStatOpts.maxNumberOfTestsStacktracesToLoad", 0)));
+        new BuildStatisticsOptions(optionsMask, TeamCityProperties.getInteger("rest.request.testOccurrences.buildStatOpts.maxNumberOfTestsStacktracesToLoad", 0)));
   }
 
   @Nullable
@@ -827,10 +827,10 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   private static final Orders<STestRun> SUPPORTED_ORDERS = new Orders<STestRun>() //see TestOccurrence for names
-     .add("name", Comparator.comparing(tr -> tr.getTest().getName().getAsString(), String.CASE_INSENSITIVE_ORDER))
-     .add("duration", Comparator.comparingInt(STestRun::getDuration))
-     .add("runOrder", Comparator.comparingInt(STestRun::getOrderId))
-     .add("status", Comparator.comparing(tr -> tr.getStatus().getPriority()))
-     .add("newFailure", Comparator.comparing(STestRun::isNewFailure)) //even more experimental than entire sorting feature
-     .add("buildStartDate", Comparator.comparing(tr -> tr.getBuild().getStartDate()));
+      .add("name", Comparator.comparing(tr -> tr.getTest().getName().getAsString(), String.CASE_INSENSITIVE_ORDER))
+      .add("duration", Comparator.comparingInt(STestRun::getDuration))
+      .add("runOrder", Comparator.comparingInt(STestRun::getOrderId))
+      .add("status", Comparator.comparing(tr -> tr.getStatus().getPriority()))
+      .add("newFailure", Comparator.comparing(STestRun::isNewFailure)) //even more experimental than entire sorting feature
+      .add("buildStartDate", Comparator.comparing(tr -> tr.getBuild().getStartDate()));
 }

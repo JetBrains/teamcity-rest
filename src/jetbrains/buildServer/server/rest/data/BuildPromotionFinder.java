@@ -69,9 +69,9 @@ import org.jetbrains.annotations.Nullable;
     extraDimensions = {FinderImpl.DIMENSION_ID, PagerData.START, PagerData.COUNT, FinderImpl.DIMENSION_LOOKUP_LIMIT, CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "Build",
     examples = {
-        "`id:1` – find build with ID `1`.",
-        "`buildType:<buildTypeLocator>` – find builds under build configuration found by `buildTypeLocator`.",
-        "`defaultFilter:false,agent:<agentLocator>` – find builds executed on agent found by `agentLocator`, with `defaultFilter` disabled (see below)."
+        "`id:1` — find build with ID `1`.",
+        "`buildType:<buildTypeLocator>` — find builds under build configuration found by `buildTypeLocator`.",
+        "`defaultFilter:false,agent:<agentLocator>` — find builds executed on agent found by `agentLocator`, with `defaultFilter` disabled (see below)."
     }
 )
 public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
@@ -104,7 +104,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String PROPERTY = "property";
   protected static final String STATISTIC_VALUE = "statisticValue";
 
-  @LocatorDimension(value = "state", notes = "Supported values: queued/running/finished/any.")
+  @LocatorDimension(value = "state", allowableValues = "queued,running,finished,any")
   public static final String STATE = "state";
   @LocatorDimension(value = "queued", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is queued.")
   public static final String STATE_QUEUED = "queued";

@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
+import io.swagger.annotations.ApiModelProperty;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.server.rest.data.FilterItemProcessor;
 import jetbrains.buildServer.server.rest.data.PagingItemFilter;
@@ -105,6 +106,7 @@ public class TestOccurrence {
   }
 
   @XmlAttribute
+  @ApiModelProperty(allowableValues = "UNKNOWN, NORMAL, WARNING, FAILURE, ERROR")
   public String getStatus() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("status"), myTestRun.getStatus().getText());
   }

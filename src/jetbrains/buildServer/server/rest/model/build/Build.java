@@ -237,25 +237,29 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded(PROMOTION_ID, false, false), myBuildPromotion.getId());
   }
 
+  public enum BuildState {
+    queued, finished, running, deleted, unknown
+  }
+
   /**
    * The current state of the build: one of "queued", "running", "finished"
    * Can aso be "deleted" for just deleted builds
    */
   @XmlAttribute
-  public String getState() {
+  public BuildState getState() {
     if (!myFields.isIncluded("state", true, true)) {
       return null;
     }
-    if (myQueuedBuild != null) return "queued";
+    if (myQueuedBuild != null) return BuildState.queued;
     if (myBuild != null) {
       if (myBuild.isFinished()) {
-        return "finished";
+        return BuildState.finished;
       } else {
-        return "running";
+        return BuildState.running;
       }
     }
-    if (((BuildPromotionEx)myBuildPromotion).isDeleted()) return "deleted";
-    return "unknown";
+    if (((BuildPromotionEx)myBuildPromotion).isDeleted()) return BuildState.deleted;
+    return BuildState.unknown;
   }
 
   /**
@@ -1789,7 +1793,7 @@ public class Build {
     } else if ("id".equals(field)) {
       return String.valueOf(build.getId());
     } else if ("state".equals(field)) {
-      return build.getState();
+      return build.getState().toString();
     } else if ("failedToStart".equals(field)) {
       return String.valueOf(build.isFailedToStart());
     } else if ("startEstimateDate".equals(field)) {

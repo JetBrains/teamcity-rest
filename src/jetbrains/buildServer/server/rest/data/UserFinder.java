@@ -58,8 +58,8 @@ import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimensio
     extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "User",
     examples = {
-        "`name:John Smith` – find user with name `John Smith`.",
-        "`group:<groupLocator>` – find all users in user group found by `groupLocator`."
+        "`name:John Smith` — find user with name `John Smith`.",
+        "`group:<groupLocator>` — find all users in user group found by `groupLocator`."
     }
 )
 public class UserFinder extends DelegatingFinder<SUser> {

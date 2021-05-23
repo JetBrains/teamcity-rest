@@ -924,7 +924,7 @@ public class BuildRequest {
   @Path("/{buildLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="cancelBuild",hidden=true)
+  @ApiOperation(value="cancelBuild")
   public Build cancelBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                            BuildCancelRequest cancelRequest,
                            @QueryParam("fields") String fields,
@@ -1236,7 +1236,7 @@ public class BuildRequest {
   @Path("/multiple/{buildLocator}")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="cancelMultiple",hidden=true)
+  @ApiOperation(value="cancelMultipleBuilds")
   public MultipleOperationResult cancelMultiple(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                                 BuildCancelRequest cancelRequest,
                                                 @QueryParam("fields") String fields,

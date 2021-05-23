@@ -25,6 +25,8 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiModelProperty;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
@@ -61,6 +63,7 @@ import org.jetbrains.annotations.NotNull;
 public class Investigation {
   protected static final String REST_BEANS_INVESTIGATIONS_COMPATIBILITY = "rest.beans.buildTypeInvestigationCompatibility";
   @XmlAttribute public String id;
+  @ApiModelProperty(allowableValues = "TAKEN, FIXED, GIVEN_UP, NONE")
   @XmlAttribute public String state;
   @XmlAttribute public String href;
 

@@ -53,8 +53,8 @@ import java.util.stream.Collectors;
     extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "ProblemOccurrence",
     examples = {
-        "`currentlyInvestigated:true` – find last 100 build problem occurrences which are being currently investigated.",
-        "`build:<buildLocator>` – find build problem occurrences under build found by `buildLocator`."
+        "`currentlyInvestigated:true` — find last 100 build problem occurrences which are being currently investigated.",
+        "`build:<buildLocator>` — find build problem occurrences under build found by `buildLocator`."
     }
 )
 public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {

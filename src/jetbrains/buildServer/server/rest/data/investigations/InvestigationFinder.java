@@ -56,8 +56,8 @@ import java.util.List;
     extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "Investigation",
     examples = {
-        "`assignee:John Smith` – find investigations assigned to `John Smith`.",
-        "`state:taken` – find investigations which are currently in work."
+        "`assignee:John Smith` — find investigations assigned to `John Smith`.",
+        "`state:taken` — find investigations which are currently in work."
     }
 )
 public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
@@ -72,11 +72,11 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   @LocatorDimension("assignee") private static final String ASSIGNEE = "assignee";
   @LocatorDimension(value = "sinceDate", dataType = LocatorDimensionDataType.TIMESTAMP, notes = "yyyyMMddTHHmmss+ZZZZ")
   private static final String SINCE_DATE = "sinceDate";
-  @LocatorDimension(value = "state", notes = "Supported values: taken/fixed/given_up/none.")
+  @LocatorDimension(value = "state", allowableValues = "taken,fixed,given_up,none")
   private static final String STATE = "state";
-  @LocatorDimension(value = "resolution", notes = "Supported values: manually/whenFixed/atTime.")
+  @LocatorDimension(value = "resolution", allowableValues = "manually,whenFixed,atTime")
   private static final String RESOLUTION = "resolution";
-  @LocatorDimension(value = "type", notes = "Supported values: test/problem/anyProblem/unknown.")
+  @LocatorDimension(value = "type", allowableValues = "test,problem,anyProblem,unknown")
   private static final String TYPE = "type";
   @LocatorDimension("reporter") private static final String REPORTER = "reporter";
   @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")

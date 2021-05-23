@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
+import io.swagger.annotations.ApiModelProperty;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
@@ -30,11 +31,11 @@ import org.jetbrains.annotations.NotNull;
 
 @XmlRootElement(name = "vcsLabel")
 @XmlType(name = "vcsLabel", propOrder = {
-  "text",
-  "failureReason",
-  "status",
-  "buildId",
-  "vcsRootInstance"
+    "text",
+    "failureReason",
+    "status",
+    "buildId",
+    "vcsRootInstance"
 })
 @ModelDescription(
     value = "Represents a VCS-side label of this build's sources.",
@@ -65,6 +66,7 @@ public class VcsLabel {
   }
 
   @XmlAttribute
+  @ApiModelProperty(allowableValues = "none, set, is being set, failed, disabled for the vcs root, not supported yet for the vcs")
   public String getStatus() {
     boolean isIncluded = myFields.isIncluded("status", false, true);
     return ValueWithDefault.decideDefault(isIncluded, myRealLabel.getStatus().toString());

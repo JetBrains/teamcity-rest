@@ -76,7 +76,7 @@ public class LicenseKeyEntity {
   public String maintenanceEndDate;
 
   @XmlAttribute
-  public String type;
+  public LicenseType type;
 
   @XmlAttribute
   public Integer servers;
@@ -158,19 +158,20 @@ public class LicenseKeyEntity {
   /**
    * See also {@link jetbrains.buildServer.server.rest.model.server.LicensingData#getServerLicenseType(jetbrains.buildServer.serverSide.LicenseList)}
    */
-  private String getLicenseType(final LicenseKey licenseKey) {
+  
+  private LicenseType getLicenseType(final LicenseKey licenseKey) {
     if (licenseKey.isEvaluationLicenseKey()) {
-      return LICENSE_TYPE_EVALUATION;
+      return LicenseType.evaluation;
     }
 
     if (licenseKey.isEAPLicenseKey()) {
-      return LICENSE_TYPE_EAP;
+      return LicenseType.eap;
     }
 
     if (licenseKey.isOpenSourceLicenseKey()) {
-      return LICENSE_TYPE_OPEN_SOURCE;
+      return LicenseType.open_source;
     }
 
-    return LICENSE_TYPE_COMMERCIAL;
+    return LicenseType.commercial;
   }
 }

@@ -42,8 +42,8 @@ import org.jetbrains.annotations.Nullable;
     extraDimensions = AbstractFinder.DIMENSION_ITEM,
     baseEntity = "Branch",
     examples = {
-        "`build:<buildLocator>` – find branch with which the build found by `buildLocator` was started.",
-        "`buildType:<buildTypeLocator>` – find branches of a build configuration found by `buildTypeLocator`."
+        "`build:<buildLocator>` — find branch with which the build found by `buildLocator` was started.",
+        "`buildType:<buildTypeLocator>` — find branches of a build configuration found by `buildTypeLocator`."
     }
 )
 public class BranchFinder extends AbstractFinder<BranchData> {
@@ -61,6 +61,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
   protected static final String BRANCH_GROUP = "group";
   protected static final String GROUP_INCLUDE = "includeGroups"; //this activates a temporary/experemental hack to include branch groups as fake branches in the result
 
+  @LocatorDimension(value = "policy", allowableValues = "VCS_BRANCHES,ACTIVE_VCS_BRANCHES,HISTORY_BRANCHES,ACTIVE_HISTORY_BRANCHES,ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES,ALL_BRANCHES")
   protected static final String POLICY = "policy";
   protected static final String CHANGES_FROM_DEPENDENCIES = "changesFromDependencies";   //todo: revise naming
 
