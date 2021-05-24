@@ -21,6 +21,7 @@ import graphql.kickstart.tools.GraphQLQueryResolver;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.server.graphql.model.Agent;
 import jetbrains.buildServer.server.graphql.model.AgentPool;
 import jetbrains.buildServer.server.graphql.model.GlobalPermissions;
@@ -31,7 +32,6 @@ import jetbrains.buildServer.server.graphql.model.filter.AgentsFilter;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
-import jetbrains.buildServer.server.rest.data.FilterUtil;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
@@ -98,9 +98,18 @@ public class Query implements GraphQLQueryResolver {
 
   @NotNull
   public ProjectsConnection projects(@NotNull ProjectsFilter filter, @NotNull DataFetchingEnvironment env) {
-    List<SProject> projects = myProjectManager.getProjects().stream()
-                                              .filter(p -> FilterUtil.isIncludedByBooleanFilter(filter.getArchived(), p.isArchived()))
-                                              .collect(Collectors.toList());
+    Stream<SProject> projectsStream;
+    if(filter.getArchived() != null) {
+      if(filter.getArchived()) {
+        projectsStream = myProjectManager.getArchivedProjects().stream();
+      } else {
+        projectsStream = myProjectManager.getActiveProjects().stream();
+      }
+    } else {
+      projectsStream = myProjectManager.getProjects().stream();
+    }
+
+    List<SProject> projects = projectsStream.collect(Collectors.toList());
 
     return new ProjectsConnection(projects);
   }
