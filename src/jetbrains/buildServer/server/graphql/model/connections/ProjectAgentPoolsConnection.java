@@ -16,30 +16,40 @@
 
 package jetbrains.buildServer.server.graphql.model.connections;
 
+import graphql.execution.DataFetcherResult;
 import graphql.relay.ConnectionCursor;
 import graphql.relay.Edge;
 import graphql.relay.PageInfo;
 import java.util.List;
+import java.util.function.Function;
 import jetbrains.buildServer.server.graphql.model.AgentPool;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public interface ProjectAgentPoolsConnection {
-  List<ProjectAgentPoolEdge> getEdges();
-  PageInfo getPageInfo();
+public class ProjectAgentPoolsConnection implements ExtensibleConnection<AgentPool, ProjectAgentPoolsConnection.ProjectAgentPoolEdge> {
+  @NotNull
+  private final NonPaginatingLazyConnection<jetbrains.buildServer.serverSide.agentPools.AgentPool, AgentPool, ProjectAgentPoolsConnection.ProjectAgentPoolEdge> myDelegate;
 
-  public class ProjectAgentPoolEdge {
-    private final Edge<AgentPool> myDelegate;
+  public ProjectAgentPoolsConnection(List<jetbrains.buildServer.serverSide.agentPools.AgentPool> data) {
+    myDelegate = new NonPaginatingLazyConnection<>(data, ProjectAgentPoolEdge::new);
+  }
 
-    public ProjectAgentPoolEdge(@NotNull Edge<AgentPool> delegate) {
-      myDelegate = delegate;
-    }
+  @NotNull
+  @Override
+  public DataFetcherResult<List<ProjectAgentPoolEdge>> getEdges() {
+    return myDelegate.getEdges();
+  }
 
-    public AgentPool getNode() {
-      return myDelegate.getNode();
-    }
+  @Nullable
+  @Override
+  public PageInfo getPageInfo() {
+    return myDelegate.getPageInfo();
+  }
 
-    public ConnectionCursor getCursor() {
-      return myDelegate.getCursor();
+  public class ProjectAgentPoolEdge extends LazyEdge<jetbrains.buildServer.serverSide.agentPools.AgentPool, AgentPool> {
+
+    public ProjectAgentPoolEdge(@NotNull jetbrains.buildServer.serverSide.agentPools.AgentPool data) {
+      super(data, AgentPool::new);
     }
   }
 }

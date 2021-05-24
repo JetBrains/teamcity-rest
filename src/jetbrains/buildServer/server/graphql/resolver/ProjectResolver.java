@@ -19,63 +19,55 @@ package jetbrains.buildServer.server.graphql.resolver;
 import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.server.graphql.GraphQLContext;
-import jetbrains.buildServer.server.graphql.model.AgentPool;
 import jetbrains.buildServer.server.graphql.model.ProjectPermissions;
 import jetbrains.buildServer.server.graphql.model.connections.*;
 import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.util.ParentsFetcher;
 import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
-import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.Permissions;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ProjectResolver implements GraphQLResolver<Project> {
   @NotNull
-  private final ProjectFinder myProjectFinder;
+  private final ProjectManager myProjectManager;
   @NotNull
   private final AgentPoolFinder myPoolFinder;
 
-  public ProjectResolver(@NotNull ProjectFinder projectFinder, @NotNull AgentPoolFinder poolFinder) {
-    myProjectFinder = projectFinder;
+  public ProjectResolver(@NotNull ProjectManager projectManager, @NotNull AgentPoolFinder poolFinder) {
+    myProjectManager = projectManager;
     myPoolFinder = poolFinder;
   }
 
   @NotNull
   public BuildTypesConnection buildTypes(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
-    SProject self = env.getLocalContext();
-
-    if(self == null) {
-      self = myProjectFinder.findSingleItem(Locator.locator("id:" + source.getId()));
-      if(self == null) {
-        throw new BadRequestException("Malformed source project id");
-      }
-    }
+    SProject self = getSelfFromContextSafe(source, env);
 
     return new BuildTypesConnection(self.getBuildTypes());
   }
 
   @NotNull
-  public ProjectsConnection ancestorProjects(@NotNull Project source, @Nullable ProjectsFilter filter, @NotNull DataFetchingEnvironment env) throws Exception {
-    // TODO: get it from local context
-    SProject self = myProjectFinder.findSingleItem(Locator.locator("id:" + source.getId()));
-    if(self == null) {
-      throw new BadRequestException("Malformed source project id");
+  public ProjectsConnection ancestorProjects(@NotNull Project source, @NotNull ProjectsFilter filter, @NotNull DataFetchingEnvironment env) {
+    SProject self = getSelfFromContextSafe(source, env);
+
+    Stream<SProject> ancestors = ParentsFetcher.getAncestors(self).stream()
+                                               .filter(p -> !p.getExternalId().equals(self.getExternalId()));
+
+    if(filter.getArchived() != null) {
+      ancestors = ancestors.filter(p -> p.isArchived() == filter.getArchived());
     }
 
-    // TODO: apply filter
-    return ParentsFetcher.getAncestors(self, false);
+    return new ProjectsConnection(ancestors.collect(Collectors.toList()));
   }
 
   @NotNull
@@ -89,25 +81,28 @@ public class ProjectResolver implements GraphQLResolver<Project> {
 
     Permissions permissions = user.getPermissionsGrantedForProject(source.getId());
 
-    return new ProjectPermissions(
-      permissions.contains(Permission.MANAGE_AGENT_POOLS_FOR_PROJECT)
-    );
+    return new ProjectPermissions(permissions.contains(Permission.MANAGE_AGENT_POOLS_FOR_PROJECT));
   }
 
   @NotNull
   public ProjectAgentPoolsConnection agentPools(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
-    // TODO: get it from local context
-    SProject self = myProjectFinder.findSingleItem(Locator.locator("id:" + source.getId()));
+    SProject self = getSelfFromContextSafe(source, env);
 
-    List<AgentPool> pools;
+    return new ProjectAgentPoolsConnection(new ArrayList<>(myPoolFinder.getPoolsForProject(self)));
+  }
+
+  @NotNull
+  private SProject getSelfFromContextSafe(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
+    SProject self = env.getLocalContext();
     if(self != null) {
-      pools = myPoolFinder.getPoolsForProject(self).stream()
-                          .map(p -> new AgentPool(p))
-                          .collect(Collectors.toList());
-    } else {
-      pools = new ArrayList<>();
+      return self;
     }
 
-    return new ProjectAgentPoolsConnectionBuilder(pools).get(env);
+    self = myProjectManager.findProjectByExternalId(source.getId());
+    if(self == null) {
+      throw new BadRequestException("Malformed source project id");
+    }
+
+    return self;
   }
 }

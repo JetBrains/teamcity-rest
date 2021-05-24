@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.graphql.util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,18 +26,17 @@ import org.jetbrains.annotations.Nullable;
 
 public class ParentsFetcher {
   @NotNull
-  public static ProjectsConnection getAncestors(@Nullable SProject self, boolean includeSelf) {
+  public static List<SProject> getAncestors(@Nullable SProject self) {
     if(self == null) {
-      return new ProjectsConnection(Collections.emptyList());
+      return Collections.emptyList();
     }
 
     List<SProject> reversedAncestors = self.getProjectPath();
     List<SProject> result = new ArrayList<>();
 
-    int firstIdx = includeSelf ? reversedAncestors.size() - 1 : reversedAncestors.size() - 2;
-    for(int i = firstIdx; i >= 0; i--)
+    for(int i = reversedAncestors.size() - 1; i >= 0; i--)
       result.add(reversedAncestors.get(i));
 
-    return new ProjectsConnection(result);
+    return result;
   }
 }
