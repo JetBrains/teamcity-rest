@@ -37,7 +37,7 @@ public class ProjectsConnection implements ExtensibleConnection<Project, Project
     myDelegate = new NonPaginatingLazyConnection<>(data, ProjectsConnectionEdge::new);
   }
 
-  int getCount() {
+  public int getCount() {
     return myDelegate.getData().size();
   }
 

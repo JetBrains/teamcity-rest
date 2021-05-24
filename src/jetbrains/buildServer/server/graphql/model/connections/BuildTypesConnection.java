@@ -37,7 +37,7 @@ public class BuildTypesConnection implements ExtensibleConnection<BuildType, Bui
     myDelegate = new NonPaginatingLazyConnection<>(data, BuildTypesConnectionEdge::new);
   }
 
-  int getCount() {
+  public int getCount() {
     return myDelegate.getData().size();
   }
 

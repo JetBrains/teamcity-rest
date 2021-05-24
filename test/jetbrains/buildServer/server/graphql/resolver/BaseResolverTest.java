@@ -21,6 +21,7 @@ import graphql.schema.DataFetchingEnvironment;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import jetbrains.buildServer.server.graphql.model.connections.ExtensibleConnection;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
@@ -31,7 +32,7 @@ import org.testng.annotations.BeforeMethod;
 public class BaseResolverTest extends BaseServerTestCase {
   protected ProjectFinder myProjectFinder;
   protected PermissionChecker myPermissionChecker;
-  protected DataFetchingEnvironment myDataFetchingEnvironment;
+  protected MockDataFetchingEnvironment myDataFetchingEnvironment;
 
   @Override
   @BeforeMethod(alwaysRun = true)
@@ -55,6 +56,14 @@ public class BaseResolverTest extends BaseServerTestCase {
       cursorSet.add(edges.get(i).getCursor().getValue());
     }
 
-    assertEquals(items.length, cursorSet.size());
+    assertEquals("Cursors must be unique", items.length, cursorSet.size());
+  }
+
+  protected <T> void assertExtensibleEdges(@NotNull List<? extends ExtensibleConnection.Edge<T>> edges, T... items) {
+    assertEquals(items.length, edges.size());
+
+    for(int i = 0; i < items.length; i++) {
+      assertEquals(items[i], edges.get(i).getNode().getData());
+    }
   }
 }

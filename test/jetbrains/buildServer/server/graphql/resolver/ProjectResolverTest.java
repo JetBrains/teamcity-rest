@@ -16,9 +16,11 @@
 
 package jetbrains.buildServer.server.graphql.resolver;
 
-import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.server.graphql.model.Project;
+import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.server.graphql.model.connections.BuildTypesConnection;
+import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
+import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import org.testng.annotations.BeforeMethod;
@@ -36,7 +38,7 @@ public class ProjectResolverTest extends BaseResolverTest {
   public void setUp() throws Exception {
     super.setUp();
 
-    //myResolver = new ProjectResolver(myProjectFinder, );
+    myResolver = new ProjectResolver(myFixture.getProjectManager(), myFixture.getAgentPoolManager());
     mySubProject = myProject.createProject(myProject.getExternalId() + "_subproject", "subproject");
     mySubSubProject = mySubProject.createProject(mySubProject.getExternalId() + "_subproject", "subsubproject");
 
@@ -46,25 +48,27 @@ public class ProjectResolverTest extends BaseResolverTest {
 
   @Test
   public void testAncestors() throws Exception {
-    //Project subsubproject = new Project(mySubSubProject);
-    //ProjectsConnection ancestors = myResolver.ancestorProjects(subsubproject, new ProjectsFilter(false), myDataFetchingEnvironment);
-    //
-    //assertEquals(3, ancestors.getCount());
-    //assertEdges(ancestors.getEdges(),
-    //            new Project(mySubProject),
-    //            new Project(myProject),
-    //            new Project(myProject.getParentProject())
-    //);
+    Project subsubproject = new Project(mySubSubProject);
+    myDataFetchingEnvironment.setLocalContext(mySubSubProject);
+
+    ProjectsConnection ancestors = myResolver.ancestorProjects(subsubproject, new ProjectsFilter(false), myDataFetchingEnvironment);
+
+
+
+    assertEquals(3, ancestors.getCount());
+    assertExtensibleEdges(ancestors.getEdges().getData(),
+                new Project(mySubProject),
+                new Project(myProject),
+                new Project(myProject.getParentProject())
+    );
   }
 
   @Test
   public void testBuildTypes() throws Exception {
-    //BuildTypesConnection buildTypes = myResolver.buildTypes(new Project(mySubProject), myDataFetchingEnvironment);
-    //
-    //assertEquals(2, buildTypes.getCount());
-    //assertEdges(buildTypes.getEdges(),
-    //            new BuildType(myBuildType1),
-    //            new BuildType(myBuildType2)
-    //);
+    BuildTypesConnection buildTypes = myResolver.buildTypes(new Project(mySubProject), myDataFetchingEnvironment);
+
+    assertEquals(2, buildTypes.getCount());
+    assertExtensibleEdges(buildTypes.getEdges().getData(), new BuildType(myBuildType1), new BuildType(myBuildType2)
+    );
   }
 }

@@ -18,7 +18,7 @@ package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.server.graphql.GraphQLContext;
@@ -27,10 +27,11 @@ import jetbrains.buildServer.server.graphql.model.connections.*;
 import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.util.ParentsFetcher;
-import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
+import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.Permissions;
 import jetbrains.buildServer.users.SUser;
@@ -42,11 +43,11 @@ public class ProjectResolver implements GraphQLResolver<Project> {
   @NotNull
   private final ProjectManager myProjectManager;
   @NotNull
-  private final AgentPoolFinder myPoolFinder;
+  private final AgentPoolManager myAgentPoolManager;
 
-  public ProjectResolver(@NotNull ProjectManager projectManager, @NotNull AgentPoolFinder poolFinder) {
+  public ProjectResolver(@NotNull ProjectManager projectManager, @NotNull AgentPoolManager agentPoolManager) {
     myProjectManager = projectManager;
-    myPoolFinder = poolFinder;
+    myAgentPoolManager = agentPoolManager;
   }
 
   @NotNull
@@ -88,7 +89,11 @@ public class ProjectResolver implements GraphQLResolver<Project> {
   public ProjectAgentPoolsConnection agentPools(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
     SProject self = getSelfFromContextSafe(source, env);
 
-    return new ProjectAgentPoolsConnection(new ArrayList<>(myPoolFinder.getPoolsForProject(self)));
+    List<AgentPool> pools = myAgentPoolManager.getAgentPoolsWithProject(self.getProjectId()).stream()
+                                              .map(myAgentPoolManager::findAgentPoolById)
+                                              .collect(Collectors.toList());
+
+    return new ProjectAgentPoolsConnection(pools);
   }
 
   @NotNull
