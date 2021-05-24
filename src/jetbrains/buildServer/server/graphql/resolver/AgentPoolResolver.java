@@ -19,22 +19,26 @@ package jetbrains.buildServer.server.graphql.resolver;
 import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.Collection;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.server.graphql.model.AgentPool;
 import jetbrains.buildServer.server.graphql.model.AgentPoolPermissions;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolAgentsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolCloudImagesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
-import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
+import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
   @NotNull
-  private final ProjectFinder myProjectFinder;
+  private final ProjectManager myProjectManager;
 
-  public AgentPoolResolver(@NotNull ProjectFinder projectFinder) {
-    myProjectFinder = projectFinder;
+  public AgentPoolResolver(@NotNull ProjectManager projectManager) {
+    myProjectManager = projectManager;
   }
 
   @NotNull
@@ -46,13 +50,16 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
   }
 
   @NotNull
-  public AgentPoolProjectsConnection projects(@NotNull AgentPool pool, @NotNull DataFetchingEnvironment env) {
-    // TODO: implement
+  public AgentPoolProjectsConnection projects(@NotNull AgentPool pool, @NotNull ProjectsFilter filter, @NotNull DataFetchingEnvironment env) {
     jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = env.getLocalContext();
 
-    Collection<String> projectids = realPool.getProjectIds();
+    Collection<String> projectIds = realPool.getProjectIds();
+    Stream<SProject> projects = myProjectManager.findProjects(projectIds).stream();
+    if(filter.getArchived() != null) {
+      projects = projects.filter(p -> p.isArchived() == filter.getArchived());
+    }
 
-    return null;
+    return new AgentPoolProjectsConnection(projects.collect(Collectors.toList()));
   }
 
   @NotNull

@@ -25,16 +25,16 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class BuildTypesConnection implements ExtensibleConnection<BuildType, LazyEdge<SBuildType, BuildType>> {
+public class BuildTypesConnection implements ExtensibleConnection<BuildType, BuildTypesConnection.BuildTypesConnectionEdge> {
   public static BuildTypesConnection empty() {
     return new BuildTypesConnection(Collections.emptyList());
   }
 
   @NotNull
-  private final NonPaginatingLazyConnection<SBuildType, BuildType> myDelegate;
+  private final NonPaginatingLazyConnection<SBuildType, BuildType, BuildTypesConnectionEdge> myDelegate;
 
   public BuildTypesConnection(@NotNull List<SBuildType> data) {
-    myDelegate = new NonPaginatingLazyConnection<>(data, BuildType::new);
+    myDelegate = new NonPaginatingLazyConnection<>(data, BuildTypesConnectionEdge::new);
   }
 
   int getCount() {
@@ -43,7 +43,7 @@ public class BuildTypesConnection implements ExtensibleConnection<BuildType, Laz
 
   @NotNull
   @Override
-  public DataFetcherResult<List<LazyEdge<SBuildType, BuildType>>> getEdges() {
+  public DataFetcherResult<List<BuildTypesConnectionEdge>> getEdges() {
     return myDelegate.getEdges();
   }
 
@@ -51,5 +51,12 @@ public class BuildTypesConnection implements ExtensibleConnection<BuildType, Laz
   @Override
   public PageInfo getPageInfo() {
     return myDelegate.getPageInfo();
+  }
+
+  public class BuildTypesConnectionEdge extends LazyEdge<SBuildType, BuildType> {
+
+    public BuildTypesConnectionEdge(@NotNull SBuildType data) {
+      super(data, BuildType::new);
+    }
   }
 }

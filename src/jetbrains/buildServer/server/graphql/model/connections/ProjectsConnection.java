@@ -25,16 +25,16 @@ import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ProjectsConnection implements ExtensibleConnection<Project, LazyEdge<SProject, Project>> {
+public class ProjectsConnection implements ExtensibleConnection<Project, ProjectsConnection.ProjectsConnectionEdge> {
   public static ProjectsConnection empty() {
     return new ProjectsConnection(Collections.emptyList());
   }
 
   @NotNull
-  private final NonPaginatingLazyConnection<SProject, Project> myDelegate;
+  private final NonPaginatingLazyConnection<SProject, Project, ProjectsConnectionEdge> myDelegate;
 
   public ProjectsConnection(@NotNull List<SProject> data) {
-    myDelegate = new NonPaginatingLazyConnection<>(data, Project::new);
+    myDelegate = new NonPaginatingLazyConnection<>(data, ProjectsConnectionEdge::new);
   }
 
   int getCount() {
@@ -43,7 +43,7 @@ public class ProjectsConnection implements ExtensibleConnection<Project, LazyEdg
 
   @NotNull
   @Override
-  public DataFetcherResult<List<LazyEdge<SProject, Project>>> getEdges() {
+  public DataFetcherResult<List<ProjectsConnectionEdge>> getEdges() {
     return myDelegate.getEdges();
   }
 
@@ -51,5 +51,12 @@ public class ProjectsConnection implements ExtensibleConnection<Project, LazyEdg
   @Override
   public PageInfo getPageInfo() {
     return myDelegate.getPageInfo();
+  }
+
+
+  public class ProjectsConnectionEdge extends LazyEdge<SProject, Project> {
+    public ProjectsConnectionEdge(@NotNull SProject data) {
+      super(data, Project::new);
+    }
   }
 }

@@ -22,15 +22,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 
-public class NonPaginatingLazyConnection<D, M> implements ExtensibleConnection<M, LazyEdge<D, M>> {
+public class NonPaginatingLazyConnection<D, M, E extends LazyEdge<D, M>> implements ExtensibleConnection<M, E> {
   @NotNull
   private final List<D> myData;
   @NotNull
-  private final Function<D, M> myTransformer;
+  private final Function<D, E> myEdgeFactory;
 
-  public NonPaginatingLazyConnection(@NotNull List<D> data, @NotNull Function<D, M> transformer) {
+  public NonPaginatingLazyConnection(@NotNull List<D> data, @NotNull Function<D, E> edgeFactory) {
     myData = data;
-    myTransformer = transformer;
+    myEdgeFactory = edgeFactory;
   }
 
   @NotNull
@@ -39,16 +39,16 @@ public class NonPaginatingLazyConnection<D, M> implements ExtensibleConnection<M
   }
 
   @NotNull
-  public Function<D, M> getTransformer() {
-    return myTransformer;
+  public Function<D, E> getEdgeFactory() {
+    return myEdgeFactory;
   }
 
   @NotNull
   @Override
-  public DataFetcherResult<List<LazyEdge<D, M>>> getEdges() {
-    List<LazyEdge<D, M>> result = myData.stream().map(d -> new LazyEdge<>(d, myTransformer)).collect(Collectors.toList());
+  public DataFetcherResult<List<E>> getEdges() {
+    List<E> result = myData.stream().map(myEdgeFactory::apply).collect(Collectors.toList());
 
-    return DataFetcherResult.<List<LazyEdge<D, M>>>newResult()
+    return DataFetcherResult.<List<E>>newResult()
       .data(result)
       .localContext(myData)
       .build();

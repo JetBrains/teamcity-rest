@@ -16,8 +16,44 @@
 
 package jetbrains.buildServer.server.graphql.model.connections.agentPool;
 
+import graphql.execution.DataFetcherResult;
+import graphql.relay.PageInfo;
 import java.util.List;
+import jetbrains.buildServer.server.graphql.model.Project;
+import jetbrains.buildServer.server.graphql.model.connections.ExtensibleConnection;
+import jetbrains.buildServer.server.graphql.model.connections.LazyEdge;
+import jetbrains.buildServer.server.graphql.model.connections.NonPaginatingLazyConnection;
+import jetbrains.buildServer.serverSide.SProject;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public interface AgentPoolProjectsConnection {
-  List<AgentPoolProjectEdge> getEdges();
+public class AgentPoolProjectsConnection implements ExtensibleConnection<Project, AgentPoolProjectsConnection.AgentPoolProjectsConnectionEdge> {
+  @NotNull
+  private final NonPaginatingLazyConnection<SProject, Project, AgentPoolProjectsConnectionEdge> myDelegate;
+
+  public AgentPoolProjectsConnection(@NotNull List<SProject> data) {
+    myDelegate = new NonPaginatingLazyConnection<>(data, AgentPoolProjectsConnectionEdge::new);
+  }
+
+  int getCount() {
+    return myDelegate.getData().size();
+  }
+
+  @NotNull
+  @Override
+  public DataFetcherResult<List<AgentPoolProjectsConnectionEdge>> getEdges() {
+    return myDelegate.getEdges();
+  }
+
+  @Nullable
+  @Override
+  public PageInfo getPageInfo() {
+    return myDelegate.getPageInfo();
+  }
+
+  public class AgentPoolProjectsConnectionEdge extends LazyEdge<SProject, Project> {
+    public AgentPoolProjectsConnectionEdge(@NotNull SProject data) {
+      super(data, Project::new);
+    }
+  }
 }

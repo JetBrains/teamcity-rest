@@ -23,7 +23,7 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-interface ExtensibleConnection<T, E extends ExtensibleConnection.Edge<T>> {
+public interface ExtensibleConnection<T, E extends ExtensibleConnection.Edge<T>> {
   @NotNull
   DataFetcherResult<List<E>> getEdges();
 

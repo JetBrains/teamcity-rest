@@ -72,7 +72,7 @@ type AgentPool {
   maxAgentsNumber: Int
   cloudImages: AgentPoolCloudImagesConnection
   agents: AgentPoolAgentsConnection
-  projects: AgentPoolProjectsConnection
+  projects(filter: ProjectsFilter = {archived: false}): AgentPoolProjectsConnection
   permissions: AgentPoolPermissions
 }
 
