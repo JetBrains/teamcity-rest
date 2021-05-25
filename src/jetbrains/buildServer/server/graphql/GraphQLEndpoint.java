@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.graphql;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.*;
 import javax.servlet.http.HttpServletRequest;
@@ -25,6 +24,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import jetbrains.buildServer.server.graphql.util.GraphQLRequestBody;
 import jetbrains.buildServer.server.rest.request.Constants;
+import jetbrains.buildServer.util.NamedThreadFactory;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -48,19 +48,19 @@ public class GraphQLEndpoint {
                     @QueryParam("operationName") String operationName,
                     @QueryParam("variables") String variables,
                     @Context HttpServletRequest request)
-    throws JsonProcessingException {
+    throws Exception {
     return handle(new GraphQLRequestBody(query, operationName, variables), request);
   }
 
   @POST
   @Produces({MediaType.APPLICATION_JSON})
   @Consumes({MediaType.APPLICATION_JSON})
-  public String post(String json, @Context HttpServletRequest request) throws JsonProcessingException {
+  public String post(String json, @Context HttpServletRequest request) throws Exception {
     return handle(GraphQLRequestBody.fromJson(json), request);
   }
 
   @NotNull
-  private String handle(@NotNull GraphQLRequestBody body, @NotNull HttpServletRequest request) throws JsonProcessingException {
+  private String handle(@NotNull GraphQLRequestBody body, @NotNull HttpServletRequest request) throws Exception {
     ExecutionResult result;
     if(body.query == null) {
        result = ExecutionResultImpl.newExecutionResult()
@@ -79,7 +79,8 @@ public class GraphQLEndpoint {
       if (body.variables != null) {
         inputBuilder.variables(body.variables);
       }
-      result = myGraphQL.execute(inputBuilder.build());
+      ExecutionInput input = inputBuilder.build();
+      result = NamedThreadFactory.executeWithNewThreadName("Processing GraphQL request", () -> myGraphQL.execute(input));
     }
 
     return myObjectMapper.writeValueAsString(result.toSpecification());
