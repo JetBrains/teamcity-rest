@@ -98,18 +98,16 @@ public class Query implements GraphQLQueryResolver {
 
   @NotNull
   public ProjectsConnection projects(@NotNull ProjectsFilter filter, @NotNull DataFetchingEnvironment env) {
-    Stream<SProject> projectsStream;
+    List<SProject> projects;
     if(filter.getArchived() != null) {
       if(filter.getArchived()) {
-        projectsStream = myProjectManager.getArchivedProjects().stream();
+        projects = myProjectManager.getArchivedProjects();
       } else {
-        projectsStream = myProjectManager.getActiveProjects().stream();
+        projects = myProjectManager.getActiveProjects();
       }
     } else {
-      projectsStream = myProjectManager.getProjects().stream();
+      projects = myProjectManager.getProjects();
     }
-
-    List<SProject> projects = projectsStream.collect(Collectors.toList());
 
     return new ProjectsConnection(projects);
   }
