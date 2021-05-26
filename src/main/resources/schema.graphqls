@@ -191,7 +191,7 @@ type ProjectPermissions {
 type Project {
   id: ID!
   name: String
-  ancestorProjects(filter: ProjectsFilter): ProjectsConnection
+  ancestorProjects: ProjectsConnection
   buildTypes: BuildTypesConnection
   agentPools: ProjectAgentPoolsConnection
   archived: Boolean

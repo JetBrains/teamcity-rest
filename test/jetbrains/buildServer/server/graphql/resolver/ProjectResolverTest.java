@@ -20,7 +20,6 @@ import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.server.graphql.model.connections.BuildTypesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
-import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import org.testng.annotations.BeforeMethod;
@@ -51,7 +50,7 @@ public class ProjectResolverTest extends BaseResolverTest {
     Project subsubproject = new Project(mySubSubProject);
     myDataFetchingEnvironment.setLocalContext(mySubSubProject);
 
-    ProjectsConnection ancestors = myResolver.ancestorProjects(subsubproject, new ProjectsFilter(false), myDataFetchingEnvironment);
+    ProjectsConnection ancestors = myResolver.ancestorProjects(subsubproject, myDataFetchingEnvironment);
 
 
 

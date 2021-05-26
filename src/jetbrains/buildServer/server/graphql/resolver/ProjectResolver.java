@@ -20,12 +20,10 @@ import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.ProjectPermissions;
 import jetbrains.buildServer.server.graphql.model.connections.*;
 import jetbrains.buildServer.server.graphql.model.Project;
-import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.util.ParentsFetcher;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -58,17 +56,10 @@ public class ProjectResolver implements GraphQLResolver<Project> {
   }
 
   @NotNull
-  public ProjectsConnection ancestorProjects(@NotNull Project source, @NotNull ProjectsFilter filter, @NotNull DataFetchingEnvironment env) {
+  public ProjectsConnection ancestorProjects(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
     SProject self = getSelfFromContextSafe(source, env);
 
-    Stream<SProject> ancestors = ParentsFetcher.getAncestors(self).stream()
-                                               .filter(p -> !p.getExternalId().equals(self.getExternalId()));
-
-    if(filter.getArchived() != null) {
-      ancestors = ancestors.filter(p -> p.isArchived() == filter.getArchived());
-    }
-
-    return new ProjectsConnection(ancestors.collect(Collectors.toList()));
+    return new ProjectsConnection(ParentsFetcher.getAncestors(self));
   }
 
   @NotNull

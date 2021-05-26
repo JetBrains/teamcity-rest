@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.graphql.util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -32,6 +33,22 @@ public class ParentsFetcher {
     }
 
     List<SProject> reversedAncestors = self.getProjectPath();
+    List<SProject> result = new ArrayList<>();
+
+    // Skip self
+    for(int i = reversedAncestors.size() - 2; i >= 0; i--)
+      result.add(reversedAncestors.get(i));
+
+    return result;
+  }
+
+  @NotNull
+  public static List<SProject> getAncestors(@Nullable SBuildType self) {
+    if(self == null) {
+      return Collections.emptyList();
+    }
+
+    List<SProject> reversedAncestors = self.getProject().getProjectPath();
     List<SProject> result = new ArrayList<>();
 
     for(int i = reversedAncestors.size() - 1; i >= 0; i--)

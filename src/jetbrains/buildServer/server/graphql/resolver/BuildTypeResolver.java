@@ -41,6 +41,6 @@ public class BuildTypeResolver implements GraphQLResolver<BuildType> {
       return ProjectsConnection.empty();
     }
 
-    return new ProjectsConnection(ParentsFetcher.getAncestors(bt.getProject()));
+    return new ProjectsConnection(ParentsFetcher.getAncestors(bt));
   }
 }
