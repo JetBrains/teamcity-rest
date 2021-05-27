@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.Date;
+import java.util.List;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.change.Change;
@@ -526,6 +527,48 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     check(bt + ",versionedSettings:true", vs_m20);
     check(bt + ",versionedSettings:false", m20);
     check(bt + ",versionedSettings:any", vs_m20, m20);
+  }
+
+  @Test
+  public void testCommentDimensionLegacy() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    final String description1 = "Description made by user with a string 'hello'";
+    final String description2 = "Description made by user without a magic string";
+
+    myFixture.addModification(modification().in(root1).description(description1).by("user1").version("1"));
+    myFixture.addModification(modification().in(root1).description(description2).by("user1").version("2").parentVersions("1"));
+
+    List<SVcsModification> result = myChangeFinder.getItems("comment:contains:hello").myEntries;
+    assertEquals(1, result.size());
+    assertEquals(description1, result.get(0).getDescription());
+  }
+
+  @Test
+  public void testCommentDimension() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    final String description1 = "Description made by user with a string 'hello'";
+    final String description2 = "Description made by user without a magic string";
+
+    myFixture.addModification(modification().in(root1).description(description1).by("user1").version("1"));
+    myFixture.addModification(modification().in(root1).description(description2).by("user1").version("2").parentVersions("1"));
+
+    List<SVcsModification> result = myChangeFinder.getItems("comment:(value:HELLO,ignoreCase:true,matchType:contains)").myEntries;
+    assertEquals(1, result.size());
+    assertEquals(description1, result.get(0).getDescription());
   }
 
   private void check(final FileChange fileChangeToCheck, final String type, final String typeComment, final Boolean isDirectory, final String filePath, final String relativePath) {

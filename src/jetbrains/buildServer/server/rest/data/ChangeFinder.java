@@ -358,13 +358,18 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       }
     }
 
-    final String commentLocator = locator.getSingleDimensionValue(COMMENT);
-    if (commentLocator != null) {
-      final String containsText = new Locator(commentLocator).getSingleDimensionValue("contains"); //todo: use conditions here
-      //todo: check unknown locator dimensions
+    final String commentLocatorText = locator.getSingleDimensionValue(COMMENT);
+    if (commentLocatorText != null) {
+      final Locator commentLocator = new Locator(commentLocatorText);
+      final String containsText = commentLocator.getSingleDimensionValue("contains");
+      // Preserve legacy behaviour
       if (containsText != null) {
         result.add(item -> item.getDescription().contains(containsText));
+      } else if (commentLocator.getDimensionsCount() > 1) {
+        ValueCondition condition = ParameterCondition.createValueCondition(commentLocatorText);
+        result.add(item -> condition.matches(item.getDescription()));
       }
+      //todo: check unprocessed dimensions
     }
 
     if (locator.getUnusedDimensions().contains(PENDING)) {
