@@ -353,8 +353,9 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     if (locator.isUnused(VERSION)) {
       final String displayVersion = locator.getSingleDimensionValue(VERSION);
+      ValueCondition condition = ParameterCondition.createValueCondition(displayVersion);
       if (displayVersion != null) {
-        result.add(item -> displayVersion.equals(item.getDisplayVersion()));
+        result.add(item -> condition.matches(item.getDisplayVersion()));
       }
     }
 
@@ -439,8 +440,10 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       return FinderDataBinding.getItemHolder(((VcsModificationHistoryEx)myVcsModificationHistory).findModificationsByVersion(internalVersion));
     }
 
-    final String displayVersion = locator.getSingleDimensionValue(VERSION);
+    ValueCondition displayVersionCondition = ParameterCondition.createValueCondition(locator.lookupSingleDimensionValue(VERSION));
+    final String displayVersion = displayVersionCondition != null ? displayVersionCondition.getConstantValueIfSimpleEqualsCondition() : null;
     if (displayVersion != null) {
+      locator.markUsed(Collections.singleton(VERSION));
       return FinderDataBinding.getItemHolder(((VcsModificationHistoryEx)myVcsModificationHistory).findModificationsByDisplayVersion(displayVersion));
     }
 

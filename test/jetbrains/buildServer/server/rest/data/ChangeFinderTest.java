@@ -35,6 +35,7 @@ import jetbrains.buildServer.util.Util;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
+import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -531,13 +532,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
   @Test
   public void testCommentDimensionLegacy() {
-    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-
-    MockVcsSupport vcs = new MockVcsSupport("vcs");
-    myFixture.getVcsManager().registerVcsSupport(vcs);
-    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
-    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
-    assert root1 != null;
+    VcsRootInstance root1 = buildVcsRootInstance();
 
     final String description1 = "Description made by user with a string 'hello'";
     final String description2 = "Description made by user without a magic string";
@@ -552,13 +547,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
   @Test
   public void testCommentDimension() {
-    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-
-    MockVcsSupport vcs = new MockVcsSupport("vcs");
-    myFixture.getVcsManager().registerVcsSupport(vcs);
-    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
-    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
-    assert root1 != null;
+    VcsRootInstance root1 = buildVcsRootInstance();
 
     final String description1 = "Description made by user with a string 'hello'";
     final String description2 = "Description made by user without a magic string";
@@ -573,13 +562,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
   @Test
   public void testCommentDimensionExactMatch() {
-    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-
-    MockVcsSupport vcs = new MockVcsSupport("vcs");
-    myFixture.getVcsManager().registerVcsSupport(vcs);
-    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
-    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
-    assert root1 != null;
+    VcsRootInstance root1 = buildVcsRootInstance();
 
     final String description1 = "Description made by user with a string 'hello'";
     final String description2 = "Description made by user without a magic string";
@@ -594,13 +577,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
   @Test
   public void testCommentDimensionExactMatch2() {
-    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-
-    MockVcsSupport vcs = new MockVcsSupport("vcs");
-    myFixture.getVcsManager().registerVcsSupport(vcs);
-    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
-    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
-    assert root1 != null;
+    VcsRootInstance root1 = buildVcsRootInstance();
 
     // Let's check that the word 'contains' also works as an exact match.
     // It's important because 'contains' is also a dimension in a legacy approach.
@@ -617,13 +594,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
   @Test
   public void testFilePathLegacyDimension() {
-    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-
-    MockVcsSupport vcs = new MockVcsSupport("vcs");
-    myFixture.getVcsManager().registerVcsSupport(vcs);
-    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
-    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
-    assert root1 != null;
+    VcsRootInstance root1 = buildVcsRootInstance();
 
     final String changedFile1 = "FileA";
     final String changedFile2 = "FileB";
@@ -638,13 +609,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
   @Test
   public void testFilePathDimension() {
-    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-
-    MockVcsSupport vcs = new MockVcsSupport("vcs");
-    myFixture.getVcsManager().registerVcsSupport(vcs);
-    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
-    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
-    assert root1 != null;
+    VcsRootInstance root1 = buildVcsRootInstance();
 
     final String changedFile1 = "FileA";
     final String changedFile2 = "FileB";
@@ -659,13 +624,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
   @Test
   public void testFilePathDimensionExactMatch() {
-    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-
-    MockVcsSupport vcs = new MockVcsSupport("vcs");
-    myFixture.getVcsManager().registerVcsSupport(vcs);
-    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
-    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
-    assert root1 != null;
+    VcsRootInstance root1 = buildVcsRootInstance();
 
     final String changedFile1 = "FileA";
     final String changedFile2 = "FileB";
@@ -680,13 +639,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
 
   @Test
   public void testFilePathDimensionExactMatch2() {
-    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-
-    MockVcsSupport vcs = new MockVcsSupport("vcs");
-    myFixture.getVcsManager().registerVcsSupport(vcs);
-    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
-    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
-    assert root1 != null;
+    VcsRootInstance root1 = buildVcsRootInstance();
 
     // Let's check that the word 'contains' also works as an exact match.
     // It's important because 'contains' is also a dimension in a legacy approach.
@@ -699,6 +652,48 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     List<SVcsModification> result = myChangeFinder.getItems("file:path:" + changedFile1).myEntries;
     assertEquals(1, result.size());
     assertEquals(changedFile1, result.get(0).getChanges().get(0).getFileName());
+  }
+
+  @Test
+  public void testVersionDimension() {
+    VcsRootInstance root1 = buildVcsRootInstance();
+
+    final String version1 = "12345";
+    final String version2 = "98765";
+
+    myFixture.addModification(modification().in(root1).by("user1").version(version1));
+    myFixture.addModification(modification().in(root1).by("user1").version(version2).parentVersions(version1));
+
+    List<SVcsModification> result = myChangeFinder.getItems("version:(value:3,ignoreCase:false,matchType:contains)").myEntries;
+    assertEquals(1, result.size());
+    assertEquals(version1, result.get(0).getVersion());
+  }
+
+  @Test
+  public void testVersionDimensionExactMatch() {
+    VcsRootInstance root1 = buildVcsRootInstance();
+
+    final String version1 = "12345";
+    final String version2 = "98765";
+
+    myFixture.addModification(modification().in(root1).by("user1").version(version1));
+    myFixture.addModification(modification().in(root1).by("user1").version(version2).parentVersions(version1));
+
+    List<SVcsModification> result = myChangeFinder.getItems("version:" + version1).myEntries;
+    assertEquals(1, result.size());
+    assertEquals(version1, result.get(0).getVersion());
+  }
+
+  @NotNull
+  private VcsRootInstance buildVcsRootInstance() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+    return root1;
   }
 
   private void check(final FileChange fileChangeToCheck, final String type, final String typeComment, final Boolean isDirectory, final String filePath, final String relativePath) {
