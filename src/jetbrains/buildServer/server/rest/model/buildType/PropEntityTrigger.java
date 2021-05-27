@@ -100,7 +100,8 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
     }
 
     final BuildTriggerDescriptor triggerToAdd = serviceLocator
-      .getSingletonService(BuildTriggerDescriptorFactory.class).createTriggerDescriptor(type, properties == null ? Collections.emptyMap() : properties.getMap());
+      .getSingletonService(BuildTriggerDescriptorFactory.class).createTriggerDescriptor(type, properties == null ? Collections.emptyMap() : properties.getMap(),
+                                                                                        buildTriggerCustomization == null ? BuildCustomizationSettings.empty() : buildTriggerCustomization.toBuildCustomizationSettings(serviceLocator));
 
     if (!buildType.addBuildTrigger(triggerToAdd)) {
       String additionalMessage = getDetails(buildType, triggerToAdd);
