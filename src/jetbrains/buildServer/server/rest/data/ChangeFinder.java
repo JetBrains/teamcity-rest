@@ -360,16 +360,15 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
 
     final String commentLocatorText = locator.getSingleDimensionValue(COMMENT);
     if (commentLocatorText != null) {
-      final Locator commentLocator = new Locator(commentLocatorText);
-      final String containsText = commentLocator.getSingleDimensionValue("contains");
+      final String containsText = new Locator(commentLocatorText).getSingleDimensionValue("contains");
       // Preserve legacy behaviour
       if (containsText != null) {
         result.add(item -> item.getDescription().contains(containsText));
-      } else if (commentLocator.getDimensionsCount() > 1) {
+        //todo: check unprocessed dimensions
+      } else {
         ValueCondition condition = ParameterCondition.createValueCondition(commentLocatorText);
         result.add(item -> condition.matches(item.getDescription()));
       }
-      //todo: check unprocessed dimensions
     }
 
     if (locator.getUnusedDimensions().contains(PENDING)) {
@@ -387,8 +386,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
       final String pathLocatorText = new Locator(fileLocator).getSingleDimensionValue("path"); //todo: use conditions here
       //todo: check unknown locator dimensions
       if (pathLocatorText != null) {
-        final String containsText = new Locator(pathLocatorText).getSingleDimensionValue("contains"); //todo: use conditions here
-        //todo: check unknown locator dimensions
+        final String containsText = new Locator(pathLocatorText).getSingleDimensionValue("contains");
         if (containsText != null) {
           result.add(item -> {
             for (VcsFileModification vcsFileModification : item.getChanges()) {
@@ -398,6 +396,10 @@ public class ChangeFinder extends AbstractFinder<SVcsModification> {
             }
             return false;
           });
+          //todo: check unknown locator dimensions
+        } else {
+          ValueCondition condition = ParameterCondition.createValueCondition(pathLocatorText);
+          result.add(item -> item.getChanges().stream().map(m -> m.getFileName()).anyMatch(condition::matches));
         }
       }
     }

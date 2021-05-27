@@ -571,6 +571,136 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModification> {
     assertEquals(description1, result.get(0).getDescription());
   }
 
+  @Test
+  public void testCommentDimensionExactMatch() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    final String description1 = "Description made by user with a string 'hello'";
+    final String description2 = "Description made by user without a magic string";
+
+    myFixture.addModification(modification().in(root1).description(description1).by("user1").version("1"));
+    myFixture.addModification(modification().in(root1).description(description2).by("user1").version("2").parentVersions("1"));
+
+    List<SVcsModification> result = myChangeFinder.getItems("comment:" + description1).myEntries;
+    assertEquals(1, result.size());
+    assertEquals(description1, result.get(0).getDescription());
+  }
+
+  @Test
+  public void testCommentDimensionExactMatch2() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    // Let's check that the word 'contains' also works as an exact match.
+    // It's important because 'contains' is also a dimension in a legacy approach.
+    final String description1 = "contains";
+    final String description2 = "Description made by user without a magic string";
+
+    myFixture.addModification(modification().in(root1).description(description1).by("user1").version("1"));
+    myFixture.addModification(modification().in(root1).description(description2).by("user1").version("2").parentVersions("1"));
+
+    List<SVcsModification> result = myChangeFinder.getItems("comment:" + description1).myEntries;
+    assertEquals(1, result.size());
+    assertEquals(description1, result.get(0).getDescription());
+  }
+
+  @Test
+  public void testFilePathLegacyDimension() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    final String changedFile1 = "FileA";
+    final String changedFile2 = "FileB";
+
+    myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile1).version("1"));
+    myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile2).version("2").parentVersions("1"));
+
+    List<SVcsModification> result = myChangeFinder.getItems("file:path:contains:A").myEntries;
+    assertEquals(1, result.size());
+    assertEquals(changedFile1, result.get(0).getChanges().get(0).getFileName());
+  }
+
+  @Test
+  public void testFilePathDimension() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    final String changedFile1 = "FileA";
+    final String changedFile2 = "FileB";
+
+    myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile1).version("1"));
+    myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile2).version("2").parentVersions("1"));
+
+    List<SVcsModification> result = myChangeFinder.getItems("file:path:(value:ILEa,ignoreCase:true,matchType:contains)").myEntries;
+    assertEquals(1, result.size());
+    assertEquals(changedFile1, result.get(0).getChanges().get(0).getFileName());
+  }
+
+  @Test
+  public void testFilePathDimensionExactMatch() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    final String changedFile1 = "FileA";
+    final String changedFile2 = "FileB";
+
+    myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile1).version("1"));
+    myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile2).version("2").parentVersions("1"));
+
+    List<SVcsModification> result = myChangeFinder.getItems("file:path:" + changedFile1).myEntries;
+    assertEquals(1, result.size());
+    assertEquals(changedFile1, result.get(0).getChanges().get(0).getFileName());
+  }
+
+  @Test
+  public void testFilePathDimensionExactMatch2() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
+    VcsRootInstance root1 = buildConf.getVcsRootInstanceForParent(parentRoot1);
+    assert root1 != null;
+
+    // Let's check that the word 'contains' also works as an exact match.
+    // It's important because 'contains' is also a dimension in a legacy approach.
+    final String changedFile1 = "contains";
+    final String changedFile2 = "FileB";
+
+    myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile1).version("1"));
+    myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile2).version("2").parentVersions("1"));
+
+    List<SVcsModification> result = myChangeFinder.getItems("file:path:" + changedFile1).myEntries;
+    assertEquals(1, result.size());
+    assertEquals(changedFile1, result.get(0).getChanges().get(0).getFileName());
+  }
+
   private void check(final FileChange fileChangeToCheck, final String type, final String typeComment, final Boolean isDirectory, final String filePath, final String relativePath) {
     assertEquals(type, fileChangeToCheck.changeType);
     assertEquals(typeComment, fileChangeToCheck.changeTypeComment);
