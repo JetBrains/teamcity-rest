@@ -18,9 +18,11 @@ package jetbrains.buildServer.server.rest.model.buildType;
 
 import java.util.Collections;
 import java.util.List;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.buildTriggers.BuildCustomizationSettings;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -29,6 +31,7 @@ import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.util.StringUtil;
@@ -43,6 +46,9 @@ import org.jetbrains.annotations.Nullable;
 @ModelDescription("Represents a build trigger.")
 public class PropEntityTrigger extends PropEntity implements PropEntityEdit<BuildTriggerDescriptor> {
 
+  @XmlElement(name = "buildCustomization")
+  private BuildTriggerCustomization buildTriggerCustomization;
+
   public PropEntityTrigger() {
   }
 
@@ -51,6 +57,7 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
                            @NotNull final Fields fields,
                            @NotNull final BeanContext beanContext) {
     super(descriptor, !buildTypeSettings.getOwnBuildTriggers().contains(descriptor), buildTypeSettings, fields, beanContext);
+    buildTriggerCustomization = ValueWithDefault.decideDefault(fields.isIncluded("buildCustomization"), new BuildTriggerCustomization(descriptor, fields, beanContext));
     //can optimize by getting getOwnBuildTriggers in the caller
   }
 
@@ -128,8 +135,15 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build trigger cannot have empty 'type'.");
     }
-    if (properties != null && !buildType.updateBuildTrigger(trigger.getId(), type, properties.getMap())) {
-      throw new OperationException("Update failed");
+    if ((properties != null || buildTriggerCustomization != null)) {
+      BuildTriggerDescriptor triggerDescriptor = serviceLocator.getSingletonService(BuildTriggerDescriptorFactory.class).createTriggerDescriptor(trigger.getId(), trigger.getTriggerName(),
+                                                                                                    properties != null ? properties.getMap() : Collections.emptyMap(),
+                                                                                                    buildTriggerCustomization != null
+                                                                                                    ? buildTriggerCustomization.toBuildCustomizationSettings(serviceLocator)
+                                                                                                    : BuildCustomizationSettings.empty());
+      if (!buildType.updateBuildTrigger(triggerDescriptor)) {
+        throw new OperationException("Update failed");
+      }
     }
     if (disabled != null) {
       buildType.setEnabled(trigger.getId(), !disabled);
