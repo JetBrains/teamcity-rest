@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.server.graphql.model.AgentPool;
 import jetbrains.buildServer.server.graphql.model.AgentPoolPermissions;
+import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolAgentsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolCloudImagesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
@@ -59,7 +60,7 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
       projects = projects.filter(p -> p.isArchived() == filter.getArchived());
     }
 
-    return new AgentPoolProjectsConnection(projects.collect(Collectors.toList()));
+    return new AgentPoolProjectsConnection(projects.collect(Collectors.toList()), PaginationArguments.everything());
   }
 
   @NotNull

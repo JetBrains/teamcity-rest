@@ -34,6 +34,7 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.Permissions;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -42,24 +43,27 @@ public class ProjectResolver implements GraphQLResolver<Project> {
   private final ProjectManager myProjectManager;
   @NotNull
   private final AgentPoolManager myAgentPoolManager;
+  @NotNull
+  private final PaginationArgumentsProvider myPaginationArgumentsProvider;
 
-  public ProjectResolver(@NotNull ProjectManager projectManager, @NotNull AgentPoolManager agentPoolManager) {
+  public ProjectResolver(@NotNull ProjectManager projectManager, @NotNull AgentPoolManager agentPoolManager, @NotNull PaginationArgumentsProvider paginationArgumentsProvider) {
     myProjectManager = projectManager;
     myAgentPoolManager = agentPoolManager;
+    myPaginationArgumentsProvider = paginationArgumentsProvider;
   }
 
   @NotNull
-  public BuildTypesConnection buildTypes(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
+  public BuildTypesConnection buildTypes(@NotNull Project source, @Nullable Integer first, @Nullable String after, @NotNull DataFetchingEnvironment env) {
     SProject self = getSelfFromContextSafe(source, env);
 
-    return new BuildTypesConnection(self.getBuildTypes());
+    return new BuildTypesConnection(self.getBuildTypes(), myPaginationArgumentsProvider.get(first, after, PaginationArgumentsProvider.FallbackBehaviour.RETURN_EVERYTHING));
   }
 
   @NotNull
   public ProjectsConnection ancestorProjects(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
     SProject self = getSelfFromContextSafe(source, env);
 
-    return new ProjectsConnection(ParentsFetcher.getAncestors(self));
+    return new ProjectsConnection(ParentsFetcher.getAncestors(self), PaginationArguments.everything());
   }
 
   @NotNull

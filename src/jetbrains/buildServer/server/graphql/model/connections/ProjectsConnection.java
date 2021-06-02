@@ -27,14 +27,14 @@ import org.jetbrains.annotations.Nullable;
 
 public class ProjectsConnection implements ExtensibleConnection<Project, ProjectsConnection.ProjectsConnectionEdge> {
   public static ProjectsConnection empty() {
-    return new ProjectsConnection(Collections.emptyList());
+    return new ProjectsConnection(Collections.emptyList(), PaginationArguments.everything());
   }
 
   @NotNull
-  private final NonPaginatingLazyConnection<SProject, Project, ProjectsConnectionEdge> myDelegate;
+  private final PaginatingConnection<SProject, Project, ProjectsConnectionEdge> myDelegate;
 
-  public ProjectsConnection(@NotNull List<SProject> data) {
-    myDelegate = new NonPaginatingLazyConnection<>(data, ProjectsConnectionEdge::new);
+  public ProjectsConnection(@NotNull List<SProject> data, @NotNull PaginationArguments paginationArguments) {
+    myDelegate = new PaginatingConnection<>(data, ProjectsConnectionEdge::new, paginationArguments);
   }
 
   public int getCount() {
@@ -57,6 +57,11 @@ public class ProjectsConnection implements ExtensibleConnection<Project, Project
   public class ProjectsConnectionEdge extends LazyEdge<SProject, Project> {
     public ProjectsConnectionEdge(@NotNull SProject data) {
       super(data, Project::new);
+    }
+
+    @Override
+    public String getCursor() {
+      return myData.getExternalId();
     }
   }
 }

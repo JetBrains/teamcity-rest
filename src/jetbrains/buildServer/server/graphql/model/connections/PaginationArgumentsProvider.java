@@ -16,25 +16,26 @@
 
 package jetbrains.buildServer.server.graphql.model.connections;
 
-import graphql.execution.DataFetcherResult;
-import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class LazyEdge<DATA, MODEL> implements ExtensibleConnection.Edge<MODEL> {
-  @NotNull
-  protected final DATA myData;
-
-  @NotNull
-  protected final Function<DATA, MODEL> myTransformer;
-
-  public LazyEdge(@NotNull DATA data, @NotNull Function<DATA, MODEL> transformer) {
-    myData = data;
-    myTransformer = transformer;
-  }
+public interface PaginationArgumentsProvider {
+  int DEFAULT_PAGE_SIZE = 100;
 
   @NotNull
-  @Override
-  public DataFetcherResult<MODEL> getNode() {
-    return DataFetcherResult.<MODEL>newResult().data(myTransformer.apply(myData)).localContext(myData).build();
+  PaginationArguments get(@Nullable Integer first, @Nullable String after, @NotNull FallbackBehaviour fallbackBehaviour);
+
+  @NotNull
+  PaginationArguments get(@Nullable Integer first, @Nullable String after, @Nullable Integer last, @Nullable String before, @NotNull FallbackBehaviour fallbackBehaviour);
+
+  @NotNull
+  PaginationArguments getFirstPage();
+
+  @NotNull
+  PaginationArguments getLastPage();
+
+  public enum FallbackBehaviour {
+    RETURN_EVERYTHING,
+    RETURN_FIRST_PAGE
   }
 }

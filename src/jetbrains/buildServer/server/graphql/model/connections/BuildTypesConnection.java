@@ -26,15 +26,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class BuildTypesConnection implements ExtensibleConnection<BuildType, BuildTypesConnection.BuildTypesConnectionEdge> {
-  public static BuildTypesConnection empty() {
-    return new BuildTypesConnection(Collections.emptyList());
-  }
-
   @NotNull
-  private final NonPaginatingLazyConnection<SBuildType, BuildType, BuildTypesConnectionEdge> myDelegate;
+  private final PaginatingConnection<SBuildType, BuildType, BuildTypesConnectionEdge> myDelegate;
 
-  public BuildTypesConnection(@NotNull List<SBuildType> data) {
-    myDelegate = new NonPaginatingLazyConnection<>(data, BuildTypesConnectionEdge::new);
+  public BuildTypesConnection(@NotNull List<SBuildType> data, @NotNull PaginationArguments paginationArguments) {
+    myDelegate = new PaginatingConnection<>(data, BuildTypesConnectionEdge::new, paginationArguments);
   }
 
   public int getCount() {
@@ -57,6 +53,12 @@ public class BuildTypesConnection implements ExtensibleConnection<BuildType, Bui
 
     public BuildTypesConnectionEdge(@NotNull SBuildType data) {
       super(data, BuildType::new);
+    }
+
+    @Nullable
+    @Override
+    public String getCursor() {
+      return myData.getExternalId();
     }
   }
 }

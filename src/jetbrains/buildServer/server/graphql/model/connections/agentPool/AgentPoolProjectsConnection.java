@@ -20,19 +20,17 @@ import graphql.execution.DataFetcherResult;
 import graphql.relay.PageInfo;
 import java.util.List;
 import jetbrains.buildServer.server.graphql.model.Project;
-import jetbrains.buildServer.server.graphql.model.connections.ExtensibleConnection;
-import jetbrains.buildServer.server.graphql.model.connections.LazyEdge;
-import jetbrains.buildServer.server.graphql.model.connections.NonPaginatingLazyConnection;
+import jetbrains.buildServer.server.graphql.model.connections.*;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class AgentPoolProjectsConnection implements ExtensibleConnection<Project, AgentPoolProjectsConnection.AgentPoolProjectsConnectionEdge> {
   @NotNull
-  private final NonPaginatingLazyConnection<SProject, Project, AgentPoolProjectsConnectionEdge> myDelegate;
+  private final PaginatingConnection<SProject, Project, AgentPoolProjectsConnectionEdge> myDelegate;
 
-  public AgentPoolProjectsConnection(@NotNull List<SProject> data) {
-    myDelegate = new NonPaginatingLazyConnection<>(data, AgentPoolProjectsConnectionEdge::new);
+  public AgentPoolProjectsConnection(@NotNull List<SProject> data, @NotNull PaginationArguments paginationArguments) {
+    myDelegate = new PaginatingConnection<>(data, AgentPoolProjectsConnectionEdge::new, paginationArguments);
   }
 
   int getCount() {

@@ -17,21 +17,18 @@
 package jetbrains.buildServer.server.graphql.model.connections;
 
 import graphql.execution.DataFetcherResult;
-import graphql.relay.ConnectionCursor;
-import graphql.relay.Edge;
 import graphql.relay.PageInfo;
 import java.util.List;
-import java.util.function.Function;
 import jetbrains.buildServer.server.graphql.model.AgentPool;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ProjectAgentPoolsConnection implements ExtensibleConnection<AgentPool, ProjectAgentPoolsConnection.ProjectAgentPoolEdge> {
   @NotNull
-  private final NonPaginatingLazyConnection<jetbrains.buildServer.serverSide.agentPools.AgentPool, AgentPool, ProjectAgentPoolsConnection.ProjectAgentPoolEdge> myDelegate;
+  private final PaginatingConnection<jetbrains.buildServer.serverSide.agentPools.AgentPool, AgentPool, ProjectAgentPoolEdge> myDelegate;
 
   public ProjectAgentPoolsConnection(List<jetbrains.buildServer.serverSide.agentPools.AgentPool> data) {
-    myDelegate = new NonPaginatingLazyConnection<>(data, ProjectAgentPoolEdge::new);
+    myDelegate = new PaginatingConnection<>(data, ProjectAgentPoolEdge::new, PaginationArguments.everything());
   }
 
   @NotNull

@@ -16,25 +16,40 @@
 
 package jetbrains.buildServer.server.graphql.model.connections;
 
-import graphql.execution.DataFetcherResult;
-import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class LazyEdge<DATA, MODEL> implements ExtensibleConnection.Edge<MODEL> {
+public interface PaginationArguments {
+  @Nullable
+  public String getAfter();
+
+  public int getCount();
+
   @NotNull
-  protected final DATA myData;
+  public Direction getDirection();
 
-  @NotNull
-  protected final Function<DATA, MODEL> myTransformer;
+  static PaginationArguments everything() {
+    return new PaginationArguments() {
+      @Nullable
+      @Override
+      public String getAfter() {
+        return null;
+      }
 
-  public LazyEdge(@NotNull DATA data, @NotNull Function<DATA, MODEL> transformer) {
-    myData = data;
-    myTransformer = transformer;
+      @Override
+      public int getCount() {
+        return -1;
+      }
+
+      @NotNull
+      @Override
+      public Direction getDirection() {
+        return Direction.FORWARD;
+      }
+    };
   }
 
-  @NotNull
-  @Override
-  public DataFetcherResult<MODEL> getNode() {
-    return DataFetcherResult.<MODEL>newResult().data(myTransformer.apply(myData)).localContext(myData).build();
+  public enum Direction {
+    FORWARD, BACKWARD;
   }
 }

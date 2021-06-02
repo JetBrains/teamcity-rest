@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
+import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
 import jetbrains.buildServer.server.graphql.util.ParentsFetcher;
 import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
@@ -41,6 +42,6 @@ public class BuildTypeResolver implements GraphQLResolver<BuildType> {
       return ProjectsConnection.empty();
     }
 
-    return new ProjectsConnection(ParentsFetcher.getAncestors(bt));
+    return new ProjectsConnection(ParentsFetcher.getAncestors(bt), PaginationArguments.everything());
   }
 }

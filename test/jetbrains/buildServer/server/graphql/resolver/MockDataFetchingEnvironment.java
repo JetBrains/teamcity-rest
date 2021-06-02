@@ -69,6 +69,10 @@ public class MockDataFetchingEnvironment implements DataFetchingEnvironment {
     return (T) myArguments.get(name);
   }
 
+  public <T> void setArgument(String name, T value) {
+    myArguments.put(name, value);
+  }
+
   @Override
   public <T> T getArgumentOrDefault(String name, T defaultValue) {
     return (T) myArguments.getOrDefault(name, defaultValue);

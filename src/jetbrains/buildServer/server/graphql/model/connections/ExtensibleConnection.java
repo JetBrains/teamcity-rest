@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.graphql.model.connections;
 
 import graphql.execution.DataFetcherResult;
-import graphql.relay.ConnectionCursor;
 import graphql.relay.PageInfo;
 import java.util.List;
 import org.jetbrains.annotations.NotNull;
@@ -37,7 +36,7 @@ public interface ExtensibleConnection<T, E extends ExtensibleConnection.Edge<T>>
     DataFetcherResult<T> getNode();
 
     @Nullable
-    default ConnectionCursor getCursor() {
+    default String getCursor() {
       return null;
     }
   }

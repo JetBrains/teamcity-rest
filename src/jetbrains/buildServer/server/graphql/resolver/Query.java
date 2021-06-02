@@ -21,10 +21,10 @@ import graphql.kickstart.tools.GraphQLQueryResolver;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import jetbrains.buildServer.server.graphql.model.Agent;
 import jetbrains.buildServer.server.graphql.model.AgentPool;
 import jetbrains.buildServer.server.graphql.model.GlobalPermissions;
+import jetbrains.buildServer.server.graphql.model.connections.PaginationArgumentsProvider;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agent.AgentsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolsConnection;
@@ -47,13 +47,17 @@ public class Query implements GraphQLQueryResolver {
   private final AgentPoolFinder myAgentPoolFinder;
   @NotNull
   private final ProjectManager myProjectManager;
+  @NotNull
+  private final PaginationArgumentsProvider myPaginationArgumentsProvider;
 
   public Query(@NotNull AgentFinder agentFinder,
                @NotNull AgentPoolFinder agentPoolFinder,
-               @NotNull ProjectManager projectManager) {
+               @NotNull ProjectManager projectManager,
+               @NotNull PaginationArgumentsProvider paginationArgumentsProvider) {
     myAgentFinder = agentFinder;
     myAgentPoolFinder = agentPoolFinder;
     myProjectManager = projectManager;
+    myPaginationArgumentsProvider = paginationArgumentsProvider;
   }
 
   @NotNull
@@ -97,7 +101,7 @@ public class Query implements GraphQLQueryResolver {
   }
 
   @NotNull
-  public ProjectsConnection projects(@NotNull ProjectsFilter filter, @NotNull DataFetchingEnvironment env) {
+  public ProjectsConnection projects(@NotNull ProjectsFilter filter, @Nullable Integer first, @Nullable String after, @NotNull DataFetchingEnvironment env) {
     List<SProject> projects;
     if(filter.getArchived() != null) {
       if(filter.getArchived()) {
@@ -109,7 +113,7 @@ public class Query implements GraphQLQueryResolver {
       projects = myProjectManager.getProjects();
     }
 
-    return new ProjectsConnection(projects);
+    return new ProjectsConnection(projects, myPaginationArgumentsProvider.get(first, after, PaginationArgumentsProvider.FallbackBehaviour.RETURN_EVERYTHING));
   }
 
   @NotNull

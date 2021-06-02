@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.graphql.resolver;
 import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.server.graphql.model.connections.BuildTypesConnection;
+import jetbrains.buildServer.server.graphql.model.connections.PaginationArgumentsProviderImpl;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
@@ -37,7 +38,7 @@ public class ProjectResolverTest extends BaseResolverTest {
   public void setUp() throws Exception {
     super.setUp();
 
-    myResolver = new ProjectResolver(myFixture.getProjectManager(), myFixture.getAgentPoolManager());
+    myResolver = new ProjectResolver(myFixture.getProjectManager(), myFixture.getAgentPoolManager(), new PaginationArgumentsProviderImpl());
     mySubProject = myProject.createProject(myProject.getExternalId() + "_subproject", "subproject");
     mySubSubProject = mySubProject.createProject(mySubProject.getExternalId() + "_subproject", "subsubproject");
 
@@ -49,10 +50,9 @@ public class ProjectResolverTest extends BaseResolverTest {
   public void testAncestors() throws Exception {
     Project subsubproject = new Project(mySubSubProject);
     myDataFetchingEnvironment.setLocalContext(mySubSubProject);
+    myDataFetchingEnvironment.setArgument("first", -1);
 
     ProjectsConnection ancestors = myResolver.ancestorProjects(subsubproject, myDataFetchingEnvironment);
-
-
 
     assertEquals(3, ancestors.getCount());
     assertExtensibleEdges(ancestors.getEdges().getData(),
@@ -64,7 +64,7 @@ public class ProjectResolverTest extends BaseResolverTest {
 
   @Test
   public void testBuildTypes() throws Exception {
-    BuildTypesConnection buildTypes = myResolver.buildTypes(new Project(mySubProject), myDataFetchingEnvironment);
+    BuildTypesConnection buildTypes = myResolver.buildTypes(new Project(mySubProject), null, null, myDataFetchingEnvironment);
 
     assertEquals(2, buildTypes.getCount());
     assertExtensibleEdges(buildTypes.getEdges().getData(), new BuildType(myBuildType1), new BuildType(myBuildType2)

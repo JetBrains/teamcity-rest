@@ -158,6 +158,7 @@ type Agent {
 
 type ProjectEdge {
   node: Project!
+  cursor: String!
 }
 
 type ProjectsConnection {
@@ -168,6 +169,7 @@ type ProjectsConnection {
 
 type BuildTypeEdge {
   node: BuildType!
+  cursor: String!
 }
 
 type BuildTypesConnection {
@@ -192,7 +194,7 @@ type Project {
   id: ID!
   name: String
   ancestorProjects: ProjectsConnection
-  buildTypes: BuildTypesConnection
+  buildTypes(first: Int, after: String): BuildTypesConnection
   agentPools: ProjectAgentPoolsConnection
   archived: Boolean
   permissions: ProjectPermissions
@@ -227,7 +229,7 @@ type Query {
   agents(filter: AgentsFilter): AgentsConnection
   agentPool(id: ID!): AgentPool
   agentPools: AgentPoolsConnection
-  projects(filter: ProjectsFilter = {archived: false}): ProjectsConnection
+  projects(filter: ProjectsFilter = {archived: false}, first: Int, after: String): ProjectsConnection
   globalPermissions: GlobalPermissions
 }
 
