@@ -48,6 +48,7 @@
   <test name="GraphQL API Test" preserve-order="false">
     <classes>
       <class name="jetbrains.buildServer.server.graphql.resolver.ProjectResolverTest" />
+      <class name="jetbrains.buildServer.server.graphql.model.connections.PaginatingConnectionTest" />
     </classes>
   </test>
 </suite>

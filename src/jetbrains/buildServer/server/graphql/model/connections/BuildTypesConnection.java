@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.graphql.model.connections;
 
 import graphql.execution.DataFetcherResult;
 import graphql.relay.PageInfo;
-import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.serverSide.SBuildType;
