@@ -24,6 +24,7 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilter;
+import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -31,7 +32,6 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
-import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
@@ -610,7 +610,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     final String scopeDimension = locator.getSingleDimensionValue(SCOPE);
     if(scopeDimension != null) {
-      final TestScopeFilter filter = new TestScopeFilter(scopeDimension);
+      final TestScopeFilter filter = new TestScopeFilterImpl(scopeDimension);
       result.add(item -> filter.test(item));
     }
 

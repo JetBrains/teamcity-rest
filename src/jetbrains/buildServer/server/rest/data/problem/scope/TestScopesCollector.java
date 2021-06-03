@@ -74,14 +74,14 @@ public class TestScopesCollector {
 
   public Stream<TestScope> getItems(@NotNull Locator locator) {
     locator.addSupportedDimensions(SCOPE_TYPE, TEST_OCCURRENCES, ORDER_BY, PagerData.START, PagerData.COUNT);
-    locator.addSupportedDimensions(TestScopeFilter.SUPPORTED_DIMENSIONS);
+    locator.addSupportedDimensions(TestScopeFilterImpl.SUPPORTED_DIMENSIONS);
 
     String scopeName = locator.getSingleDimensionValue(SCOPE_TYPE);
     if(scopeName == null || !SUPPORTED_SCOPES.contains(scopeName)) {
       throw new BadRequestException("Invalid scope. Only scopes " + String.join(",", SUPPORTED_SCOPES) + " are supported.");
     }
 
-    TestScopeFilter filter = new TestScopeFilter(locator);
+    TestScopeFilterImpl filter = new TestScopeFilterImpl(locator);
 
     Locator testOccurrencesLocator = new Locator(locator.getSingleDimensionValue(TEST_OCCURRENCES));
     testOccurrencesLocator.setDimension(TestOccurrenceFinder.SCOPE, filter.getLocatorString());

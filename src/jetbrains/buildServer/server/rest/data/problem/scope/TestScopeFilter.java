@@ -16,61 +16,14 @@
 
 package jetbrains.buildServer.server.rest.data.problem.scope;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Predicate;
-import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.ParameterCondition;
-import jetbrains.buildServer.server.rest.data.ValueCondition;
 import jetbrains.buildServer.serverSide.STestRun;
-import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-public class TestScopeFilter implements Predicate<STestRun> {
-  public static final String[] SUPPORTED_DIMENSIONS = {"suite", "package", "class" };
-
-  @NotNull
-  private final List<Filter<STestRun>> myConditions;
-
-  private final String mySuiteConditionDef;
-  private final String myPackageConditionDef;
-  private final String myClassConditionDef;
-
-  public TestScopeFilter(@Nullable String locator) {
-    this(Locator.createPotentiallyEmptyLocator(locator));
-  }
-
-  public TestScopeFilter(@NotNull Locator locator) {
-    locator.addSupportedDimensions(SUPPORTED_DIMENSIONS);
-
-    myConditions = new ArrayList<>();
-
-    mySuiteConditionDef = locator.getSingleDimensionValue("suite");
-    if(mySuiteConditionDef != null) {
-      ValueCondition condition = ParameterCondition.createValueCondition(mySuiteConditionDef);
-      myConditions.add(item -> condition.matches(item.getTest().getName().getSuite()));
-    }
-    myPackageConditionDef = locator.getSingleDimensionValue("package");
-    if(myPackageConditionDef != null) {
-      ValueCondition condition = ParameterCondition.createValueCondition(myPackageConditionDef);
-      myConditions.add(item -> condition.matches(item.getTest().getName().getPackageName()));
-    }
-    myClassConditionDef = locator.getSingleDimensionValue("class");
-    if(myClassConditionDef != null) {
-      ValueCondition condition = ParameterCondition.createValueCondition(myClassConditionDef);
-      myConditions.add(item -> condition.matches(item.getTest().getName().getClassName()));
-    }
-  }
-
-  @NotNull
-  public String getLocatorString() {
-    return StringUtil.join(",", mySuiteConditionDef, myPackageConditionDef, myClassConditionDef);
-  }
-
+public interface TestScopeFilter extends Predicate<STestRun> {
   @Override
-  public boolean test(@NotNull STestRun item) {
-    return myConditions.stream().allMatch(f -> f.accept(item));
-  }
+  boolean test(@NotNull STestRun item);
+
+  @NotNull
+  String getLocatorString();
 }
