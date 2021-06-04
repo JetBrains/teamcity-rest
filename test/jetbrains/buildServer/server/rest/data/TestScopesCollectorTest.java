@@ -207,50 +207,109 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
   }
 
   @Test
-  public void testReturnsCorrectTree() {
+  public void testReturnsSuitesComplex() {
+    buildTree();
+    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:suite"
+    ));
 
-    final BuildTypeImpl buildType1 = registerBuildType("buildConf1", "project");
+    assertEquals(2, result.myEntries.size());
+    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertContains(resultNames, "suite1: ");
+    assertContains(resultNames, "suite2: ");
+  }
 
-    final SFinishedBuild build1 = build().in(buildType1)
-                                         .startSuite("suite1")
-                                         .withTest("packageA.class1.aaa", true)
-                                         .withTest("packageA.class2.aaa", true)
-                                         .withTest("packageB.class1.aaa", true)
-                                         .endSuite()
-                                         .finish();
+  @Test
+  public void testReturnsPackagesComplex() {
+    buildTree();
+    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:package"
+    ));
 
-    final BuildTypeImpl buildType2 = registerBuildType("buildConf2", "project");
+    // suite1: packageA
+    // suite1: packageB
+    // suite2: packageC
+    // suite2: packageA
+    assertEquals(4, result.myEntries.size());
+    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertContains(resultNames, "packageA");
+    assertContains(resultNames, "packageB");
+    assertContains(resultNames, "packageC");
+  }
 
-    final SFinishedBuild build2 = build().in(buildType2)
-                                         .startSuite("suite1")
-                                         .withTest("packageA.class1.aaa", true)
-                                         .withTest("packageA.class2.aaa", true)
-                                         .withTest("packageB.class1.aaa", true)
-                                         .endSuite()
-                                         .finish();
+  @Test
+  public void testReturnsClassesComplex() {
+    buildTree();
+    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class"
+    ));
 
+    // suite1: packageA.class1
+    // suite1: packageA.class2
+    // suite1: packageB.class1
+    // suite2: packageC.class2
+    // suite2: packageA.class3
+    assertEquals(5, result.myEntries.size());
+    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertContains(resultNames, "class1");
+    assertContains(resultNames, "class2");
+    assertContains(resultNames, "class3");
   }
 
   private void buildTree() {
     /* Builds a following tree:
 
-        aaa  bbb    aaa       aaa                     aaa      aaa
-          \   |      |         |                      |        |
-          class1  class2    class1                     class1  class2
-              \    /          |                       \    /
-              packageA     packageB                                 suite2
-                    \      /                |             |
-                     suite1             buildConf2
-                       |                    |
-                  buildConf1            subproject
-                          \              /
-                              project
-                                |
-                             _Root
+                                 project
+                               /        \
+                       project1          project2
+                      /        \                \
+                buildconf1   subproject11    subproject21
+                    |               \               \
+                  suite1          buildconf2     buildconf11
+                 /      \             \             /     \
+            packageA    packageB    suite2       suite1  suite2
+             /     \        \          \           |        \
+         class1   class2    class1   packageA   packageB   packageC
+          /   \      |         \        \          |          \
+         a     b     a          b     class3    class1       class2
+                                         \         |           \
+                                          c        a            c
      */
 
-    ProjectEx project = myFixture.getProject();
-    ProjectEx subproject = myFixture.createProject("subproject", project);
+    ProjectEx project = myFixture.createProject("project", "project");
 
+    ProjectEx project1 = project.createProject("project1", "project1");
+    ProjectEx project2 = project.createProject("project2", "project2");
+
+    ProjectEx subproject11 = project1.createProject("subproject11", "subproject11");
+    ProjectEx subproject21 = project2.createProject("subproject21", "subproject21");
+
+    BuildTypeEx buildconf1 = project1.createBuildType("buildConf1");
+    BuildTypeEx buildconf2 = subproject11.createBuildType("buildconf2");
+    BuildTypeEx buildconf11 = subproject21.createBuildType("buildconf11");
+
+    final SFinishedBuild build1 = build().in(buildconf1)
+                                         .startSuite("suite1")
+                                         .withTest("packageA.class1.a", true)
+                                         .withTest("packageA.class1.b", true)
+                                         .withTest("packageA.class2.a", true)
+                                         .withTest("packageB.class1.b", true)
+                                         .endSuite()
+                                         .finish();
+
+    final SFinishedBuild build2 = build().in(buildconf2)
+                                         .startSuite("suite2")
+                                         .withTest("packageA.class3.c", true)
+                                         .endSuite()
+                                         .finish();
+
+    final SFinishedBuild build3 = build().in(buildconf11)
+                                         .startSuite("suite1")
+                                         .withTest("packageB.class1.a", true)
+                                         .endSuite()
+                                         .startSuite("suite2")
+                                         .withTest("packageC.class2.c", true)
+                                         .endSuite()
+                                         .finish();
   }
 }
