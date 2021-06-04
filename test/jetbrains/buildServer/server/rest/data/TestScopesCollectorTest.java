@@ -259,6 +259,67 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
     assertContains(resultNames, "class3");
   }
 
+  @Test
+  public void testFiltersByBuildType() {
+    buildTree();
+    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,buildType:(value:buildconf1,matchType:equals)"
+    ));
+
+    // suite1: packageA.class1
+    // suite1: packageA.class2
+    // suite1: packageB.class1
+    assertEquals(3, result.myEntries.size());
+    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertContains(resultNames, "class1");
+    assertContains(resultNames, "class2");
+  }
+
+  @Test
+  public void testFiltersByBuildType2() {
+    buildTree();
+    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,buildType:(value:buildconf1,matchType:contains)"
+    ));
+
+    // suite1: packageA.class1
+    // suite1: packageA.class2
+    // suite1: packageB.class1
+    // suite2: packageC.class2
+    assertEquals(4, result.myEntries.size());
+    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertContains(resultNames, "class1");
+    assertContains(resultNames, "class2");
+  }
+
+  @Test
+  public void testFiltersByAffectedProject() {
+    buildTree();
+    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,affectedProject:(value:project2,matchType:equals)"
+    ));
+
+    // suite1: packageB.class1
+    // suite2: packageC.class2
+    assertEquals(2, result.myEntries.size());
+    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertContains(resultNames, "class1");
+    assertContains(resultNames, "class2");
+  }
+
+  @Test
+  public void testFiltersByAffectedProject2() {
+    buildTree();
+    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,affectedProject:(value:subproject11,matchType:equals)"
+    ));
+
+    // suite2: packageA.class3
+    assertEquals(1, result.myEntries.size());
+    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertContains(resultNames, "class3");
+  }
+
   private void buildTree() {
     /* Builds a following tree:
 
@@ -287,7 +348,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
     ProjectEx subproject11 = project1.createProject("subproject11", "subproject11");
     ProjectEx subproject21 = project2.createProject("subproject21", "subproject21");
 
-    BuildTypeEx buildconf1 = project1.createBuildType("buildConf1");
+    BuildTypeEx buildconf1 = project1.createBuildType("buildconf1");
     BuildTypeEx buildconf2 = subproject11.createBuildType("buildconf2");
     BuildTypeEx buildconf11 = subproject21.createBuildType("buildconf11");
 
