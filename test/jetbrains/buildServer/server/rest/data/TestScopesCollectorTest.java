@@ -21,7 +21,9 @@ import java.util.stream.Collectors;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScope;
+import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector;
+import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.CurrentProblemsManager;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.TestName2IndexImpl;
@@ -96,12 +98,13 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
                                   myFixture.getTestManager(), testName2Index, myFixture.getCurrentProblemsManager(), problemMutingService);
     myFixture.addService(myTestFinder);
 
+    TestScopeFilterProducer testScopesFilterProducer = new TestScopeFilterProducer(myProjectManager);
     final CurrentProblemsManager currentProblemsManager = myServer.getSingletonService(CurrentProblemsManager.class);
-    myTestOccurrenceFinder = new TestOccurrenceFinder(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myFixture.getTestsHistory(), currentProblemsManager, myBranchFinder);
+    myTestOccurrenceFinder = new TestOccurrenceFinder(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myFixture.getTestsHistory(), currentProblemsManager, myBranchFinder, testScopesFilterProducer);
     myFixture.addService(myTestOccurrenceFinder);
 
 
-    myCollector = new TestScopesCollector(myTestOccurrenceFinder);
+    myCollector = new TestScopesCollector(myTestOccurrenceFinder, testScopesFilterProducer);
   }
 
   @Test

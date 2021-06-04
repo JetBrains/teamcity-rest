@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.MultiTestRun;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.STestRun;
+import jetbrains.buildServer.util.StringUtil;
 import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,11 +47,14 @@ public class TestScopesCollector {
   public static final String SPLIT_BY_BUILD_TYPE = "splitByBuildType";
   @NotNull
   private final TestOccurrenceFinder myTestOccurrenceFinder;
+  @NotNull
+  private final TestScopeFilterProducer myTestScopeFilterProducer;
 
   private static final String DEFAULT_COUNT = "100";
 
-  public TestScopesCollector(final @NotNull TestOccurrenceFinder finder) {
+  public TestScopesCollector(final @NotNull TestOccurrenceFinder finder, final @NotNull TestScopeFilterProducer testScopeFilterProducer) {
     myTestOccurrenceFinder = finder;
+    myTestScopeFilterProducer = testScopeFilterProducer;
   }
 
   public PagedSearchResult<TestScope> getPagedItems(@NotNull Locator locator) {
@@ -81,10 +85,12 @@ public class TestScopesCollector {
       throw new BadRequestException("Invalid scope. Only scopes " + String.join(",", SUPPORTED_SCOPES) + " are supported.");
     }
 
-    TestScopeFilterImpl filter = new TestScopeFilterImpl(locator);
+    TestScopeFilter filter = myTestScopeFilterProducer.createFromLocator(locator);
 
     Locator testOccurrencesLocator = new Locator(locator.getSingleDimensionValue(TEST_OCCURRENCES));
-    testOccurrencesLocator.setDimension(TestOccurrenceFinder.SCOPE, filter.getLocatorString());
+
+    if(!StringUtil.isEmpty(filter.getLocatorString()))
+      testOccurrencesLocator.setDimension(TestOccurrenceFinder.SCOPE, filter.getLocatorString());
 
     PagedSearchResult<STestRun> items = myTestOccurrenceFinder.getItems(testOccurrencesLocator.getStringRepresentation());
 

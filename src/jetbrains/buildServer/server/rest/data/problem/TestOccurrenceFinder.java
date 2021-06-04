@@ -25,6 +25,7 @@ import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilter;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterImpl;
+import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -118,6 +119,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @NotNull private final TestHistory myTestHistory;
   @NotNull private final CurrentProblemsManager myCurrentProblemsManager;
   @NotNull private final BranchFinder myBranchFinder;
+  @NotNull private final TestScopeFilterProducer myTestScopeFilterProducer;
 
   public TestOccurrenceFinder(final @NotNull TestFinder testFinder,
                               final @NotNull BuildFinder buildFinder,
@@ -125,7 +127,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                               final @NotNull ProjectFinder projectFinder,
                               final @NotNull TestHistory testHistory,
                               final @NotNull CurrentProblemsManager currentProblemsManager,
-                              final @NotNull BranchFinder branchFinder) {
+                              final @NotNull BranchFinder branchFinder,
+                              final @NotNull TestScopeFilterProducer testScopeFilterProducer) {
     super(DIMENSION_ID, TEST, NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, NEW_FAILURE, INCLUDE_PERSONAL, INCLUDE_ALL_PERSONAL);
     setHiddenDimensions(EXPAND_INVOCATIONS, INVOCATIONS);
     setHiddenDimensions(ORDER); //highly experiemntal
@@ -137,6 +140,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     myTestHistory = testHistory;
     myCurrentProblemsManager = currentProblemsManager;
     myBranchFinder = branchFinder;
+    myTestScopeFilterProducer = testScopeFilterProducer;
   }
 
   @Override
@@ -610,7 +614,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     final String scopeDimension = locator.getSingleDimensionValue(SCOPE);
     if(scopeDimension != null) {
-      final TestScopeFilter filter = new TestScopeFilterImpl(scopeDimension);
+      final TestScopeFilter filter = myTestScopeFilterProducer.createFromLocatorString(scopeDimension);
       result.add(item -> filter.test(item));
     }
 

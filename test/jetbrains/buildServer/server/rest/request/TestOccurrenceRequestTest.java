@@ -20,6 +20,7 @@ import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.controllers.fakes.FakeHttpServletRequest;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
+import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -247,7 +248,15 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
 
   private class TestOccurrenceFinderDenyingItemsFetch extends TestOccurrenceFinder {
     public TestOccurrenceFinderDenyingItemsFetch() {
-      super(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myFixture.getTestsHistory(), myServer.getSingletonService(CurrentProblemsManager.class), myBranchFinder);
+      super(myTestFinder,
+            myBuildFinder,
+            myBuildTypeFinder,
+            myProjectFinder,
+            myFixture.getTestsHistory(),
+            myServer.getSingletonService(CurrentProblemsManager.class),
+            myBranchFinder,
+            new TestScopeFilterProducer(myProjectManager)
+      );
     }
 
     @NotNull

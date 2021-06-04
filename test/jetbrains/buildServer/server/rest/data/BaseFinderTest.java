@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
+import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -156,8 +157,9 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
                                   myFixture.getTestManager(), testName2Index, myFixture.getCurrentProblemsManager(), problemMutingService);
     myFixture.addService(myTestFinder);
 
+    TestScopeFilterProducer filterProducer = new TestScopeFilterProducer(myProjectManager);
     final CurrentProblemsManager currentProblemsManager = myServer.getSingletonService(CurrentProblemsManager.class);
-    myTestOccurrenceFinder = new TestOccurrenceFinder(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myFixture.getTestsHistory(), currentProblemsManager, myBranchFinder);
+    myTestOccurrenceFinder = new TestOccurrenceFinder(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myFixture.getTestsHistory(), currentProblemsManager, myBranchFinder, filterProducer);
     myFixture.addService(myTestOccurrenceFinder);
 
     final BuildProblemManager buildProblemManager = myFixture.getSingletonService(BuildProblemManager.class);
