@@ -19,10 +19,10 @@ package jetbrains.buildServer.server.rest.data.problem.scope;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.ParameterCondition;
-import jetbrains.buildServer.server.rest.data.ValueCondition;
+import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.util.StringUtil;
@@ -34,15 +34,13 @@ public class TestScopeFilterProducer {
     "suite",
     "package",
     "class",
-    "buildType",
-    "affectedProject"
+    "buildType"
   };
-
   @NotNull
-  private final ProjectManager myProjectManager;
+  private final BuildTypeFinder myBuildTypefinder;
 
-  public TestScopeFilterProducer(@NotNull ProjectManager projectManager) {
-    myProjectManager = projectManager;
+  public TestScopeFilterProducer(@NotNull BuildTypeFinder buildTypeFinder) {
+    myBuildTypefinder = buildTypeFinder;
   }
 
   public TestScopeFilter createFromLocatorString(@NotNull String locator) {
@@ -74,26 +72,17 @@ public class TestScopeFilterProducer {
 
     String buildTypeConditionDef = locator.getSingleDimensionValue("buildType");
     if(buildTypeConditionDef != null) {
-      ValueCondition condition = ParameterCondition.createValueCondition(buildTypeConditionDef);
-      conditions.add(item -> condition.matches(item.getBuild().getBuildTypeName()));
-    }
+      ItemFilter<BuildTypeOrTemplate> filter = myBuildTypefinder.getFilter(buildTypeConditionDef);
 
-    String affectedProjectConditionDef = locator.getSingleDimensionValue("affectedProject");
-    if(affectedProjectConditionDef != null) {
-      ValueCondition condition = ParameterCondition.createValueCondition(affectedProjectConditionDef);
       conditions.add(item -> {
-        String internalId = item.getBuild().getProjectId();
-        SProject project = myProjectManager.findProjectById(internalId);
-        if(project == null) {
-          return condition.matches(null);
-        }
+        SBuildType bt = item.getBuild().getBuildType();
+        if(bt == null)
+          return false;
 
-        return project.getProjectPath().stream()
-                      .map(SProject::getName)
-                      .anyMatch(condition::matches);
+        return filter.isIncluded(new BuildTypeOrTemplate(bt));
       });
     }
 
-    return new TestScopeFilterImpl(conditions, StringUtil.join(",", suiteConditionDef, packageConditionDef, classConditionDef, buildTypeConditionDef, affectedProjectConditionDef));
+    return new TestScopeFilterImpl(conditions, StringUtil.join(",", suiteConditionDef, packageConditionDef, classConditionDef, buildTypeConditionDef));
   }
 }

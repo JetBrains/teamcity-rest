@@ -255,7 +255,7 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
             myFixture.getTestsHistory(),
             myServer.getSingletonService(CurrentProblemsManager.class),
             myBranchFinder,
-            new TestScopeFilterProducer(myProjectManager)
+            new TestScopeFilterProducer(myBuildTypeFinder)
       );
     }
 

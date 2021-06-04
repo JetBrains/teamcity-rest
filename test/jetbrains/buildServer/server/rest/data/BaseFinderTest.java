@@ -157,7 +157,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
                                   myFixture.getTestManager(), testName2Index, myFixture.getCurrentProblemsManager(), problemMutingService);
     myFixture.addService(myTestFinder);
 
-    TestScopeFilterProducer filterProducer = new TestScopeFilterProducer(myProjectManager);
+    TestScopeFilterProducer filterProducer = new TestScopeFilterProducer(myBuildTypeFinder);
     final CurrentProblemsManager currentProblemsManager = myServer.getSingletonService(CurrentProblemsManager.class);
     myTestOccurrenceFinder = new TestOccurrenceFinder(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myFixture.getTestsHistory(), currentProblemsManager, myBranchFinder, filterProducer);
     myFixture.addService(myTestOccurrenceFinder);

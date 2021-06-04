@@ -98,7 +98,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
                                   myFixture.getTestManager(), testName2Index, myFixture.getCurrentProblemsManager(), problemMutingService);
     myFixture.addService(myTestFinder);
 
-    TestScopeFilterProducer testScopesFilterProducer = new TestScopeFilterProducer(myProjectManager);
+    TestScopeFilterProducer testScopesFilterProducer = new TestScopeFilterProducer(myBuildTypeFinder);
     final CurrentProblemsManager currentProblemsManager = myServer.getSingletonService(CurrentProblemsManager.class);
     myTestOccurrenceFinder = new TestOccurrenceFinder(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myFixture.getTestsHistory(), currentProblemsManager, myBranchFinder, testScopesFilterProducer);
     myFixture.addService(myTestOccurrenceFinder);
@@ -260,26 +260,10 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
   }
 
   @Test
-  public void testFiltersByBuildType() {
-    buildTree();
-    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
-      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,buildType:(value:buildconf1,matchType:equals)"
-    ));
-
-    // suite1: packageA.class1
-    // suite1: packageA.class2
-    // suite1: packageB.class1
-    assertEquals(3, result.myEntries.size());
-    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
-    assertContains(resultNames, "class1");
-    assertContains(resultNames, "class2");
-  }
-
-  @Test
   public void testFiltersByBuildType2() {
     buildTree();
     PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
-      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,buildType:(value:buildconf1,matchType:contains)"
+      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,buildType:(name:buildconf1)"
     ));
 
     // suite1: packageA.class1
@@ -296,7 +280,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
   public void testFiltersByAffectedProject() {
     buildTree();
     PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
-      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,affectedProject:(value:project2,matchType:equals)"
+      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,buildType:(affectedProject:(id:project2))"
     ));
 
     // suite1: packageB.class1
@@ -311,7 +295,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
   public void testFiltersByAffectedProject2() {
     buildTree();
     PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
-      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,affectedProject:(value:subproject11,matchType:equals)"
+      "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,buildType:(affectedProject:(id:subproject11))"
     ));
 
     // suite2: packageA.class3
@@ -329,7 +313,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
                       /        \                \
                 buildconf1   subproject11    subproject21
                     |               \               \
-                  suite1          buildconf2     buildconf11
+                  suite1          buildconf2     buildconf1
                  /      \             \             /     \
             packageA    packageB    suite2       suite1  suite2
              /     \        \          \           |        \
@@ -350,7 +334,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
 
     BuildTypeEx buildconf1 = project1.createBuildType("buildconf1");
     BuildTypeEx buildconf2 = subproject11.createBuildType("buildconf2");
-    BuildTypeEx buildconf11 = subproject21.createBuildType("buildconf11");
+    BuildTypeEx buildconf11 = subproject21.createBuildType("buildconf1");
 
     final SFinishedBuild build1 = build().in(buildconf1)
                                          .startSuite("suite1")

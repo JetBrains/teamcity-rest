@@ -213,6 +213,15 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   public ItemFilter<SProject> getFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<SProject> result = new MultiCheckerFilter<SProject>();
 
+    final String id = locator.getSingleDimensionValue(DIMENSION_ID);
+    if (id != null) {
+      if (TeamCityProperties.getBoolean(APIController.REST_COMPATIBILITY_ALLOW_EXTERNAL_ID_AS_INTERNAL)) {
+        result.add(item -> id.equalsIgnoreCase(item.getExternalId()) || id.equalsIgnoreCase(item.getProjectId()));
+      } else {
+        result.add(item -> id.equalsIgnoreCase(item.getExternalId()));
+      }
+    }
+
     final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
     if (name != null) {
       result.add(new FilterConditionChecker<SProject>() {
