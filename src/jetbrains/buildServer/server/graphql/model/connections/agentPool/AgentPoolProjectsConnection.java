@@ -33,7 +33,7 @@ public class AgentPoolProjectsConnection implements ExtensibleConnection<Project
     myDelegate = new PaginatingConnection<>(data, AgentPoolProjectsConnectionEdge::new, paginationArguments);
   }
 
-  int getCount() {
+  public int getCount() {
     return myDelegate.getData().size();
   }
 
