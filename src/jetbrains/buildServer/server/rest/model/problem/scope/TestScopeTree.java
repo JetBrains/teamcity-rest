@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.TestCounters;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
@@ -100,6 +101,11 @@ public class TestScopeTree {
     @XmlAttribute(name = "id")
     public Integer getId() {
       return ValueWithDefault.decideDefault(myFields.isIncluded("id"), myNode.getId());
+    }
+
+    @XmlAttribute(name = "type")
+    public TestScopeType getType() {
+      return ValueWithDefault.decideDefault(myFields.isIncluded("type"), myNode.getType());
     }
 
     @XmlAttribute(name = "parentId")
