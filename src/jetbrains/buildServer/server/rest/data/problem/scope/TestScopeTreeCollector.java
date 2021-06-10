@@ -80,4 +80,25 @@ public class TestScopeTreeCollector {
 
     return scopeTree.getSlicedOrderedTree(Integer.parseInt(maxChildren), order);
   }
+
+  public List<TestScopeTree.Node> getTopSlicedTree(@NotNull Locator locator, @NotNull HttpServletRequest request) {
+    locator.addSupportedDimensions(BUILD, ORDER_BY);
+
+    Locator scopesLocator = prepareScopesLocator(locator, request);
+
+    Stream<TestScope> testScopes = myScopeCollector.getItems(scopesLocator);
+
+    TestScopeTree scopeTree = new TestScopeTree(testScopes.collect(Collectors.toList()));
+
+    Comparator<TestScopeTree.Node> order = null;
+    if(locator.isAnyPresent(ORDER_BY)) {
+      String orderDimension = locator.getSingleDimensionValue(ORDER_BY);
+      //noinspection ConstantConditions
+      order = TestScopeTree.SUPPORTED_ORDERS.getComparator(orderDimension);
+    }
+
+    locator.checkLocatorFullyProcessed();
+
+    return scopeTree.getTopTreeSliceUpToBuildTypes(order);
+  }
 }

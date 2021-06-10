@@ -114,6 +114,34 @@ public class TestScopeTree {
     return slicedNodes;
   }
 
+  /**
+   * Return all projects and build types in the tree, exclude everything else.
+   */
+  @NotNull
+  public List<Node> getTopTreeSliceUpToBuildTypes(@Nullable Comparator<Node> order) {
+    Queue<Node> nodeQueue = new ArrayDeque<>();
+    nodeQueue.add(myHead);
+
+    List<Node> slicedNodes = new ArrayList<>();
+    while (!nodeQueue.isEmpty()) {
+      Node top = nodeQueue.poll();
+      slicedNodes.add(top);
+
+      if(top.myType == TestScopeType.PROJECT) {
+        if(order != null) {
+          top.myChildren.values()
+                        .stream()
+                        .sorted(order)
+                        .forEach(nodeQueue::add);
+        } else {
+          nodeQueue.addAll(top.myChildren.values());
+        }
+      }
+    }
+
+    return slicedNodes;
+  }
+
   @NotNull
   private Node getOrCreateNode(@NotNull TestCountersData countersData, @NotNull Node parent, @NotNull String name, @NotNull TestScopeType type) {
     Node node = parent.getChildren().get(name);

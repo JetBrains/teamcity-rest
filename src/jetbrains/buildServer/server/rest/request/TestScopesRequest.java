@@ -92,4 +92,20 @@ public class TestScopesRequest {
 
     return new jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree(treeNodes, new Fields(fields), myBeanContext);
   }
+
+  // Very highly experimental
+  @GET
+  @Path("/treeTopSlice")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(hidden = true, value = "highly experimental")
+  /**
+   * Get horizontally sliced tree containing projects and build configurations which are relevant to test runs satisfying given locator
+   */
+  public jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree serveScopesTreeTopSlice(@QueryParam("locator") String locatorText,
+                                                                                                     @QueryParam("fields") String fields,
+                                                                                                     @Context HttpServletRequest request) {
+    List<TestScopeTree.Node> treeNodes = myTestScopeTreeCollector.getTopSlicedTree(Locator.locator(locatorText), request);
+
+    return new jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree(treeNodes, new Fields(fields), myBeanContext);
+  }
 }
