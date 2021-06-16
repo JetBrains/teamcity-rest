@@ -201,7 +201,7 @@ public class Fields {
 
   @Nullable
   private static String getNestedField(@NotNull final String fieldSpec, @NotNull final String dimensionName) {
-    if (fieldSpec.contains(dimensionName)) return null; //performance optimization: first check if the string appears inside
+    if (!fieldSpec.contains(dimensionName)) return null; //performance optimization: first check if the string appears inside
 
     return new Fields(fieldSpec).getCustomDimension(dimensionName);
   }
