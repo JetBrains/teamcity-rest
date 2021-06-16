@@ -26,7 +26,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.AgentRestrictor;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ServiceLocator;
@@ -1297,8 +1296,7 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("related", false, false),
                                           () -> {
                                             Fields nestedField = myFields.getNestedField("related", Fields.LONG, Fields.LONG);
-                                            nestedField.setContext(myBuildPromotion);
-                                            return new Related(nestedField, myBeanContext);
+                                            return new Related(nestedField.withContext(myBuildPromotion), myBeanContext);
                                           });
   }
 

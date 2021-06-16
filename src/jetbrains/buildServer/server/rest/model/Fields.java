@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.util.impl.Lazy;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -55,16 +56,20 @@ public class Fields {
   public static final Fields ALL_NESTED = new Fields(ALL_NESTED_FIELDS_PATTERN, null, null, true); // maximum, all fields are included in the same maximum form
 
   @NotNull private final String myFieldsSpec;
-  private Locator myFieldsSpecLocator;
   @NotNull private final Map<String, Fields> myRestrictedFields;
-
-  @Nullable
-  private Context myContext = null;
+  @NotNull private final Lazy<Locator> myFieldsSpecLocator;
+  @Nullable private final Context myContext;
 
   private Fields(@NotNull String actualFieldsSpec, @Nullable Map<String, Fields> restrictedFields, @Nullable Context context, boolean isInternal) {
     myFieldsSpec = RestContext.getThreadLocalStringPool().reuse(actualFieldsSpec);
     myRestrictedFields = restrictedFields != null ? new HashMap<String, Fields>(restrictedFields) : Collections.emptyMap();
     myContext = context;
+    myFieldsSpecLocator = new Lazy<Locator>() {
+      @Override
+      protected Locator createValue() {
+        return computeParsedCustomFields();
+      }
+    };
   }
 
   public Fields (@Nullable String fieldsSpec){
@@ -332,9 +337,14 @@ public class Fields {
 
   @Nullable
   private Locator getParsedCustomFields() {
-    if (myFieldsSpecLocator == null && !StringUtil.isEmpty(myFieldsSpec)) {
+    return myFieldsSpecLocator.get();
+  }
+
+  @Nullable
+  private Locator computeParsedCustomFields() {
+    if (!StringUtil.isEmpty(myFieldsSpec)) {
       try {
-        myFieldsSpecLocator = new Locator(myFieldsSpec, true,
+        return new Locator(myFieldsSpec, true,
             NONE_FIELDS_PATTERN, DEFAULT_FIELDS_SHORT_PATTERN_ALTERNATIVE, DEFAULT_FIELDS_LONG_PATTERN, ALL_FIELDS_PATTERN, ALL_NESTED_FIELDS_PATTERN,
             LOCATOR_CUSTOM_NAME, OPTIONAL_FIELDS_PATTERN);
         //should add to hidden dimension, but since the locator is not currently checked, save performance by not doing it so far
@@ -343,7 +353,7 @@ public class Fields {
         throw new LocatorProcessException("Error parsing fields specification: " + e.getMessage(), e);
       }
     }
-    return myFieldsSpecLocator;
+    return null;
   }
 
   @NotNull
@@ -356,9 +366,11 @@ public class Fields {
     return getFieldsSpec();
   }
 
-  public void setContext(@NotNull final BuildPromotion buildPromotion) {
-    if (myContext == null) myContext = new Context();
-    myContext.buildPromotion = buildPromotion;
+  @NotNull
+  public Fields withContext(@NotNull final BuildPromotion buildPromotion) {
+    Context ctx = new Context();
+    ctx.buildPromotion = buildPromotion;
+    return new Fields(myFieldsSpec, myRestrictedFields, ctx, true);
   }
 
   private static class Context {

@@ -16,7 +16,15 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import io.swagger.annotations.ExtensionProperty;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -24,7 +32,6 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -34,16 +41,6 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * User: Yegor Yarko
@@ -77,8 +74,9 @@ public class BuildTypes {
   public BuildTypes(@NotNull final List<BuildTypeOrTemplate> items, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     if (fields.isIncluded("buildType", false, true)){
       this.buildTypes = new ArrayList<BuildType>(items.size());
+      final Fields btFields = fields.getNestedField("buildType");
       for (BuildTypeOrTemplate buildType : items) {
-        this.buildTypes.add(new BuildType(buildType, fields.getNestedField("buildType"), beanContext));
+        this.buildTypes.add(new BuildType(buildType, btFields, beanContext));
       }
     }
     if (pagerData != null) {
