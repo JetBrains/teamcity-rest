@@ -39,6 +39,7 @@ import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
+import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldInclusionChecker;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.tests.TestHistory;
@@ -687,7 +688,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       }
 
       Fields occurrenceFields = fields.getNestedField("testOccurrence");
-      if(!FASTPATH_ALLOWED_FIELDS.containsAll(occurrenceFields.getAllCustomDimensions())) {
+      FieldInclusionChecker checker = FieldInclusionChecker.getForClass(TestOccurrence.class);
+      if(!FASTPATH_ALLOWED_FIELDS.containsAll(checker.getAllPotentiallyIncludedFields(occurrenceFields))) {
         return TestOccurrencesCachedInfo.empty();
       }
 

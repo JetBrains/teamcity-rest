@@ -45,6 +45,13 @@
       <class name="jetbrains.buildServer.server.rest.request.ServerRequestTest"/>
     </classes>
   </test>
+  <test name="Rest API Model Test" preserve-order="false">
+    <classes>
+      <class name="jetbrains.buildServer.server.rest.model.fields.FieldInclusionCheckerTest" />
+      <class name="jetbrains.buildServer.server.rest.model.fields.TestOccurrenceFieldsTest" />
+    </classes>
+  </test>
+
   <test name="GraphQL API Test" preserve-order="false">
     <classes>
       <class name="jetbrains.buildServer.server.graphql.resolver.ProjectResolverTest" />

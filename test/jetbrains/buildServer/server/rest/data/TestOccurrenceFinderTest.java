@@ -23,6 +23,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
+import jetbrains.buildServer.controllers.fakes.FakeHttpServletRequest;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.messages.TestMetadata;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
@@ -32,6 +33,7 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
+import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TypedValue;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
@@ -39,6 +41,7 @@ import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.TestFor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -696,6 +699,18 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     assertNotNull(
       "Retrieving counters should be done via short statistics.",
       myTestOccurrenceFinder.tryGetCachedInfo("build:" + build.getBuildId(), "testCounters(all,success,failed,newFailed,ignored,muted,duration)").getShortStatistics()
+    );
+  }
+
+  @Test
+  @TestFor(issues = {"TW-71738"})
+  public void testShortStatisticsIsNotEnoughWhenNoFieldsGiven() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build = createBuildWithSuccessFailedIgnoredTests(buildType);
+
+    assertNull(
+      "When fields are not given we can't use short statistics",
+      myTestOccurrenceFinder.tryGetCachedInfo("build:" + build.getBuildId(), null).getShortStatistics()
     );
   }
 

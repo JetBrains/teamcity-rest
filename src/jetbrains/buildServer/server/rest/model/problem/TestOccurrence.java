@@ -35,7 +35,11 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldStrategy;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldRule;
+import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldStrategySupported;
+import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldInclusionChecker;
 import jetbrains.buildServer.serverSide.MultiTestRun;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STestRun;
@@ -55,16 +59,18 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
   "href",
   "ignoreDetails", "details", "test", "mute", "build", "firstFailed", "nextFixed", "invocations", "metadata"})
 @ModelDescription("Represents a relation between a test and the specific build.")
+@FieldStrategySupported
 public class TestOccurrence {
   private static final Logger LOG = Logger.getInstance(TestOccurrence.class.getName());
 
   @NotNull private BeanContext myBeanContext;
   @NotNull private Fields myFields;
   @NotNull private STestRun myTestRun;
+  private final FieldInclusionChecker myChecker = FieldInclusionChecker.getForClass(TestOccurrence.class);
+
   private TestOccurrenceFinder myTestOccurrenceFinder;
 
-  public TestOccurrence() {
-  }
+  public TestOccurrence() { }
 
   public TestOccurrence(final @NotNull STestRun testRun, final @NotNull BeanContext beanContext, @NotNull final Fields fields) {
     myTestRun = testRun;
@@ -75,22 +81,25 @@ public class TestOccurrence {
   }
 
   @XmlAttribute
+  @FieldStrategy(name = "id")
   public String getId() {
     //STestRun.getTestRunId() can be the same between different builds
-    return ValueWithDefault.decideDefault(myFields.isIncluded("id"), TestOccurrenceFinder.getTestRunLocator(myTestRun));
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("id", myFields), TestOccurrenceFinder.getTestRunLocator(myTestRun));
   }
 
   @XmlAttribute
+  @FieldStrategy(name = "name")
   public String getName() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("name"), myTestRun.getTest().getName().getAsString());
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("name", myFields), myTestRun.getTest().getName().getAsString());
   }
 
   /**
    * Experimental and to be dropped as the number is not stable: it actually depends on the set of queried tests
    */
   @XmlAttribute
+  @FieldStrategy(name = "runOrder", defaultForShort = FieldRule.EXCLUDE, defaultForLong = FieldRule.EXCLUDE)
   public String getRunOrder() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("runOrder", false, false), String.valueOf(myTestRun.getOrderId()));
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("runOrder", myFields), String.valueOf(myTestRun.getOrderId()));
   }
 
   /**
@@ -98,98 +107,113 @@ public class TestOccurrence {
    * This can be more effective than getting "firstFailed" details
    */
   @XmlAttribute
+  @FieldStrategy(name = "newFailure", defaultForShort = FieldRule.EXCLUDE, defaultForLong = FieldRule.EXCLUDE)
   public Boolean isNewFailure() {
     if (!myTestRun.getStatus().isFailed()) {
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("newFailure", false, false), () -> myTestRun.isNewFailure());
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("newFailure", myFields), () -> myTestRun.isNewFailure());
   }
 
   @XmlAttribute
   @ApiModelProperty(allowableValues = "UNKNOWN, NORMAL, WARNING, FAILURE, ERROR")
+  @FieldStrategy(name = "status")
   public String getStatus() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("status"), myTestRun.getStatus().getText());
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("status", myFields), myTestRun.getStatus().getText());
   }
 
   @XmlAttribute
+  @FieldStrategy(name = "ignored")
   public Boolean getIgnored() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("ignored"), myTestRun.isIgnored());
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("ignored", myFields), myTestRun.isIgnored());
   }
 
   @XmlAttribute
+  @FieldStrategy(name = "href")
   public String getHref() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("href"), myBeanContext.getApiUrlBuilder().transformRelativePath(TestOccurrenceRequest.getHref(myTestRun)));
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("href", myFields), myBeanContext.getApiUrlBuilder().transformRelativePath(TestOccurrenceRequest.getHref(myTestRun)));
   }
 
   @XmlAttribute
+  @FieldStrategy(name = "duration")
   public Integer getDuration() { //test run duration in milliseconds
-    return ValueWithDefault.decideDefault(myFields.isIncluded("duration"), myTestRun.getDuration());
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("duration", myFields), myTestRun.getDuration());
   }
 
   /**
    * Experimental! "true" is the test occurrence was muted, not present otherwise
    */
   @XmlAttribute
+  @FieldStrategy(name = "muted")
   public Boolean getMuted() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("muted"), myTestRun.getMuteInfo() != null);
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("muted", myFields), myTestRun.getMuteInfo() != null);
   }
 
   /**
    * Experimental! "true" is the test has investigation at the moment of request, not present otherwise
    */
   @XmlAttribute
+  @FieldStrategy(name = "currentlyInvestigated")
   public Boolean getCurrentlyInvestigated() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("currentlyInvestigated"), () -> myTestOccurrenceFinder.isCurrentlyInvestigated(myTestRun));
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("currentlyInvestigated", myFields), () -> myTestOccurrenceFinder.isCurrentlyInvestigated(myTestRun));
   }
 
   /**
    * Experimental! "true" is the test is muted at the moment of request, not present otherwise
    */
   @XmlAttribute
+  @FieldStrategy(name = "currentlyMuted")
   public Boolean getCurrentlyMuted() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("currentlyMuted"), () -> myTestOccurrenceFinder.isCurrentlyMuted(myTestRun));
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("currentlyMuted", myFields), () -> myTestOccurrenceFinder.isCurrentlyMuted(myTestRun));
   }
 
   /**
    * Experimental
    */
   @XmlAttribute
+  @FieldStrategy(name = "logAnchor", defaultForShort = FieldRule.EXCLUDE, defaultForLong = FieldRule.EXCLUDE)
   public String getLogAnchor() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("logAnchor", false, false), () -> String.valueOf(myTestRun.getTestRunId()));
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("logAnchor", myFields), () -> String.valueOf(myTestRun.getTestRunId()));
   }
 
   @XmlElement
+  @FieldStrategy(name = "ignoreDetails", defaultForShort = FieldRule.EXCLUDE)
   public String getIgnoreDetails() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("ignoreDetails", false), () -> myTestRun.getIgnoreComment());
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("ignoreDetails", myFields), () -> myTestRun.getIgnoreComment());
   }
 
   @XmlElement
+  @FieldStrategy(name = "details", defaultForShort = FieldRule.EXCLUDE)
   public String getDetails() { //todo: consider using CDATA output her
     //consider providing separate stacktrace, stdout and stderr, see implementation of jetbrains.buildServer.serverSide.stat.TestFullTextBuilderImpl.getFullText()
-    return ValueWithDefault.decideDefault(myFields.isIncluded("details", false), () -> myTestRun.getFullText());
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("details", myFields), () -> myTestRun.getFullText());
   }
 
   @XmlElement
+  @FieldStrategy(name = "test", defaultForShort = FieldRule.EXCLUDE)
   public Test getTest() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("test", false), () -> new Test(myTestRun.getTest(), myBeanContext, myFields.getNestedField("test")));
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("test", myFields), () -> new Test(myTestRun.getTest(), myBeanContext, myFields.getNestedField("test")));
   }
 
   @XmlElement
+  @FieldStrategy(name = "mute", defaultForShort = FieldRule.EXCLUDE)
   public Mute getMute() {
     return Util.resolveNull(myTestRun.getMuteInfo(),
-                            (mi) -> ValueWithDefault.decideDefault(myFields.isIncluded("mute", false),
+                            (mi) -> ValueWithDefault.decideDefault(myChecker.isIncluded("mute", myFields),
                                                                    () -> new Mute(mi, myFields.getNestedField("mute", Fields.NONE, Fields.LONG), myBeanContext)));
   }
 
   @XmlElement
+  @FieldStrategy(name = "build", defaultForShort = FieldRule.EXCLUDE)
   public Build getBuild() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("build", false), () -> new Build(myTestRun.getBuild(), myFields.getNestedField("build"), myBeanContext));
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("build", myFields), () -> new Build(myTestRun.getBuild(), myFields.getNestedField("build"), myBeanContext));
   }
 
   @Nullable
   @XmlElement
+  @FieldStrategy(name = "firstFailed", defaultForShort = FieldRule.EXCLUDE)
   public TestOccurrence getFirstFailed() {
-    if (BooleanUtils.isNotTrue(myFields.isIncluded("firstFailed", false))) {
+    if (BooleanUtils.isNotTrue(myChecker.isIncluded("firstFailed", myFields))) {
       return null;
     }
 
@@ -198,7 +222,7 @@ public class TestOccurrence {
         return null;
       }
 
-      return ValueWithDefault.decideDefault(myFields.isIncluded("firstFailed", false),
+      return ValueWithDefault.decideDefault(myChecker.isIncluded("firstFailed", myFields),
                                             () -> Util.resolveNull(myTestRun.getFirstFailed(),
                                                                    (ff) -> new TestOccurrence(getFailedTestRun(ff, myTestRun), myBeanContext,
                                                                                               myFields.getNestedField("firstFailed"))));
@@ -210,8 +234,9 @@ public class TestOccurrence {
   }
 
   @XmlElement
+  @FieldStrategy(name = "nextFixed", defaultForShort = FieldRule.EXCLUDE)
   public TestOccurrence getNextFixed() {
-    if (BooleanUtils.isNotTrue(myFields.isIncluded("nextFixed", false))) {
+    if (BooleanUtils.isNotTrue(myChecker.isIncluded("nextFixed", myFields))) {
       return null;
     }
 
@@ -219,7 +244,7 @@ public class TestOccurrence {
       if (!myTestRun.isFixed()) {
         return null;
       }
-      return ValueWithDefault.decideDefault(myFields.isIncluded("nextFixed", false),
+      return ValueWithDefault.decideDefault(myChecker.isIncluded("nextFixed", myFields),
                                             () -> Util.resolveNull(myTestRun.getFixedIn(),
                                                                    (fi) -> new TestOccurrence(getSuccessfulTestRun(fi, myTestRun), myBeanContext, myFields.getNestedField("nextFixed"))));
     } catch (IllegalArgumentException | UnsupportedOperationException e) {
@@ -229,8 +254,9 @@ public class TestOccurrence {
   }
 
   @XmlElement
+  @FieldStrategy(name = "invocations", defaultForShort = FieldRule.EXCLUDE, defaultForLong = FieldRule.EXCLUDE)
   public TestOccurrences getInvocations() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("invocations", false, false), () -> {
+    return ValueWithDefault.decideDefault(myChecker.isIncluded("invocations", myFields), () -> {
       if (!(myTestRun instanceof MultiTestRun)) return null;
       MultiTestRun multiTestRun = (MultiTestRun) myTestRun;
       Fields nestedField = myFields.getNestedField("invocations");
@@ -250,8 +276,9 @@ public class TestOccurrence {
    * Experimental! Exposes test run metadata
    */
   @XmlElement
+  @FieldStrategy(name = "metadata", defaultForShort = FieldRule.EXCLUDE, defaultForLong = FieldRule.EXCLUDE)
   public TestRunMetadata getMetadata() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("metadata", false, false),
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myChecker.isIncluded("metadata", myFields),
                                                               () -> new TestRunMetadata(((TestRunEx)myTestRun).getMetadata(),
                                                                                         myFields.getNestedField("metadata", Fields.SHORT, Fields.LONG)));
   }
