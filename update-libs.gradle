@@ -114,6 +114,7 @@ configurations.jackson.exclude group: 'com.fasterxml.jackson.core'
 configurations.jackson.exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-jaxb-annotations'
 configurations.jackson.exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-jaxb-annotations'
 configurations.jackson.exclude group: 'com.fasterxml.jackson.dataformat'
+configurations.graphql.exclude group: 'com.fasterxml.jackson.datatype', module 'jackson-datatype-jdk8'
 
 configurations.jersey.exclude module: 'jaxb-api' // JRE
 configurations.jersey.exclude module: 'jaxb-impl' // JRE

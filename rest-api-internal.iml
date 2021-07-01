@@ -56,7 +56,6 @@
     <orderEntry type="module-library" exported="">
       <library name="JacksonAdditional">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jackson-datatype-jdk8.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jackson-datatype-joda.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-base.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/jackson-jaxrs-json-provider.jar!/" />
