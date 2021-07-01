@@ -18,7 +18,7 @@
 
 ext.versions = [
         'jersey' : '1.19',
-        'jackson': '2.10.4',
+        'jackson': '2.10.5',
         'swagger': '1.6.1',
         'graphql': '15.0',
         'graphqlTools': '6.2.0'
@@ -36,6 +36,19 @@ configurations {
   jackson
   swagger
   graphql
+}
+
+def stripVersion(cfg) {
+  stripVersion(cfg, { name, artifact -> name - "-${artifact.moduleVersion.id.version}" })
+}
+
+def stripVersion(cfg, pattern) {
+  {
+    name ->
+      def artifacts = cfg.resolvedConfiguration.resolvedArtifacts
+      def artifact = artifacts.find { it.file.name == name }
+      pattern(name, artifact)
+  }
 }
 
 def dep(String coordinates, javadoc = false, sources = true) {
@@ -62,7 +75,7 @@ def dep(Map coordinates, javadoc = false, sources = true) {
 
 
 dependencies {
-  jersey dep("javax.ws.rs:jsr311-api:1.1.1")
+  jersey dep("javax.ws.rs:jsr311-api:1.1.1", false, false)
 
   jersey dep("com.sun.jersey:jersey-core:${versions.jersey}")
   jersey dep("com.sun.jersey:jersey-json:${versions.jersey}")
@@ -71,17 +84,11 @@ dependencies {
   jersey dep("com.sun.jersey.contribs:jersey-spring:${versions.jersey}")
   jersey dep("com.sun.jersey.contribs:jersey-multipart:${versions.jersey}")
 
-  jackson dep("com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}")
-  jackson dep("com.fasterxml.jackson.core:jackson-core:${versions.jackson}")
-  jackson dep("com.fasterxml.jackson.core:jackson-databind:${versions.jackson}")
-
-  jackson dep("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${versions.jackson}")
-  jackson dep("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}")
   jackson dep("com.fasterxml.jackson.datatype:jackson-datatype-joda:${versions.jackson}")
-
+  jackson dep("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}")
   jackson dep("com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:${versions.jackson}")
   jackson dep("com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:${versions.jackson}")
-  jackson dep("com.fasterxml.jackson.module:jackson-module-jaxb-annotations:${versions.jackson}")
+  jackson dep("com.fasterxml.jackson.module:jackson-module-kotlin:${versions.jackson}")
 
   swagger(
           dep(group: 'io.swagger', name: 'swagger-core', version: versions.swagger),
@@ -90,6 +97,7 @@ dependencies {
 
   graphql dep("com.graphql-java:graphql-java:${versions.graphql}")
   graphql dep("com.graphql-java-kickstart:graphql-java-tools:${versions.graphqlTools}")
+  graphql dep("com.fasterxml.jackson.module:jackson-module-kotlin:${versions.jackson}")
 }
 
 
@@ -102,6 +110,10 @@ configurations.swagger.exclude group: 'com.google.guava' // TC core
 configurations.swagger.exclude module: 'slf4j-api' // TC core
 configurations.jackson.exclude group: 'joda-time' // TC core
 configurations.jackson.exclude module: 'stax-api' // JRE
+configurations.jackson.exclude group: 'com.fasterxml.jackson.core'
+configurations.jackson.exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-jaxb-annotations'
+configurations.jackson.exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-jaxb-annotations'
+configurations.jackson.exclude group: 'com.fasterxml.jackson.dataformat'
 
 configurations.jersey.exclude module: 'jaxb-api' // JRE
 configurations.jersey.exclude module: 'jaxb-impl' // JRE
@@ -109,11 +121,18 @@ configurations.jersey.exclude group: 'org.codehaus.jackson' // added later from 
 configurations.jersey.exclude group: 'org.springframework' // TC core
 configurations.jersey.exclude module: 'aopalliance' // TC core
 configurations.jersey.exclude module: 'commons-logging' // TC core
+configurations.jersey.exclude group: 'com.fasterxml.jackson.core'
+configurations.jersey.exclude group: 'com.fasterxml.jackson.dataformat'
+configurations.jersey.exclude group: 'com.sun.jersey', module: 'jersey-server'
 
 // Until https://github.com/swagger-api/swagger-core/pull/1814/ is released:
 configurations.swagger.exclude group: 'com.sun.jersey', module: 'jersey-servlet'
 configurations.swagger.exclude group: 'com.sun.jersey', module: 'jersey-server'
 configurations.swagger.exclude group: 'com.sun.jersey', module: 'jersey-client'
+configurations.swagger.exclude group: 'com.fasterxml.jackson.core'
+configurations.swagger.exclude group: 'com.fasterxml.jackson.module'
+configurations.swagger.exclude group: 'com.fasterxml.jackson.dataformat'
+configurations.swagger.exclude group: 'org.jetbrains', module: 'annotations'
 
 // newer version in graphql-java-tools
 configurations.swagger.exclude group: 'org.apache.commons', module: 'commons-lang3'
@@ -121,9 +140,11 @@ configurations.swagger.exclude group: 'org.apache.commons', module: 'commons-lan
 configurations.graphql.exclude module: 'slf4j-api' // TC core
 configurations.graphql.exclude group: 'jakarta.xml.bind', module: 'jakarta.xml.bind-api'           // JRE
 configurations.graphql.exclude group: 'jakarta.activation', module: 'jakarta.activation-api:1.2.1' // JRE
-configurations.graphql.exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-configurations.graphql.exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-configurations.graphql.exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
+configurations.graphql.exclude group: 'com.fasterxml.jackson.core'
+configurations.graphql.exclude group: 'com.fasterxml.jackson.module'
+configurations.graphql.exclude group: 'com.fasterxml.jackson.dataformat'
+configurations.graphql.exclude group: 'com.fasterxml.jackson.datatype'
+configurations.graphql.exclude group: 'org.jetbrains', module: 'annotations'
 
 task fetchJersey(type: Copy) {
   from configurations.jersey.grep { !it.name.contains("sources") }
@@ -137,11 +158,13 @@ task fetchJerseySrc(type: Copy) {
 
 task fetchJackson(type: Copy) {
   from configurations.jackson.grep { !it.name.contains("sources") }
+  rename stripVersion(configurations.jackson)
   into 'lib'
 }
 
 task fetchJacksonSrc(type: Copy) {
   from configurations.jackson.grep { it.name.contains("sources") }
+  rename stripVersion(configurations.jackson)
   into 'lib/src'
 }
 

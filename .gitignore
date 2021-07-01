@@ -1,0 +1,9 @@
+.gradle
+gradle/
+gradlew.bat
+gradlew
+.ant-targets-*.xml
+out/
+rest-api.iws
+dist/
+temp/

@@ -29,11 +29,11 @@
     <orderEntry type="library" exported="" name="TeamCity Open API common" level="project" />
     <orderEntry type="library" exported="" name="TeamCity Third-Party" level="project" />
     <orderEntry type="library" exported="" name="Tomcat" level="project" />
-    <orderEntry type="library" exported="" name="Jackson" level="project" />
     <orderEntry type="library" exported="" name="Swagger" level="project" />
     <orderEntry type="library" exported="" name="GraphQL" level="project" />
     <orderEntry type="library" exported="" name="TeamCity Closed API server" level="project" />
     <orderEntry type="library" scope="TEST" name="TestNG &amp; Mockito" level="project" />
     <orderEntry type="library" scope="TEST" name="TeamCity Server Tests" level="project" />
+    <orderEntry type="library" exported="" name="JacksonAdditional" level="project" />
   </component>
 </module>
