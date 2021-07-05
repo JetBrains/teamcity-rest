@@ -63,8 +63,11 @@ type AgentPoolCloudImagesConnection {
 }
 
 type AgentPoolPermissions {
-  manage: Boolean,
-  authorizeAgents: Boolean,
+  manage: Boolean @deprecated(reason: "Use 'manageProjects' instead.")
+  manageProjects: Boolean
+  authorizeAgents: Boolean
+  enableAgents: Boolean
+  manageAgents: Boolean
 }
 
 type AgentPool {

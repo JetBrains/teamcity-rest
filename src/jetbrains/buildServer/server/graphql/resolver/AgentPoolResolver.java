@@ -35,11 +35,12 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
-  @NotNull
   private final ProjectManager myProjectManager;
+  private final AgentPoolActionsAccessChecker myPoolActionsAccessChecker;
 
-  public AgentPoolResolver(@NotNull ProjectManager projectManager) {
+  public AgentPoolResolver(@NotNull ProjectManager projectManager, @NotNull AgentPoolActionsAccessChecker poolActionsAccessChecker) {
     myProjectManager = projectManager;
+    myPoolActionsAccessChecker = poolActionsAccessChecker;
   }
 
   @NotNull
@@ -65,9 +66,14 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
 
   @NotNull
   public AgentPoolPermissions permissions(@NotNull AgentPool pool, @NotNull DataFetchingEnvironment env) {
-    // TODO: implement permissions retireval
+    int poolId = pool.getId();
 
-    return new AgentPoolPermissions(false, false);
+    boolean canAuthorizeUnauthorizeAgent = myPoolActionsAccessChecker.canAuthorizeAgentsInPool(poolId);
+    boolean canEnableDisableAgent = myPoolActionsAccessChecker.canEnableAgentsInPool(poolId);
+    boolean canManageProjectPoolAssociations = myPoolActionsAccessChecker.canManageProjectsInPool(poolId);
+    boolean canRemoveAgents = myPoolActionsAccessChecker.canManageAgentsInPool(poolId);
+
+    return new AgentPoolPermissions(canAuthorizeUnauthorizeAgent, canManageProjectPoolAssociations, canEnableDisableAgent, canRemoveAgents);
   }
 
   @NotNull

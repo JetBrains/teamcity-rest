@@ -18,18 +18,35 @@ package jetbrains.buildServer.server.graphql.model.agentPool;
 
 public class AgentPoolPermissions {
   private final boolean myAuthorizeAgents;
-  private final boolean myManage;
+  private final boolean myManageProjects;
+  private final boolean myEnableAgents;
+  private final boolean myManageAgents;
 
-  public AgentPoolPermissions(boolean authorizeAgents, boolean manage) {
+  public AgentPoolPermissions(boolean authorizeAgents, boolean manageProjects, boolean enableAgents, boolean manageAgents) {
     myAuthorizeAgents = authorizeAgents;
-    myManage = manage;
+    myManageProjects = manageProjects;
+    myEnableAgents = enableAgents;
+    myManageAgents = manageAgents;
   }
 
   public boolean isAuthorizeAgents() {
     return myAuthorizeAgents;
   }
 
+  public boolean isManageProjects() {
+    return myManageProjects;
+  }
+
+  @Deprecated
   public boolean isManage() {
-    return myManage;
+    return isManageProjects();
+  }
+
+  public boolean isEnableAgents() {
+    return myEnableAgents;
+  }
+
+  public boolean isManageAgents() {
+    return myManageAgents;
   }
 }
