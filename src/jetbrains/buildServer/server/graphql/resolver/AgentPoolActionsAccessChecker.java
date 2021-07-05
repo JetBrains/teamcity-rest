@@ -25,38 +25,36 @@ public interface AgentPoolActionsAccessChecker {
 
   boolean canEnableAgentsInPool(int agentPoolId);
 
-  /**
-   * Check if current user has enough permissions to move agent from its current pool.
-   */
   boolean canMoveAgentFromItsCurrentPool(int agentTypeId);
 
   /**
-   * Retrieve a set of visible projects for which user does not have enough permissions, so they restrict removing given agent type from pool.
-   * There may be hidden projects
+   * Retrieve a set of visible projects which restrict current user form removing given agent type from its current pool.
+   * There may be hidden projects, so canMoveAgentFromItsCurrentPool(id) !== getRestrictingProjectsInAssociatedPool(id).isEmpty().
    */
   @NotNull
   Set<String> getRestrictingProjectsInAssociatedPool(int agentTypeId);
 
   /**
-   * Retrieve a set of those projects for which user does not have enough permissions, so they restrict adding to/removing from pool.
+   * Retrieve a set of visible projects which restrict current user form adding agents to (or removing from) given pool.
    */
   @NotNull
   Set<String> getRestrictingProjectsInPool(int agentPoolId);
 
   /**
-   * Check if current user has enough permissions to move some agent to the specified pool. In order to fully check permissions,
-   * source pool of the desired agent must also be checked.
+   * Check if current user has enough permissions to move some agent to the specified pool.
+   * In order to fully check permissions for the move operation, current pool of the desired agent must be checked too.
    */
   boolean canManageAgentsInPool(int agentPoolId);
 
   /**
    * Check if current user has enough permissions to move agent to the project pool of the specified project.
+   * In order to fully check permissions for the move operation, current pool of the desired agent must be checked too.
    */
   boolean canManageAgentsInProjectPool(@NotNull String projectId);
 
   /**
-   * Check if current user has enough permissions to add/remove projects to the given pool. In order to fully check permissions,
-   * source pool of the project must be checked.
+   * Check if current user has enough permissions to add/remove projects to the given pool.
+   * In order to fully check permissions for project move both source and target pools must be checked.
    */
   boolean canManageProjectsInPool(int agentPoolId);
 }
