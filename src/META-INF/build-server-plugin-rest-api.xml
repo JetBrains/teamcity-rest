@@ -123,4 +123,10 @@
   <bean id="jacksonObjectMapperResolver" class="jetbrains.buildServer.server.rest.jersey.JacksonObjectMapperResolver"/>
 
   <bean id="extensionsAwareResourceConfig" class="jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig"/>
+
+  <bean id="agentPoolActionsAccessChecker" class="jetbrains.buildServer.server.graphql.resolver.AgentPoolActionsAccessCheckerImpl">
+    <property name="agentPoolManager" ref="hiddenAgentPoolManager" />
+    <property name="projectManager" ref="projectManager" />
+    <property name="agentTypeStorage" ref="hiddenAgentTypeManager" />
+  </bean>
 </beans>
