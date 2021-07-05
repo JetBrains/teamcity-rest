@@ -16,7 +16,7 @@
 
 package jetbrains.buildServer.server.graphql.model.mutation;
 
-import jetbrains.buildServer.server.graphql.model.AgentPool;
+import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.Project;
 import org.jetbrains.annotations.NotNull;
 

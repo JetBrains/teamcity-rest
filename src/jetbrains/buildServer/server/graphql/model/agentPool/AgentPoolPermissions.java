@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model;
+package jetbrains.buildServer.server.graphql.model.agentPool;
 
 public class AgentPoolPermissions {
   private final boolean myAuthorizeAgents;

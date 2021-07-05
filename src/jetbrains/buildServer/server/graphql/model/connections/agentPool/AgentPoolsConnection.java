@@ -19,7 +19,7 @@ package jetbrains.buildServer.server.graphql.model.connections.agentPool;
 import graphql.relay.Connection;
 import graphql.relay.Edge;
 import java.util.List;
-import jetbrains.buildServer.server.graphql.model.AgentPool;
+import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 
 public interface AgentPoolsConnection extends Connection<AgentPool> {
   // This is required for graphql java kickstart to deduce 'AgentPoolEdge' type

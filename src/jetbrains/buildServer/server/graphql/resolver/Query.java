@@ -22,7 +22,7 @@ import graphql.schema.DataFetchingEnvironment;
 import java.util.List;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.server.graphql.model.Agent;
-import jetbrains.buildServer.server.graphql.model.AgentPool;
+import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.GlobalPermissions;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArgumentsProvider;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;

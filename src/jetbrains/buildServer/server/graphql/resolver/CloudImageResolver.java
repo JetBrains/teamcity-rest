@@ -19,7 +19,7 @@ package jetbrains.buildServer.server.graphql.resolver;
 import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
 import jetbrains.buildServer.server.graphql.model.AgentEnvironment;
-import jetbrains.buildServer.server.graphql.model.AgentPool;
+import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.CloudImage;
 import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.model.connections.agent.CloudImageInstancesConnection;

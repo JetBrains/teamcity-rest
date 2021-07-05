@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.controllers.agent.OSKind;
 import jetbrains.buildServer.server.graphql.model.*;
+import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.server.graphql.model.connections.agent.AssociatedAgentBuildTypesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agent.AssociatedAgentBuildTypesConnectionBuilder;
