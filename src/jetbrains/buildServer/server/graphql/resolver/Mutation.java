@@ -95,12 +95,12 @@ public class Mutation implements GraphQLMutationResolver {
   }
 
   @NotNull
-  public AssignAgentWithAgentPoolPayload assignAgentWithAgentPool(@NotNull AssignAgentWithAgentPoolInput input) {
+  public MoveAgentToAgentPoolPayload moveAgentToAgentPool(@NotNull MoveAgentToAgentPoolInput input) {
     return null;
   }
 
   @NotNull
-  public UnassignAgentFromAgentPoolPayload unassignAgentFromAgentPool(@NotNull UnassignAgentFromAgentPoolInput input) {
+  public MoveCloudImageToAgentPoolPayload moveCloudImageToAgentPool(@NotNull MoveCloudImageToAgentPoolInput input) {
     return null;
   }
 
@@ -142,16 +142,6 @@ public class Mutation implements GraphQLMutationResolver {
     );
      */
 
-    return null;
-  }
-
-  @NotNull
-  public AssignCloudImageWithAgentPoolPayload assignCloudImageWithAgentPool(@NotNull AssignCloudImageWIthAgentPoolInput input) {
-    return null;
-  }
-
-  @NotNull
-  public UnassignCloudImageFromAgentPoolPayload unassignCloudImageFromAgentPool(@NotNull UnassignCloudImageFromAgentPoolInput input) {
     return null;
   }
 

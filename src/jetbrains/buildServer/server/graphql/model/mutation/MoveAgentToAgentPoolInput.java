@@ -18,15 +18,15 @@ package jetbrains.buildServer.server.graphql.model.mutation;
 
 import org.jetbrains.annotations.NotNull;
 
-public class UnassignAgentFromAgentPoolInput {
+public class MoveAgentToAgentPoolInput {
   @NotNull
   private final String myAgentId;
   @NotNull
-  private final String myAgentPoolId;
+  private final String myTargetAgentPoolId;
 
-  public UnassignAgentFromAgentPoolInput(@NotNull String agentId, @NotNull String agentPoolId) {
+  public MoveAgentToAgentPoolInput(@NotNull String agentId, @NotNull String targetAgentPoolId) {
     myAgentId = agentId;
-    myAgentPoolId = agentPoolId;
+    myTargetAgentPoolId = targetAgentPoolId;
   }
 
   @NotNull
@@ -35,7 +35,7 @@ public class UnassignAgentFromAgentPoolInput {
   }
 
   @NotNull
-  public String getAgentPoolId() {
-    return myAgentPoolId;
+  public String getTargetAgentPoolId() {
+    return myTargetAgentPoolId;
   }
 }

@@ -18,15 +18,15 @@ package jetbrains.buildServer.server.graphql.model.mutation;
 
 import org.jetbrains.annotations.NotNull;
 
-public class AssignCloudImageWIthAgentPoolInput {
+public class MoveCloudImageToAgentPoolInput {
   @NotNull
   private final String myAgentTypeId;
   @NotNull
-  private final String myAgentPoolId;
+  private final String myTargetAgentPoolId;
 
-  public AssignCloudImageWIthAgentPoolInput(@NotNull String agentTypeId, @NotNull String agentPoolId) {
+  public MoveCloudImageToAgentPoolInput(@NotNull String agentTypeId, @NotNull String targetAgentPoolId) {
     myAgentTypeId = agentTypeId;
-    myAgentPoolId = agentPoolId;
+    myTargetAgentPoolId = targetAgentPoolId;
   }
 
   @NotNull
@@ -35,7 +35,7 @@ public class AssignCloudImageWIthAgentPoolInput {
   }
 
   @NotNull
-  public String getAgentPoolId() {
-    return myAgentPoolId;
+  public String getTargetAgentPoolId() {
+    return myTargetAgentPoolId;
   }
 }

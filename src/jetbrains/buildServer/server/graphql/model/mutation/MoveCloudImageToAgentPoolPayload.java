@@ -16,29 +16,40 @@
 
 package jetbrains.buildServer.server.graphql.model.mutation;
 
-import jetbrains.buildServer.server.graphql.model.Agent;
+import jetbrains.buildServer.server.graphql.model.CloudImage;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import org.jetbrains.annotations.NotNull;
 
-public class AssignAgentWithAgentPoolPayload {
+public class MoveCloudImageToAgentPoolPayload {
   @NotNull
-  private final Agent myAgent;
+  private final CloudImage myCloudImage;
 
   @NotNull
-  private final AgentPool myAgentPool;
+  private final AgentPool mySourceAgentPool;
 
-  public AssignAgentWithAgentPoolPayload(@NotNull Agent agent, @NotNull AgentPool agentPool) {
-    myAgent = agent;
-    myAgentPool = agentPool;
+  @NotNull
+  private final AgentPool myTargetAgentPool;
+
+  public MoveCloudImageToAgentPoolPayload(@NotNull CloudImage cloudImage, @NotNull AgentPool sourceAgentPool, @NotNull AgentPool targetAgentPool) {
+    myCloudImage = cloudImage;
+
+    mySourceAgentPool = sourceAgentPool;
+
+    myTargetAgentPool = targetAgentPool;
   }
 
   @NotNull
-  public Agent getAgent() {
-    return myAgent;
+  public CloudImage getCloudImage() {
+    return myCloudImage;
   }
 
   @NotNull
-  public AgentPool getAgentPool() {
-    return myAgentPool;
+  public AgentPool getSourceAgentPool() {
+    return mySourceAgentPool;
+  }
+
+  @NotNull
+  public AgentPool getTargetAgentPool() {
+    return myTargetAgentPool;
   }
 }

@@ -269,27 +269,6 @@ type RemoveAgentPoolPayload {
   agentPool: ShallowAgentPool
 }
 
-input AssignAgentWithAgentPoolInput {
-  agentId: ID!,
-  agentPoolId: ID!
-}
-
-type AssignAgentWithAgentPoolPayload {
-  agent: Agent,
-  agentPool: AgentPool
-}
-
-input UnassignAgentFromAgentPoolInput {
-  agentId: ID!,
-  agentPoolId: ID!
-}
-
-type UnassignAgentFromAgentPoolPayload {
-  agent: Agent,
-  agentPool: AgentPool,
-  defaultAgentPool: AgentPool
-}
-
 input SetAgentRunPolicyInput {
   agentId: ID!
   agentRunPolicy: AgentRunPolicy
@@ -316,26 +295,6 @@ input UnassignProjectFromAgentPoolInput {
 
 type UnassignProjectFromAgentPoolPayload {
   project: Project,
-  agentPool: AgentPool
-}
-
-input AssignCloudImageWIthAgentPoolInput {
-  agentTypeId: ID!,
-  agentPoolId: ID!
-}
-
-type AssignCloudImageWithAgentPoolPayload {
-  cloudImage: CloudImage,
-  agentPool: AgentPool
-}
-
-input UnassignCloudImageFromAgentPoolInput {
-  agentTypeId: ID!,
-  agentPoolId: ID!
-}
-
-type UnassignCloudImageFromAgentPoolPayload {
-  cloudImage: CloudImage,
   agentPool: AgentPool
 }
 
@@ -387,6 +346,28 @@ type UnassignAllAgentBuildTypesPayload {
   agent: Agent
 }
 
+input MoveAgentToAgentPoolInput {
+  agentId: ID!,
+  targetAgentPoolId: ID!
+}
+
+type MoveAgentToAgentPoolPayload {
+  agent: Agent,
+  sourceAgentPool: AgentPool,
+  targetAgentPool: AgentPool
+}
+
+input MoveCloudImageToAgentPoolInput {
+  agentTypeId: ID!,
+  targetAgentPoolId: ID!
+}
+
+type MoveCloudImageToAgentPoolPayload {
+  cloudImage: CloudImage,
+  sourceAgentPool: AgentPool,
+  targetAgentPool: AgentPool
+}
+
 type Mutation {
   createAgentPool(input: CreateAgentPoolInput): CreateAgentPoolPayload
   updateAgentPool(input: UpdateAgentPoolInput): UpdateAgentPoolPayload
@@ -394,14 +375,11 @@ type Mutation {
 
   setAgentRunPolicy(input: SetAgentRunPolicyInput): SetAgentRunPolicyPayload
 
-  assignAgentWithAgentPool(input: AssignAgentWithAgentPoolInput): AssignAgentWithAgentPoolPayload
-  unassignAgentFromAgentPool(input: UnassignAgentFromAgentPoolInput): UnassignAgentFromAgentPoolPayload
+  moveAgentToAgentPool(input: MoveAgentToAgentPoolInput): MoveAgentToAgentPoolPayload
+  moveCloudImageToAgentPool(input: MoveCloudImageToAgentPoolInput): MoveCloudImageToAgentPoolPayload
 
   assignProjectWithAgentPool(input: AssignProjectWithAgentPoolInput): AssignProjectWithAgentPoolPayload
   unassignProjectFromAgentPool(input: UnassignProjectFromAgentPoolInput): UnassignProjectFromAgentPoolPayload
-
-  assignCloudImageWithAgentPool(input: AssignCloudImageWIthAgentPoolInput): AssignCloudImageWithAgentPoolPayload
-  unassignCloudImageFromAgentPool(input: UnassignCloudImageFromAgentPoolInput): UnassignCloudImageFromAgentPoolPayload
 
   assignBuildTypeWithAgent(input: AssignBuildTypeWithAgentInput): AssignBuildTypeWithAgentPayload
   unassignBuildTypeFromAgent(input: UnassignBuildTypeFromAgentInput): UnassignBuildTypeFromAgentPayload
