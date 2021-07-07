@@ -16,26 +16,41 @@
 
 package jetbrains.buildServer.server.graphql.model;
 
+import jetbrains.buildServer.controllers.agent.OSKind;
 import org.jetbrains.annotations.NotNull;
 
-public class OS {
-  @NotNull
-  private final String myName;
-  @NotNull
-  private final OSType myType;
-
-  public OS(@NotNull String name, @NotNull OSType type) {
-    myName = name;
-    myType = type;
-  }
+public enum OSType {
+  Windows,
+  macOS,
+  Linux,
+  Solaris,
+  FreeBSD,
+  Unix,
+  Unknown;
 
   @NotNull
-  public String getName() {
-    return myName;
-  }
+  public static OSType guessByName(@NotNull String osName) {
+    OSKind osKind = OSKind.guessByName(osName);
 
-  @NotNull
-  public OSType getType() {
-    return myType;
+    if (osKind == null) {
+      return Unknown;
+    }
+
+    switch (osKind) {
+      case WINDOWS:
+        return Windows;
+      case MAC:
+        return macOS;
+      case LINUX:
+        return Linux;
+      case SOLARIS:
+        return Solaris;
+      case FREEBSD:
+        return FreeBSD;
+      case OTHERUNIX:
+        return Unix;
+      default:
+        return Unknown;
+    }
   }
 }

@@ -141,9 +141,19 @@ type DiassociatedAgentBuildTypesConnection {
   pageInfo: PageInfo!
 }
 
+enum OSType {
+  Windows
+  macOS
+  Linux
+  Solaris
+  FreeBSD
+  Unix
+  Unknown
+}
+
 type OS {
-  name: String!
-  version: String
+  type: OSType!
+  name: String
 }
 
 type AgentEnvironment {
