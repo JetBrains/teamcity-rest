@@ -69,7 +69,7 @@ public class AgentResolver implements GraphQLResolver<Agent> {
   public AgentEnvironment environment(@NotNull Agent agent, @NotNull DataFetchingEnvironment env) {
     SBuildAgent realAgent = env.getLocalContext();
 
-    return new AgentEnvironment(new OS(realAgent.getOperatingSystemName(), OSKind.guessByName(realAgent.getOperatingSystemName()).toString()));
+    return new AgentEnvironment(new OS(realAgent.getOperatingSystemName(), OSType.guessByName(realAgent.getOperatingSystemName())));
   }
 
   @NotNull
