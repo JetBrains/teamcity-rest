@@ -22,13 +22,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.ProjectPermissions;
+import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.connections.*;
 import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.util.ParentsFetcher;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.Permissions;
@@ -84,11 +84,16 @@ public class ProjectResolver implements GraphQLResolver<Project> {
   public ProjectAgentPoolsConnection agentPools(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
     SProject self = getSelfFromContextSafe(source, env);
 
-    List<AgentPool> pools = myAgentPoolManager.getAgentPoolsWithProject(self.getProjectId()).stream()
+    List<jetbrains.buildServer.serverSide.agentPools.AgentPool> pools = myAgentPoolManager.getAgentPoolsWithProject(self.getProjectId()).stream()
                                               .map(myAgentPoolManager::findAgentPoolById)
                                               .collect(Collectors.toList());
 
     return new ProjectAgentPoolsConnection(pools);
+  }
+
+  @NotNull
+  public AgentPool ownAgentPool(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
+    return null;
   }
 
   @NotNull
