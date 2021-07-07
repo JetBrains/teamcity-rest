@@ -21,10 +21,6 @@ import org.jetbrains.annotations.NotNull;
 
 public interface AgentPoolActionsAccessChecker {
 
-  boolean canAuthorizeAgentsInPool(int agentPoolId);
-
-  boolean canEnableAgentsInPool(int agentPoolId);
-
   boolean canMoveAgentFromItsCurrentPool(int agentTypeId);
 
   /**

@@ -53,36 +53,6 @@ public class AgentPoolActionsAccessCheckerImpl implements AgentPoolActionsAccess
   }
 
   @Override
-  public boolean canAuthorizeAgentsInPool(int agentPoolId) {
-    AgentPool pool = myAgentPoolManager.findAgentPoolById(agentPoolId);
-    if(pool == null) {
-      return false;
-    }
-
-    try {
-      mySecurityContext.getAccessChecker().checkHasPermissionForPool(pool, Permission.AUTHORIZE_AGENT, Permission.AUTHORIZE_AGENT_FOR_PROJECT);
-      return true;
-    } catch (AccessDeniedException ade) {
-      return false;
-    }
-  }
-
-  @Override
-  public boolean canEnableAgentsInPool(int agentPoolId) {
-    AgentPool pool = myAgentPoolManager.findAgentPoolById(agentPoolId);
-    if(pool == null) {
-      return false;
-    }
-
-    try {
-      mySecurityContext.getAccessChecker().checkHasPermissionForPool(pool, Permission.ENABLE_DISABLE_AGENT, Permission.ENABLE_DISABLE_AGENT_FOR_PROJECT);
-      return true;
-    } catch (AccessDeniedException ade) {
-      return false;
-    }
-  }
-
-  @Override
   public boolean canMoveAgentFromItsCurrentPool(int agentTypeId) {
     AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
     AgentType agentType = myAgentTypeStorage.findAgentTypeById(agentTypeId);

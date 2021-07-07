@@ -30,6 +30,9 @@ import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoo
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.SecurityContextEx;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -37,10 +40,14 @@ import org.springframework.stereotype.Component;
 public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
   private final ProjectManager myProjectManager;
   private final AgentPoolActionsAccessChecker myPoolActionsAccessChecker;
+  private final SecurityContextEx mySecurityContext;
 
-  public AgentPoolResolver(@NotNull ProjectManager projectManager, @NotNull AgentPoolActionsAccessChecker poolActionsAccessChecker) {
+  public AgentPoolResolver(@NotNull ProjectManager projectManager,
+                           @NotNull AgentPoolActionsAccessChecker poolActionsAccessChecker,
+                           @NotNull final SecurityContextEx securityContext) {
     myProjectManager = projectManager;
     myPoolActionsAccessChecker = poolActionsAccessChecker;
+    mySecurityContext = securityContext;
   }
 
   @NotNull
@@ -66,10 +73,12 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
 
   @NotNull
   public AgentPoolPermissions permissions(@NotNull AgentPool pool, @NotNull DataFetchingEnvironment env) {
-    int poolId = pool.getId();
+    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = env.getLocalContext();
+    int poolId = realPool.getAgentPoolId();
+    AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
 
-    boolean canAuthorizeUnauthorizeAgent = myPoolActionsAccessChecker.canAuthorizeAgentsInPool(poolId);
-    boolean canEnableDisableAgent = myPoolActionsAccessChecker.canEnableAgentsInPool(poolId);
+    boolean canAuthorizeUnauthorizeAgent = AuthUtil.hasPermissionToAuthorizeAgentsInPool(authHolder, realPool);
+    boolean canEnableDisableAgent = AuthUtil.hasPermissionToEnableAgentsInPool(authHolder, realPool);
     boolean canManageProjectPoolAssociations = myPoolActionsAccessChecker.canManageProjectsInPool(poolId);
     boolean canRemoveAgents = myPoolActionsAccessChecker.canManageAgentsInPool(poolId);
 
