@@ -1269,6 +1269,18 @@ public class Build {
     });
   }
 
+  /*
+   * Experimental, since 2021.2
+   */
+  @Nullable
+  @XmlAttribute
+  public Boolean isChangesCollectingInProgress() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("changesCollectingInProgress", false, false),
+      ((BuildPromotionEx)myBuildPromotion).isChangesCollectingInProgress()
+    );
+  }
+
   private boolean myCanViewRuntimeDataChecked = false;
 
   private void checkCanViewRuntimeData() {
