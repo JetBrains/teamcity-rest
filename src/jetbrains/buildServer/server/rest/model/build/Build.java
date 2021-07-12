@@ -139,7 +139,8 @@ import org.jetbrains.annotations.Nullable;
     "detachedFromAgent",
     "finishOnAgentDate",
     "customized", /* Probably to be removed, replace with customization */
-    "customization"
+    "customization",
+    "changesCollectingInProgress" /*experimental*/
   })
 @ModelDescription("Represents a build instance.")
 public class Build {
