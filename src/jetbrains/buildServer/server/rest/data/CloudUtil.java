@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.*;
@@ -84,10 +83,7 @@ public class CloudUtil {
 
   @Nullable
   public CloudProfile getProfile(@NotNull final CloudImage image) {
-    Optional<CloudProfile> profileOpt = myCloudManager.listAllProfiles().stream()
-                                                                          .filter(p -> getClient(p).findImageById(image.getId()) != null)
-                                                                          .findAny();
-    return profileOpt.orElse(null);
+    return myCloudManager.findProfileByImageId(image.getId());
   }
 
   @Nullable
@@ -147,7 +143,7 @@ public class CloudUtil {
   public CloudImage getImage(@NotNull final String profileId, @NotNull final String id) {
     CloudProfile profile = findProfileGloballyById(profileId);
     if (profile == null) return null;
-    return getImages(profile).stream().filter(i -> id.equals(i.getId())).findFirst().orElse(null);
+    return getClient(profile).findImageById(id);
   }
 
   @Nullable
