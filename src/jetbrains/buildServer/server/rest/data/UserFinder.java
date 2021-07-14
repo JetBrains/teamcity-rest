@@ -474,6 +474,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
                                .filter((value, item) -> value.equalsIgnoreCase(item.getUsername()))
                                .toItems(dimension -> {
                                  SUser user = myUserModel.findUserAccount(null, dimension);
+                                 checkViewUserPermission(user);
                                  if (user == null) {
                                    throw new NotFoundException("No user can be found by username '" + dimension + "'.");
                                  }
