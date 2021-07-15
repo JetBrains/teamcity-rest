@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
 import java.util.Collections;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -381,9 +382,8 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     });
 
 
-    securityContext.runAs(user2, () -> {checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(username:user1)");});
-    securityContext.runAs(user2, () -> {checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(user:(username:user1),mode:selected_and_unknown)");});
-    securityContext.runAs(user2, () -> {checkExceptionOnItemsSearch(AccessDeniedException.class, "selectedByUser:(user:(username:user1),mode:all_with_order)");});
+    securityContext.runAs(user2, () -> {checkExceptionOnItemsSearch(AuthorizationFailedException.class, "selectedByUser:(user:(username:user1),mode:selected_and_unknown)");});
+    securityContext.runAs(user2, () -> {checkExceptionOnItemsSearch(AuthorizationFailedException.class, "selectedByUser:(user:(username:user1),mode:all_with_order)");});
 
     RoleImpl role_viewUsers = new RoleImpl("role_viewUsers", "custom role", new Permissions(Permission.VIEW_USER_PROFILE), null);
     myFixture.getRolesManager().addRole(role_viewUsers);

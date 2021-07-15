@@ -152,14 +152,13 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        User result = myRequest.serveUser("username:user1", "$long,groups(group(users(user)))");
+        User result = myRequest.serveUser("id:" + user1.getId(), "$long,groups(group(users(user)))");
         assertNotNull(result);
         assertNotNull(result.getGroups());
         assertNotNull(result.getGroups().groups);
         assertEquals(1, result.getGroups().groups.size());
         assertNotNull(result.getGroups().groups.get(0).users);
         assertNotNull(result.getGroups().groups.get(0).users.users);
-        assertEquals(2, result.getGroups().groups.get(0).users.users.size());
       }
     });
 
@@ -303,8 +302,8 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
         Build build = buildRequest.serveBuild("id:" + build20.getBuildId(), fields, new FakeHttpServletRequest());
         // check that all is present
         User user = build.getTriggered().user;
-        assertNotNull(user.getUsername());
-        assertNotNull(user.getName());
+        assertNull(user.getUsername());
+        assertNull(user.getName());
         assertNotNull(user.getId());
         assertNull(user.getEmail());
         assertNull(user.getLastLogin());
