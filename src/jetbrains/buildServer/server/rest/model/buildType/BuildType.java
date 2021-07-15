@@ -220,13 +220,13 @@ public class BuildType {
 
   @XmlElement
   public Comment getPauseComment() {
-    if (myBuildType != null && myBuildType.getBuildType() != null && myBuildType.getBuildType().getPauseComment() != null) {
-      return ValueWithDefault.decideDefault(myFields.isIncluded("pauseComment"), () -> {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("pauseComment", false, false), () -> {
+      if (myBuildType != null && myBuildType.getBuildType() != null && myBuildType.getBuildType().getPauseComment() != null) {
         return new Comment(myBuildType.getBuildType().getPauseComment(), myFields.getNestedField("pauseComment"), myBeanContext);
-      });
-    } else {
-      return null;
-    }
+      } else {
+        return null;
+      }
+    });
   }
 
   @XmlAttribute
