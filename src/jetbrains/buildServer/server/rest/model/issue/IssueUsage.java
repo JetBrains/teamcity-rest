@@ -76,7 +76,7 @@ public class IssueUsage {
       if (issueEx != null) {
         final SVcsModification relatedModification = (SVcsModification)issueEx.getRelatedModification();
         if (relatedModification != null) {
-          return new Changes(Collections.singletonList(relatedModification), null, myFields.getNestedField("changes", Fields.NONE, Fields.LONG), myBeanContext);
+          return Changes.fromSVcsModifications(Collections.singletonList(relatedModification), null, myFields.getNestedField("changes", Fields.NONE, Fields.LONG), myBeanContext);
         }
       }
       return null;
@@ -89,7 +89,7 @@ public class IssueUsage {
           relatedModifications.add(vcsModification);
         }
       }
-      return relatedModifications.isEmpty() ? null : new Changes(relatedModifications, null, myFields.getNestedField("changes", Fields.NONE, Fields.LONG), myBeanContext);
+      return relatedModifications.isEmpty() ? null : Changes.fromSVcsModifications(relatedModifications, null, myFields.getNestedField("changes", Fields.NONE, Fields.LONG), myBeanContext);
     }
   }
 }

@@ -39,6 +39,7 @@ import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.change.BuildChangeData;
+import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -831,26 +832,22 @@ public class Build {
       return null;
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("lastChanges", false), () -> {
-      final Changes result = new Changes(null, myFields.getNestedField("lastChanges", Fields.NONE, Fields.LONG), myBeanContext, new CachingValue<List<SVcsModification>>() {
-        @NotNull
-        @Override
-        protected List<SVcsModification> doGet() {
-          final List<SVcsModification> result = new ArrayList<SVcsModification>();
-          final Long lastModificationId = myBuildPromotion.getLastModificationId();
-          if (lastModificationId != null && lastModificationId != -1) {
-            try {
-              SVcsModification modification = myBeanContext.getSingletonService(VcsModificationHistory.class).findChangeById(lastModificationId);
-              if (modification != null && modification.getRelatedConfigurations().contains(myBuildPromotion.getParentBuildType())) {
-                result.add(modification);
-              }
-            } catch (AccessDeniedException e) {
-              //ignore: the associated modification id probably does not belong to the build configuration (related to TW-35390)
+      final Changes result = Changes.fromSVcsModificationsSupplier(() -> {
+        final List<SVcsModification> modifications = new ArrayList<SVcsModification>();
+        final Long lastModificationId = myBuildPromotion.getLastModificationId();
+        if (lastModificationId != null && lastModificationId != -1) {
+          try {
+            SVcsModification modification = myBeanContext.getSingletonService(VcsModificationHistory.class).findChangeById(lastModificationId);
+            if (modification != null && modification.getRelatedConfigurations().contains(myBuildPromotion.getParentBuildType())) {
+              modifications.add(modification);
             }
+          } catch (AccessDeniedException e) {
+            //ignore: the associated modification id probably does not belong to the build configuration (related to TW-35390)
           }
-          result.addAll(myBuildPromotion.getPersonalChanges());
-          return result;
         }
-      });
+        modifications.addAll(myBuildPromotion.getPersonalChanges());
+        return modifications;
+      }, null, myFields.getNestedField("lastChanges", Fields.NONE, Fields.LONG), myBeanContext);
       return result.isDefault() ? null : result;
     });
   }
@@ -865,7 +862,7 @@ public class Build {
       String locator = Locator.merge(changesFields.getLocator(), ChangeFinder.getLocator(myBuildPromotion));
       final String href = ChangeRequest.getChangesHref(locator); //using locator without count in href
       final String finalLocator = Locator.merge(locator, Locator.getStringLocator(PagerData.COUNT, String.valueOf(FinderImpl.NO_COUNT)));
-      CachingValue<List<SVcsModification>> data;
+      CachingValue<List<SVcsModificationOrChangeDescriptor>> data;
       ChangeFinder changeFinder = myBeanContext.getSingletonService(ChangeFinder.class);
       try {
         if (changeFinder.isCheap(myBuildPromotion, finalLocator)) {

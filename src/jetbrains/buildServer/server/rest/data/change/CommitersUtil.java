@@ -20,11 +20,12 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 
 public class CommitersUtil {
-  public static List<CommiterData> getUniqueCommiters(@NotNull List<SVcsModification> modifications) {
+  public static List<CommiterData> getUniqueCommiters(@NotNull Stream<SVcsModification> modifications) {
     Set<String> seenUsernames = new HashSet<>();
 
     List<CommiterData> result = new ArrayList<>();

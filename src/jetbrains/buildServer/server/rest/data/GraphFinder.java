@@ -36,12 +36,16 @@ public class GraphFinder<T> extends AbstractFinder<T> {
   protected static final String DIMENSION_STOP = "stop";
   protected static final String DIMENSION_RECURSIVE = "recursive";
   protected static final String DIMENSION_INCLUDE_INITIAL = "includeInitial";
-  private final Finder<T> myFinder;
+  private final LightweightFinder<T> myFinder;
   @NotNull private final Traverser<T> myTraverser;
   private Long myDefaultLookupLimit;
 
   public GraphFinder(@NotNull Finder<T> finder, @NotNull Traverser<T> traverser) {
-    super(new String[]{DIMENSION_FROM, DIMENSION_TO, DIMENSION_RECURSIVE, DIMENSION_INCLUDE_INITIAL, DIMENSION_STOP});
+    this(locatorText -> finder.getItems(locatorText).myEntries, traverser);
+  }
+
+  public GraphFinder(@NotNull LightweightFinder<T> finder, @NotNull Traverser<T> traverser) {
+    super(DIMENSION_FROM, DIMENSION_TO, DIMENSION_RECURSIVE, DIMENSION_INCLUDE_INITIAL, DIMENSION_STOP);
     myFinder = finder;
     myTraverser = traverser;
   }
@@ -117,7 +121,7 @@ public class GraphFinder<T> extends AbstractFinder<T> {
     if (!dimensionValues.isEmpty()) {
       final ArrayList<T> result = new ArrayList<T>();
       for (String dimensionValue : dimensionValues) {
-        result.addAll(myFinder.getItems(dimensionValue).myEntries);
+        result.addAll(myFinder.getItems(dimensionValue));
       }
       return result;
     }
@@ -213,5 +217,9 @@ public class GraphFinder<T> extends AbstractFinder<T> {
     boolean isRecursive();
     boolean isIncludeInitial();
     boolean isAllDimensionsUsed();
+  }
+
+  public interface LightweightFinder<ITEM> {
+    List<ITEM> getItems(@Nullable String locatorText);
   }
 }

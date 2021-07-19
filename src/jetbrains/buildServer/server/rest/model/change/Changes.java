@@ -17,12 +17,13 @@
 package jetbrains.buildServer.server.rest.model.change;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.swagger.annotations.ExtensionProperty;
+import java.util.Collection;
+import java.util.function.Supplier;
 import jetbrains.buildServer.server.rest.data.ChangeFinder;
+import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
@@ -47,7 +48,7 @@ import java.util.stream.Collectors;
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = ObjectType.LIST)
 @ModelBaseType(ObjectType.PAGINATED)
 public class Changes implements DefaultValueAware {
-  @Nullable private CachingValue<List<SVcsModification>> myModifications;
+  @Nullable private CachingValue<List<SVcsModificationOrChangeDescriptor>> myModifications;
   @Nullable private PagerData myPagerData;
   @NotNull private Fields myFields;
   @NotNull private BeanContext myBeanContext;
@@ -61,7 +62,7 @@ public class Changes implements DefaultValueAware {
   public Changes() {
   }
 
-  public Changes(@Nullable final List<SVcsModification> modifications,
+  public Changes(@Nullable final List<SVcsModificationOrChangeDescriptor> modifications,
                  @Nullable final PagerData pagerData,
                  @NotNull Fields fields,
                  @NotNull final BeanContext beanContext) {
@@ -71,7 +72,7 @@ public class Changes implements DefaultValueAware {
   public Changes(@Nullable final PagerData pagerData,
                  @NotNull Fields fields,
                  @NotNull final BeanContext beanContext,
-                 @Nullable final CachingValue<List<SVcsModification>> modifications) {
+                 @Nullable final CachingValue<List<SVcsModificationOrChangeDescriptor>> modifications) {
     myModifications = modifications;
     myPagerData = pagerData;
     myFields = fields;
@@ -86,6 +87,32 @@ public class Changes implements DefaultValueAware {
       myCount = ValueWithDefault.decideIncludeByDefault(myFields.isIncluded(COUNT, myModifications.isCached(), myModifications.isCached(), myModifications.isCached()),
                                                      () -> myModifications.get().size());
     }
+  }
+
+  public static Changes fromSVcsModificationsSupplier(@NotNull final Supplier<List<SVcsModification>> modifications,
+                                                      @Nullable final PagerData pagerData,
+                                                      @NotNull Fields fields,
+                                                      @NotNull final BeanContext beanContext) {
+    return new Changes(pagerData, fields, beanContext, new CachingValue<List<SVcsModificationOrChangeDescriptor>>() {
+      @NotNull
+      @Override
+      protected List<SVcsModificationOrChangeDescriptor> doGet() {
+        return modifications.get().stream().map(SVcsModificationOrChangeDescriptor::new).collect(Collectors.toList());
+      }
+    });
+  }
+
+  public static Changes fromSVcsModifications(@NotNull final Collection<SVcsModification> modifications,
+                                              @Nullable final PagerData pagerData,
+                                              @NotNull Fields fields,
+                                              @NotNull final BeanContext beanContext) {
+    return new Changes(pagerData, fields, beanContext, new CachingValue<List<SVcsModificationOrChangeDescriptor>>() {
+      @NotNull
+      @Override
+      protected List<SVcsModificationOrChangeDescriptor> doGet() {
+        return modifications.stream().map(SVcsModificationOrChangeDescriptor::new).collect(Collectors.toList());
+      }
+    });
   }
 
   @XmlElement(name = CHANGE)

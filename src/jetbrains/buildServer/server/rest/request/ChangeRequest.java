@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.change.CommiterData;
 import jetbrains.buildServer.server.rest.data.change.CommitersUtil;
+import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Entries;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -115,7 +116,7 @@ public class ChangeRequest {
     }
 
     final String locatorText = actualLocator.isEmpty() ? null : actualLocator.getStringRepresentation();
-    PagedSearchResult<SVcsModification> buildModifications = myChangeFinder.getItems(locatorText);
+    PagedSearchResult<SVcsModificationOrChangeDescriptor> buildModifications = myChangeFinder.getItems(locatorText);
 
     final UriBuilder requestUriBuilder = uriInfo.getRequestUriBuilder();
     requestUriBuilder.replaceQueryParam("count" , null);
@@ -152,7 +153,7 @@ public class ChangeRequest {
   @ApiOperation(value="Get a field of the matching change.",nickname="getChangeField")
   public String getChangeField(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                @PathParam("field") String field) {
-    final SVcsModification change = myChangeFinder.getItem(changeLocator);
+    final SVcsModificationOrChangeDescriptor change = myChangeFinder.getItem(changeLocator);
     return Change.getFieldValue(change, field);
   }
 
@@ -165,8 +166,8 @@ public class ChangeRequest {
   @ApiOperation(value="Get parent changes of the matching change.",nickname="getChangeParentChanges")
   public Changes getParentChanges(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                   @QueryParam("fields") String fields) {
-    final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new Changes(new ArrayList<SVcsModification>(change.getParentModifications()), null,  new Fields(fields), myBeanContext);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
+    return Changes.fromSVcsModifications(change.getParentModifications(), null,  new Fields(fields), myBeanContext);
   }
 
   /**
@@ -177,7 +178,7 @@ public class ChangeRequest {
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value="Get parent revisions of the matching change.",nickname="getChangeParentRevisions")
   public Items getChangeParentRevisions(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator) {
-    final SVcsModification change = myChangeFinder.getItem(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
     return new Items(change.getParentRevisions());
   }
 
@@ -190,7 +191,7 @@ public class ChangeRequest {
   @ApiOperation(value="Get a VCS root instance of the matching change.",nickname="getChangeVcsRoot")
   public VcsRootInstance getChangeVCSRootInstance(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                                   @QueryParam("fields") String fields) {
-    final SVcsModification change = myChangeFinder.getItem(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
     return new VcsRootInstance(change.getVcsRoot(), new Fields(fields), myBeanContext);
   }
 
@@ -215,7 +216,7 @@ public class ChangeRequest {
   @ApiOperation(value="Get attributes of the matching change.",nickname="getChangeAttributes")
   public Entries getChangeAttributes(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                      @QueryParam("fields") String fields) {
-    final SVcsModification change = myChangeFinder.getItem(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
     return new Entries(change.getAttributes(), new Fields(fields));
   }
   
@@ -228,8 +229,8 @@ public class ChangeRequest {
   @ApiOperation(value="Get duplicates of the matching change.",nickname="getChangeDuplicates")
   public Changes getChangeDuplicates(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                      @QueryParam("fields") String fields) {
-    final SVcsModification change = myChangeFinder.getItem(changeLocator);
-    return new Changes(new ArrayList<SVcsModification>(change.getDuplicates()), null,  new Fields(fields), myBeanContext);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
+    return Changes.fromSVcsModifications(change.getDuplicates(), null,  new Fields(fields), myBeanContext);
   }
 
   //todo: add support for fields, add "issues" element to change bean
@@ -241,7 +242,7 @@ public class ChangeRequest {
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value="Get issues of the matching change.",nickname="getChangeIssue")
   public Issues getChangeIssue(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator) {
-    final SVcsModification change = myChangeFinder.getItem(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
     return new Issues(change.getRelatedIssues());
   }
 
@@ -254,7 +255,7 @@ public class ChangeRequest {
   @ApiOperation(value="Get build configurations related to the matching change.",nickname="getChangeRelatedBuildTypes")
   public BuildTypes getRelatedBuildTypes(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                          @QueryParam("fields") String fields) {
-    final SVcsModification change = myChangeFinder.getItem(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
     return new BuildTypes(BuildTypes.fromBuildTypes(change.getRelatedConfigurations()), null, new Fields(fields), myBeanContext);
   }
 
@@ -267,7 +268,7 @@ public class ChangeRequest {
   @ApiOperation(value="Get first builds of the matching change.",nickname="getChangeFirstBuilds")
   public Builds getChangeFirstBuilds(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                      @QueryParam("fields") String fields) {
-    final SVcsModification change = myChangeFinder.getItem(changeLocator);
+    final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
     return Builds.createFromBuildPromotions(BuildFinder.toBuildPromotions(change.getFirstBuilds().values()), null,  new Fields(fields), myBeanContext);
   }
 
@@ -281,9 +282,9 @@ public class ChangeRequest {
   @ApiOperation(value="Get unique commiters of the matching changes.",nickname="getUniqueCommiters")
   public Commiters getUniqueCommiters(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                       @QueryParam("fields") String fields) {
-    PagedSearchResult<SVcsModification> changes = myChangeFinder.getItems(changeLocator);
+    PagedSearchResult<SVcsModificationOrChangeDescriptor> changes = myChangeFinder.getItems(changeLocator);
 
-    List<CommiterData> commiters = CommitersUtil.getUniqueCommiters(changes.myEntries);
+    List<CommiterData> commiters = CommitersUtil.getUniqueCommiters(changes.myEntries.stream().map(modOrDesc -> modOrDesc.getSVcsModification()));
 
     return new Commiters(commiters, new Fields(fields), myBeanContext);
   }

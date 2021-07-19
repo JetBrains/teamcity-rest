@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -28,6 +27,7 @@ import jetbrains.buildServer.Used;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -39,7 +39,6 @@ import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.ChangeDescriptor;
-import jetbrains.buildServer.serverSide.ChangeDescriptorConstants;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
@@ -47,6 +46,7 @@ import jetbrains.buildServer.vcs.RelationType;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.impl.VcsModificationEx;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * User: Yegor Yarko
@@ -80,6 +80,8 @@ import org.jetbrains.annotations.NotNull;
 )
 public class Change {
   protected SVcsModification myModification;
+  @Nullable
+  protected ChangeDescriptor myDescriptor;
   protected ApiUrlBuilder myApiUrlBuilder;
   protected WebLinks myWebLinks;
   @NotNull private Fields myFields;
@@ -95,12 +97,21 @@ public class Change {
   public Change() {
   }
 
-  public Change(SVcsModification modification, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
-    this.myModification = modification;
+  public Change(@NotNull SVcsModification modification, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    this(new SVcsModificationOrChangeDescriptor(modification), fields, beanContext);
+  }
+
+  public Change(SVcsModificationOrChangeDescriptor modificationOrDescriptor, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    myDescriptor = modificationOrDescriptor.getChangeDescriptor();
+    myModification = modificationOrDescriptor.getSVcsModification();
     myFields = fields;
     myBeanContext = beanContext;
     myApiUrlBuilder = myBeanContext.getApiUrlBuilder();
     myWebLinks = myBeanContext.getSingletonService(WebLinks.class);
+  }
+
+  public static String getFieldValue(@NotNull SVcsModificationOrChangeDescriptor modificationOrDescriptor, final String field) {
+    return getFieldValue(modificationOrDescriptor.getSVcsModification(), field);
   }
 
   public static String getFieldValue(final SVcsModification vcsModification, final String field) {
@@ -200,10 +211,7 @@ public class Change {
   @XmlElement
   public String getType() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("type", false), () -> {
-      if(myModification instanceof ChangeDescriptor) {
-        return ((ChangeDescriptor) myModification).getType();
-      }
-      return ChangeDescriptorConstants.VCS_CHANGE;
+      return myDescriptor != null ? myDescriptor.getType() : null;
     });
   }
 
@@ -240,9 +248,10 @@ public class Change {
   @Used
   @XmlElement(name = "parentChanges")
   public Changes getParentChanges() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("parentChanges", false, false),
-                                          () -> new Changes(new ArrayList<>(myModification.getParentModifications()), null, myFields.getNestedField("parentChanges"),
-                                                            myBeanContext));
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("parentChanges", false, false),
+      () -> Changes.fromSVcsModifications(myModification.getParentModifications(), null, myFields.getNestedField("parentChanges"), myBeanContext)
+    );
   }
 
   @Used
@@ -298,7 +307,7 @@ public class Change {
       locatorText = submittedLocator;
     }
 
-    return changeFinder.getItem(locatorText);
+    return changeFinder.getItem(locatorText).getSVcsModification();
   }
 
 }
