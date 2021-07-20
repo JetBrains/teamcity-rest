@@ -123,7 +123,7 @@ import org.jetbrains.annotations.Nullable;
     "links",
     "statusText"/*rf*/,
     "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
-    "startEstimate"/*q*/, "waitReason"/*q*/, "finishEstimate"/*q*/, "delayedByBuild", /*q*/
+    "startEstimate"/*q*/, "waitReason"/*q*/, "finishEstimate"/*q*/, "delayedByBuild"/*q*/, "plannedAgent"/*q*/,
     "runningBuildInfo"/*r*/, "canceledInfo"/*rf*/,
     "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
     "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision", "artifactDependencyChanges" /*experimental*/,
@@ -1190,6 +1190,26 @@ public class Build {
         }
 
         return new Build(delayer, myFields.getNestedField("delayedByBuild"), myBeanContext);
+      }
+    );
+  }
+
+  @XmlElement(name = "plannedAgent")
+  public Agent getPlannedAgent() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("plannedAgent", false, false),
+      () -> {
+        if(myQueuedBuild == null || myQueuedBuild.getBuildEstimates() == null) {
+          return null;
+        }
+
+        BuildAgent agent = myQueuedBuild.getBuildEstimates().getAgent();
+        if(!(agent instanceof SBuildAgent)) {
+          // what?!
+          return null;
+        }
+
+        return new Agent((SBuildAgent) agent, myFields.getNestedField("plannedAgent"), myBeanContext);
       }
     );
   }
