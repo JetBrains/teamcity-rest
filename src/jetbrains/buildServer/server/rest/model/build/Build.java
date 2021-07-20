@@ -28,6 +28,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.AgentRestrictor;
 import jetbrains.buildServer.AgentRestrictorType;
+import jetbrains.buildServer.BuildAgent;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.artifacts.RevisionRule;
 import jetbrains.buildServer.artifacts.RevisionRules;
@@ -122,7 +123,7 @@ import org.jetbrains.annotations.Nullable;
     "links",
     "statusText"/*rf*/,
     "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
-    "startEstimate"/*q*/, "waitReason"/*q*/, "finishEstimate"/*q*/,
+    "startEstimate"/*q*/, "waitReason"/*q*/, "finishEstimate"/*q*/, "delayedByBuild", /*q*/
     "runningBuildInfo"/*r*/, "canceledInfo"/*rf*/,
     "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
     "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision", "artifactDependencyChanges" /*experimental*/,
@@ -1166,6 +1167,31 @@ public class Build {
       if (waitReason == null) return null;
       return waitReason.getDescription();
     });
+  }
+
+  @XmlElement(name = "delayedByBuild")
+  public Build getDelayedByBuild() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("delayedByBuild", false, false),
+      () -> {
+        if(myQueuedBuild == null || myQueuedBuild.getBuildEstimates() == null) {
+          return null;
+        }
+
+        BuildAgent agent = myQueuedBuild.getBuildEstimates().getAgent();
+        if(!(agent instanceof SBuildAgent)) {
+          // what?!
+          return null;
+        }
+
+        SRunningBuild delayer = ((SBuildAgent) agent).getRunningBuild();
+        if(delayer == null) {
+          return null;
+        }
+
+        return new Build(delayer, myFields.getNestedField("delayedByBuild"), myBeanContext);
+      }
+    );
   }
 
   /**
