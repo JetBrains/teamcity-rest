@@ -221,8 +221,9 @@ public class BuildType {
   @XmlElement
   public Comment getPauseComment() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("pauseComment", false, false), () -> {
-      if (myBuildType != null && myBuildType.getBuildType() != null && myBuildType.getBuildType().getPauseComment() != null) {
-        return new Comment(myBuildType.getBuildType().getPauseComment(), myFields.getNestedField("pauseComment"), myBeanContext);
+      jetbrains.buildServer.serverSide.comments.Comment pauseComment;
+      if (myBuildType != null && myBuildType.getBuildType() != null && (pauseComment = myBuildType.getBuildType().getPauseComment()) != null) {
+        return new Comment(pauseComment, myFields.getNestedField("pauseComment"), myBeanContext);
       } else {
         return null;
       }
