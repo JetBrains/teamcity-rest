@@ -60,6 +60,8 @@ import java.util.ArrayList;
 @Api("Change")
 public class ChangeRequest {
   public static final String API_CHANGES_URL = Constants.API_URL + "/changes";
+
+  private static final String DEFAULT_CHANGES_LOOKUP_LIMIT_FOR_COMMITERS = "1000";
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private BeanFactory myFactory;
@@ -282,10 +284,15 @@ public class ChangeRequest {
   @ApiOperation(value="Get unique commiters of the matching changes.",nickname="getUniqueCommiters")
   public Commiters getUniqueCommiters(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                       @QueryParam("fields") String fields) {
-    PagedSearchResult<SVcsModificationOrChangeDescriptor> changes = myChangeFinder.getItems(changeLocator);
+    Locator patchedChangeLocator = Locator.createPotentiallyEmptyLocator(changeLocator);
+    
+    if(!patchedChangeLocator.isAnyPresent(PagerData.COUNT)) {
+      patchedChangeLocator.setDimension(PagerData.COUNT, DEFAULT_CHANGES_LOOKUP_LIMIT_FOR_COMMITERS);
+    }
+
+    PagedSearchResult<SVcsModificationOrChangeDescriptor> changes = myChangeFinder.getItems(patchedChangeLocator.getStringRepresentation());
 
     List<CommiterData> commiters = CommitersUtil.getUniqueCommiters(changes.myEntries.stream().map(modOrDesc -> modOrDesc.getSVcsModification()));
-
     return new Commiters(commiters, new Fields(fields), myBeanContext);
   }
 }
