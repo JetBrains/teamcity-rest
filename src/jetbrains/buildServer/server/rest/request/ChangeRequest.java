@@ -45,6 +45,7 @@ import jetbrains.buildServer.server.rest.model.issue.Issues;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -285,9 +286,9 @@ public class ChangeRequest {
   public Commiters getUniqueCommiters(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                       @QueryParam("fields") String fields) {
     Locator patchedChangeLocator = Locator.createPotentiallyEmptyLocator(changeLocator);
-    
     if(!patchedChangeLocator.isAnyPresent(PagerData.COUNT)) {
-      patchedChangeLocator.setDimension(PagerData.COUNT, DEFAULT_CHANGES_LOOKUP_LIMIT_FOR_COMMITERS);
+      String lookupLimit = TeamCityProperties.getProperty("rest.request.changes.committersLookupLimit", DEFAULT_CHANGES_LOOKUP_LIMIT_FOR_COMMITERS);
+      patchedChangeLocator.setDimension(PagerData.COUNT, lookupLimit);
     }
 
     PagedSearchResult<SVcsModificationOrChangeDescriptor> changes = myChangeFinder.getItems(patchedChangeLocator.getStringRepresentation());
