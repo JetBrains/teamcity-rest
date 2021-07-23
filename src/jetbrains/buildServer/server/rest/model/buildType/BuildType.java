@@ -72,7 +72,7 @@ import org.jetbrains.annotations.Nullable;
   "href", "webUrl", "inherited" /*used only for list of build configuration templates*/,
   "links", "project", "templates", "template" /*deprecated*/, "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements",
-  "branches", "builds", "investigations", "compatibleAgents", "vcsRootInstances", "externalStatusAllowed" /*experimental*/})
+  "branches", "builds", "investigations", "compatibleAgents", "vcsRootInstances", "externalStatusAllowed", "pauseComment" /*experimental*/})
 @ModelDescription(
     value = "Represents a build configuration.",
     externalArticleLink = "https://www.jetbrains.com/help/teamcity/build-configuration.html",
@@ -216,6 +216,18 @@ public class BuildType {
   @XmlAttribute
   public Boolean isPaused() {
     return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("paused"), () -> myBuildType.isPaused());
+  }
+
+  @XmlElement
+  public Comment getPauseComment() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("pauseComment", false, false), () -> {
+      jetbrains.buildServer.serverSide.comments.Comment pauseComment;
+      if (myBuildType != null && myBuildType.getBuildType() != null && (pauseComment = myBuildType.getBuildType().getPauseComment()) != null) {
+        return new Comment(pauseComment, myFields.getNestedField("pauseComment"), myBeanContext);
+      } else {
+        return null;
+      }
+    });
   }
 
   @XmlAttribute
