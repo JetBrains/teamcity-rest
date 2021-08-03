@@ -78,7 +78,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
   public static final String AFFECTED_PROJECT = "affectedProject";
   @LocatorDimension(value = "currentlyFailing", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently failing.")
-  private static final String CURRENT = "currentlyFailing";
+  public static final String CURRENT = "currentlyFailing";
   @LocatorDimension(value = "status", allowableValues = "unknown,normal,warning,failure,error")
   public static final String STATUS = "status";
   @LocatorDimension("branch") private static final String BRANCH = "branch";

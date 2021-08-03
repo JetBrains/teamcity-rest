@@ -30,6 +30,9 @@ public class TestScopeTreeCollector {
   public static final String BUILD = "build";
   public static final String ORDER_BY = "orderBy";
   public static final String MAX_CHILDREN = "maxChildren";
+  public static final String AFFECTED_PROJECT = "affectedProject";
+  public static final String CURRENT = "currentlyFailing";
+  public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
 
   public static final String DEFAULT_MAX_CHILDREN = "5";
 
@@ -44,6 +47,9 @@ public class TestScopeTreeCollector {
     occurrencesLocator.setDimension(TestOccurrenceFinder.STATUS, "FAILURE");
     occurrencesLocator.setDimension(PagerData.COUNT, "-1");
     occurrencesLocator.setDimension(TestOccurrenceFinder.BUILD, locator.getDimensionValue(BUILD));
+    occurrencesLocator.setDimension(TestOccurrenceFinder.CURRENTLY_INVESTIGATED, locator.getDimensionValue(CURRENTLY_INVESTIGATED));
+    occurrencesLocator.setDimension(TestOccurrenceFinder.CURRENT, locator.getDimensionValue(CURRENT));
+    occurrencesLocator.setDimension(TestOccurrenceFinder.AFFECTED_PROJECT, locator.getDimensionValue(AFFECTED_PROJECT));
     occurrencesLocator.setDimension(TestOccurrenceFinder.MUTED, Locator.BOOLEAN_FALSE);
     occurrencesLocator.setDimension(TestOccurrenceFinder.IGNORED, Locator.BOOLEAN_FALSE);
 
@@ -56,7 +62,7 @@ public class TestScopeTreeCollector {
   }
 
   public List<TestScopeTree.Node> getSlicedTree(@NotNull Locator locator, @NotNull HttpServletRequest request) {
-    locator.addSupportedDimensions(BUILD, ORDER_BY, MAX_CHILDREN);
+    locator.addSupportedDimensions(BUILD, ORDER_BY, MAX_CHILDREN, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED);
 
     Locator scopesLocator = prepareScopesLocator(locator, request);
 
@@ -82,7 +88,7 @@ public class TestScopeTreeCollector {
   }
 
   public List<TestScopeTree.Node> getTopSlicedTree(@NotNull Locator locator, @NotNull HttpServletRequest request) {
-    locator.addSupportedDimensions(BUILD, ORDER_BY);
+    locator.addSupportedDimensions(BUILD, ORDER_BY, AFFECTED_PROJECT);
 
     Locator scopesLocator = prepareScopesLocator(locator, request);
 
