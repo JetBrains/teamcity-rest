@@ -16,22 +16,20 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.change.Change;
 import jetbrains.buildServer.server.rest.model.change.FileChange;
 import jetbrains.buildServer.server.rest.model.change.FileChanges;
-import jetbrains.buildServer.serverSide.BuildTypeEx;
-import jetbrains.buildServer.serverSide.BuildTypeOptions;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.MockVcsModification;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.versionedSettings.VersionedSettingsConfig;
+import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.util.Util;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
@@ -424,6 +422,87 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     check(btLocator2 + ",pending:true,branch:(policy:ACTIVE_VCS_BRANCHES)", m270, m260, m150, m140, m130);
 
     check("build:(" + build20.getBuildId()+ ")", m250, m120);
+  }
+
+  @Test
+  @TestFor(issues = "TW-60774")
+  public void testChangesByBuildIdFromDependenciesHaveDescriptor() {
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+    createDependencyChain(buildConf2, buildConf1);
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    vcs.setDAGBased(true);
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf1);
+    SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", buildConf2);
+    VcsRootInstance root1 = buildConf1.getVcsRootInstanceForParent(parentRoot1);
+    VcsRootInstance root2 = buildConf2.getVcsRootInstanceForParent(parentRoot2);
+    assert root1 != null;
+    assert root2 != null;
+
+    setBranchSpec(root1, "+:*");
+    setBranchSpec(root2, "+:*");
+
+    SVcsModification m1 = myFixture.addModification(modification().in(root1).version("1").parentVersions("0"));
+    SVcsModification m2 = myFixture.addModification(modification().in(root2).version("2").parentVersions("0"));
+
+    SQueuedBuild qb1 = build().in(buildConf1).onModifications(m1).addToQueue();
+    SQueuedBuild qb2 = build().in(buildConf2).onModifications(m2).snapshotDepends(qb1.getBuildPromotion()).addToQueue();
+
+    SFinishedBuild build1 = finishBuild(myFixture.flushQueueAndWait(),false);
+    SFinishedBuild build2 = finishBuild(myFixture.flushQueueAndWait(),false);
+
+    List<SVcsModificationOrChangeDescriptor> items = getFinder()
+      .getItems("build:" + build2.getBuildId() + ",changesFromDependencies:true,vcsRoot:(id:" + root1.getExternalId() + ")")
+      .myEntries;
+    assertEquals("There is exactly one change coming from dependency.", 1, items.size());
+
+    ChangeDescriptor descriptor = items.get(0).getChangeDescriptor();
+    assertNotNull("Change descriptor must be present when looking for changes using build id.", descriptor);
+    assertEquals(ChangeDescriptorConstants.SNAPSHOT_DEPENDENCY_VCS_CHANGE, descriptor.getType());
+
+    SVcsModification modification = items.get(0).getSVcsModification();
+    assertEquals("1", modification.getDisplayVersion());
+  }
+
+  @Test
+  @TestFor(issues = "TW-72448")
+  public void testChangesByBuildTypeFromDependenciesHaveDescriptor() {
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+    createDependencyChain(buildConf2, buildConf1);
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    vcs.setDAGBased(true);
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf1);
+    SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", buildConf2);
+    VcsRootInstance root1 = buildConf1.getVcsRootInstanceForParent(parentRoot1);
+    VcsRootInstance root2 = buildConf2.getVcsRootInstanceForParent(parentRoot2);
+    assert root1 != null;
+    assert root2 != null;
+
+    setBranchSpec(root1, "+:*");
+    setBranchSpec(root2, "+:*");
+
+    final BuildFinderTestBase.MockCollectRepositoryChangesPolicy changesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(changesPolicy);
+
+    myFixture.addModification(modification().in(root1).version("1").parentVersions("0"));
+    myFixture.addModification(modification().in(root2).version("2").parentVersions("0"));
+
+    List<SVcsModificationOrChangeDescriptor> items = getFinder()
+      .getItems("buildType:buildConf2,changesFromDependencies:true,vcsRoot:(id:" + root1.getExternalId() + ")")
+      .myEntries;
+    assertEquals("There is exactly one pending change coming from dependency.", 1, items.size());
+
+    ChangeDescriptor descriptor = items.get(0).getChangeDescriptor();
+    assertNotNull("Depency change descriptor must be present when looking for changes using build type.", descriptor);
+    assertEquals(ChangeDescriptorConstants.SNAPSHOT_DEPENDENCY_VCS_CHANGE, descriptor.getType());
+
+    SVcsModification modification = items.get(0).getSVcsModification();
+    assertEquals("1", modification.getDisplayVersion());
   }
 
   @Test

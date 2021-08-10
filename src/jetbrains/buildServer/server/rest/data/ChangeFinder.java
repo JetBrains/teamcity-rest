@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.util.function.Function;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
@@ -378,7 +379,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
       if (pending != null) {
         final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE); //todo: support multiple buildTypes here
         final SBuildType buildType = buildTypeLocator == null ? null : myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
-        final Set<SVcsModification> pendingChanges = getPendingChanges(buildType, locator).collect(Collectors.toSet());
+        final Set<SVcsModification> pendingChanges = getPendingChanges(buildType, locator).map(mcd -> mcd.getSVcsModification()).collect(Collectors.toSet());
         result.add(item -> FilterUtil.isIncludedByBooleanFilter(pending, pendingChanges.contains(item)));
       }
     }
@@ -542,14 +543,16 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     Boolean pending = locator.getSingleDimensionValueAsBoolean(PENDING);
     if (pending != null) {
       if (pending) {
-        return wrapModifications(getPendingChanges(buildType, locator));
+        Stream<SVcsModificationOrChangeDescriptor> changes = getPendingChanges(buildType, locator);
+        return processor -> changes.allMatch(processor::processItem);
       } else {
         locator.markUnused(PENDING);
       }
     }
 
     if (buildType != null) {
-      return wrapModifications(getBranchChanges(buildType, SelectPrevBuildPolicy.SINCE_NULL_BUILD, locator));
+      Stream<SVcsModificationOrChangeDescriptor> changes = getBranchChanges(buildType, SelectPrevBuildPolicy.SINCE_NULL_BUILD, locator);
+      return processor -> changes.allMatch(processor::processItem);
     }
 
     if (locator.lookupSingleDimensionValue(BRANCH) != null) {
@@ -569,7 +572,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   }
 
   @NotNull
-  private Stream<SVcsModification> getPendingChanges(@Nullable final SBuildType buildType, @NotNull final Locator locator) {
+  private Stream<SVcsModificationOrChangeDescriptor> getPendingChanges(@Nullable final SBuildType buildType, @NotNull final Locator locator) {
     if (buildType == null) {
       throw new BadRequestException("Getting pending changes is only supported when buildType is specified.");
     }
@@ -613,7 +616,9 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
 
 
   @NotNull
-  private Stream<SVcsModification> getBranchChanges(@NotNull final SBuildType buildType, @NotNull final SelectPrevBuildPolicy defaultPolicy, @NotNull final Locator locator) {
+  private Stream<SVcsModificationOrChangeDescriptor> getBranchChanges(@NotNull final SBuildType buildType,
+                                                                      @NotNull final SelectPrevBuildPolicy defaultPolicy,
+                                                                      @NotNull final Locator locator) {
     // todo: Make this return Stream<SVcsModificationOrChangeDescriptor>
     final Boolean includeDependencyChanges = getIncludeDependencyChanges(locator);
     SelectPrevBuildPolicy policy = getBuildChangesPolicy(locator, defaultPolicy);
@@ -626,7 +631,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
         locator.markUsed(Collections.singleton(SETTINGS_CHANGES)); //in case it was set to "any"
         //todo: This approach has a bug: if includeDependencyChanges==true changes from all branches are returned, if includeDependencyChanges==false - only from the default branch
         if ((includeDependencyChanges != null && !includeDependencyChanges) || (includeDependencyChanges == null && !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES))) {
-          return myVcsModificationHistory.getAllModifications(buildType).stream(); // this can be more efficient than buildType.getDetectedChanges below, but returns all branches
+          return myVcsModificationHistory.getAllModifications(buildType).stream().map(SVcsModificationOrChangeDescriptor::new);
+          // this can be more efficient than buildType.getDetectedChanges below, but returns all branches
         }
       }
     }
@@ -634,12 +640,38 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     Predicate<ChangeDescriptor> changeDescriptorFilter = getChangeDescriptorFilter(locator); //getting this before filtering is important: othrwise it can never be called and dimension reported as ignored
 
     if (filterBranches != null) {
+      Function<BranchData, Stream<SVcsModificationOrChangeDescriptor>> flattenBranchData = branchData ->
+        branchData.getChanges(policy, includeDependencyChanges).stream()
+                  .filter(changeDescriptorFilter)
+                  .filter(cd -> cd.getRelatedVcsChange() != null)
+                  .map(SVcsModificationOrChangeDescriptor::new);
+
       return filterBranches.stream()
-                           .flatMap(branchData -> branchData.getChanges(policy, includeDependencyChanges).stream().filter(changeDescriptorFilter)
-                                                            .map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull)).sorted().distinct();
+                           .flatMap(flattenBranchData)
+                           .sorted(Comparator.comparing(mcd -> mcd.getSVcsModification()))
+                           .collect(Collectors.toMap(mcd -> mcd.getSVcsModification().getId(), mcd -> mcd, this::chooseChangeNotFromDependency, LinkedHashMap::new))
+                           .values().stream();
     } else {
       return ((BuildTypeEx)buildType).getDetectedChanges(policy, includeDependencyChanges)
-                                     .stream().filter(changeDescriptorFilter).map(ChangeDescriptor::getRelatedVcsChange).filter(Objects::nonNull);
+                                     .stream()
+                                     .filter(changeDescriptorFilter)
+                                     .filter(cd -> cd.getRelatedVcsChange() != null)
+                                     .map(SVcsModificationOrChangeDescriptor::new);
+    }
+  }
+
+  @NotNull
+  private SVcsModificationOrChangeDescriptor chooseChangeNotFromDependency(@NotNull SVcsModificationOrChangeDescriptor mcd1,
+                                                                           @NotNull SVcsModificationOrChangeDescriptor mcd2) {
+    // We assume that mcd1.getSVcsModification().getId() == mcd2.getSVcsModification().getId(), so it's the same change in VCS.
+    // E.g. in a case when the same change is in both buildType and snapshot dependency, let's select the former one as it seems more important.
+
+    if (mcd1.getChangeDescriptor() != null && mcd2.getChangeDescriptor() != null) {
+      // Let's select the one coming NOT from dependency if possible.
+      return ChangeDescriptorConstants.VCS_CHANGE.equals(mcd2.getChangeDescriptor().getType()) ? mcd2 : mcd1;
+    } else {
+      // Let's select one at least potentially having a descriptor.
+      return mcd2.getChangeDescriptor() != null ? mcd2 : mcd1;
     }
   }
 
