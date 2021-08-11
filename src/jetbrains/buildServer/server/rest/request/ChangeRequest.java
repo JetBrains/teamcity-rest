@@ -21,9 +21,10 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
@@ -45,7 +46,10 @@ import jetbrains.buildServer.server.rest.model.issue.Issues;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.vcs.ChangeStatus;
+import jetbrains.buildServer.vcs.ChangeStatusProvider;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -259,7 +263,10 @@ public class ChangeRequest {
   public BuildTypes getRelatedBuildTypes(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                          @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
-    return new BuildTypes(BuildTypes.fromBuildTypes(change.getRelatedConfigurations()), null, new Fields(fields), myBeanContext);
+    ChangeStatusProvider myStatusProvider = myServiceLocator.getSingletonService(ChangeStatusProvider.class);
+    ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
+
+    return new BuildTypes(BuildTypes.fromBuildTypes(changeStatus.getRelatedConfigurations()), null, new Fields(fields), myBeanContext);
   }
 
  /**
@@ -272,7 +279,14 @@ public class ChangeRequest {
   public Builds getChangeFirstBuilds(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                      @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
-    return Builds.createFromBuildPromotions(BuildFinder.toBuildPromotions(change.getFirstBuilds().values()), null,  new Fields(fields), myBeanContext);
+
+    ChangeStatusProvider myStatusProvider = myServiceLocator.getSingletonService(ChangeStatusProvider.class);
+    ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
+    List<BuildPromotion> firstBuildsPromotions = changeStatus.getBuildTypesStatusMap().values().stream()
+                                                  .filter(Objects::nonNull)
+                                                  .collect(Collectors.toList());
+
+    return Builds.createFromBuildPromotions(firstBuildsPromotions, null,  new Fields(fields), myBeanContext);
   }
 
   /**
