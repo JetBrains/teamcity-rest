@@ -132,7 +132,9 @@ public abstract class ExceptionMapperBase<E extends Throwable> implements Except
     if (isInternalError && !isCommonExternalError(e)) {
       logMessage(LOG, level, logMessage, e);
     } else {
-      logMessage(LOG, level, logMessage);
+      if (statusCode <=0 || statusCode >= 500) {
+        logMessage(LOG, level, logMessage);
+      }
       LOG.debug(logMessage, e);
     }
 
