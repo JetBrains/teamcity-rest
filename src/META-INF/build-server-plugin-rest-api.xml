@@ -71,6 +71,7 @@
 
   <bean id="timeCondition" class="jetbrains.buildServer.server.rest.data.TimeCondition"/>
   <bean id="restDataUpdater" class="jetbrains.buildServer.server.rest.data.DataUpdater"/>
+  <bean id="twoFactorSecretKeysUpdater" class="jetbrains.buildServer.server.rest.data.TwoFactorSecretKeysUpdater"/>
   <bean id="beanFactory" class="jetbrains.buildServer.server.rest.util.BeanFactory"/>
 
   <bean id="requestPathTransformInfo" class="jetbrains.buildServer.server.rest.RequestPathTransformInfo"/>
@@ -105,6 +106,7 @@
   <bean id="healthStatusItemFinderProvider" class="jetbrains.buildServer.server.rest.jersey.HealthItemFinderProvider"/>
   <bean id="testScopesCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.TestScopesCollectorProvider"/>
   <bean id="testScopeTreeCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.TestScopeTreeCollectorProvider"/>
+  <bean id="twoFactorSecretKeysProvider" class="jetbrains.buildServer.server.rest.jersey.TwoFactorSecretKeysProvider"/>
 
   <bean id="restCloudUtil" class="jetbrains.buildServer.server.rest.data.CloudUtil"/>
   <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataUpdaterContextProvider"/>
