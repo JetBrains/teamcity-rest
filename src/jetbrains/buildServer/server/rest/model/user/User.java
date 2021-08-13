@@ -46,6 +46,7 @@ import jetbrains.buildServer.users.PropertyHolder;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
+import jetbrains.buildServer.users.impl.UserAvatarsManager;
 import jetbrains.buildServer.users.impl.UserImpl;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -58,7 +59,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "user")
 @XmlType(name = "user", propOrder = {"username", "name", "id", "email", "lastLogin", "password", "hasPassword", "realm" /*obsolete*/, "href",
   "properties", "roles", "groups",
-  "locator"/*only when triggering*/})
+  "locator"/*only when triggering*/, "avatars"})
 @ModelDescription(
     value = "Represents a user.",
     externalArticleLink = "https://www.jetbrains.com/help/teamcity/user-account.html",
@@ -72,6 +73,7 @@ public class User {
   private Fields myFields;
   private BeanContext myContext;
   private boolean myCanViewDetails;
+  private UserAvatarsManager myUserAvatarsManager;
 
   public User() {
     myUser = null;
@@ -84,6 +86,7 @@ public class User {
     myUser = context.getSingletonService(UserModel.class).findUserById(userId);
     myFields = fields;
     myContext = context;
+    myUserAvatarsManager = context.getSingletonService(UserAvatarsManager.class);
     initCanViewDetails();
   }
 
@@ -92,6 +95,7 @@ public class User {
     myUserId = myUser.getId();
     myFields = fields;
     myContext = context;
+    myUserAvatarsManager = context.getSingletonService(UserAvatarsManager.class);
     initCanViewDetails();
   }
 
@@ -168,6 +172,22 @@ public class User {
     return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("email", false), () -> {
       checkCanViewUserDetails();
       return StringUtil.isEmpty(myUser.getEmail()) ? null : myUser.getEmail();
+    });
+  }
+
+  @XmlElement(name = "avatars")
+  public UserAvatars getAvatars() {
+    return myUser == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("avatars", false), () -> {
+      checkCanViewUserDetails();
+      final UserAvatarsManager.Avatars avatars = myUserAvatarsManager.getAvatars(myUser);
+      if (!avatars.exists()) {
+        return null;
+      }
+      return new UserAvatars()
+        .setUrlToSize20(avatars.getUrlToSize20())
+        .setUrlToSize32(avatars.getUrlToSize32())
+        .setUrlToSize40(avatars.getUrlToSize40())
+        .setUrlToSize64(avatars.getUrlToSize64());
     });
   }
 
