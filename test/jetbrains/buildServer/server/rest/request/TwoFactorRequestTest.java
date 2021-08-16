@@ -22,12 +22,9 @@ import java.util.Set;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.TwoFactorSecretKeysUpdater;
-import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.model.user.TwoFactorCredentials;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
-import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.auth.TwoFactorPasswordManager;
 import jetbrains.buildServer.serverSide.auth.impl.SecureTwoFactorPasswordManager;
 import jetbrains.buildServer.serverSide.auth.impl.TwoFactorPasswordManagerImpl;
@@ -125,49 +122,6 @@ public class TwoFactorRequestTest extends BaseFinderTest<TwoFactorCredentials> {
   }
 
   @Test
-  public void testUserWithoutEditCantDeleteOtherKey() throws Throwable {
-    SUser user = createUser("user");
-    myManager.setSecretKey(user, "111");
-    final SUser deleter = createUser("deleter");
-    myFixture.getSecurityContext().runAs(deleter, new SecurityContextEx.RunAsAction() {
-      @Override
-      public void run() {
-        checkException(AuthorizationFailedException.class, () -> myRequest.deleteTwoFactor("username:user"), "delete key from another user");
-      }
-    });
-  }
-
-  @Test
-  public void testChangeUserPermissionOwnerCanDeleteOtherKey() throws Throwable {
-    final SUser user = createUser("user");
-    myManager.setSecretKey(user, "secret");
-    final SUser user2 = createUser("user2");
-    user2.addRole(RoleScope.globalScope(), myFixture.getTestRoles().createRole(Permission.CHANGE_USER));
-    myFixture.getSecurityContext().runAs(user2, new SecurityContextEx.RunAsAction() {
-      @Override
-      public void run() {
-        myRequest.deleteTwoFactor("username:user");
-      }
-    });
-    assertNull(user.getPropertyValue(SECRET_KEY_PROPERTY));
-  }
-
-  @Test
-  public void testLowerPermissionCantDeleteKey() throws Throwable {
-    final SUser user = createUser("user");
-    final SUser admin = createAdmin("admin");
-    myManager.setSecretKey(admin, "admin_secret");
-    user.addRole(RoleScope.globalScope(), myFixture.getTestRoles().createRole(Permission.CHANGE_USER));
-    myFixture.getSecurityContext().runAs(user, new SecurityContextEx.RunAsAction() {
-      @Override
-      public void run() {
-        checkException(AccessDeniedException.class, () -> myRequest.deleteTwoFactor("username:admin"),
-                       "CHANGE_USER permission owner delete key of admin");
-      }
-    });
-  }
-
-  @Test
   public void testKeyRegeneration() throws Throwable {
     final SUser user = createUser("user");
     myFixture.getSecurityContext().runAs(user, new SecurityContextEx.RunAsAction() {
@@ -189,16 +143,6 @@ public class TwoFactorRequestTest extends BaseFinderTest<TwoFactorCredentials> {
       @Override
       public void run() {
         checkException(AccessDeniedException.class, () -> myRequest.serveRecoveryKeys(), "regenerate recovery for not existing 2FA");
-      }
-    });
-  }
-
-  @Test
-  public void testGuestCantSetup2FA() throws Throwable {
-    myFixture.getSecurityContext().runAs(myFixture.getUserModel().getGuestUser(), new SecurityContextEx.RunAsAction() {
-      @Override
-      public void run() {
-        checkException(AccessDeniedException.class, () -> myRequest.setupTwoFactor(), "guest 2FA setup");
       }
     });
   }
