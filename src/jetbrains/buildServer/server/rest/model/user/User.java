@@ -23,7 +23,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
@@ -177,7 +176,7 @@ public class User {
 
   @XmlElement(name = "avatars")
   public UserAvatars getAvatars() {
-    return myUser == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("avatars", false), () -> {
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("avatars", false), () -> {
       checkCanViewUserDetails();
       final UserAvatarsManager.Avatars avatars = myUserAvatarsManager.getAvatars(myUser);
       if (!avatars.exists()) {
