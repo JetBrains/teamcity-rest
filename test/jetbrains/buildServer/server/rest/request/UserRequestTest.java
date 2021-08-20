@@ -41,6 +41,7 @@ import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.impl.UserAvatarsManager;
 import jetbrains.buildServer.util.TestFor;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
@@ -56,6 +57,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
   @Override
   @BeforeMethod
   public void setUp() throws Exception {
+    setInternalProperty(UserAvatarsManager.SAVE_AVATARS_KEY, true);
     super.setUp();
     myRequest = new UserRequest();
     myRequest.initForTests(BaseFinderTest.getBeanContext(myFixture));
@@ -357,7 +359,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
 
       checkException(AuthorizationFailedException.class, () -> myRequest.getPermissions("id:" + user2.getId(), null, null), "getting permissions of another user");
     });
-    
+
     myFixture.getSecurityContext().runAs(getUserModelEx().getSuperUser(), () -> {
       PermissionAssignments permissions = myRequest.getPermissions("current", null, null);
       assertTrue(describe(permissions), permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.EDIT_PROJECT.name().toLowerCase().equals(pa.permission.id) && pa.project == null));
