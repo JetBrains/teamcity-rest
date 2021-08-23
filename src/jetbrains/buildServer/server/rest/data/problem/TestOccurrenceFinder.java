@@ -21,10 +21,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilter;
-import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterImpl;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -92,6 +92,11 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @LocatorDimension(value = "includePersonal", dataType = LocatorDimensionDataType.BOOLEAN)
   public static final String INCLUDE_PERSONAL = "includePersonal";
 
+  /** Experimental dimension, allowed values = "active,fixed,givenUp,none"
+   * Potential replacement for "currentlyInvestigated" dimension.
+   */
+  public static final String INVESTIGATION_STATE = "investigationState";
+
   /** Experimental dimension, defines scope filter **/
   public static final String SCOPE = "scope";
 
@@ -134,6 +139,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     setHiddenDimensions(EXPAND_INVOCATIONS, INVOCATIONS);
     setHiddenDimensions(ORDER); //highly experiemntal
     setHiddenDimensions(PERSONAL_FOR_USER);
+    setHiddenDimensions(INVESTIGATION_STATE); // highly experimental
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -586,6 +592,11 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       });
     }
 
+    final String investigationState = locator.getSingleDimensionValue(INVESTIGATION_STATE);
+    if(investigationState != null) {
+      result.add(hasInvestigationStateFilter(investigationState));
+    }
+
     final Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null) { //it is important to filter even if prefiltered items processed the tests as that does not consider mute scope
       result.add(item -> { //todo: TeamCity API (MP): is there an API way to figure out there is a mute for a STestRun ?
@@ -756,17 +767,52 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return build.getBuildStatistics(ALL_TESTS_NO_DETAILS).findTestByTestRunId(testRunId);
   }
 
-  public boolean isCurrentlyInvestigated(@NotNull final STestRun item) {  //todo: TeamCity API (MP): is there an API way to figure out there is an investigation for a STestRun ?
+  @NotNull
+  private FilterConditionChecker<STestRun> hasInvestigationStateFilter(@NotNull String investigationState) {
+    switch (investigationState) {
+      case "active":
+        return item -> hasInvestigationState(item, ResponsibilityEntry.State.TAKEN);
+      case "givenUp":
+        return item -> hasInvestigationState(item, ResponsibilityEntry.State.GIVEN_UP);
+      case "fixed":
+        return item -> hasInvestigationState(item, ResponsibilityEntry.State.FIXED);
+      case "none":
+        return item -> hasInvestigationState(item, ResponsibilityEntry.State.NONE);
+    }
+    throw new LocatorProcessException("Invalid value of dimension " + INVESTIGATION_STATE + ".");
+  }
+
+  private boolean hasInvestigationState(@NotNull final STestRun item, @NotNull ResponsibilityEntry.State state) {
+    //todo: TeamCity API (MP): is there an API way to figure out there is an investigation for a STestRun ?
     final List<TestNameResponsibilityEntry> testResponsibilities = item.getTest().getAllResponsibilities();
+
+    if(state.equals(ResponsibilityEntry.State.NONE)) {
+      for (TestNameResponsibilityEntry testResponsibility : testResponsibilities) {
+        final SBuildType buildType = item.getBuild().getBuildType();
+        if (buildType != null) {
+          if (ProjectFinder.isSameOrParent(testResponsibility.getProject(), buildType.getProject())) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    }
+
     for (TestNameResponsibilityEntry testResponsibility : testResponsibilities) {
       final SBuildType buildType = item.getBuild().getBuildType();
       if (buildType != null) {
-        if (testResponsibility.getState().isActive() && ProjectFinder.isSameOrParent(testResponsibility.getProject(), buildType.getProject())) {
+        if (testResponsibility.getState().equals(state) && ProjectFinder.isSameOrParent(testResponsibility.getProject(), buildType.getProject())) {
           return true;
         }
       }
     }
+
     return false;
+  }
+
+  public boolean isCurrentlyInvestigated(@NotNull final STestRun item) {
+    return hasInvestigationState(item, ResponsibilityEntry.State.TAKEN);
   }
 
   @Nullable

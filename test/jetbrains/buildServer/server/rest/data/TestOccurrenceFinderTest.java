@@ -340,6 +340,59 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
   }
 
   @Test
+  public void testInvestigationState() throws Exception {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project1");
+    final SFinishedBuild build = build().in(buildType)
+                                        .withTest("aaa_active", false)
+                                        .withTest("bbb_fixed", false)
+                                        .withTest("ccc_given_up", false)
+                                        .withTest("ddd_none", false)
+                                        .finish();
+
+
+    long activeNameId = myFixture.getSingletonService(TestName2Index.class).getOrSaveTestNameId("aaa_active");
+    long fixedNameId = myFixture.getSingletonService(TestName2Index.class).getOrSaveTestNameId("bbb_fixed");
+    long givenUpNameId = myFixture.getSingletonService(TestName2Index.class).getOrSaveTestNameId("ccc_given_up");
+
+    SUser user = createUser("user");
+    ProjectEx project = myServer.getProjectManager().getRootProject().findProjectByName("project1");
+    TestNameResponsibilityEntryImpl activeEntry = new TestNameResponsibilityEntryImpl(
+      new TestName("aaa_active"), activeNameId, ResponsibilityEntry.State.TAKEN,
+      user, user, new Date(), "Please, fix", project, ResponsibilityEntry.RemoveMethod.MANUALLY
+    );
+
+    TestNameResponsibilityEntryImpl fixedEntry = new TestNameResponsibilityEntryImpl(
+      new TestName("bbb_fixed"), fixedNameId, ResponsibilityEntry.State.FIXED,
+      user, user, new Date(), "Please, fix", project, ResponsibilityEntry.RemoveMethod.MANUALLY
+    );
+
+    TestNameResponsibilityEntryImpl givenUpEntry = new TestNameResponsibilityEntryImpl(
+      new TestName("ccc_given_up"), givenUpNameId, ResponsibilityEntry.State.GIVEN_UP,
+      user, user, new Date(), "Please, fix", project, ResponsibilityEntry.RemoveMethod.MANUALLY
+    );
+
+    TestNameResponsibilityFacade testNameResponsibilityFacade = myFixture.getSingletonService(TestNameResponsibilityFacade.class);
+
+    testNameResponsibilityFacade.setTestNameResponsibility(new TestName("aaa_active"), project.getProjectId(), activeEntry);
+    testNameResponsibilityFacade.setTestNameResponsibility(new TestName("bbb_fixed"), project.getProjectId(), fixedEntry);
+    testNameResponsibilityFacade.setTestNameResponsibility(new TestName("ccc_given_up"), project.getProjectId(), givenUpEntry);
+
+    TestRunData activeRunData = t("aaa_active", Status.FAILURE, 1);
+    TestRunData fixedRunData = t("bbb_fixed", Status.FAILURE, 2);
+    TestRunData givenUpRunData = t("ccc_given_up", Status.FAILURE, 3);
+    TestRunData noneRunData = t("ddd_none", Status.FAILURE, 4);
+
+    check("currentlyFailing:true,currentlyInvestigated:true", TEST_MATCHER, activeRunData);
+    check("currentlyFailing:true,currentlyInvestigated:false", TEST_MATCHER, fixedRunData, givenUpRunData, noneRunData);
+
+    check("currentlyFailing:true,investigationState:active", TEST_MATCHER, activeRunData);
+    check("currentlyFailing:true,investigationState:fixed", TEST_MATCHER, fixedRunData);
+    check("currentlyFailing:true,investigationState:givenUp", TEST_MATCHER, givenUpRunData);
+    check("currentlyFailing:true,investigationState:none", TEST_MATCHER, noneRunData);
+    check("currentlyFailing:true", TEST_MATCHER, activeRunData, fixedRunData, givenUpRunData, noneRunData);
+  }
+
+  @Test
   public void testSeveralInvocations() throws Exception {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
     final SFinishedBuild build10 = build().in(buildType)
