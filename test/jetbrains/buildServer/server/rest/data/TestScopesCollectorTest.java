@@ -18,94 +18,12 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Set;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.server.rest.data.problem.TestFinder;
-import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScope;
-import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer;
-import jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector;
-import jetbrains.buildServer.serverSide.BuildTypeEx;
-import jetbrains.buildServer.serverSide.CurrentProblemsManager;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.TestName2IndexImpl;
-import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
-import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
-import jetbrains.buildServer.serverSide.impl.ProjectEx;
-import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-public class TestScopesCollectorTest extends BaseServerTestCase {
-  private PermissionChecker myPermissionChecker;
-  private ProjectFinder myProjectFinder;
-  private AgentFinder myAgentFinder;
-  private BuildTypeFinder myBuildTypeFinder;
-  private BuildFinder myBuildFinder;
-  private TestOccurrenceFinder myTestOccurrenceFinder;
-  private TestFinder myTestFinder;
-  private BranchFinder myBranchFinder;
-  private BuildPromotionFinder myBuildPromotionFinder;
-  private VcsRootFinder myVcsRootFinder;
-  private TimeCondition myTimeCondition;
-  private UserGroupFinder myGroupFinder;
-  private UserFinder myUserFinder;
-
-
-  private TestScopesCollector myCollector;
-
-  @BeforeMethod(alwaysRun = true)
-  @Override
-  protected void setUp() throws Exception {
-    super.setUp();
-
-    myTimeCondition = new TimeCondition(myFixture);
-    myFixture.addService(myTimeCondition);
-
-    myPermissionChecker = new PermissionChecker(myServer.getSecurityContext(), myProjectManager);
-    myFixture.addService(myPermissionChecker);
-
-    myProjectFinder = new ProjectFinder(myProjectManager, myPermissionChecker, myServer);
-    myFixture.addService(myProjectFinder);
-
-    myGroupFinder = new UserGroupFinder(getUserGroupManager());
-    myFixture.addService(myGroupFinder);
-    myUserFinder = new UserFinder(getUserModelEx(), myGroupFinder, myProjectFinder, myTimeCondition,
-                                  myFixture.getRolesManager(), myPermissionChecker, myServer.getSecurityContext(), myServer);
-
-    myAgentFinder = new AgentFinder(myAgentManager, myFixture);
-    myFixture.addService(myAgentFinder);
-
-
-    myBuildTypeFinder = new BuildTypeFinder(myProjectManager, myProjectFinder, myAgentFinder, myPermissionChecker, myFixture);
-
-    myBranchFinder = new BranchFinder(myBuildTypeFinder, myFixture);
-
-    final VcsRootIdentifiersManagerImpl vcsRootIdentifiersManager = myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class);
-
-    myVcsRootFinder = new VcsRootFinder(myFixture.getVcsManager(), myProjectFinder, myBuildTypeFinder, myProjectManager, vcsRootIdentifiersManager, myPermissionChecker);
-    myFixture.addService(myVcsRootFinder);
-
-    myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myVcsRootFinder, myProjectFinder,
-                                                      myBuildTypeFinder, myUserFinder, myAgentFinder, myBranchFinder, myTimeCondition, myPermissionChecker, null, myFixture);
-    myFixture.addService(myBuildPromotionFinder);
-
-    myBuildFinder = new BuildFinder(myFixture, myBuildTypeFinder, myProjectFinder, myUserFinder, myBuildPromotionFinder, myAgentFinder);
-
-
-    final TestName2IndexImpl testName2Index = myFixture.getSingletonService(TestName2IndexImpl.class);
-    final ProblemMutingService problemMutingService = myFixture.getSingletonService(ProblemMutingService.class);
-    myTestFinder = new TestFinder(myProjectFinder, myBuildTypeFinder, myBuildPromotionFinder,
-                                  myFixture.getTestManager(), testName2Index, myFixture.getCurrentProblemsManager(), problemMutingService);
-    myFixture.addService(myTestFinder);
-
-    TestScopeFilterProducer testScopesFilterProducer = new TestScopeFilterProducer(myBuildTypeFinder);
-    final CurrentProblemsManager currentProblemsManager = myServer.getSingletonService(CurrentProblemsManager.class);
-    myTestOccurrenceFinder = new TestOccurrenceFinder(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myFixture.getTestsHistory(), currentProblemsManager, myBranchFinder, testScopesFilterProducer);
-    myFixture.addService(myTestOccurrenceFinder);
-
-
-    myCollector = new TestScopesCollector(myTestOccurrenceFinder, testScopesFilterProducer);
-  }
+public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
 
   @Test
   public void testCanGetPackages() {
@@ -117,7 +35,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
                                           .withTest("package4.class2.ddd", true)
                                           .finish();
     String locator = "scopeType:package,testOccurrences:(build:(id:" + build10.getBuildId() + "))";
-    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.locator(locator));
+    PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.locator(locator));
 
     assertEquals(4, result.myEntries.size());
 
@@ -143,7 +61,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
                                           .finish();
 
     String locator = "scopeType:class,testOccurrences:(build:(id:" + build10.getBuildId() + "))";
-    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.locator(locator));
+    PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.locator(locator));
 
     assertEquals("Although there are only class1 and class 2, packageA.classX and packageB.classX are expected to be different", 4, result.myEntries.size());
 
@@ -171,7 +89,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
                                           .endSuite()
                                           .finish();
 
-    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator("testOccurrences:(build:(id:" + build10.getBuildId() + ")),scopeType:suite"));
+    PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.createPotentiallyEmptyLocator("testOccurrences:(build:(id:" + build10.getBuildId() + ")),scopeType:suite"));
     for(TestScope scope : result.myEntries) {
       assertEquals(2, scope.getTestRuns().size());
     }
@@ -202,7 +120,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
                                           .finish();
 
     // $base64:c3VpdGUxOiA= is a base64 representation of a string 'suite1: '
-    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+    PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
       "testOccurrences:(build:(id:" + build10.getBuildId() + ")),scopeType:suite,suite:(value:($base64:c3VpdGUxOiA=),matchType:equals)"
     ));
     assertEquals(1, result.myEntries.size());
@@ -212,7 +130,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
   @Test
   public void testReturnsSuitesComplex() {
     buildTree();
-    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+    PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
       "testOccurrences:(build:(affectedProject:(name:project))),scopeType:suite"
     ));
 
@@ -225,7 +143,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
   @Test
   public void testReturnsPackagesComplex() {
     buildTree();
-    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+    PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
       "testOccurrences:(build:(affectedProject:(name:project))),scopeType:package"
     ));
 
@@ -243,7 +161,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
   @Test
   public void testReturnsClassesComplex() {
     buildTree();
-    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+    PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
       "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class"
     ));
 
@@ -262,7 +180,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
   @Test
   public void testFiltersByBuildType2() {
     buildTree();
-    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+    PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
       "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,buildType:(name:buildconf1)"
     ));
 
@@ -279,7 +197,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
   @Test
   public void testFiltersByAffectedProject() {
     buildTree();
-    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+    PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
       "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,buildType:(affectedProject:(id:project2))"
     ));
 
@@ -294,7 +212,7 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
   @Test
   public void testFiltersByAffectedProject2() {
     buildTree();
-    PagedSearchResult<TestScope> result = myCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
+    PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
       "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,buildType:(affectedProject:(id:subproject11))"
     ));
 
@@ -304,60 +222,4 @@ public class TestScopesCollectorTest extends BaseServerTestCase {
     assertContains(resultNames, "class3");
   }
 
-  private void buildTree() {
-    /* Builds a following tree:
-
-                                 project
-                               /        \
-                       project1          project2
-                      /        \                \
-                buildconf1   subproject11    subproject21
-                    |               \               \
-                  suite1          buildconf2     buildconf1
-                 /      \             \             /     \
-            packageA    packageB    suite2       suite1  suite2
-             /     \        \          \           |        \
-         class1   class2    class1   packageA   packageB   packageC
-          /   \      |         \        \          |          \
-         a     b     a          b     class3    class1       class2
-                                         \         |           \
-                                          c        a            c
-     */
-
-    ProjectEx project = myFixture.createProject("project", "project");
-
-    ProjectEx project1 = project.createProject("project1", "project1");
-    ProjectEx project2 = project.createProject("project2", "project2");
-
-    ProjectEx subproject11 = project1.createProject("subproject11", "subproject11");
-    ProjectEx subproject21 = project2.createProject("subproject21", "subproject21");
-
-    BuildTypeEx buildconf1 = project1.createBuildType("buildconf1");
-    BuildTypeEx buildconf2 = subproject11.createBuildType("buildconf2");
-    BuildTypeEx buildconf11 = subproject21.createBuildType("buildconf1");
-
-    final SFinishedBuild build1 = build().in(buildconf1)
-                                         .startSuite("suite1")
-                                         .withTest("packageA.class1.a", true)
-                                         .withTest("packageA.class1.b", true)
-                                         .withTest("packageA.class2.a", true)
-                                         .withTest("packageB.class1.b", true)
-                                         .endSuite()
-                                         .finish();
-
-    final SFinishedBuild build2 = build().in(buildconf2)
-                                         .startSuite("suite2")
-                                         .withTest("packageA.class3.c", true)
-                                         .endSuite()
-                                         .finish();
-
-    final SFinishedBuild build3 = build().in(buildconf11)
-                                         .startSuite("suite1")
-                                         .withTest("packageB.class1.a", true)
-                                         .endSuite()
-                                         .startSuite("suite2")
-                                         .withTest("packageC.class2.c", true)
-                                         .endSuite()
-                                         .finish();
-  }
 }

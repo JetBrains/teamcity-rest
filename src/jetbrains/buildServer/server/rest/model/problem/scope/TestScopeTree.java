@@ -17,71 +17,53 @@
 package jetbrains.buildServer.server.rest.model.problem.scope;
 
 import java.util.List;
-import java.util.stream.Collectors;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeType;
+import javax.xml.bind.annotation.*;
+import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
+import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeInfo;
+import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.TestCounters;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.STestRun;
 import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 
+
 @XmlRootElement(name = "testScopeTree")
 @XmlType(name = "testScopeTree")
-public class TestScopeTree {
-  private List<jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTree.Node> myNodes;
-  private Fields myFields;
-  private BeanContext myContext;
-
-  public TestScopeTree() { }
-
-  public TestScopeTree(@NotNull List<jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTree.Node> nodes, @NotNull Fields fields, @NotNull BeanContext context) {
-    myNodes = nodes;
-    myFields = fields;
-    myContext = context;
+@XmlSeeAlso({TestScopeTree.Node.class, TestScopeTree.Leaf.class})
+public class TestScopeTree extends AbstractScopeTree<STestRun, TestCountersData, TestScopeTree.Node, TestScopeTree.Leaf> {
+  public TestScopeTree() {
+    super();
   }
 
-  @XmlElement(name = "node")
-  public List<Node> getNodes() {
-    if(BooleanUtils.isNotTrue(myFields.isIncluded("node"))) {
-      return null;
-    }
-
-    Fields nodeFields = myFields.getNestedField("node");
-    return myNodes.stream()
-                  .map(node -> new Node(node, nodeFields))
-                  .collect(Collectors.toList());
+  public TestScopeTree(@NotNull List<ScopeTree.Node<STestRun, TestCountersData>> sourceNodes,
+                       @NotNull Fields fields,
+                       @NotNull BeanContext context) {
+    super(sourceNodes, fields, context);
   }
 
-  @XmlElement(name = "leaf")
-  public List<Leaf> getLeafs() {
-    if(BooleanUtils.isNotTrue(myFields.isIncluded("leaf"))) {
-      return null;
-    }
+  @Override
+  protected Node buildNode(@NotNull ScopeTree.Node<STestRun, TestCountersData> source, @NotNull Fields fields) {
+    return new Node(source, fields);
+  }
 
-    Fields leafFields = myFields.getNestedField("leaf");
-    return myNodes.stream()
-                  .filter(node -> node.getTestRuns().size() > 0)
-                  .map(node -> new Leaf(node, leafFields, myContext))
-                  .collect(Collectors.toList());
+  @Override
+  protected Leaf buildLeaf(@NotNull ScopeTree.Node<STestRun, TestCountersData> source, @NotNull Fields fields, @NotNull BeanContext context) {
+    return new Leaf(source, fields, context);
   }
 
   @XmlRootElement(name = "node")
   @XmlType(name = "node")
-  public static class Node {
-    private jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTree.Node myNode;
-    private Fields myFields;
+  public static class Node extends AbstractNode<STestRun, TestCountersData> {
+    public Node() {
+      super();
+    }
 
-    public Node() {}
-
-    public Node(@NotNull jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTree.Node node, @NotNull Fields fields) {
-      myFields = fields;
-      myNode = node;
+    public Node(@NotNull ScopeTree.Node<STestRun, TestCountersData> node, @NotNull Fields fields) {
+      super(node, fields);
     }
 
     @XmlElement(name = "testCounters")
@@ -90,52 +72,25 @@ public class TestScopeTree {
         return null;
       }
 
-      return new TestCounters(myFields.getNestedField("testCounters"), myNode.getCountersData());
-    }
-
-    @XmlAttribute(name = "name")
-    public String getName() {
-      return ValueWithDefault.decideDefault(myFields.isIncluded("name"), myNode.getName());
-    }
-
-    @XmlAttribute(name = "id")
-    public Integer getId() {
-      return ValueWithDefault.decideDefault(myFields.isIncluded("id"), myNode.getId());
+      return new TestCounters(myFields.getNestedField("testCounters"), myNode.getCounters());
     }
 
     @XmlAttribute(name = "type")
-    public TestScopeType getType() {
-      return ValueWithDefault.decideDefault(myFields.isIncluded("type"), myNode.getType());
+    public String getType() {
+      return ValueWithDefault.decideDefault(myFields.isIncluded("type"), ((TestScopeInfo) myNode.getScope()).getType().name());
     }
 
-    @XmlAttribute(name = "parentId")
-    public Integer getParent() {
-      if(BooleanUtils.isNotTrue(myFields.isIncluded("parentId")) || myNode.getParent() == null) {
-        return null;
-      }
-
-      return myNode.getParent().getId();
-    }
-
-    @XmlAttribute(name = "childrenCount")
-    public Integer getChildrenCount() {
-      return ValueWithDefault.decideDefault(myFields.isIncluded("childrenCount"), myNode.getChildren().size());
-    }
   }
 
   @XmlRootElement(name = "leaf")
   @XmlType(name = "leaf")
-  public static class Leaf {
-    private BeanContext myContext;
-    private Fields myFields;
-    private jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTree.Node myNode;
+  public static class Leaf extends AbstractLeaf<STestRun, TestCountersData> {
+    public Leaf() {
+      super();
+    }
 
-    public Leaf() {}
-
-    public Leaf(@NotNull jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTree.Node node, @NotNull Fields fields, @NotNull BeanContext beanContext) {
-      myNode = node;
-      myFields = fields;
-      myContext = beanContext;
+    public Leaf(@NotNull ScopeTree.Node<STestRun, TestCountersData> node, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+      super(node, fields, beanContext);
     }
 
     @XmlElement(name = "testOccurrences")
@@ -144,15 +99,7 @@ public class TestScopeTree {
         return null;
       }
 
-      return new TestOccurrences(myNode.getTestRuns(), null, null, null, myFields.getNestedField("testOccurrences"), myContext);
-    }
-    @XmlAttribute(name = "nodeId")
-    public Integer getNodeId() {
-      if(BooleanUtils.isNotTrue(myFields.isIncluded("nodeId"))) {
-        return null;
-      }
-
-      return myNode.getId();
+      return new TestOccurrences(myNode.getData(), null, null, null, myFields.getNestedField("testOccurrences"), myContext);
     }
   }
 }

@@ -61,7 +61,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   private static final Logger LOG = Logger.getInstance(ProblemOccurrenceFinder.class.getName());
 
   @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
-  private static final String BUILD = "build";
+  public static final String BUILD = "build";
   @LocatorDimension("identity") private static final String IDENTITY = "identity";
   @LocatorDimension("type") public static final String TYPE = "type"; //type of the problem (value conditions are supported). Also experimentally supports "snapshotDependencyProblem:false" value
   @LocatorDimension(value = "currentlyFailing", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently failing.")
@@ -75,6 +75,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   public static final String CURRENTLY_MUTED = "currentlyMuted";
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
   public static final String AFFECTED_PROJECT = "affectedProject";
+  // experimental
+  public static final String SNAPSHOT_DEPENDENCY_PROBLEM = "snapshotDependencyProblem";
 
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final BuildFinder myBuildFinder;
@@ -295,8 +297,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     //experimental support for "snapshotDependencyProblem:false" in type to filter out snapshot-dependency-related problems
     final Boolean snapshotepProblems;
     try {
-      Locator snapshotDepProblemLocator = new Locator(text, "snapshotDependencyProblem");
-      snapshotepProblems = snapshotDepProblemLocator.getSingleDimensionValueAsStrictBoolean("snapshotDependencyProblem", null);
+      Locator snapshotDepProblemLocator = new Locator(text, SNAPSHOT_DEPENDENCY_PROBLEM);
+      snapshotepProblems = snapshotDepProblemLocator.getSingleDimensionValueAsStrictBoolean(SNAPSHOT_DEPENDENCY_PROBLEM, null);
       snapshotDepProblemLocator.checkLocatorFullyProcessed();
       return snapshotepProblems;
     } catch (LocatorProcessException ignore) {

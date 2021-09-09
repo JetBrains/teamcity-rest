@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -75,7 +76,7 @@ public class TestOccurrences {
 
   public TestOccurrences() { }
 
-  public TestOccurrences(@Nullable final List<STestRun> items,
+  public TestOccurrences(@Nullable final Collection<STestRun> items,
                          @Nullable final ShortStatistics buildStatistics,
                          @Nullable final String shortHref,
                          @Nullable final PagerData pagerData,
@@ -110,7 +111,7 @@ public class TestOccurrences {
     }
   }
 
-  private void makeCountersFromItems(@NotNull final List<STestRun> testRuns) {
+  private void makeCountersFromItems(@NotNull final Collection<STestRun> testRuns) {
     // We want lazy calculations of counters and do not want to duplicate that in TestCounters
     // To ensure that we do calculations once lets check if the field is requested in TestOccurrences or in TestCounters
     Fields countersFields = myFields.getNestedField("testCounters");

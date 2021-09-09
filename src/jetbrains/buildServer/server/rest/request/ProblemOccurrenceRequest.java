@@ -19,15 +19,20 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import java.util.List;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
+import jetbrains.buildServer.server.rest.data.problem.scope.ProblemOccurrencesTreeCollector;
+import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
+import jetbrains.buildServer.server.rest.model.problem.scope.ProblemOccurrencesTree;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -49,7 +54,9 @@ import javax.ws.rs.core.UriInfo;
 @Api("ProblemOccurrence")
 public class ProblemOccurrenceRequest {
   @Context @NotNull private ServiceLocator myServiceLocator;
+  @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private ProblemOccurrenceFinder myProblemOccurrenceFinder;
+  @Context @NotNull private ProblemOccurrencesTreeCollector myProblemOccurrencesTreeCollector;
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private BeanFactory myFactory;
 
@@ -98,6 +105,34 @@ public class ProblemOccurrenceRequest {
                                   new Fields(fields),
                                   new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder)
     );
+  }
+
+  /** Experimental **/
+  @GET
+  @Path("/tree")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get tree of build problem occurrences.",nickname="getBuildProblemOccurrencesTree")
+  public ProblemOccurrencesTree getProblemsTree(@QueryParam("locator") String locatorText,
+                                        @QueryParam("fields") String fields,
+                                        @Context UriInfo uriInfo,
+                                        @Context HttpServletRequest request) {
+    List<ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters>> tree = myProblemOccurrencesTreeCollector.getTree(new Locator(locatorText));
+
+    return new jetbrains.buildServer.server.rest.model.problem.scope.ProblemOccurrencesTree(tree, new Fields(fields), myBeanContext);
+  }
+
+  /** Experimental **/
+  @GET
+  @Path("/subtree")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get tree of build problem occurrences.",nickname="getBuildProblemOccurrencesTree")
+  public ProblemOccurrencesTree getProblemsSubTree(@QueryParam("locator") String locatorText,
+                                                   @QueryParam("fields") String fields,
+                                                   @Context UriInfo uriInfo,
+                                                   @Context HttpServletRequest request) {
+    List<ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters>> tree = myProblemOccurrencesTreeCollector.getSubTree(new Locator(locatorText));
+
+    return new jetbrains.buildServer.server.rest.model.problem.scope.ProblemOccurrencesTree(tree, new Fields(fields), myBeanContext);
   }
 
   @GET

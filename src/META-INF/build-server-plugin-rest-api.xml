@@ -67,6 +67,7 @@
   <bean id="testScopesCollector" class="jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector" />
   <bean id="testScopeFilterProducer" class="jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer" />
   <bean id="testScopeTreeCollector" class="jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector" />
+  <bean id="problemOccurrencesTreeCollector" class="jetbrains.buildServer.server.rest.data.problem.scope.ProblemOccurrencesTreeCollector" />
 
 
   <bean id="timeCondition" class="jetbrains.buildServer.server.rest.data.TimeCondition"/>
@@ -106,6 +107,7 @@
   <bean id="healthStatusItemFinderProvider" class="jetbrains.buildServer.server.rest.jersey.HealthItemFinderProvider"/>
   <bean id="testScopesCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.TestScopesCollectorProvider"/>
   <bean id="testScopeTreeCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.TestScopeTreeCollectorProvider"/>
+  <bean id="problemOccurrencesTreeCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.ProblemOccurrencesTreeCollectorProvider" />
   <bean id="twoFactorSecretKeysProvider" class="jetbrains.buildServer.server.rest.jersey.TwoFactorSecretKeysProvider"/>
 
   <bean id="restCloudUtil" class="jetbrains.buildServer.server.rest.data.CloudUtil"/>

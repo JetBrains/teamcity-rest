@@ -16,14 +16,22 @@
 
 package jetbrains.buildServer.server.rest.data.problem.scope;
 
+import com.google.common.base.Charsets;
+import com.google.common.hash.Hashing;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
+import jetbrains.buildServer.server.rest.data.problem.tree.LeafInfo;
+import jetbrains.buildServer.server.rest.data.problem.tree.Scope;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class TestScope {
+public class TestScope implements LeafInfo<STestRun, TestCountersData> {
   private final List<STestRun> myTestRuns;
   @NotNull
   private final String mySuite;
@@ -37,6 +45,8 @@ public class TestScope {
   private final SBuildType myBuildType;
   @Nullable
   private TestCountersData myCountersData;
+  @Nullable
+  private List<Scope> myPath;
 
   public static TestScope withBuildType(@NotNull TestScope source, @NotNull List<STestRun> testRuns, @NotNull SBuildType buildType) {
     return new TestScope(testRuns, source.getSuite(), source.getPackage(), source.getClass1(), source.myType, buildType);
@@ -108,5 +118,51 @@ public class TestScope {
   @Nullable
   public SBuildType getBuildType() {
     return myBuildType;
+  }
+
+  @NotNull
+  @Override
+  public TestCountersData getCounters() {
+    return getOrCalcCountersData();
+  }
+
+  @NotNull
+  @Override
+  public Iterable<Scope> getPath() {
+    if(myBuildType == null) {
+      return Collections.emptyList();
+    }
+
+    if(myPath != null) {
+      return myPath;
+    }
+
+    myPath = new ArrayList<>();
+
+    for (SProject ancestor : myBuildType.getProject().getProjectPath()) {
+      String ancestorId = ancestor.getExternalId();
+
+      myPath.add(new TestScopeInfo(ancestorId, ancestorId, TestScopeType.PROJECT));
+    }
+    myPath.add(new TestScopeInfo(myBuildType.getExternalId(), myBuildType.getExternalId(), TestScopeType.BUILD_TYPE));
+
+    String suiteId = Hashing.sha1().hashString(myBuildType.getExternalId() + mySuite, Charsets.UTF_8).toString();
+    myPath.add(new TestScopeInfo(suiteId, mySuite, TestScopeType.SUITE));
+
+    String packageName = myPackage == null ? "" : myPackage;
+    String packageId = Hashing.sha1().hashString(myBuildType.getExternalId() + mySuite + packageName, Charsets.UTF_8).toString();
+    myPath.add(new TestScopeInfo(packageId, packageName, TestScopeType.PACKAGE));
+
+    String className = myClass == null ? "" : myClass;
+    String classId = Hashing.sha1().hashString(myBuildType.getExternalId() + mySuite + packageName + className, Charsets.UTF_8).toString();
+    myPath.add(new TestScopeInfo(classId, className, TestScopeType.CLASS));
+
+    return myPath;
+  }
+
+  @NotNull
+  @Override
+  public Collection<STestRun> getData() {
+    return myTestRuns;
   }
 }

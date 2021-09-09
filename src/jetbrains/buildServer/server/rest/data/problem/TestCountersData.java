@@ -16,14 +16,16 @@
 
 package jetbrains.buildServer.server.rest.data.problem;
 
+import java.util.Collection;
 import java.util.List;
 import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.server.rest.data.problem.tree.TreeCounters;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.ShortStatistics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class TestCountersData {
+public class TestCountersData implements TreeCounters<TestCountersData> {
   @NotNull
   private Integer myCount = 0;
   @Nullable
@@ -55,7 +57,7 @@ public class TestCountersData {
     this(testRuns, true, true, true, true, true, true);
   }
 
-  public TestCountersData(@NotNull final List<STestRun> testRuns,
+  public TestCountersData(@NotNull final Collection<STestRun> testRuns,
                           boolean calcSuccess,
                           boolean calcFailed,
                           boolean calcMuted,
@@ -142,5 +144,53 @@ public class TestCountersData {
   @Nullable
   public Long getDuration() {
     return myDuration;
+  }
+
+  @Override
+  public TestCountersData combinedWith(@NotNull TestCountersData additionalData) {
+    Integer passed    = (myPassed != null && additionalData.getPassed() != null) ? myPassed + additionalData.getPassed() : null;
+    Integer failed    = (myFailed != null && additionalData.getFailed() != null) ? myFailed + additionalData.getFailed() : null;
+    Integer ignored   = (myIgnored != null && additionalData.getIgnored() != null) ? myIgnored + additionalData.getIgnored() : null;
+    Integer muted     = (myMuted != null && additionalData.getMuted() != null) ? myMuted + additionalData.getMuted() : null;
+    Integer newFailed = (myNewFailed != null && additionalData.getNewFailed() != null) ? myNewFailed + additionalData.getNewFailed() : null;
+    Long    duration  = (myDuration != null && additionalData.getDuration() != null) ? myDuration + additionalData.getDuration() : null;
+
+    return new TestCountersData(
+      myCount + additionalData.getCount(),
+      passed,
+      failed,
+      muted,
+      ignored,
+      newFailed,
+      duration
+    );
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    TestCountersData that = (TestCountersData)o;
+
+    if (!myCount.equals(that.myCount)) return false;
+    if (myMuted != null ? !myMuted.equals(that.myMuted) : that.myMuted != null) return false;
+    if (myPassed != null ? !myPassed.equals(that.myPassed) : that.myPassed != null) return false;
+    if (myFailed != null ? !myFailed.equals(that.myFailed) : that.myFailed != null) return false;
+    if (myIgnored != null ? !myIgnored.equals(that.myIgnored) : that.myIgnored != null) return false;
+    if (myNewFailed != null ? !myNewFailed.equals(that.myNewFailed) : that.myNewFailed != null) return false;
+    return myDuration != null ? myDuration.equals(that.myDuration) : that.myDuration == null;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = myCount.hashCode();
+    result = 31 * result + (myMuted != null ? myMuted.hashCode() : 0);
+    result = 31 * result + (myPassed != null ? myPassed.hashCode() : 0);
+    result = 31 * result + (myFailed != null ? myFailed.hashCode() : 0);
+    result = 31 * result + (myIgnored != null ? myIgnored.hashCode() : 0);
+    result = 31 * result + (myNewFailed != null ? myNewFailed.hashCode() : 0);
+    result = 31 * result + (myDuration != null ? myDuration.hashCode() : 0);
+    return result;
   }
 }

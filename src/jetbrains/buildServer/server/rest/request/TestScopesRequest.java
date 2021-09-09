@@ -30,20 +30,22 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScope;
-import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTree;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector;
+import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.problem.scope.TestScopes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
 
 @Path(TestScopesRequest.API_SUB_URL)
-@Api("Scopes")
+@Api("TestScopes")
 public class TestScopesRequest {
   public static final String API_SUB_URL = Constants.API_URL + "/testScopes";
   @Context @NotNull private BeanContext myBeanContext;
@@ -88,7 +90,20 @@ public class TestScopesRequest {
   public jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree serveScopesTree(@QueryParam("locator") String locatorText,
                                     @QueryParam("fields") String fields,
                                     @Context HttpServletRequest request) {
-    List<TestScopeTree.Node> treeNodes = myTestScopeTreeCollector.getSlicedTree(Locator.locator(locatorText), request);
+    List<ScopeTree.Node<STestRun, TestCountersData>> treeNodes = myTestScopeTreeCollector.getSlicedTree(Locator.locator(locatorText), request);
+
+    return new jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree(treeNodes, new Fields(fields), myBeanContext);
+  }
+
+  // Very highly experimental
+  @GET
+  @Path("/subtree")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(hidden = true, value = "highly experimental")
+  public jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree serveScopesSubTree(@QueryParam("locator") String locatorText,
+                                                                                                @QueryParam("fields") String fields,
+                                                                                                @Context HttpServletRequest request) {
+    List<ScopeTree.Node<STestRun, TestCountersData>> treeNodes = myTestScopeTreeCollector.getSlicedSubTree(Locator.locator(locatorText), request);
 
     return new jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree(treeNodes, new Fields(fields), myBeanContext);
   }
@@ -104,8 +119,14 @@ public class TestScopesRequest {
   public jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree serveScopesTreeTopSlice(@QueryParam("locator") String locatorText,
                                                                                                      @QueryParam("fields") String fields,
                                                                                                      @Context HttpServletRequest request) {
-    List<TestScopeTree.Node> treeNodes = myTestScopeTreeCollector.getTopSlicedTree(Locator.locator(locatorText), request);
+    List<ScopeTree.Node<STestRun, TestCountersData>> treeNodes = myTestScopeTreeCollector.getTopSlicedTree(Locator.locator(locatorText), request);
 
     return new jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree(treeNodes, new Fields(fields), myBeanContext);
+  }
+
+  void initForTests(@NotNull BeanContext beanContext, @NotNull TestScopesCollector testScopesCollector, @NotNull TestScopeTreeCollector testScopeTreeCollector) {
+    myBeanContext = beanContext;
+    myTestScopesCollector = testScopesCollector;
+    myTestScopeTreeCollector = testScopeTreeCollector;
   }
 }
