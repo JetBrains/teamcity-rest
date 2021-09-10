@@ -41,6 +41,18 @@ public class ProblemOccurrencesTree extends AbstractScopeTree<BuildProblem, Prob
     super(sourceNodes, fields, context);
   }
 
+  @XmlElement(name = "node")
+  @Override
+  public List<Node> getNodes() {
+    return super.getNodes();
+  }
+
+  @XmlElement(name = "leaf")
+  @Override
+  public List<AbstractLeaf<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters>> getLeafs() {
+    return super.getLeafs();
+  }
+
   @Override
   protected Node buildNode(@NotNull ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> source, @NotNull Fields fields) {
     if(source.getScope().isLeaf()) {
@@ -54,8 +66,7 @@ public class ProblemOccurrencesTree extends AbstractScopeTree<BuildProblem, Prob
     return new Leaf(source, fields, context);
   }
 
-  @XmlRootElement(name = "node")
-  @XmlType(name = "node")
+  @XmlType(name = "problemTreeNode")
   public static class Node extends AbstractNode<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> {
     public Node() {
       super();
@@ -81,7 +92,6 @@ public class ProblemOccurrencesTree extends AbstractScopeTree<BuildProblem, Prob
     }
   }
 
-  @XmlRootElement(name = "node")
   @XmlType(name = "buildProblemNode")
   public static class BuildProblemTypeNode extends Node {
     public BuildProblemTypeNode() {
@@ -103,8 +113,7 @@ public class ProblemOccurrencesTree extends AbstractScopeTree<BuildProblem, Prob
     }
   }
 
-  @XmlRootElement(name = "leaf")
-  @XmlType(name = "leaf")
+  @XmlType(name = "problemTreeLeaf")
   public static class Leaf extends AbstractLeaf<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> {
     public Leaf() {
       super();

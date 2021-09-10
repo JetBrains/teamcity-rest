@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.model.problem.scope;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.xml.bind.annotation.XmlElement;
 import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
 import jetbrains.buildServer.server.rest.data.problem.tree.TreeCounters;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -43,7 +42,6 @@ public abstract class AbstractScopeTree<DATA, COUNTERS extends TreeCounters<COUN
   protected abstract N buildNode(@NotNull ScopeTree.Node<DATA, COUNTERS> source, @NotNull Fields fields);
   protected abstract L buildLeaf(@NotNull ScopeTree.Node<DATA, COUNTERS> source, @NotNull Fields fields, @NotNull BeanContext context);
 
-  @XmlElement(name = "node")
   public List<N> getNodes() {
     if(BooleanUtils.isNotTrue(myFields.isIncluded("node"))) {
       return null;
@@ -55,7 +53,6 @@ public abstract class AbstractScopeTree<DATA, COUNTERS extends TreeCounters<COUN
                   .collect(Collectors.toList());
   }
 
-  @XmlElement(name = "leaf")
   public List<AbstractLeaf<DATA, COUNTERS>> getLeafs() {
     if(BooleanUtils.isNotTrue(myFields.isIncluded("leaf"))) {
       return null;

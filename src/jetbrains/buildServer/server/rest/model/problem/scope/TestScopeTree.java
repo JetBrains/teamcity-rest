@@ -45,6 +45,18 @@ public class TestScopeTree extends AbstractScopeTree<STestRun, TestCountersData,
     super(sourceNodes, fields, context);
   }
 
+  @XmlElement(name = "node")
+  @Override
+  public List<Node> getNodes() {
+    return super.getNodes();
+  }
+
+  @XmlElement(name = "leaf")
+  @Override
+  public List<AbstractLeaf<STestRun, TestCountersData>> getLeafs() {
+    return super.getLeafs();
+  }
+
   @Override
   protected Node buildNode(@NotNull ScopeTree.Node<STestRun, TestCountersData> source, @NotNull Fields fields) {
     return new Node(source, fields);
@@ -55,8 +67,7 @@ public class TestScopeTree extends AbstractScopeTree<STestRun, TestCountersData,
     return new Leaf(source, fields, context);
   }
 
-  @XmlRootElement(name = "node")
-  @XmlType(name = "node")
+  @XmlType(name = "testTreeNode")
   public static class Node extends AbstractNode<STestRun, TestCountersData> {
     public Node() {
       super();
@@ -82,8 +93,7 @@ public class TestScopeTree extends AbstractScopeTree<STestRun, TestCountersData,
 
   }
 
-  @XmlRootElement(name = "leaf")
-  @XmlType(name = "leaf")
+  @XmlType(name = "testTreeLeaf")
   public static class Leaf extends AbstractLeaf<STestRun, TestCountersData> {
     public Leaf() {
       super();
