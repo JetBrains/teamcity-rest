@@ -134,8 +134,9 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
       "testOccurrences:(build:(affectedProject:(name:project))),scopeType:suite"
     ));
 
-    assertEquals(2, result.myEntries.size());
+    assertEquals(3, result.myEntries.size());
     Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertContains(resultNames, "suite0: ");
     assertContains(resultNames, "suite1: ");
     assertContains(resultNames, "suite2: ");
   }
@@ -147,15 +148,17 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
       "testOccurrences:(build:(affectedProject:(name:project))),scopeType:package"
     ));
 
+    // suite0: packageZ
     // suite1: packageA
     // suite1: packageB
     // suite2: packageC
     // suite2: packageA
-    assertEquals(4, result.myEntries.size());
+    assertEquals(5, result.myEntries.size());
     Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
     assertContains(resultNames, "packageA");
     assertContains(resultNames, "packageB");
     assertContains(resultNames, "packageC");
+    assertContains(resultNames, "packageZ");
   }
 
   @Test
@@ -165,16 +168,18 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
       "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class"
     ));
 
+    // suite0: packageZ.classZ
     // suite1: packageA.class1
     // suite1: packageA.class2
     // suite1: packageB.class1
     // suite2: packageC.class2
     // suite2: packageA.class3
-    assertEquals(5, result.myEntries.size());
+    assertEquals(6, result.myEntries.size());
     Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
     assertContains(resultNames, "class1");
     assertContains(resultNames, "class2");
     assertContains(resultNames, "class3");
+    assertContains(resultNames, "classZ");
   }
 
   @Test
@@ -184,11 +189,12 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
       "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,buildType:(name:buildconf1)"
     ));
 
+    // suite0: packageZ.classZ
     // suite1: packageA.class1
     // suite1: packageA.class2
     // suite1: packageB.class1
     // suite2: packageC.class2
-    assertEquals(4, result.myEntries.size());
+    assertEquals(5, result.myEntries.size());
     Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
     assertContains(resultNames, "class1");
     assertContains(resultNames, "class2");
@@ -201,12 +207,14 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
       "testOccurrences:(build:(affectedProject:(name:project))),scopeType:class,buildType:(affectedProject:(id:project2))"
     ));
 
+    // suite0: packageZ.classZ
     // suite1: packageB.class1
     // suite2: packageC.class2
-    assertEquals(2, result.myEntries.size());
+    assertEquals(3, result.myEntries.size());
     Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
     assertContains(resultNames, "class1");
     assertContains(resultNames, "class2");
+    assertContains(resultNames, "classZ");
   }
 
   @Test
