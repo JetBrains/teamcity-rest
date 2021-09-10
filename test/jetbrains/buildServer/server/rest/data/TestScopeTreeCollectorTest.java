@@ -27,7 +27,6 @@ import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
 import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -46,7 +45,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testFirstChildrenSliceOrderedByName() {
     buildTree();
 
-    List<String> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:1,orderBy:name"), new MockHttpServletRequest()).stream()
+    List<String> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:1,orderBy:name"), null).stream()
                                                   .map(node -> node.getScope().getName()).collect(Collectors.toList());
 
     assertSameElements(result, "_Root", "project", "project1", "project1_Buildconf1", "suite1: ", "packageA", "class1");
@@ -56,7 +55,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testFirstChildrenSliceOrderedByCountDesc() {
     buildTree();
 
-    List<String> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:1,orderBy:count:desc"), new MockHttpServletRequest()).stream()
+    List<String> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:1,orderBy:count:desc"), null).stream()
                                                   .map(node -> node.getScope().getName()).collect(Collectors.toList());
 
     assertSameElements(result, "_Root", "project", "project2", "subproject21", "subproject21_Buildconf1", "suite2: ", "packageC", "class2");
@@ -66,7 +65,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testSliceOrderedByCountDesc() {
     buildTree();
 
-    List<String> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:1,orderBy:name:desc"), new MockHttpServletRequest()).stream()
+    List<String> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:1,orderBy:name:desc"), null).stream()
                                                   .map(node -> node.getScope().getName()).collect(Collectors.toList());
 
     assertSameElements(result, "_Root", "project", "project2", "subproject21", "subproject21_Buildconf1", "suite2: ", "packageC", "class2");
@@ -75,7 +74,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   @Test
   public void testFullTree() {
     buildTree();
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"), new MockHttpServletRequest());
+    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"), null);
 
     assertEquals("26 nodes in a tree + _Root", 27, result.size());
     assertEquals("Root must always be first", "_Root", result.get(0).getScope().getName());
@@ -86,7 +85,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   @Test
   public void testSliceUpToBuildType() {
     buildTree();
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getTopSlicedTree(Locator.locator("build:(affectedProject:project)"), new MockHttpServletRequest());
+    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getTopSlicedTree(Locator.locator("build:(affectedProject:project)"), null);
 
     assertEquals("5 projects + 3 buildTypes in a tree + _Root", 9, result.size());
     checkAncestorsBeforeChildren(result);
@@ -96,7 +95,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testCountersAreCorrect1() {
     buildTree();
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"), new MockHttpServletRequest());
+    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"), null);
 
     assertEquals(new Integer(14), result.get(0).getCounters().getCount());
     checkAncestorsBeforeChildren(result);
@@ -106,7 +105,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testCountersAreCorrect2() {
     buildTree();
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:subproject21),maxChildren:100"), new MockHttpServletRequest());
+    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:subproject21),maxChildren:100"), null);
     checkAncestorsBeforeChildren(result);
 
     List<Integer> expectedCounters = Arrays.asList(
@@ -124,7 +123,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testCountersAreCorrectWithMaxChildren() {
     buildTree();
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:1,orderBy:count:desc"), new MockHttpServletRequest());
+    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:1,orderBy:count:desc"), null);
 
     assertEquals("Root (and all other nodes) must contain counters which were correct **before** tree cutting.", new Integer(14), result.get(0).getCounters().getCount());
     checkAncestorsBeforeChildren(result);
@@ -134,7 +133,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testDataSorting() {
     buildTree();
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:3"), new MockHttpServletRequest());
+    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:3"), null);
     checkAncestorsBeforeChildren(result);
 
     ScopeTree.Node<STestRun, TestCountersData> nodeOfInterest1 = null;
@@ -166,7 +165,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testSubtreeHasCorrectNodes() {
     buildTree();
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"), new MockHttpServletRequest());
+    List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"), null);
     checkAncestorsBeforeChildren(fullTree);
 
     // Let's find node:  _Root -> project -> project2 -> subproject21
@@ -182,7 +181,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     ScopeTree.Node<STestRun, TestCountersData> subTreeRoot = fullTree.get(subTreeRootIdx);
 
     String subTreeLocator = String.format("build:(affectedProject:project),subTreeRootId:%s,maxChildren:100", subTreeRoot.getId());
-    List<ScopeTree.Node<STestRun, TestCountersData>> subTree = myTestScopeTreeCollector.getSlicedSubTree(Locator.locator(subTreeLocator), new MockHttpServletRequest());
+    List<ScopeTree.Node<STestRun, TestCountersData>> subTree = myTestScopeTreeCollector.getSlicedSubTree(Locator.locator(subTreeLocator), null);
     checkAncestorsBeforeChildren(subTree, subTreeRoot.getParent().getId());
     assertEquals(11, subTree.size());
 
