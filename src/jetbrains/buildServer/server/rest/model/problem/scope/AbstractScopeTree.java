@@ -53,7 +53,7 @@ public abstract class AbstractScopeTree<DATA, COUNTERS extends TreeCounters<COUN
                   .collect(Collectors.toList());
   }
 
-  public List<AbstractLeaf<DATA, COUNTERS>> getLeafs() {
+  public List<L> getLeafs() {
     if(BooleanUtils.isNotTrue(myFields.isIncluded("leaf"))) {
       return null;
     }

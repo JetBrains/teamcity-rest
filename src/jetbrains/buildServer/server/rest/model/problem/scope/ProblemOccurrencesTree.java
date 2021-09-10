@@ -49,7 +49,7 @@ public class ProblemOccurrencesTree extends AbstractScopeTree<BuildProblem, Prob
 
   @XmlElement(name = "leaf")
   @Override
-  public List<AbstractLeaf<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters>> getLeafs() {
+  public List<Leaf> getLeafs() {
     return super.getLeafs();
   }
 

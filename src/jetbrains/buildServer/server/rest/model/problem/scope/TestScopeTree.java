@@ -53,7 +53,7 @@ public class TestScopeTree extends AbstractScopeTree<STestRun, TestCountersData,
 
   @XmlElement(name = "leaf")
   @Override
-  public List<AbstractLeaf<STestRun, TestCountersData>> getLeafs() {
+  public List<Leaf> getLeafs() {
     return super.getLeafs();
   }
 
