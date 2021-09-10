@@ -14,22 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model;
+package jetbrains.buildServer.server.graphql.model.agentPool.actions;
 
-import org.jetbrains.annotations.NotNull;
-
-public class AgentEnvironment {
-  @NotNull
-  private final OS myOS;
-
-  public static final AgentEnvironment UNKNOWN = new AgentEnvironment(new OS("", OSType.Unknown));
-
-  public AgentEnvironment(@NotNull OS os) {
-    myOS = os;
-  }
-
-  @NotNull
-  public OS getOs() {
-    return myOS;
-  }
+public interface AgentPoolActionUnavailabilityReason {
 }

@@ -14,31 +14,35 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model.mutation;
+package jetbrains.buildServer.server.graphql.model.mutation.agentPool;
 
+import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
-public class UnassignProjectFromAgentPoolInput {
+public class BulkAssignProjectWithAgentPoolInput {
   @NotNull
-  private String myProjectId;
-  @NotNull
+  private List<String> myProjectIds;
   private int myAgentPoolId;
+  private boolean myExclusively;
 
-  public void setProjectId(@NotNull String projectId) {
-    myProjectId = projectId;
+  public void setProjectIds(@NotNull List<String> projectIds) {
+    myProjectIds = projectIds;
   }
 
   public void setAgentPoolId(int agentPoolId) {
     myAgentPoolId = agentPoolId;
   }
 
-  @NotNull
-  public String getProjectId() {
-    return myProjectId;
-  }
+  public void setExclusively(boolean exclusively) {myExclusively = exclusively; }
 
   @NotNull
+  public List<String> getProjectIds() {
+    return myProjectIds;
+  }
+
   public int getAgentPoolId() {
     return myAgentPoolId;
   }
+
+  public boolean getExclusively() { return myExclusively; }
 }

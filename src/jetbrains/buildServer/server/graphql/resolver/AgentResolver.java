@@ -22,14 +22,14 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import jetbrains.buildServer.controllers.agent.OSKind;
 import jetbrains.buildServer.server.graphql.model.*;
-import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
+import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.server.graphql.model.connections.agent.AssociatedAgentBuildTypesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agent.AssociatedAgentBuildTypesConnectionBuilder;
 import jetbrains.buildServer.server.graphql.model.connections.agent.DiassociatedAgentBuildTypesConnection;
 import jetbrains.buildServer.server.graphql.model.filter.AgentBuildTypesFilter;
+import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
@@ -58,11 +58,15 @@ public class AgentResolver implements GraphQLResolver<Agent> {
   @NotNull
   private ProjectFinder myProjectFinder;
 
+  @Autowired
   @NotNull
-  public AgentPool agentPool(@NotNull Agent agent, @NotNull DataFetchingEnvironment env) {
+  private AbstractAgentPoolFactory myPoolFactory;
+
+  @NotNull
+  public AbstractAgentPool agentPool(@NotNull Agent agent, @NotNull DataFetchingEnvironment env) {
     SBuildAgent realAgent = env.getLocalContext();
 
-    return new AgentPool(realAgent.getAgentPool());
+    return myPoolFactory.produce(realAgent.getAgentPool());
   }
 
   @NotNull

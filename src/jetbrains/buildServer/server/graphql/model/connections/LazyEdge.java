@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.graphql.model.connections;
 import graphql.execution.DataFetcherResult;
 import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class LazyEdge<DATA, MODEL> implements ExtensibleConnection.Edge<MODEL> {
   @NotNull
@@ -26,15 +27,33 @@ public class LazyEdge<DATA, MODEL> implements ExtensibleConnection.Edge<MODEL> {
 
   @NotNull
   protected final Function<DATA, MODEL> myTransformer;
+  @Nullable
+  private final Function<DATA, ?> myDataTransformer;
 
   public LazyEdge(@NotNull DATA data, @NotNull Function<DATA, MODEL> transformer) {
     myData = data;
     myTransformer = transformer;
+    myDataTransformer = null;
+  }
+
+  public LazyEdge(@NotNull DATA data, @NotNull Function<DATA, MODEL> transformer, @NotNull Function<DATA, ?> dataTransformer) {
+    myData = data;
+    myTransformer = transformer;
+    myDataTransformer = dataTransformer;
   }
 
   @NotNull
   @Override
   public DataFetcherResult<MODEL> getNode() {
-    return DataFetcherResult.<MODEL>newResult().data(myTransformer.apply(myData)).localContext(myData).build();
+    DataFetcherResult.Builder<MODEL> result = new DataFetcherResult.Builder<>();
+
+    result.data(myTransformer.apply(myData));
+    if(myDataTransformer != null) {
+      result.localContext(myDataTransformer.apply(myData));
+    } else {
+      result.localContext(myData);
+    }
+
+    return result.build();
   }
 }

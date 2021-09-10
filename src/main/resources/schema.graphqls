@@ -50,7 +50,7 @@ type CloudImage {
   environment: AgentEnvironment
   instances: CloudImageInstancesConnection
   project: Project
-  agentPool: AgentPool
+  agentPool: AbstractAgentPool
   assignableAgentPools: AgentPoolsConnection
 }
 
@@ -70,14 +70,71 @@ type AgentPoolPermissions {
   manageAgents: Boolean
 }
 
-type AgentPool {
+type MissingGlobalPermission {
+  permissionName: String
+}
+
+type MissingGlobalOrPerProjectPermission {
+  globalPermissionNames: [String]!
+  projectPermissionName: String
+  projectsWithoutPermission: ProjectsConnection
+  hiddenProjectWithoutPermissionCount: Int
+}
+
+union UnavailableActionReason = MissingGlobalPermission | MissingGlobalOrPerProjectPermission
+
+type AgentPoolActionStatus {
+  isAvailable: Boolean!
+  unavailabilityReason: UnavailableActionReason
+}
+
+type AgentPoolActions {
+  moveAgents: AgentPoolActionStatus
+  moveCloudImages: AgentPoolActionStatus
+  authorizeAgents: AgentPoolActionStatus
+  enableAgents: AgentPoolActionStatus
+  moveProjects: AgentPoolActionStatus
+  updateProperties: AgentPoolActionStatus
+}
+
+type ProjectAgentPoolActions {
+  moveCloudImages: AgentPoolActionStatus
+}
+
+interface AbstractAgentPool {
   id: ID!
   name: String
-  maxAgentsNumber: Int
+  projects(filter: ProjectsFilter = {archived: false}): AgentPoolProjectsConnection
   cloudImages: AgentPoolCloudImagesConnection
   agents: AgentPoolAgentsConnection
+  maxAgentsNumber: Int
+
+  permissions: AgentPoolPermissions @deprecated
+}
+
+type AgentPool implements AbstractAgentPool {
+  id: ID!
+  name: String
   projects(filter: ProjectsFilter = {archived: false}): AgentPoolProjectsConnection
-  permissions: AgentPoolPermissions
+  cloudImages: AgentPoolCloudImagesConnection
+  agents: AgentPoolAgentsConnection
+  maxAgentsNumber: Int
+
+  actions: AgentPoolActions
+  permissions: AgentPoolPermissions @deprecated
+}
+
+type ProjectAgentPool implements AbstractAgentPool {
+  id: ID!
+  name: String
+  projects(filter: ProjectsFilter = {archived: false}): AgentPoolProjectsConnection
+  cloudImages: AgentPoolCloudImagesConnection
+  agents: AgentPoolAgentsConnection
+  maxAgentsNumber: Int
+
+  project: Project
+  actions: ProjectAgentPoolActions
+  permissions: AgentPoolPermissions @deprecated
 }
 
 input AgentBuildTypesFilter {
@@ -163,7 +220,7 @@ type AgentEnvironment {
 type Agent {
   id: ID!
   name: String
-  agentPool: AgentPool
+  agentPool: AbstractAgentPool
   associatedBuildTypes(filter: AgentBuildTypesFilter): AssociatedAgentBuildTypesConnection
   dissociatedBuildTypes(filter: AgentBuildTypesFilter): DiassociatedAgentBuildTypesConnection
   environment: AgentEnvironment
@@ -193,7 +250,7 @@ type BuildTypesConnection {
 }
 
 type ProjectAgentPoolEdge {
-  node: AgentPool!
+  node: AbstractAgentPool!
 }
 
 type ProjectAgentPoolsConnection {
@@ -210,7 +267,7 @@ type Project {
   ancestorProjects: ProjectsConnection
   buildTypes(first: Int, after: String): BuildTypesConnection
   agentPools: ProjectAgentPoolsConnection
-  ownAgentPool: AgentPool
+  projectAgentPool: ProjectAgentPool
   archived: Boolean
   permissions: ProjectPermissions
 }
@@ -232,7 +289,7 @@ type AgentsConnection {
 }
 
 type AgentPoolEdge {
-  node: AgentPool!
+  node: AbstractAgentPool!
 }
 
 type AgentPoolsConnection {
@@ -242,7 +299,7 @@ type AgentPoolsConnection {
 type Query {
   agent(id: ID!): Agent
   agents(filter: AgentsFilter): AgentsConnection
-  agentPool(id: ID!): AgentPool
+  agentPool(id: ID!): AbstractAgentPool
   agentPools: AgentPoolsConnection
   projects(filter: ProjectsFilter = {archived: false}, first: Int, after: String): ProjectsConnection
   globalPermissions: GlobalPermissions
@@ -292,6 +349,7 @@ type SetAgentRunPolicyPayload {
 input AssignProjectWithAgentPoolInput {
   projectId: ID!,
   agentPoolId: ID!
+  exclusively: Boolean
 }
 
 type AssignProjectWithAgentPoolPayload {
@@ -306,6 +364,16 @@ input UnassignProjectFromAgentPoolInput {
 
 type UnassignProjectFromAgentPoolPayload {
   project: Project,
+  agentPool: AgentPool
+}
+
+input BulkAssignProjectWithAgentPoolInput {
+  agentPoolId: ID!
+  projectIds: [ID!]!
+  exclusively: Boolean! = false
+}
+
+type BulkAssignProjectWithAgentPoolPayload {
   agentPool: AgentPool
 }
 
@@ -391,6 +459,8 @@ type Mutation {
 
   assignProjectWithAgentPool(input: AssignProjectWithAgentPoolInput): AssignProjectWithAgentPoolPayload
   unassignProjectFromAgentPool(input: UnassignProjectFromAgentPoolInput): UnassignProjectFromAgentPoolPayload
+
+  bulkAssignProjectWithAgentPool(input: BulkAssignProjectWithAgentPoolInput): BulkAssignProjectWithAgentPoolPayload
 
   assignBuildTypeWithAgent(input: AssignBuildTypeWithAgentInput): AssignBuildTypeWithAgentPayload
   unassignBuildTypeFromAgent(input: UnassignBuildTypeFromAgentInput): UnassignBuildTypeFromAgentPayload

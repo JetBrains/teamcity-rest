@@ -14,31 +14,34 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model.mutation;
+package jetbrains.buildServer.server.graphql.util;
 
+import graphql.ErrorClassification;
+import graphql.GraphQLError;
+import graphql.language.SourceLocation;
+import java.util.Collections;
+import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
-public class UnassignProjectFromAgentPoolInput {
-  @NotNull
-  private String myProjectId;
-  @NotNull
-  private int myAgentPoolId;
+public class EntityNotFoundGraphQLError implements GraphQLError {
+  private final String myMessage;
 
-  public void setProjectId(@NotNull String projectId) {
-    myProjectId = projectId;
+  public EntityNotFoundGraphQLError(@NotNull String message) {
+    myMessage = message;
   }
 
-  public void setAgentPoolId(int agentPoolId) {
-    myAgentPoolId = agentPoolId;
+  @Override
+  public String getMessage() {
+    return myMessage;
   }
 
-  @NotNull
-  public String getProjectId() {
-    return myProjectId;
+  @Override
+  public List<SourceLocation> getLocations() {
+    return Collections.emptyList();
   }
 
-  @NotNull
-  public int getAgentPoolId() {
-    return myAgentPoolId;
+  @Override
+  public ErrorClassification getErrorType() {
+    return TeamCityGraphQLErrorType.NOT_FOUND;
   }
 }

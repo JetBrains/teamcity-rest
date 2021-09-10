@@ -18,7 +18,7 @@ package jetbrains.buildServer.server.graphql.model.agentPool;
 
 import org.jetbrains.annotations.NotNull;
 
-public class AgentPool {
+public class AgentPool implements AbstractAgentPool {
   private final int myId;
   @NotNull
   private final String myName;

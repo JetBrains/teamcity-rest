@@ -19,15 +19,18 @@ package jetbrains.buildServer.server.graphql.model.connections;
 import graphql.execution.DataFetcherResult;
 import graphql.relay.PageInfo;
 import java.util.List;
-import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
+import java.util.function.Function;
+import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ProjectAgentPoolsConnection implements ExtensibleConnection<AgentPool, ProjectAgentPoolsConnection.ProjectAgentPoolEdge> {
-  @NotNull
-  private final PaginatingConnection<jetbrains.buildServer.serverSide.agentPools.AgentPool, AgentPool, ProjectAgentPoolEdge> myDelegate;
+public class ProjectAgentPoolsConnection implements ExtensibleConnection<AbstractAgentPool, ProjectAgentPoolsConnection.ProjectAgentPoolEdge> {
+  private final PaginatingConnection<jetbrains.buildServer.serverSide.agentPools.AgentPool, AbstractAgentPool, ProjectAgentPoolEdge> myDelegate;
+  private final Function<jetbrains.buildServer.serverSide.agentPools.AgentPool, AbstractAgentPool> myPoolFactory;
 
-  public ProjectAgentPoolsConnection(List<jetbrains.buildServer.serverSide.agentPools.AgentPool> data) {
+  public ProjectAgentPoolsConnection(@NotNull List<jetbrains.buildServer.serverSide.agentPools.AgentPool> data,
+                                     @NotNull Function<jetbrains.buildServer.serverSide.agentPools.AgentPool, AbstractAgentPool> poolFactory) {
+    myPoolFactory = poolFactory;
     myDelegate = new PaginatingConnection<>(data, ProjectAgentPoolEdge::new, PaginationArguments.everything());
   }
 
@@ -43,10 +46,10 @@ public class ProjectAgentPoolsConnection implements ExtensibleConnection<AgentPo
     return myDelegate.getPageInfo();
   }
 
-  public class ProjectAgentPoolEdge extends LazyEdge<jetbrains.buildServer.serverSide.agentPools.AgentPool, AgentPool> {
+  public class ProjectAgentPoolEdge extends LazyEdge<jetbrains.buildServer.serverSide.agentPools.AgentPool, AbstractAgentPool> {
 
     public ProjectAgentPoolEdge(@NotNull jetbrains.buildServer.serverSide.agentPools.AgentPool data) {
-      super(data, AgentPool::new);
+      super(data, myPoolFactory::apply);
     }
   }
 }

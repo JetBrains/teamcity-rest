@@ -22,13 +22,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.ProjectPermissions;
-import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
+import jetbrains.buildServer.server.graphql.model.agentPool.ProjectAgentPool;
 import jetbrains.buildServer.server.graphql.model.connections.*;
 import jetbrains.buildServer.server.graphql.model.Project;
+import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
 import jetbrains.buildServer.server.graphql.util.ParentsFetcher;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.Permissions;
@@ -45,11 +47,17 @@ public class ProjectResolver implements GraphQLResolver<Project> {
   private final AgentPoolManager myAgentPoolManager;
   @NotNull
   private final PaginationArgumentsProvider myPaginationArgumentsProvider;
+  @NotNull
+  private final AbstractAgentPoolFactory myPoolFactory;
 
-  public ProjectResolver(@NotNull ProjectManager projectManager, @NotNull AgentPoolManager agentPoolManager, @NotNull PaginationArgumentsProvider paginationArgumentsProvider) {
+  public ProjectResolver(@NotNull ProjectManager projectManager,
+                         @NotNull AgentPoolManager agentPoolManager,
+                         @NotNull PaginationArgumentsProvider paginationArgumentsProvider,
+                         @NotNull AbstractAgentPoolFactory abstractAgentPoolFactory) {
     myProjectManager = projectManager;
     myAgentPoolManager = agentPoolManager;
     myPaginationArgumentsProvider = paginationArgumentsProvider;
+    myPoolFactory = abstractAgentPoolFactory;
   }
 
   @NotNull
@@ -88,12 +96,17 @@ public class ProjectResolver implements GraphQLResolver<Project> {
                                               .map(myAgentPoolManager::findAgentPoolById)
                                               .collect(Collectors.toList());
 
-    return new ProjectAgentPoolsConnection(pools);
+    return new ProjectAgentPoolsConnection(pools, myPoolFactory::produce);
   }
 
-  @NotNull
-  public AgentPool ownAgentPool(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
-    return null;
+  @Nullable
+  public ProjectAgentPool projectAgentPool(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
+    SProject self = getSelfFromContextSafe(source, env);
+
+    AgentPool pool = myAgentPoolManager.findProjectPoolByProjectId(self.getProjectId());
+    if(pool == null) return null;
+
+    return new ProjectAgentPool(pool);
   }
 
   @NotNull

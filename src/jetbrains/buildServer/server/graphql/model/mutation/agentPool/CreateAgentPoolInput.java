@@ -14,22 +14,34 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model;
+package jetbrains.buildServer.server.graphql.model.mutation.agentPool;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class AgentEnvironment {
+public class CreateAgentPoolInput {
   @NotNull
-  private final OS myOS;
+  private String myName;
+  @Nullable
+  private Integer maxAgents;
 
-  public static final AgentEnvironment UNKNOWN = new AgentEnvironment(new OS("", OSType.Unknown));
+  public CreateAgentPoolInput() { }
 
-  public AgentEnvironment(@NotNull OS os) {
-    myOS = os;
+  public void setName(@NotNull String name) {
+    myName = name;
+  }
+
+  public void setMaxAgents(@Nullable Integer maxAgents) {
+    this.maxAgents = maxAgents;
   }
 
   @NotNull
-  public OS getOs() {
-    return myOS;
+  public String getName() {
+    return myName;
+  }
+
+  @Nullable
+  public Integer getMaxAgents() {
+    return maxAgents;
   }
 }

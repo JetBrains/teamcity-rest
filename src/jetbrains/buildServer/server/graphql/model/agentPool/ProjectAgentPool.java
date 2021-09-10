@@ -14,28 +14,34 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model.mutation;
+package jetbrains.buildServer.server.graphql.model.agentPool;
 
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import org.jetbrains.annotations.NotNull;
 
-public class ShallowAgentPool {
-  @NotNull
-  private final String myId;
+public class ProjectAgentPool implements AbstractAgentPool {
+  private final int myId;
   @NotNull
   private final String myName;
 
-  ShallowAgentPool(@NotNull String id, @NotNull String name) {
-    myId = id;
-    myName = name;
+  private final int myMaxAgentsNumber;
+
+  public ProjectAgentPool(@NotNull AgentPool realPool) {
+    myId = realPool.getAgentPoolId();
+    myName = realPool.getName();
+    myMaxAgentsNumber = realPool.getMaxAgents();
   }
 
-  @NotNull
-  public String getId() {
+  public int getId() {
     return myId;
   }
 
   @NotNull
   public String getName() {
     return myName;
+  }
+
+  public int getMaxAgentsNumber() {
+    return myMaxAgentsNumber;
   }
 }

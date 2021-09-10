@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import graphql.GraphqlErrorBuilder;
 import graphql.execution.DataFetcherResult;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -35,8 +36,13 @@ public class PaginatingConnection<DATA, MODEL, EDGE extends LazyEdge<DATA, MODEL
   @NotNull
   private final PaginationArguments myPaginationArguments;
 
-  public PaginatingConnection(@NotNull List<DATA> data, @NotNull Function<DATA, EDGE> edgeProducer, @NotNull PaginationArguments paginationArguments) {
-    myData = data;
+  public PaginatingConnection(@NotNull Collection<DATA> data, @NotNull Function<DATA, EDGE> edgeProducer, @NotNull PaginationArguments paginationArguments) {
+    if(data instanceof List) {
+      myData = (List<DATA>) data;
+    } else {
+      myData = new ArrayList<>(data);
+    }
+
     myEdgeFactory = edgeProducer;
     myPaginationArguments = paginationArguments;
     LOG = Logger.getInstance(getClass());

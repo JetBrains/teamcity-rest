@@ -14,81 +14,81 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.resolver;
+package jetbrains.buildServer.server.graphql.resolver.agentPool;
 
 import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
-import java.util.Collection;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPoolPermissions;
+import jetbrains.buildServer.server.graphql.model.agentPool.actions.*;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
+import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolAgentsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolCloudImagesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.SecurityContextEx;
-import jetbrains.buildServer.serverSide.auth.AuthUtil;
-import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
-  private final ProjectManager myProjectManager;
+  private final AbstractAgentPoolResolver myDelegate;
   private final AgentPoolActionsAccessChecker myPoolActionsAccessChecker;
-  private final SecurityContextEx mySecurityContext;
+  private final ProjectManager myProjectManager;
 
-  public AgentPoolResolver(@NotNull ProjectManager projectManager,
-                           @NotNull AgentPoolActionsAccessChecker poolActionsAccessChecker,
-                           @NotNull final SecurityContextEx securityContext) {
+  public AgentPoolResolver(@NotNull AbstractAgentPoolResolver delegate,
+                           @NotNull AgentPoolActionsAccessChecker agentPoolActionsAccessChecker,
+                           @NotNull ProjectManager projectManager) {
+    myDelegate = delegate;
+    myPoolActionsAccessChecker = agentPoolActionsAccessChecker;
     myProjectManager = projectManager;
-    myPoolActionsAccessChecker = poolActionsAccessChecker;
-    mySecurityContext = securityContext;
   }
 
   @NotNull
   public AgentPoolAgentsConnection agents(@NotNull AgentPool pool, @NotNull DataFetchingEnvironment env) {
-    // TODO: implement
-    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = env.getLocalContext();
-
-    return null;
+    return myDelegate.agents(pool, env);
   }
 
   @NotNull
   public AgentPoolProjectsConnection projects(@NotNull AgentPool pool, @NotNull ProjectsFilter filter, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = env.getLocalContext();
-
-    Collection<String> projectIds = realPool.getProjectIds();
-    Stream<SProject> projects = myProjectManager.findProjects(projectIds).stream();
-    if(filter.getArchived() != null) {
-      projects = projects.filter(p -> p.isArchived() == filter.getArchived());
-    }
-
-    return new AgentPoolProjectsConnection(projects.collect(Collectors.toList()), PaginationArguments.everything());
+    return myDelegate.projects(pool, filter, env);
   }
 
   @NotNull
   public AgentPoolPermissions permissions(@NotNull AgentPool pool, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = env.getLocalContext();
-    int poolId = realPool.getAgentPoolId();
-    AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
-
-    boolean canAuthorizeUnauthorizeAgent = AuthUtil.hasPermissionToAuthorizeAgentsInPool(authHolder, realPool);
-    boolean canEnableDisableAgent = AuthUtil.hasPermissionToEnableAgentsInPool(authHolder, realPool);
-    boolean canManageProjectPoolAssociations = myPoolActionsAccessChecker.canManageProjectsInPool(poolId);
-    boolean canRemoveAgents = myPoolActionsAccessChecker.canManageAgentsInPool(poolId);
-
-    return new AgentPoolPermissions(canAuthorizeUnauthorizeAgent, canManageProjectPoolAssociations, canEnableDisableAgent, canRemoveAgents);
+    return myDelegate.permissions(pool, env);
   }
 
   @NotNull
   public AgentPoolCloudImagesConnection cloudImages(@NotNull AgentPool pool, @NotNull DataFetchingEnvironment env) {
-    // TODO: implement
+    return myDelegate.cloudImages(pool, env);
+  }
 
-    return null;
+  @NotNull
+  public AgentPoolActions actions(@NotNull AgentPool pool) {
+    ManageAgentsInPoolUnmetRequirements unmetMoveReqs = myPoolActionsAccessChecker.getUnmetRequirementsToManageAgentsInPool(pool.getId());
+    AgentPoolActionStatus moveAgentsActionStatus;
+    if(unmetMoveReqs == null) {
+      moveAgentsActionStatus = AgentPoolActionStatus.available();
+    } else {
+      moveAgentsActionStatus = AgentPoolActionStatus.unavailable(new MissingGlobalOrPerProjectPermission(
+        unmetMoveReqs.getGlobalPermissions().stream().map(Permission::getName).collect(Collectors.toList()),
+        unmetMoveReqs.getPerProjectPermission().getName(),
+        new ProjectsConnection(myProjectManager.findProjects(unmetMoveReqs.getProjectsMissingPermission()), PaginationArguments.everything()),
+        unmetMoveReqs.getHiddenProjectsMissingPermission()
+      ));
+    }
+
+    return new AgentPoolActions(
+      moveAgentsActionStatus,
+      AgentPoolActionStatus.unavailable(null),
+      AgentPoolActionStatus.unavailable(null),
+      AgentPoolActionStatus.unavailable(null),
+      AgentPoolActionStatus.unavailable(null),
+      AgentPoolActionStatus.unavailable(null)
+    );
   }
 }

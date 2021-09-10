@@ -14,37 +14,18 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model.mutation;
+package jetbrains.buildServer.server.graphql.model.agentPool.actions;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-public class UpdateAgentPoolInput {
+public class MissingGlobalPermission implements AgentPoolActionUnavailabilityReason {
+  private final String myPermissionName;
+
+  public MissingGlobalPermission(@NotNull String permissionName) {
+    myPermissionName = permissionName;
+  }
   @NotNull
-  private final String myId;
-  @Nullable
-  private final String myName;
-  @Nullable
-  private final Integer myMaxAgents;
-
-  public UpdateAgentPoolInput(@NotNull String id, @Nullable String name, @Nullable Integer maxAgents) {
-    myId = id;
-    myName = name;
-    myMaxAgents = maxAgents;
-  }
-
-  @NotNull
-  public String getId() {
-    return myId;
-  }
-
-  @Nullable
-  public String getName() {
-    return myName;
-  }
-
-  @Nullable
-  public Integer getMaxAgents() {
-    return myMaxAgents;
+  public String getPermissionName() {
+    return myPermissionName;
   }
 }

@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model.mutation;
+package jetbrains.buildServer.server.graphql.resolver.agentPool;
 
+import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
+import jetbrains.buildServer.server.graphql.model.agentPool.ProjectAgentPool;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
-public class RemoveAgentPoolInput {
-  @NotNull
-  private final String myAgentPoolId;
+@Component
+public class AbstractAgentPoolFactory {
+  public AbstractAgentPool produce(@NotNull AgentPool realPool) {
+    if(realPool.isProjectPool()) {
+      return new ProjectAgentPool(realPool);
+    }
 
-  public RemoveAgentPoolInput(@NotNull String agentPoolId) {
-    myAgentPoolId = agentPoolId;
-  }
-
-  @NotNull
-  public String getAgentPoolId() {
-    return myAgentPoolId;
+    return new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(realPool);
   }
 }

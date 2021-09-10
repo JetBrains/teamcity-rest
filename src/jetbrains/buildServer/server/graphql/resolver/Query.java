@@ -20,21 +20,25 @@ import graphql.execution.DataFetcherResult;
 import graphql.kickstart.tools.GraphQLQueryResolver;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.List;
-import java.util.stream.Collectors;
 import jetbrains.buildServer.server.graphql.model.Agent;
+import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.GlobalPermissions;
+import jetbrains.buildServer.server.graphql.model.agentPool.ProjectAgentPool;
+import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArgumentsProvider;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agent.AgentsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.AgentsFilter;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
+import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
@@ -49,15 +53,23 @@ public class Query implements GraphQLQueryResolver {
   private final ProjectManager myProjectManager;
   @NotNull
   private final PaginationArgumentsProvider myPaginationArgumentsProvider;
+  @NotNull
+  private final AgentPoolManager myAgentPoolManager;
+  @NotNull
+  private final AbstractAgentPoolFactory myPoolFactory;
 
   public Query(@NotNull AgentFinder agentFinder,
                @NotNull AgentPoolFinder agentPoolFinder,
                @NotNull ProjectManager projectManager,
-               @NotNull PaginationArgumentsProvider paginationArgumentsProvider) {
+               @NotNull AgentPoolManager agentPoolManager,
+               @NotNull PaginationArgumentsProvider paginationArgumentsProvider,
+               @NotNull AbstractAgentPoolFactory poolFactory) {
     myAgentFinder = agentFinder;
     myAgentPoolFinder = agentPoolFinder;
     myProjectManager = projectManager;
+    myAgentPoolManager = agentPoolManager;
     myPaginationArgumentsProvider = paginationArgumentsProvider;
+    myPoolFactory = poolFactory;
   }
 
   @NotNull
@@ -80,24 +92,18 @@ public class Query implements GraphQLQueryResolver {
   }
 
   @NotNull
-  public DataFetcherResult<AgentPool> agentPool(@NotNull String id, @NotNull DataFetchingEnvironment env) {
+  public DataFetcherResult<AbstractAgentPool> agentPool(@NotNull String id, @NotNull DataFetchingEnvironment env) {
     jetbrains.buildServer.serverSide.agentPools.AgentPool pool = myAgentPoolFinder.getAgentPoolById(Long.parseLong(id));
 
-    return DataFetcherResult.<AgentPool>newResult()
-      .data(new AgentPool(pool))
+    return DataFetcherResult.<AbstractAgentPool>newResult()
+      .data(pool.isProjectPool() ? new ProjectAgentPool(pool) : new AgentPool(pool))
       .localContext(pool)
       .build();
   }
 
   @NotNull
   public AgentPoolsConnection agentPools() {
-    List<AgentPool> result = myAgentPoolFinder
-      .getItems(null).myEntries
-      .stream().map(p -> new AgentPool(p))
-      .collect(Collectors.toList());
-
-    // TODO: implement
-    return null;
+    return new AgentPoolsConnection(myAgentPoolManager.getAllAgentPools(), myPoolFactory::produce, PaginationArguments.everything());
   }
 
   @NotNull

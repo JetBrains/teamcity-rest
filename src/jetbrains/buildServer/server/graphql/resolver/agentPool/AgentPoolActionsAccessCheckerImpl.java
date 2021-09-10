@@ -14,23 +14,28 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.resolver;
+package jetbrains.buildServer.server.graphql.resolver.agentPool;
 
-import java.util.Collections;
-import java.util.Set;
+import com.intellij.openapi.diagnostic.Logger;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.BuildProject;
-import jetbrains.buildServer.serverSide.ProjectManagerEx;
-import jetbrains.buildServer.serverSide.SecurityContextEx;
+import jetbrains.buildServer.server.graphql.resolver.Mutation;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
+import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
+import jetbrains.buildServer.serverSide.agentPools.ProjectAgentPoolImpl;
 import jetbrains.buildServer.serverSide.agentTypes.AgentType;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
 import jetbrains.buildServer.serverSide.auth.*;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class AgentPoolActionsAccessCheckerImpl implements AgentPoolActionsAccessChecker {
+  private static final Logger LOG = Logger.getInstance(AgentPoolActionsAccessCheckerImpl.class.getName());
+
   private final SecurityContextEx mySecurityContext;
   @NotNull private AgentTypeStorage myAgentTypeStorage;
   @NotNull private ProjectManagerEx myProjectManager;
@@ -52,15 +57,30 @@ public class AgentPoolActionsAccessCheckerImpl implements AgentPoolActionsAccess
     myAgentPoolManager = agentPoolManager;
   }
 
+  @Nullable
   @Override
-  public boolean canMoveAgentFromItsCurrentPool(int agentTypeId) {
+  public ManageAgentsInPoolUnmetRequirements getUnmetRequirementsToManageAgentsInPool(int agentPoolId) {
     AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
-    AgentType agentType = myAgentTypeStorage.findAgentTypeById(agentTypeId);
-    if(agentType == null) {
-      return false;
-    }
+    Stream<String> restrictingProjectsUnfiltered = getRestrictingProjectsInPoolUnsafe(authHolder, agentPoolId);
 
-    return getRestrictingProjectsInPoolUnsafe(authHolder, agentType.getAgentPoolId()).count() == 0;
+    List<String> restrictingProjects = new ArrayList<>();
+    int[] hiddenCount = new int[1];
+
+    restrictingProjectsUnfiltered.forEach(projectId -> {
+      if(!AuthUtil.hasReadAccessTo(authHolder, projectId)) {
+        hiddenCount[0]++;
+        return;
+      }
+
+      restrictingProjects.add(projectId);
+    });
+
+    return new ManageAgentsInPoolUnmetRequirements(
+      restrictingProjects,
+      hiddenCount[0],
+      Permission.MANAGE_AGENT_POOLS_FOR_PROJECT,
+      Arrays.asList(Permission.MANAGE_AGENT_POOLS, Permission.MANAGE_AGENT_POOLS_FOR_PROJECT)
+    );
   }
 
   @NotNull
@@ -111,9 +131,19 @@ public class AgentPoolActionsAccessCheckerImpl implements AgentPoolActionsAccess
 
   @Override
   public boolean canManageProjectsInPool(int agentPoolId) {
+    AgentPool pool = myAgentPoolManager.findAgentPoolById(agentPoolId);
+    if(pool == null || pool.isProjectPool()) {
+      return false;
+    }
     AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
 
     return getRestrictingProjectsInPoolUnsafe(authHolder, agentPoolId).count() == 0;
+  }
+
+  @Override
+  public boolean canModifyAgentPool(int agentPoolId) {
+    // TODO: implement me
+    return false;
   }
 
   private boolean hasPermissionToManageAgentPoolsForProject(@NotNull AuthorityHolder authHolder, @NotNull String projectId) {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model.mutation;
+package jetbrains.buildServer.server.graphql.model.mutation.agentPool;
 
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import org.jetbrains.annotations.NotNull;

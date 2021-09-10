@@ -16,18 +16,14 @@
 
 package jetbrains.buildServer.server.graphql.model.connections.agent;
 
-import graphql.relay.ConnectionCursor;
-import graphql.relay.Edge;
 import jetbrains.buildServer.server.graphql.model.Agent;
+import jetbrains.buildServer.server.graphql.model.connections.LazyEdge;
+import jetbrains.buildServer.serverSide.SBuildAgent;
+import org.jetbrains.annotations.NotNull;
 
-public class AgentEdge implements Edge<Agent> {
-  @Override
-  public Agent getNode() {
-    return null;
-  }
+public class AgentEdge extends LazyEdge<SBuildAgent, Agent> {
 
-  @Override
-  public ConnectionCursor getCursor() {
-    return null;
+  public AgentEdge(@NotNull SBuildAgent agent) {
+    super(agent, Agent::new);
   }
 }

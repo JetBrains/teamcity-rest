@@ -21,6 +21,7 @@ import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.server.graphql.model.connections.BuildTypesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArgumentsProviderImpl;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
+import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import org.testng.annotations.BeforeMethod;
@@ -38,7 +39,7 @@ public class ProjectResolverTest extends BaseResolverTest {
   public void setUp() throws Exception {
     super.setUp();
 
-    myResolver = new ProjectResolver(myFixture.getProjectManager(), myFixture.getAgentPoolManager(), new PaginationArgumentsProviderImpl());
+    myResolver = new ProjectResolver(myFixture.getProjectManager(), myFixture.getAgentPoolManager(), new PaginationArgumentsProviderImpl(), new AbstractAgentPoolFactory());
     mySubProject = myProject.createProject(myProject.getExternalId() + "_subproject", "subproject");
     mySubSubProject = mySubProject.createProject(mySubProject.getExternalId() + "_subproject", "subsubproject");
 

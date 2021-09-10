@@ -17,12 +17,38 @@
 package jetbrains.buildServer.server.graphql.model.connections.agentPool;
 
 
-import graphql.relay.Connection;
-import graphql.relay.Edge;
+import com.intellij.openapi.util.Pair;
+import graphql.execution.DataFetcherResult;
 import java.util.List;
-import jetbrains.buildServer.server.graphql.model.CloudImage;
+import jetbrains.buildServer.clouds.CloudImage;
+import jetbrains.buildServer.server.graphql.model.connections.ExtensibleConnection;
+import jetbrains.buildServer.server.graphql.model.connections.LazyEdge;
+import jetbrains.buildServer.server.graphql.model.connections.PaginatingConnection;
+import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
+import org.jetbrains.annotations.NotNull;
 
-public interface AgentPoolCloudImagesConnection extends Connection<CloudImage> {
+public class AgentPoolCloudImagesConnection implements ExtensibleConnection<jetbrains.buildServer.server.graphql.model.CloudImage, AgentPoolCloudImagesConnection.AgentPoolCloudImagesConnectionEdge> {
+  @NotNull
+  private final PaginatingConnection<Pair<String, CloudImage>, jetbrains.buildServer.server.graphql.model.CloudImage, AgentPoolCloudImagesConnectionEdge> myDelegate;
+
+  /** @param data List[profileId, image] */
+  public AgentPoolCloudImagesConnection(@NotNull List<Pair<String, CloudImage>> data, @NotNull PaginationArguments paginationArguments) {
+    myDelegate = new PaginatingConnection<>(data, AgentPoolCloudImagesConnectionEdge::new, paginationArguments);
+  }
+
+  @NotNull
   @Override
-  List<Edge<CloudImage>> getEdges();
+  public DataFetcherResult<List<AgentPoolCloudImagesConnectionEdge>> getEdges() {
+    return myDelegate.getEdges();
+  }
+
+  public static class AgentPoolCloudImagesConnectionEdge extends LazyEdge<Pair<String, CloudImage>, jetbrains.buildServer.server.graphql.model.CloudImage> {
+    public AgentPoolCloudImagesConnectionEdge(@NotNull Pair<String, CloudImage> data) {
+      super(
+        data,
+        pair -> new jetbrains.buildServer.server.graphql.model.CloudImage(pair.getSecond(), pair.getFirst()),
+        pair -> pair.getSecond() // get CloudImage to be inserted into local context
+      );
+    }
+  }
 }

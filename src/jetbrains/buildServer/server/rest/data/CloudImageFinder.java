@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.CloudErrorInfo;
@@ -29,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import org.jetbrains.annotations.NotNull;
 
 import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
@@ -92,21 +94,10 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
                                     .valueForDefaultFilter(cloudImage -> Util.resolveNull(cloudImage.getErrorInfo(), CloudErrorInfo::getMessage));
 
       dimensionWithFinder(AGENT, () -> myServiceLocator.getSingletonService(AgentFinder.class), "agents")
-        .filter((value, item) -> value.stream()
-                                      .anyMatch(agent -> agent.getAgentTypeId() == myCloudManager.getDescriptionFor(myCloudUtil.getProfile(item), item.getId()).getAgentTypeId()));
+        .filter((agents, image) -> agents.stream().anyMatch(agentIsAssociatedWithCloudImage(image)));
 
-      dimensionWithFinder(AGENT_POOL, () -> myServiceLocator.getSingletonService(AgentPoolFinder.class), "agent pools of the images").
-                                                                                                                                       filter((value, item) -> value.stream()
-                                                                                                                                                                    .anyMatch(
-                                                                                                                                                                      pool -> Util
-                                                                                                                                                                        .resolveNull(
-                                                                                                                                                                          item
-                                                                                                                                                                            .getAgentPoolId(),
-                                                                                                                                                                          id -> id
-                                                                                                                                                                            .equals(
-                                                                                                                                                                              pool
-                                                                                                                                                                                .getAgentPoolId()),
-                                                                                                                                                                          false)));
+      dimensionWithFinder(AGENT_POOL, () -> myServiceLocator.getSingletonService(AgentPoolFinder.class), "agent pools of the images")
+        .filter((pools, image) -> pools.stream().anyMatch(poolIsAssociatedWithCloudImage(image)));
 
 
       dimensionWithFinder(INSTANCE, () -> myServiceLocator.getSingletonService(CloudInstanceFinder.class), "instances of the images").
@@ -152,6 +143,28 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
                                                                                                     .filter(i -> !processor.processItem(i)).findFirst());
 
       locatorProvider(i -> getLocator(i, myCloudUtil));
+    }
+
+    @NotNull
+    private Predicate<SBuildAgent> agentIsAssociatedWithCloudImage(@NotNull CloudImage image) {
+      return agent -> {
+        CloudProfile profile = myCloudUtil.getProfile(image);
+        if(profile == null) {
+          return false;
+        }
+
+        SAgentType imageDescription = myCloudManager.getDescriptionFor(profile, image.getId());
+        if(imageDescription == null) {
+          return false;
+        }
+
+        return agent.getAgentTypeId() == imageDescription.getAgentTypeId();
+      };
+    }
+
+    @NotNull
+    private Predicate<AgentPool> poolIsAssociatedWithCloudImage(@NotNull CloudImage cloudImage) {
+      return pool -> Util.resolveNull(cloudImage.getAgentPoolId(), id -> id.equals(pool.getAgentPoolId()),false);
     }
   }
 

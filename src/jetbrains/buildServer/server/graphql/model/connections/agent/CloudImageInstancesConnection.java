@@ -16,11 +16,30 @@
 
 package jetbrains.buildServer.server.graphql.model.connections.agent;
 
-import graphql.relay.PageInfo;
+import graphql.execution.DataFetcherResult;
+import java.util.Collections;
 import java.util.List;
+import jetbrains.buildServer.server.graphql.model.Agent;
+import jetbrains.buildServer.server.graphql.model.connections.ExtensibleConnection;
+import jetbrains.buildServer.server.graphql.model.connections.PaginatingConnection;
+import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
+import jetbrains.buildServer.serverSide.SBuildAgent;
+import org.jetbrains.annotations.NotNull;
 
-public interface CloudImageInstancesConnection {
-  List<AgentEdge> getEdges();
+public class CloudImageInstancesConnection implements ExtensibleConnection<Agent, AgentEdge> {
+  public static final CloudImageInstancesConnection EMPTY = new CloudImageInstancesConnection(Collections.emptyList(), PaginationArguments.everything());
 
-  PageInfo getPageInfo();
+  @NotNull
+  private final PaginatingConnection<SBuildAgent, jetbrains.buildServer.server.graphql.model.Agent, AgentEdge>
+    myDelegate;
+
+  public CloudImageInstancesConnection(@NotNull List<SBuildAgent> data, @NotNull PaginationArguments paginationArguments) {
+    myDelegate = new PaginatingConnection<>(data, AgentEdge::new, paginationArguments);
+  }
+
+  @NotNull
+  @Override
+  public DataFetcherResult<List<AgentEdge>> getEdges() {
+    return myDelegate.getEdges();
+  }
 }

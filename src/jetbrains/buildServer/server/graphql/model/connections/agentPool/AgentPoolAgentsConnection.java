@@ -16,15 +16,45 @@
 
 package jetbrains.buildServer.server.graphql.model.connections.agentPool;
 
-import graphql.relay.Connection;
-import graphql.relay.Edge;
+import graphql.execution.DataFetcherResult;
+import graphql.relay.PageInfo;
 import java.util.List;
 import jetbrains.buildServer.server.graphql.model.Agent;
+import jetbrains.buildServer.server.graphql.model.connections.ExtensibleConnection;
+import jetbrains.buildServer.server.graphql.model.connections.LazyEdge;
+import jetbrains.buildServer.server.graphql.model.connections.PaginatingConnection;
+import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
+import jetbrains.buildServer.serverSide.SBuildAgent;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public interface AgentPoolAgentsConnection extends Connection<Agent> {
-  // This is required for graphql java kickstart to deduce 'AgentPoolAgentEdge' type
+public class AgentPoolAgentsConnection implements ExtensibleConnection<Agent, AgentPoolAgentsConnection.AgentPoolAgentsConnectionEdge> {
+  @NotNull
+  private final PaginatingConnection<SBuildAgent, Agent, AgentPoolAgentsConnectionEdge> myDelegate;
+
+  public AgentPoolAgentsConnection(@NotNull List<SBuildAgent> data, @NotNull PaginationArguments paginationArguments) {
+    myDelegate = new PaginatingConnection<>(data, AgentPoolAgentsConnectionEdge::new, paginationArguments);
+  }
+
+  public int getCount() {
+    return myDelegate.getData().size();
+  }
+
+  @NotNull
   @Override
-  List<Edge<Agent>> getEdges();
+  public DataFetcherResult<List<AgentPoolAgentsConnectionEdge>> getEdges() {
+    return myDelegate.getEdges();
+  }
 
-  int getCount();
+  @Nullable
+  @Override
+  public PageInfo getPageInfo() {
+    return myDelegate.getPageInfo();
+  }
+
+  public class AgentPoolAgentsConnectionEdge extends LazyEdge<SBuildAgent, Agent> {
+    public AgentPoolAgentsConnectionEdge(@NotNull SBuildAgent data) {
+      super(data, Agent::new);
+    }
+  }
 }

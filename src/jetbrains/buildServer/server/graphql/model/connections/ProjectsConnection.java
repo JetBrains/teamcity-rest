@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.graphql.model.connections;
 
 import graphql.execution.DataFetcherResult;
 import graphql.relay.PageInfo;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.server.graphql.model.Project;
@@ -33,7 +34,7 @@ public class ProjectsConnection implements ExtensibleConnection<Project, Project
   @NotNull
   private final PaginatingConnection<SProject, Project, ProjectsConnectionEdge> myDelegate;
 
-  public ProjectsConnection(@NotNull List<SProject> data, @NotNull PaginationArguments paginationArguments) {
+  public ProjectsConnection(@NotNull Collection<SProject> data, @NotNull PaginationArguments paginationArguments) {
     myDelegate = new PaginatingConnection<>(data, ProjectsConnectionEdge::new, paginationArguments);
   }
 

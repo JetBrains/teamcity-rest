@@ -14,22 +14,29 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model;
+package jetbrains.buildServer.server.graphql.model.mutation.agentPool;
 
 import org.jetbrains.annotations.NotNull;
 
-public class AgentEnvironment {
+public class AssignProjectWithAgentPoolInput {
   @NotNull
-  private final OS myOS;
+  private String myProjectId;
+  private int myAgentPoolId;
 
-  public static final AgentEnvironment UNKNOWN = new AgentEnvironment(new OS("", OSType.Unknown));
+  public void setProjectId(@NotNull String projectId) {
+    myProjectId = projectId;
+  }
 
-  public AgentEnvironment(@NotNull OS os) {
-    myOS = os;
+  public void setAgentPoolId(int agentPoolId) {
+    myAgentPoolId = agentPoolId;
   }
 
   @NotNull
-  public OS getOs() {
-    return myOS;
+  public String getProjectId() {
+    return myProjectId;
+  }
+
+  public int getAgentPoolId() {
+    return myAgentPoolId;
   }
 }

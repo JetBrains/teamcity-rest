@@ -14,21 +14,17 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model.mutation;
+package jetbrains.buildServer.server.graphql.model.mutation.agentPool;
 
-import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
-import org.jetbrains.annotations.NotNull;
 
-public class UpdateAgentPoolPayload {
-  @NotNull
-  private final AgentPool myAgentPool;
+public class RemoveAgentPoolInput {
+  private int myAgentPoolId;
 
-  public UpdateAgentPoolPayload(@NotNull AgentPool agentPool) {
-    myAgentPool = agentPool;
+  public void setAgentPoolId(int agentPoolId) {
+    myAgentPoolId = agentPoolId;
   }
 
-  @NotNull
-  public AgentPool getAgentPool() {
-    return myAgentPool;
+  public int getAgentPoolId() {
+    return myAgentPoolId;
   }
 }

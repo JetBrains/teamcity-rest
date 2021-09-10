@@ -27,8 +27,12 @@ import graphql.schema.GraphQLSchema;
 import java.io.IOException;
 import java.net.URL;
 import javax.annotation.PostConstruct;
+import jetbrains.buildServer.server.graphql.model.agentPool.actions.*;
 import jetbrains.buildServer.server.graphql.model.buildType.incompatibility.*;
 import jetbrains.buildServer.server.graphql.resolver.*;
+import jetbrains.buildServer.server.graphql.resolver.agentPool.AgentPoolMutation;
+import jetbrains.buildServer.server.graphql.resolver.agentPool.AgentPoolResolver;
+import jetbrains.buildServer.server.graphql.resolver.agentPool.ProjectAgentPoolResolver;
 import jetbrains.buildServer.server.graphql.util.ResolverExceptionHandler;
 import org.apache.log4j.Level;
 import org.jetbrains.annotations.NotNull;
@@ -50,6 +54,10 @@ public class GraphQLProvider {
 
   @Autowired
   @NotNull
+  private AgentPoolMutation myAgentPoolMutation;
+
+  @Autowired
+  @NotNull
   private ProjectResolver myProjectResolver;
 
   @Autowired
@@ -67,6 +75,10 @@ public class GraphQLProvider {
   @Autowired
   @NotNull
   private AgentPoolResolver myAgentPoolResolver;
+
+  @Autowired
+  @NotNull
+  private ProjectAgentPoolResolver myProjectAgentPoolResolver;
 
   @Autowired
   @NotNull
@@ -107,11 +119,13 @@ public class GraphQLProvider {
                 .resolvers(
                   myQuery,
                   myMutation,
+                  myAgentPoolMutation,
                   myProjectResolver,
                   myAgentResolver,
                   myBuildTypeResolver,
                   myAgentBuildTypeEdgeResolver,
                   myAgentPoolResolver,
+                  myProjectAgentPoolResolver,
                   myCloudImageResolver
                 )
                 .dictionary(
@@ -119,7 +133,10 @@ public class GraphQLProvider {
                   MissedVCSPluginAgentBuildTypeIncompatibility.class,
                   RunnerAgentBuildTypeIncompatibility.class,
                   UndefinedRunParameterAgentBuildTypeIncompatibility.class,
-                  UnmetRequirementAgentBuildTypeIncompatibility.class
+                  UnmetRequirementAgentBuildTypeIncompatibility.class,
+                  AgentPoolActionStatus.class,
+                  MissingGlobalOrPerProjectPermission.class,
+                  MissingGlobalPermission.class
                 )
                 .build()
                 .makeExecutableSchema();

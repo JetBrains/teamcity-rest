@@ -62,21 +62,6 @@ public class Mutation implements GraphQLMutationResolver {
   private AgentTypeManager myAgentTypeManager;
 
   @NotNull
-  public CreateAgentPoolPayload createAgentPool(@NotNull CreateAgentPoolInput input) {
-    return null;
-  }
-
-  @NotNull
-  public UpdateAgentPoolPayload updateAgentPool(@NotNull UpdateAgentPoolInput input) {
-    return null;
-  }
-
-  @NotNull
-  public RemoveAgentPoolPayload removeAgentPool(@NotNull RemoveAgentPoolInput input) {
-    return null;
-  }
-
-  @NotNull
   public SetAgentRunPolicyPayload setAgentRunPolicy(@NotNull SetAgentRunPolicyInput input) {
     /*return performSafe(
       input.getAgentId(),
@@ -91,26 +76,6 @@ public class Mutation implements GraphQLMutationResolver {
     );
      */
 
-    return null;
-  }
-
-  @NotNull
-  public MoveAgentToAgentPoolPayload moveAgentToAgentPool(@NotNull MoveAgentToAgentPoolInput input) {
-    return null;
-  }
-
-  @NotNull
-  public MoveCloudImageToAgentPoolPayload moveCloudImageToAgentPool(@NotNull MoveCloudImageToAgentPoolInput input) {
-    return null;
-  }
-
-  @NotNull
-  public AssignProjectWithAgentPoolPayload assignProjectWithAgentPool(@NotNull AssignProjectWithAgentPoolInput input) {
-    return null;
-  }
-
-  @NotNull
-  public UnassignProjectFromAgentPoolPayload unassignProjectFromAgentPool(@NotNull UnassignProjectFromAgentPoolInput input) {
     return null;
   }
 

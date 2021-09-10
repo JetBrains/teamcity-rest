@@ -16,13 +16,60 @@
 
 package jetbrains.buildServer.server.graphql.model.connections.agentPool;
 
-import graphql.relay.Connection;
-import graphql.relay.Edge;
+import graphql.execution.DataFetcherResult;
+import graphql.relay.PageInfo;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
+import java.util.function.Function;
+import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
+import jetbrains.buildServer.server.graphql.model.connections.ExtensibleConnection;
+import jetbrains.buildServer.server.graphql.model.connections.LazyEdge;
+import jetbrains.buildServer.server.graphql.model.connections.PaginatingConnection;
+import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public interface AgentPoolsConnection extends Connection<AgentPool> {
-  // This is required for graphql java kickstart to deduce 'AgentPoolEdge' type
+
+public class AgentPoolsConnection implements ExtensibleConnection<AbstractAgentPool, AgentPoolsConnection.AgentPoolsConnectionEdge> {
+  public static jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection empty() {
+    return new jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection(Collections.emptyList(), PaginationArguments.everything());
+  }
+
+  private final Function<jetbrains.buildServer.serverSide.agentPools.AgentPool, AbstractAgentPool> myPoolFactory;
+  private final PaginatingConnection<jetbrains.buildServer.serverSide.agentPools.AgentPool, AbstractAgentPool, AgentPoolsConnectionEdge> myDelegate;
+
+  public AgentPoolsConnection(@NotNull Collection<jetbrains.buildServer.serverSide.agentPools.AgentPool> data,
+                              @NotNull Function<jetbrains.buildServer.serverSide.agentPools.AgentPool, AbstractAgentPool> poolFactory,
+                              @NotNull PaginationArguments paginationArguments) {
+    myPoolFactory = poolFactory;
+    myDelegate = new PaginatingConnection<>(data, AgentPoolsConnectionEdge::new, paginationArguments);
+  }
+
+  public int getCount() {
+    return myDelegate.getData().size();
+  }
+
+  @NotNull
   @Override
-  List<Edge<AgentPool>> getEdges();
+  public DataFetcherResult<List<AgentPoolsConnectionEdge>> getEdges() {
+    return myDelegate.getEdges();
+  }
+
+  @Nullable
+  @Override
+  public PageInfo getPageInfo() {
+    return myDelegate.getPageInfo();
+  }
+
+  public class AgentPoolsConnectionEdge extends LazyEdge<jetbrains.buildServer.serverSide.agentPools.AgentPool, AbstractAgentPool> {
+    public AgentPoolsConnectionEdge(@NotNull jetbrains.buildServer.serverSide.agentPools.AgentPool data) {
+      super(data, myPoolFactory::apply);
+    }
+
+    @Override
+    public String getCursor() {
+      return myData.getName();
+    }
+  }
 }

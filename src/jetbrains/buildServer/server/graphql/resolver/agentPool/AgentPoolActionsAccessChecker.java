@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.resolver;
+package jetbrains.buildServer.server.graphql.resolver.agentPool;
 
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface AgentPoolActionsAccessChecker {
-
-  boolean canMoveAgentFromItsCurrentPool(int agentTypeId);
+  /**
+   *
+   */
+  @Nullable
+  ManageAgentsInPoolUnmetRequirements getUnmetRequirementsToManageAgentsInPool(int agentPoolId);
 
   /**
    * Retrieve a set of visible projects which restrict current user form removing given agent type from its current pool.
@@ -53,4 +57,9 @@ public interface AgentPoolActionsAccessChecker {
    * In order to fully check permissions for project move both source and target pools must be checked.
    */
   boolean canManageProjectsInPool(int agentPoolId);
+
+  /**
+   * Check if current user has enough permissions to modify name and limits of the given pool.
+   */
+  boolean canModifyAgentPool(int agentPoolId);
 }

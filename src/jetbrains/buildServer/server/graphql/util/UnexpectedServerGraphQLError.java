@@ -17,14 +17,31 @@
 package jetbrains.buildServer.server.graphql.util;
 
 import graphql.ErrorClassification;
+import graphql.GraphQLError;
+import graphql.language.SourceLocation;
+import java.util.Collections;
+import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
-public enum TeamCityGraphQLErrorType implements ErrorClassification {
-  /** Not enough permissions to perform certain operation */
-  ACCESS_DENIED,
-  /** Unexpected server error, not a valid result of operation execution */
-  SERVER_ERROR,
-  /** Expected operation failed error, valid result of operation execution */
-  OPERATION_FAILED,
-  /** Entity not found */
-  NOT_FOUND
+public class UnexpectedServerGraphQLError implements GraphQLError {
+  private final String myMessage;
+
+  public UnexpectedServerGraphQLError(@NotNull String message) {
+    myMessage = message;
+  }
+
+  @Override
+  public String getMessage() {
+    return myMessage;
+  }
+
+  @Override
+  public List<SourceLocation> getLocations() {
+    return Collections.emptyList();
+  }
+
+  @Override
+  public ErrorClassification getErrorType() {
+    return TeamCityGraphQLErrorType.SERVER_ERROR;
+  }
 }

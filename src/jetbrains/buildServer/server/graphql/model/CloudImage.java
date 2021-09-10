@@ -16,13 +16,17 @@
 
 package jetbrains.buildServer.server.graphql.model;
 
+import org.jetbrains.annotations.NotNull;
+
 public class CloudImage {
   private final String myId;
   private final String myName;
+  private final String myProfileId;
 
-  public CloudImage(jetbrains.buildServer.clouds.CloudImage realImage) {
+  public CloudImage(@NotNull jetbrains.buildServer.clouds.CloudImage realImage, @NotNull String profileId) {
     myId = realImage.getId();
     myName = realImage.getName();
+    myProfileId = profileId;
   }
 
   public String getId() {
@@ -31,5 +35,9 @@ public class CloudImage {
 
   public String getName() {
     return myName;
+  }
+
+  public String getProfileId() {
+    return myProfileId;
   }
 }

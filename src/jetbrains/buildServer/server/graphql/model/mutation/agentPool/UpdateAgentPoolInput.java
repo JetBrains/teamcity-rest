@@ -14,29 +14,44 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model.mutation;
+package jetbrains.buildServer.server.graphql.model.mutation.agentPool;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class CreateAgentPoolInput {
+public class UpdateAgentPoolInput {
   @NotNull
-  private final String myName;
+  private int myId;
   @Nullable
-  private final Integer maxAents;
+  private String myName;
+  @Nullable
+  private Integer myMaxAgents;
 
-  public CreateAgentPoolInput(@NotNull String name, @Nullable Integer maxAents) {
-    myName = name;
-    this.maxAents = maxAents;
+  public UpdateAgentPoolInput() { }
+
+  public void setId(int id) {
+    myId = id;
   }
 
-  @NotNull
+  public void setName(@Nullable String name) {
+    myName = name;
+  }
+
+  public void setMaxAgents(@Nullable Integer maxAgents) {
+    myMaxAgents = maxAgents;
+  }
+
+  public int getId() {
+    return myId;
+  }
+
+  @Nullable
   public String getName() {
     return myName;
   }
 
   @Nullable
-  public Integer getMaxAents() {
-    return maxAents;
+  public Integer getMaxAgents() {
+    return myMaxAgents;
   }
 }

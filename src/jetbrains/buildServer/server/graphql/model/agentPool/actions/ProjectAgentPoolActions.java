@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model.mutation;
+package jetbrains.buildServer.server.graphql.model.agentPool.actions;
 
 import org.jetbrains.annotations.NotNull;
 
-public class RemoveAgentPoolPayload {
-  @NotNull
-  private final ShallowAgentPool myAgentPool;
+public class ProjectAgentPoolActions {
+  private final AgentPoolActionStatus myMoveCloudImages;
 
-  public RemoveAgentPoolPayload(@NotNull ShallowAgentPool agentPool) {
-    myAgentPool = agentPool;
+  public ProjectAgentPoolActions(@NotNull AgentPoolActionStatus moveCloudImages) {
+    myMoveCloudImages = moveCloudImages;
   }
 
   @NotNull
-  public ShallowAgentPool getAgentPool() {
-    return myAgentPool;
+  public AgentPoolActionStatus getMoveCloudImages() {
+    return myMoveCloudImages;
   }
 }

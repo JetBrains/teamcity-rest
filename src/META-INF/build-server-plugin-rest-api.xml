@@ -128,7 +128,7 @@
 
   <bean id="extensionsAwareResourceConfig" class="jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig"/>
 
-  <bean id="agentPoolActionsAccessChecker" class="jetbrains.buildServer.server.graphql.resolver.AgentPoolActionsAccessCheckerImpl">
+  <bean id="agentPoolActionsAccessChecker" class="jetbrains.buildServer.server.graphql.resolver.agentPool.AgentPoolActionsAccessCheckerImpl">
     <property name="agentPoolManager" ref="hiddenAgentPoolManager" />
     <property name="projectManager" ref="projectManager" />
     <property name="agentTypeStorage" ref="hiddenAgentTypeManager" />
