@@ -199,6 +199,24 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     assertEquals("There must not be duplicates", subTree.size(), subTree.stream().map(node -> node.getId()).distinct().count());
   }
 
+  @Test
+  public void testSubtreeLeafNode() {
+    buildTree();
+
+    List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"), null);
+    final String leafNodeId = fullTree.stream()
+                                      .filter(node -> node.getScope().getName().equals("classZ"))
+                                      .map(node -> node.getId())
+                                      .findFirst().get();
+
+    final Locator leafNodeLocator = Locator.locator(String.format("build:(affectedProject:project),subTreeRootId:%s,maxChildren:100", leafNodeId));
+    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedSubTree(leafNodeLocator, null);
+
+    assertEquals(1, result.size());
+    assertEquals(1, result.get(0).getData().size());
+    assertEquals("classZ", result.get(0).getScope().getName());
+  }
+
   private void checkAncestorsBeforeChildren(@NotNull List<ScopeTree.Node<STestRun, TestCountersData>> result) {
     checkAncestorsBeforeChildren(result, null);
   }
