@@ -36,7 +36,7 @@ public class BaseTestScopesCollectorTest extends BaseServerTestCase {
   private AgentFinder myAgentFinder;
   private BuildTypeFinder myBuildTypeFinder;
   private BuildFinder myBuildFinder;
-  private TestOccurrenceFinder myTestOccurrenceFinder;
+  protected TestOccurrenceFinder myTestOccurrenceFinder;
   private TestFinder myTestFinder;
   private BranchFinder myBranchFinder;
   private BuildPromotionFinder myBuildPromotionFinder;

@@ -113,16 +113,17 @@ public class TestScopesCollector {
   }
 
   private Stream<TestScope> groupByScope(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter filter, @NotNull String scopeName) {
+    Stream<STestRun> testRunStream = testRuns.myEntries.stream();
     Stream<TestScope> scopes;
     switch (scopeName) {
       case "suite":
-        scopes = groupBySuite(testRuns, filter);
+        scopes = groupBySuite(testRunStream, filter);
         break;
       case "package":
-        scopes = groupByPackage(testRuns, filter);
+        scopes = groupByPackage(testRunStream, filter);
         break;
       case "class":
-        scopes = groupByClass(testRuns, filter);
+        scopes = groupByClass(testRunStream, filter);
         break;
       default:
         // Should never happen as we checked that before, just make java happy.
@@ -132,7 +133,7 @@ public class TestScopesCollector {
     return scopes;
   }
 
-  private Stream<TestScope> splitByBuildType(@NotNull Stream<TestScope> testScopes) {
+  public Stream<TestScope> splitByBuildType(@NotNull Stream<TestScope> testScopes) {
     Map<String, SBuildType> encounteredBuildTypes = new HashMap<>();
 
     Function<STestRun, String> getIdAndRememberBuildType = (STestRun testRun) -> {
@@ -159,24 +160,23 @@ public class TestScopesCollector {
     });
   }
 
-  private Stream<TestScope> groupBySuite(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
+  private Stream<TestScope> groupBySuite(@NotNull Stream<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
     return groupBySuiteInternal(testRuns, testScopeFilter);
   }
 
-  public Stream<TestScope> groupByPackage(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
+  public Stream<TestScope> groupByPackage(@NotNull Stream<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
     Stream<TestScope> bySuite = groupBySuiteInternal(testRuns, testScopeFilter);
     return groupByPackageInternal(bySuite);
   }
 
-  public Stream<TestScope> groupByClass(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
+  public Stream<TestScope> groupByClass(@NotNull Stream<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
     Stream<TestScope> bySuite   = groupBySuiteInternal(testRuns, testScopeFilter);
     Stream<TestScope> byPackage = groupByPackageInternal(bySuite);
     return groupByClassInternal(byPackage);
   }
 
-  private static Stream<TestScope> groupBySuiteInternal(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
-    Map<String, List<STestRun>> scopes = testRuns.myEntries.stream()
-                                                 .filter(testScopeFilter)
+  private static Stream<TestScope> groupBySuiteInternal(@NotNull Stream<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
+    Map<String, List<STestRun>> scopes = testRuns.filter(testScopeFilter)
                                                  .collect(Collectors.groupingBy(item -> item.getTest().getName().getSuite()));
 
     return scopes.entrySet().stream().map(entry -> new TestScope(entry.getValue(), entry.getKey()));

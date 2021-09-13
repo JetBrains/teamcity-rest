@@ -31,14 +31,14 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
 
   public ScopeTree(@NotNull Scope rootScope,
                    @NotNull COUNTERS rootCounters,
-                   @NotNull Iterable<LeafInfo<DATA, COUNTERS>> leafs) {
+                   @NotNull Iterable<? extends LeafInfo<DATA, COUNTERS>> leafs) {
     myRoot = new Node<>(rootScope.getId(), rootScope, rootCounters, null);
     myIdToNodesMap.put(myRoot.getId(), myRoot);
 
     buildTree(leafs);
   }
 
-  private void buildTree(@NotNull Iterable<LeafInfo<DATA, COUNTERS>> leafs) {
+  private void buildTree(@NotNull Iterable<? extends LeafInfo<DATA, COUNTERS>> leafs) {
     for (LeafInfo<DATA, COUNTERS> leafInfo : leafs) {
       COUNTERS counters = leafInfo.getCounters();
       Node<DATA, COUNTERS> parent = myRoot;

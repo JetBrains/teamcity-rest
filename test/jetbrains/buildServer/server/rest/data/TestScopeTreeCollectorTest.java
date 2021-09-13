@@ -38,7 +38,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void setUp() throws Exception {
     super.setUp();
 
-    myTestScopeTreeCollector = new TestScopeTreeCollector(myTestScopesCollector);
+    myTestScopeTreeCollector = new TestScopeTreeCollector(myTestScopesCollector, myTestOccurrenceFinder);
   }
 
   @Test
@@ -181,7 +181,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     ScopeTree.Node<STestRun, TestCountersData> subTreeRoot = fullTree.get(subTreeRootIdx);
 
     String subTreeLocator = String.format("build:(affectedProject:project),subTreeRootId:%s,maxChildren:100", subTreeRoot.getId());
-    List<ScopeTree.Node<STestRun, TestCountersData>> subTree = myTestScopeTreeCollector.getSlicedSubTree(Locator.locator(subTreeLocator), null);
+    List<ScopeTree.Node<STestRun, TestCountersData>> subTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator(subTreeLocator), null);
     checkAncestorsBeforeChildren(subTree, subTreeRoot.getParent().getId());
     assertEquals(11, subTree.size());
 
@@ -210,7 +210,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
                                       .findFirst().get();
 
     final Locator leafNodeLocator = Locator.locator(String.format("build:(affectedProject:project),subTreeRootId:%s,maxChildren:100", leafNodeId));
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedSubTree(leafNodeLocator, null);
+    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(leafNodeLocator, null);
 
     assertEquals(1, result.size());
     assertEquals(1, result.get(0).getData().size());
