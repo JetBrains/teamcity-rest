@@ -38,7 +38,7 @@ public class ProblemOccurrencesTreeCollector {
 
   public static final String ORDER_BY = "orderBy";
   public static final String MAX_CHILDREN = "maxChildren";
-  public static final String SUB_TREE_ROOT = "subTreeRootId";
+  public static final String SUB_TREE_ROOT_ID = "subTreeRootId";
 
   private static final int DEFAULT_MAX_CHILDREN = 5;
   private static final String DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT = "newFailedCount:desc";
@@ -75,7 +75,7 @@ public class ProblemOccurrencesTreeCollector {
 
   public List<ScopeTree.Node<BuildProblem, ProblemCounters>> getTree(@NotNull Locator locator) {
     locator.addSupportedDimensions(
-      ORDER_BY,
+      ORDER_BY, SUB_TREE_ROOT_ID,
       ProblemOccurrenceFinder.BUILD, ProblemOccurrenceFinder.AFFECTED_PROJECT, // TODO: if build overview than build dimension will be present
       ProblemOccurrenceFinder.TYPE,
       ProblemOccurrenceFinder.CURRENTLY_INVESTIGATED, ProblemOccurrenceFinder.CURRENTLY_MUTED
@@ -88,35 +88,17 @@ public class ProblemOccurrencesTreeCollector {
     String maxChildrenDim = locator.getSingleDimensionValue(MAX_CHILDREN);
     int maxChildren = maxChildrenDim == null ? DEFAULT_MAX_CHILDREN : Integer.parseInt(maxChildrenDim);
 
-    locator.checkLocatorFullyProcessed();
+    if(locator.isAnyPresent(SUB_TREE_ROOT_ID)) {
+      String subTreeRootId = locator.getSingleDimensionValue(SUB_TREE_ROOT_ID);
+      locator.checkLocatorFullyProcessed();
 
-    return tree.getSlicedOrderedTree(maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
-  }
-
-  public List<ScopeTree.Node<BuildProblem, ProblemCounters>> getSubTree(@NotNull Locator locator) {
-    locator.addSupportedDimensions(SUB_TREE_ROOT);
-    locator.addSupportedDimensions(
-      ORDER_BY,
-      ProblemOccurrenceFinder.BUILD, ProblemOccurrenceFinder.AFFECTED_PROJECT,
-      ProblemOccurrenceFinder.TYPE,
-      ProblemOccurrenceFinder.CURRENTLY_INVESTIGATED, ProblemOccurrenceFinder.CURRENTLY_MUTED
-    );
-    locator.addHiddenDimensions(ProblemOccurrenceFinder.SNAPSHOT_DEPENDENCY_PROBLEM);
-
-    ScopeTree<BuildProblem, ProblemCounters> tree = getTreeByLocator(locator);
-    Comparator<ScopeTree.Node<BuildProblem, ProblemCounters>> order = getNodeOrder(locator);
-
-    String maxChildrenDim = locator.getSingleDimensionValue(MAX_CHILDREN);
-    int maxChildren = maxChildrenDim == null ? DEFAULT_MAX_CHILDREN : Integer.parseInt(maxChildrenDim);
-
-    String subTreeRootId = locator.getSingleDimensionValue(SUB_TREE_ROOT);
-    if(subTreeRootId == null) {
-      throw new LocatorProcessException(String.format("Required dimension %s is not set.", SUB_TREE_ROOT));
+      assert subTreeRootId != null; // it is present, so not null. Let's make IDEA happy.
+      return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootId, maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
     }
 
     locator.checkLocatorFullyProcessed();
 
-    return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootId, maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, order);
+    return tree.getSlicedOrderedTree(maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
   }
 
   private ScopeTree<BuildProblem, ProblemCounters> getTreeByLocator(@NotNull Locator fullLocator) {

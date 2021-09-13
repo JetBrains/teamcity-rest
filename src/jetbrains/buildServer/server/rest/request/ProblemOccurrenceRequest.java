@@ -130,7 +130,7 @@ public class ProblemOccurrenceRequest {
                                                    @QueryParam("fields") String fields,
                                                    @Context UriInfo uriInfo,
                                                    @Context HttpServletRequest request) {
-    List<ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters>> tree = myProblemOccurrencesTreeCollector.getSubTree(new Locator(locatorText));
+    List<ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters>> tree = myProblemOccurrencesTreeCollector.getTree(new Locator(locatorText));
 
     return new jetbrains.buildServer.server.rest.model.problem.scope.ProblemOccurrencesTree(tree, new Fields(fields), myBeanContext);
   }
