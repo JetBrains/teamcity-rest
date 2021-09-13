@@ -30,8 +30,10 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
+import jetbrains.buildServer.util.StringUtil;
 import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ProblemOccurrencesTreeCollector {
   private static final String UNCATEGORIZED_PROBLEM = "$$uncategorized$$"; // stub for problem type when typeDecription == null
@@ -99,6 +101,29 @@ public class ProblemOccurrencesTreeCollector {
     locator.checkLocatorFullyProcessed();
 
     return tree.getSlicedOrderedTree(maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
+  }
+
+  public List<ScopeTree.Node<BuildProblem, ProblemCounters>> getTreeFromBuildPromotions(@NotNull Stream<BuildPromotion> promotionStream, @Nullable String subTreeRootId) {
+    final String problemsLocator = "build:%d";
+    Stream<BuildProblem> problemStream = promotionStream
+      .filter(promotion -> promotion.getAssociatedBuild() != null)
+      .flatMap(promotion -> myProblemOccurrenceFinder.getItems(String.format(problemsLocator, promotion.getAssociatedBuild().getBuildId())).myEntries.stream());
+
+    List<LeafInfo<BuildProblem, ProblemCounters>> problems = groupProblems(problemStream);
+
+    ScopeTree<BuildProblem, ProblemCounters> tree = new ScopeTree<>(
+      new ProblemScope(SProject.ROOT_PROJECT_ID, ProblemScopeType.PROJECT),
+      new ProblemCounters(0, 0),
+      problems
+    );
+
+    Comparator<ScopeTree.Node<BuildProblem, ProblemCounters>> defaultNodeOrder = SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT);
+
+    if(subTreeRootId != null && StringUtil.isNotEmpty(subTreeRootId)) {
+      return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootId, DEFAULT_MAX_CHILDREN, NEW_FAILED_FIRST_THEN_BY_ID, defaultNodeOrder);
+    }
+
+    return tree.getSlicedOrderedTree(DEFAULT_MAX_CHILDREN, NEW_FAILED_FIRST_THEN_BY_ID, defaultNodeOrder);
   }
 
   private ScopeTree<BuildProblem, ProblemCounters> getTreeByLocator(@NotNull Locator fullLocator) {

@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.change.CommiterData;
 import jetbrains.buildServer.server.rest.data.change.CommitersUtil;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
+import jetbrains.buildServer.server.rest.data.problem.scope.ProblemOccurrencesTreeCollector;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Entries;
@@ -45,6 +46,7 @@ import jetbrains.buildServer.server.rest.model.change.Changes;
 import jetbrains.buildServer.server.rest.model.change.Commiters;
 import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
 import jetbrains.buildServer.server.rest.model.issue.Issues;
+import jetbrains.buildServer.server.rest.model.problem.scope.ProblemOccurrencesTree;
 import jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -62,7 +64,6 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
-import java.util.ArrayList;
 
 @Path(ChangeRequest.API_CHANGES_URL)
 @Api("Change")
@@ -76,6 +77,7 @@ public class ChangeRequest {
   @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private ChangeFinder myChangeFinder;
   @Context @NotNull private TestScopeTreeCollector myTestScopeTreeCollector;
+  @Context @NotNull private ProblemOccurrencesTreeCollector myProblemOccurrencesTreeCollector;
 
   public static String getChangeHref(SVcsModification modification) {
     return API_CHANGES_URL + "/" + ChangeFinder.getLocator(modification);
@@ -315,25 +317,27 @@ public class ChangeRequest {
     return new TestScopeTree(myTestScopeTreeCollector.getSlicedTreeFromBuildPromotions(firstBuildsPromotions, subTreeRootId), new Fields(fields), myBeanContext);
   }
 
-  /*
+  /**
+   *  Experimental, subject to change
+   *  @since 2021.2
+   */
   @GET
   @Path("/{changeLocator}/problemsTree")
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value="Get problems tree for the matching change.",nickname="getChangeProblemsTree")
-  public Builds getChangeProblemsTree(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
+  public ProblemOccurrencesTree getChangeProblemsTree(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
+                                      @QueryParam(ProblemOccurrencesTreeCollector.SUB_TREE_ROOT_ID) String subTreeRootId,
                                       @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
 
     ChangeStatusProvider myStatusProvider = myServiceLocator.getSingletonService(ChangeStatusProvider.class);
     ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
-    List<BuildPromotion> firstBuildsPromotions = changeStatus.getBuildTypesStatusMap().values().stream()
-                                                             .filter(Objects::nonNull)
-                                                             .collect(Collectors.toList());
 
-    myTestScopeTreeCollector.getSlicedTree()
+    Stream<BuildPromotion> firstBuildsPromotions = changeStatus.getBuildTypesStatusMap().values().stream().filter(Objects::nonNull);
 
-    return Builds.createFromBuildPromotions(firstBuildsPromotions, null,  new Fields(fields), myBeanContext);
-  }*/
+    return new ProblemOccurrencesTree(myProblemOccurrencesTreeCollector.getTreeFromBuildPromotions(firstBuildsPromotions, subTreeRootId), new Fields(fields), myBeanContext);
+  }
+
   /**
    * Experimental support only!
    * @since 2021.1.1
