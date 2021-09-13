@@ -30,6 +30,7 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
+import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 
 public class ProblemOccurrencesTreeCollector {
@@ -40,14 +41,33 @@ public class ProblemOccurrencesTreeCollector {
   public static final String SUB_TREE_ROOT = "subTreeRootId";
 
   private static final int DEFAULT_MAX_CHILDREN = 5;
-
-  private final ProblemOccurrenceFinder myProblemOccurrenceFinder;
+  private static final String DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT = "newFailedCount:desc";
 
   private static final Orders<ScopeTree.Node<BuildProblem, ProblemCounters>> SUPPORTED_ORDERS = new Orders<ScopeTree.Node<BuildProblem, ProblemCounters>>()
     .add("name", Comparator.comparing(node -> node.getScope().getName()))
     .add("count", Comparator.comparing(node -> node.getCounters().getCount()))
-    .add("childrenCount", Comparator.comparing(node -> node.getChildren().size()));
+    .add("childrenCount", Comparator.comparing(node -> node.getChildren().size()))
+    .add("newFailedCount", Comparator.comparing(node -> node.getCounters().getNewFailed()));
 
+  private static final Comparator<BuildProblem> NEW_FAILED_FIRST_THEN_BY_ID = (bp1, bp2) -> {
+    if(!(bp1 instanceof BuildProblemImpl) || !(bp2 instanceof BuildProblemImpl)) {
+      return Integer.compare(bp1.getId(), bp2.getId());
+    }
+
+    boolean firstIsNew = BooleanUtils.isTrue(((BuildProblemImpl) bp1).isNew());
+    boolean secondIsNew = BooleanUtils.isTrue(((BuildProblemImpl) bp2).isNew());
+
+    if (firstIsNew && !secondIsNew) {
+      return -1;
+    }
+    if (!firstIsNew && secondIsNew) {
+      return 1;
+    }
+
+    return Integer.compare(bp1.getId(), bp2.getId());
+  };
+
+  private final ProblemOccurrenceFinder myProblemOccurrenceFinder;
 
   public ProblemOccurrencesTreeCollector(@NotNull ProblemOccurrenceFinder problemOccurrenceFinder) {
     myProblemOccurrenceFinder = problemOccurrenceFinder;
@@ -63,20 +83,14 @@ public class ProblemOccurrencesTreeCollector {
     locator.addHiddenDimensions(ProblemOccurrenceFinder.SNAPSHOT_DEPENDENCY_PROBLEM);
 
     ScopeTree<BuildProblem, ProblemCounters> tree = getTreeByLocator(locator);
-
-    Comparator<ScopeTree.Node<BuildProblem, ProblemCounters>> order = null;
-    if(locator.isAnyPresent(ORDER_BY)) {
-      String orderDimension = locator.getSingleDimensionValue(ORDER_BY);
-      //noinspection ConstantConditions
-      order = SUPPORTED_ORDERS.getComparator(orderDimension);
-    }
+    Comparator<ScopeTree.Node<BuildProblem, ProblemCounters>> nodeOrder = getNodeOrder(locator);
 
     String maxChildrenDim = locator.getSingleDimensionValue(MAX_CHILDREN);
     int maxChildren = maxChildrenDim == null ? DEFAULT_MAX_CHILDREN : Integer.parseInt(maxChildrenDim);
 
     locator.checkLocatorFullyProcessed();
 
-    return tree.getSlicedOrderedTree(maxChildren, (bp1, bp2) -> Integer.compare(bp1.getId(), bp2.getId()), order);
+    return tree.getSlicedOrderedTree(maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
   }
 
   public List<ScopeTree.Node<BuildProblem, ProblemCounters>> getSubTree(@NotNull Locator locator) {
@@ -90,13 +104,7 @@ public class ProblemOccurrencesTreeCollector {
     locator.addHiddenDimensions(ProblemOccurrenceFinder.SNAPSHOT_DEPENDENCY_PROBLEM);
 
     ScopeTree<BuildProblem, ProblemCounters> tree = getTreeByLocator(locator);
-
-    Comparator<ScopeTree.Node<BuildProblem, ProblemCounters>> order = null;
-    if(locator.isAnyPresent(ORDER_BY)) {
-      String orderDimension = locator.getSingleDimensionValue(ORDER_BY);
-      //noinspection ConstantConditions
-      order = SUPPORTED_ORDERS.getComparator(orderDimension);
-    }
+    Comparator<ScopeTree.Node<BuildProblem, ProblemCounters>> order = getNodeOrder(locator);
 
     String maxChildrenDim = locator.getSingleDimensionValue(MAX_CHILDREN);
     int maxChildren = maxChildrenDim == null ? DEFAULT_MAX_CHILDREN : Integer.parseInt(maxChildrenDim);
@@ -108,7 +116,7 @@ public class ProblemOccurrencesTreeCollector {
 
     locator.checkLocatorFullyProcessed();
 
-    return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootId, maxChildren, (bp1, bp2) -> Integer.compare(bp1.getId(), bp2.getId()), order);
+    return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootId, maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, order);
   }
 
   private ScopeTree<BuildProblem, ProblemCounters> getTreeByLocator(@NotNull Locator fullLocator) {
@@ -135,6 +143,16 @@ public class ProblemOccurrencesTreeCollector {
                                  .flatMap(problemsByType -> problemsByType.values().stream())
                                  .map(group -> new GroupedProblems(group))
                                  .collect(Collectors.toList());
+  }
+
+  private Comparator<ScopeTree.Node<BuildProblem, ProblemCounters>> getNodeOrder(@NotNull Locator locator) {
+    if(locator.isAnyPresent(ORDER_BY)) {
+      String orderDimension = locator.getSingleDimensionValue(ORDER_BY);
+      //noinspection ConstantConditions
+      return SUPPORTED_ORDERS.getComparator(orderDimension);
+    }
+
+    return SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT);
   }
 
   private String prepareLocator(@NotNull Locator original) {
