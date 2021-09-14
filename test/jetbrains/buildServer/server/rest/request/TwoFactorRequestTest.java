@@ -19,20 +19,18 @@ package jetbrains.buildServer.server.rest.request;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.TwoFactorSecretKeysUpdater;
 import jetbrains.buildServer.server.rest.model.user.TwoFactorCredentials;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
-import jetbrains.buildServer.serverSide.auth.TwoFactorPasswordManager;
-import jetbrains.buildServer.serverSide.auth.impl.SecureTwoFactorPasswordManager;
-import jetbrains.buildServer.serverSide.auth.impl.TwoFactorPasswordManagerImpl;
-import jetbrains.buildServer.serverSide.impl.auth.MockTwoFactorPasswordGenerator;
+import jetbrains.buildServer.serverSide.auth.TwoFactorPasswordGenerator;
+import jetbrains.buildServer.serverSide.impl.auth.MockTwoFactorPasswordManager;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import jetbrains.buildServer.users.impl.UserImpl;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -41,24 +39,14 @@ public class TwoFactorRequestTest extends BaseFinderTest<TwoFactorCredentials> {
   private static final PropertyKey SECRET_KEY_PROPERTY = new SimplePropertyKey(UserImpl.SECURED_USER_PROPERTY_PREFIX + "2fa-secret");
   private static final PropertyKey RECOVERY_KEY_PROPERTY = new SimplePropertyKey(UserImpl.SECURED_USER_PROPERTY_PREFIX + "2fa-recovery");
   private TwoFactorRequest myRequest;
-  private TwoFactorPasswordManager myManager;
+  private MockTwoFactorPasswordManager myManager;
 
   @Override
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    final MockTwoFactorPasswordGenerator generator = new MockTwoFactorPasswordGenerator();
-    myFixture.addService(generator);
-    myManager = new SecureTwoFactorPasswordManager(
-      new TwoFactorPasswordManagerImpl(
-        new MockTimeService(),
-        generator,
-        myFixture.getSecurityContext(),
-        myFixture.getEncryptionManager(),
-        myFixture.getExecutorServices(),
-        myAuditLogFactory),
-      myFixture.getSecurityContext());
-    myFixture.addService(myManager);
+    final TwoFactorPasswordGenerator generator = myFixture.getSingletonService(TwoFactorPasswordGenerator.class);
+    myManager = new MockTwoFactorPasswordManager(myFixture);
     final TwoFactorSecretKeysUpdater keysUpdater = new TwoFactorSecretKeysUpdater(generator, myManager);
     myFixture.addService(keysUpdater);
     myRequest = new TwoFactorRequest();
@@ -71,7 +59,8 @@ public class TwoFactorRequestTest extends BaseFinderTest<TwoFactorCredentials> {
     myFixture.getSecurityContext().runAs(user, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        myRequest.setupTwoFactor();
+        TwoFactorCredentials credentials = myRequest.setupTwoFactor();
+        myRequest.confirmTwoFactor(credentials.uuid.toString(), 0, new MockHttpServletRequest());
         assertNotNull(myFixture.getSecurityContext().runAsSystem(() -> user.getPropertyValue(SECRET_KEY_PROPERTY)));
         assertNotNull(myFixture.getSecurityContext().runAsSystem(() -> user.getPropertyValue(RECOVERY_KEY_PROPERTY)));
       }
@@ -84,7 +73,8 @@ public class TwoFactorRequestTest extends BaseFinderTest<TwoFactorCredentials> {
     myFixture.getSecurityContext().runAs(admin, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() {
-        myRequest.setupTwoFactor();
+        TwoFactorCredentials credentials = myRequest.setupTwoFactor();
+        myRequest.confirmTwoFactor(credentials.uuid.toString(), 0, new MockHttpServletRequest());
         assertNotNull(admin.getPropertyValue(SECRET_KEY_PROPERTY));
         assertNotNull(admin.getPropertyValue(RECOVERY_KEY_PROPERTY));
       }
@@ -127,7 +117,8 @@ public class TwoFactorRequestTest extends BaseFinderTest<TwoFactorCredentials> {
     myFixture.getSecurityContext().runAs(user, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        myRequest.setupTwoFactor();
+        TwoFactorCredentials credentials = myRequest.setupTwoFactor();
+        myRequest.confirmTwoFactor(credentials.uuid.toString(), 0, new MockHttpServletRequest());
         final String hashedRecovery = myFixture.getSecurityContext().runAsSystem(() -> user.getPropertyValue(RECOVERY_KEY_PROPERTY));
         myRequest.serveRecoveryKeys();
         final String newHashedRecovery = myFixture.getSecurityContext().runAsSystem(() -> user.getPropertyValue(RECOVERY_KEY_PROPERTY));
@@ -143,6 +134,19 @@ public class TwoFactorRequestTest extends BaseFinderTest<TwoFactorCredentials> {
       @Override
       public void run() {
         checkException(AccessDeniedException.class, () -> myRequest.serveRecoveryKeys(), "regenerate recovery for not existing 2FA");
+      }
+    });
+  }
+
+  @Test
+  public void testUnconfirmedKey() throws Throwable {
+    final SUser user = createUser("user");
+    myFixture.getSecurityContext().runAs(user, new SecurityContextEx.RunAsAction() {
+      @Override
+      public void run() throws Throwable {
+        myRequest.setupTwoFactor();
+        assertNull(myFixture.getSecurityContext().runAsSystem(() -> user.getPropertyValue(SECRET_KEY_PROPERTY)));
+        assertNull(myFixture.getSecurityContext().runAsSystem(() -> user.getPropertyValue(RECOVERY_KEY_PROPERTY)));
       }
     });
   }

@@ -18,17 +18,21 @@ package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
-import java.util.Set;
+import java.util.UUID;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.data.TwoFactorSecretKeysUpdater;
 import jetbrains.buildServer.server.rest.data.UserFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.user.TwoFactorCredentials;
 import jetbrains.buildServer.server.rest.model.user.TwoFactorRecoveryKeys;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.auth.impl.TwoFactorConfirmationException;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.web.util.TwoFactorAuthUtil;
 import org.jetbrains.annotations.NotNull;
 
 @Path(Constants.API_URL + "/2FA")
@@ -39,13 +43,25 @@ public class TwoFactorRequest {
   @POST
   @Path("/setup")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value = "Setup 2FA for current user, create secret key and recovery keys", nickname = "setup2FA")
+  @ApiOperation(value = "Begin setup 2FA for current user, create secret key and recovery keys", nickname = "setup2FA")
   public TwoFactorCredentials setupTwoFactor() {
-    // TODO: confirmation of secret key (react?)
     final SUser user = myUserFinder.getCurrentUser();
-    final Set<String> recovery = myKeysUpdater.generateAndSetRecoveryKeys(user);
-    final String secret = myKeysUpdater.generateAndSetSecretKey(user);
-    return new TwoFactorCredentials(secret, new TwoFactorRecoveryKeys(recovery));
+    if (myKeysUpdater.hasEnabled2FA(user)) {
+      throw new AccessDeniedException(user, "You already have enabled 2FA");
+    }
+    return myKeysUpdater.generateAndSetDraftCredentials(user);
+  }
+
+  @POST
+  @Path("/confirm")
+  @ApiOperation(value = "Confirm 2FA secret key", nickname = "confirm2FA")
+  public void confirmTwoFactor(@QueryParam("uuid") String uuid, @QueryParam("password") int password, @Context HttpServletRequest request) {
+    try {
+      myKeysUpdater.confirmCredentials(myUserFinder.getCurrentUser(), UUID.fromString(uuid), password);
+      TwoFactorAuthUtil.setTwoFactorCompletion(request);  // TODO: attempt to prevent instant kick after enabled 2FA without context request
+    } catch (TwoFactorConfirmationException e) {
+      throw new BadRequestException(e.getMessage());
+    }
   }
 
   @DELETE
@@ -53,7 +69,7 @@ public class TwoFactorRequest {
   @ApiOperation(value = "Delete secret key and recovery keys of 2FA for user", nickname = "disable2FA")
   public void deleteTwoFactor(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
     final SUser targetUser = myUserFinder.getItem(userLocator, true);
-    myKeysUpdater.delete2FA(targetUser);
+    myKeysUpdater.disable2FA(targetUser);
   }
 
   @POST
@@ -62,12 +78,23 @@ public class TwoFactorRequest {
   @ApiOperation(value = "Generate and set new recovery keys for user", nickname = "newRecoveryKeys")
   public TwoFactorRecoveryKeys serveRecoveryKeys() {
     final SUser user = myUserFinder.getCurrentUser();
-    if (!myKeysUpdater.hasSetUp2FA(user)) {
+    if (!myKeysUpdater.hasEnabled2FA(user)) {
       throw new AccessDeniedException(user, "You need to set up 2FA to generate recovery keys");
     }
     return new TwoFactorRecoveryKeys(myKeysUpdater.generateAndSetRecoveryKeys(user));
   }
 
+  @POST
+  @Path("/{userLocator}/refreshGracePeriod")
+  @ApiOperation(value = "Refresh 2FA grace period for user", nickname = "refreshGracePeriod")
+  public void refreshGracePeriod(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
+    final SUser targetUser = myUserFinder.getItem(userLocator, true);
+    try {
+      myKeysUpdater.refreshGracePeriod(targetUser);
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException("Refresh of grace period is not applicable - user has 2FA or mandatory mode is turned off");
+    }
+  }
 
   public void initForTests(@NotNull final BeanContext beanContext) {
     myUserFinder = beanContext.getSingletonService(UserFinder.class);

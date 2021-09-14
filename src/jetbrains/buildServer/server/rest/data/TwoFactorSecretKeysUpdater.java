@@ -17,12 +17,21 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.Set;
+import java.util.UUID;
+import jetbrains.buildServer.server.rest.model.user.TwoFactorCredentials;
+import jetbrains.buildServer.server.rest.model.user.TwoFactorRecoveryKeys;
 import jetbrains.buildServer.serverSide.auth.TwoFactorPasswordGenerator;
 import jetbrains.buildServer.serverSide.auth.TwoFactorPasswordManager;
+import jetbrains.buildServer.serverSide.auth.impl.TwoFactorConfirmationException;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Context class for two-factor authentication actions via REST
+ *
+ * @author Daniil Boger
+ */
 public class TwoFactorSecretKeysUpdater {
   @NotNull private final TwoFactorPasswordGenerator myGenerator;
   @NotNull private final TwoFactorPasswordManager myManager;
@@ -33,17 +42,48 @@ public class TwoFactorSecretKeysUpdater {
     myManager = manager;
   }
 
+  /**
+   * Generates draft credentials to be confirmed for given user and writes them in temporary storage.
+   * Returns secret key, recovery keys and UUID for confirmation
+   *
+   * @param user owner of new credentials
+   * @return unconfirmed {@link TwoFactorCredentials}
+   */
   @NotNull
-  public String generateAndSetSecretKey(@NotNull final SUser user) {
+  public TwoFactorCredentials generateAndSetDraftCredentials(@NotNull final SUser user) {
     final String generatedKey = myGenerator.generateSecretKey();
-    myManager.setSecretKey(user, generatedKey);
-    return generatedKey;
+    final Set<String> generatedRecoveryKeys = myGenerator.generateRecoveryKeys();
+    final UUID uuid = myManager.addDraftCredentials(user, generatedKey, generatedRecoveryKeys);
+    return new TwoFactorCredentials(generatedKey, new TwoFactorRecoveryKeys(generatedRecoveryKeys), uuid);
   }
 
-  public void delete2FA(@NotNull final SUser user) {
+  /**
+   * Attempts to confirm two-factor authentication credentials by UUID
+   *
+   * @param user     user who confirms
+   * @param uuid     uuid for temporary credentials lookup
+   * @param password 6-digit TOTP password
+   * @throws TwoFactorConfirmationException if draft credentials by UUID not found (expired or incorrect UUID), or if provided password is incorrect
+   */
+  public void confirmCredentials(@NotNull final SUser user, @NotNull final UUID uuid, final int password) throws TwoFactorConfirmationException {
+    myManager.confirmSecretKey(user, uuid, password);
+  }
+
+  /**
+   * Disables two-factor authentication for given user
+   *
+   * @param user
+   */
+  public void disable2FA(@NotNull final SUser user) {
     myManager.disable2FA(user);
   }
 
+  /**
+   * Generates and writes new recovery keys for given user. Old keys are discarded
+   *
+   * @param user
+   * @return set of new recovery keys
+   */
   @NotNull
   public Set<String> generateAndSetRecoveryKeys(@NotNull final SUser user) {
     final Set<String> generatedKeys = myGenerator.generateRecoveryKeys();
@@ -51,7 +91,22 @@ public class TwoFactorSecretKeysUpdater {
     return generatedKeys;
   }
 
-  public boolean hasSetUp2FA(@NotNull final User user) {
+  /**
+   * Refreshes grace period for given user.
+   *
+   * @param user
+   */
+  public void refreshGracePeriod(@NotNull final SUser user) {
+    myManager.refreshGracePeriod(user);
+  }
+
+  /**
+   * Checks if user has enabled 2FA
+   *
+   * @param user
+   * @return true if 2FA is enabled, false otherwise
+   */
+  public boolean hasEnabled2FA(@NotNull final User user) {
     return myManager.hasEnabled2FA(user);
   }
 

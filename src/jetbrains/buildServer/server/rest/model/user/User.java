@@ -40,6 +40,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.TwoFactorPasswordManager;
 import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.*;
 import jetbrains.buildServer.users.impl.UserImpl;
@@ -69,6 +70,7 @@ public class User {
   private BeanContext myContext;
   private boolean myCanViewDetails;
   private UserAvatarsManager myUserAvatarsManager;
+  private TwoFactorPasswordManager myTwoFactorPasswordManager;
 
   public User() {
     myUser = null;
@@ -82,6 +84,7 @@ public class User {
     myFields = fields;
     myContext = context;
     myUserAvatarsManager = context.getSingletonService(UserAvatarsManager.class);
+    myTwoFactorPasswordManager = context.getSingletonService(TwoFactorPasswordManager.class);
     initCanViewDetails();
   }
 
@@ -91,6 +94,7 @@ public class User {
     myFields = fields;
     myContext = context;
     myUserAvatarsManager = context.getSingletonService(UserAvatarsManager.class);
+    myTwoFactorPasswordManager = context.getSingletonService(TwoFactorPasswordManager.class);
     initCanViewDetails();
   }
 
@@ -183,6 +187,14 @@ public class User {
         .setUrlToSize32(avatars.getUrlToSize32())
         .setUrlToSize40(avatars.getUrlToSize40())
         .setUrlToSize64(avatars.getUrlToSize64());
+    });
+  }
+
+  @XmlAttribute(name = "enabled2FA")
+  public Boolean getEnabled2FA() {
+    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("enabled2FA", false), () -> {
+      checkCanViewUserDetails();
+      return myTwoFactorPasswordManager.hasEnabled2FA(myUser);
     });
   }
 

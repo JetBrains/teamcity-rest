@@ -19,9 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -38,6 +36,7 @@ import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.auth.TwoFactorPasswordManager;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.users.SUser;
@@ -210,6 +209,9 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     myFixture.getUserAvatarsManager().saveAvatar(user1, new BufferedImage(1, 1, 1));
     myFixture.getUserAvatarsManager().saveAvatar(user2, new BufferedImage(1, 1, 1));
 
+    enable2FA(user1);
+    enable2FA(user2);
+
     SecurityContextImpl securityContext = myFixture.getSecurityContext();
 
     user2.addRole(RoleScope.globalScope(), getProjectAdminRole());
@@ -220,7 +222,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     BuildRequest buildRequest = new BuildRequest();
     buildRequest.initForTests(BaseFinderTest.getBeanContext(myFixture));
 
-    assertEquals(14, getSubEntitiesNames(User.class).size()); //if changed, the checks below should be changed
+    assertEquals(15, getSubEntitiesNames(User.class).size()); //if changed, the checks below should be changed
 
     final String fields = "triggered(user($long,hasPassword))";
     {
@@ -238,6 +240,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
       assertNotNull(user.getGroups());
       assertNotNull(user.getHasPassword());
       assertNotNull(user.getAvatars());
+      assertNotNull(user.getEnabled2FA());
       assertNull(user.getPassword());  //not included in response
       assertNull(user.getLocator());  //submit-only
       assertNull(user.getRealm()); //obsolete
@@ -258,6 +261,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
       assertNotNull(user.getGroups());
       assertNotNull(user.getHasPassword());
       assertNotNull(user.getAvatars());
+      assertNotNull(user.getEnabled2FA());
       assertNull(user.getPassword());  //not included in response
       assertNull(user.getLocator());  //submit-only
       assertNull(user.getRealm()); //obsolete
@@ -278,6 +282,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
       assertNotNull(user.getGroups());
       assertNotNull(user.getHasPassword());
       assertNotNull(user.getAvatars());
+      assertNotNull(user.getEnabled2FA());
       assertNull(user.getPassword());
     });
 
@@ -296,6 +301,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
       assertNotNull(user.getGroups());
       assertNotNull(user.getHasPassword());
       assertNotNull(user.getAvatars());
+      assertNotNull(user.getEnabled2FA());
       assertNull(user.getPassword());
     });
 
@@ -315,6 +321,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
       assertNull(user.getHasPassword());
       assertNull(user.getPassword());
       assertNull(user.getAvatars());
+      assertNull(user.getEnabled2FA());
     });
   }
 
@@ -385,5 +392,11 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
       if (field.isAnnotationPresent(XmlAttribute.class) || field.isAnnotationPresent(XmlElement.class)) result.add("field " + field.getName());
     }
     return result;
+  }
+
+  private void enable2FA(@NotNull SUser user) {
+    final TwoFactorPasswordManager manager = myFixture.getSingletonService(TwoFactorPasswordManager.class);
+    final UUID uuid = manager.addDraftCredentials(user, "ABCDABCDABCDABCD", Collections.emptySet());
+    manager.confirmSecretKey(user, uuid, 0);
   }
 }
