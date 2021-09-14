@@ -20,6 +20,7 @@ import com.intellij.openapi.util.text.StringUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -293,6 +294,40 @@ public class ChangeRequest {
                                                   .collect(Collectors.toList());
 
     return Builds.createFromBuildPromotions(firstBuildsPromotions, null,  new Fields(fields), myBeanContext);
+  }
+
+  /**
+   * Experimental support only!
+   */
+  @GET
+  @Path("/{changeLocator}/deploymentConfigurations")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get build configurations where this change could potentially be deployed.",nickname="getDeploymentConfigurations")
+  public BuildTypes getDeploymentConfigurations(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
+                                     @QueryParam("fields") String fields) {
+    final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
+
+    ChangeStatusProvider myStatusProvider = myServiceLocator.getSingletonService(ChangeStatusProvider.class);
+    ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
+
+    return new BuildTypes(BuildTypes.fromBuildTypes(changeStatus.getDeploymentStatus().keySet()), null, new Fields(fields), myBeanContext);
+  }
+
+  /**
+   * Experimental support only!
+   */
+  @GET
+  @Path("/{changeLocator}/deployments")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get deployments with this change.",nickname="getDeployments")
+  public Builds getDeployments(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
+    final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
+
+    ChangeStatusProvider myStatusProvider = myServiceLocator.getSingletonService(ChangeStatusProvider.class);
+    ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
+
+    List<BuildPromotion> promotions = changeStatus.getDeploymentStatus().values().stream().filter(Objects::nonNull).collect(Collectors.toList());
+    return Builds.createFromBuildPromotions(promotions, null, new Fields(fields), myBeanContext);
   }
 
   /**
