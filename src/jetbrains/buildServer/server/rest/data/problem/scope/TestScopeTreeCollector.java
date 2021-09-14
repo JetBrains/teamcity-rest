@@ -93,8 +93,8 @@ public class TestScopeTreeCollector {
   public List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedTreeFromBuildPromotions(@NotNull Stream<BuildPromotion> promotions, @Nullable String subTreeRootId) {
     final String testRunsLocator = "build:%d,status:failure";
     Stream<STestRun> testRunStream = promotions
-      .filter(promotion -> promotion.getAssociatedBuild() != null)
-      .flatMap(promotion -> myTestOccurrenceFinder.getItems(String.format(testRunsLocator, promotion.getAssociatedBuild().getBuildId())).myEntries.stream());
+      .filter(promotion -> promotion.getAssociatedBuildId() != null)
+      .flatMap(promotion -> myTestOccurrenceFinder.getItems(String.format(testRunsLocator, promotion.getAssociatedBuildId())).myEntries.stream());
 
     Stream<TestScope> scopeStream = myScopeCollector.groupByClass(testRunStream, new TestScopeFilterImpl(Collections.emptyList(), ""));
     scopeStream = myScopeCollector.splitByBuildType(scopeStream);
