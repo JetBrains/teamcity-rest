@@ -42,7 +42,7 @@ public class TwoFactorRequest {
 
   @POST
   @Path("/setup")
-  @Produces({"application/xml", "application/json"})
+  @Produces({"application/json"})
   @ApiOperation(value = "Begin setup 2FA for current user, create secret key and recovery keys", nickname = "setup2FA")
   public TwoFactorCredentials setupTwoFactor() {
     final SUser user = myUserFinder.getCurrentUser();
@@ -74,7 +74,7 @@ public class TwoFactorRequest {
 
   @POST
   @Path("/newRecoveryKeys")
-  @Produces({"application/xml", "application/json"})
+  @Produces({"application/json"})
   @ApiOperation(value = "Generate and set new recovery keys for user", nickname = "newRecoveryKeys")
   public TwoFactorRecoveryKeys serveRecoveryKeys() {
     final SUser user = myUserFinder.getCurrentUser();
