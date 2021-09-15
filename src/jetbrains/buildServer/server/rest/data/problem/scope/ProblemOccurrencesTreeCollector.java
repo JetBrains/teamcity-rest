@@ -140,10 +140,10 @@ public class ProblemOccurrencesTreeCollector {
   private List<LeafInfo<BuildProblem, ProblemCounters>> groupProblems(@NotNull Stream<BuildProblem> problemStream) {
     // buildPromotion id -> problem type description -> List[BuildProblem]
     Map<Long, Map<String, List<BuildProblem>>> problemsByBuildAndType = problemStream
-      .filter(bp -> !BuildProblemTypes.TC_FAILED_TESTS_TYPE.equals(bp.getTypeDescription())) // filter out unwanted problems early to avoid creating empty tree leaves later.
+      .filter(bp -> !BuildProblemTypes.TC_FAILED_TESTS_TYPE.equals(bp.getBuildProblemData().getType())) // filter out unwanted problems early to avoid creating empty tree leaves later.
       .collect(Collectors.groupingBy(
         buildProblem -> buildProblem.getBuildPromotion().getId(),
-        Collectors.groupingBy(buildProblem -> buildProblem.getTypeDescription() == null ? UNCATEGORIZED_PROBLEM : buildProblem.getTypeDescription())
+        Collectors.groupingBy(buildProblem -> buildProblem.getBuildProblemData().getType() == null ? UNCATEGORIZED_PROBLEM : buildProblem.getBuildProblemData().getType())
       ));
 
     return problemsByBuildAndType.values().stream()
