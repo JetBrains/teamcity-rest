@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
@@ -36,16 +37,14 @@ import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDes
 import jetbrains.buildServer.server.rest.data.problem.scope.ProblemOccurrencesTreeCollector;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Entries;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Items;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
-import jetbrains.buildServer.server.rest.model.change.Change;
-import jetbrains.buildServer.server.rest.model.change.Changes;
-import jetbrains.buildServer.server.rest.model.change.Commiters;
-import jetbrains.buildServer.server.rest.model.change.VcsRootInstance;
+import jetbrains.buildServer.server.rest.model.change.*;
 import jetbrains.buildServer.server.rest.model.issue.Issues;
 import jetbrains.buildServer.server.rest.model.problem.scope.ProblemOccurrencesTree;
 import jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree;
@@ -53,6 +52,7 @@ import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.vcs.ChangeStatus;
 import jetbrains.buildServer.vcs.ChangeStatusProvider;
@@ -77,6 +77,7 @@ public class ChangeRequest {
   @Context @NotNull private BeanFactory myFactory;
   @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private ChangeFinder myChangeFinder;
+  @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
   @Context @NotNull private TestScopeTreeCollector myTestScopeTreeCollector;
   @Context @NotNull private ProblemOccurrencesTreeCollector myProblemOccurrencesTreeCollector;
 
@@ -266,7 +267,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get build configurations related to the matching change.",nickname="getChangeRelatedBuildTypes")
+  //@ApiOperation(value="Get build configurations related to the matching change.",nickname="getChangeRelatedBuildTypes")
   public BuildTypes getRelatedBuildTypes(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                          @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
@@ -282,7 +283,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/firstBuilds")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get first builds of the matching change.",nickname="getChangeFirstBuilds")
+  //@ApiOperation(value="Get first builds of the matching change.",nickname="getChangeFirstBuilds")
   public Builds getChangeFirstBuilds(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                      @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
@@ -302,7 +303,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/deploymentConfigurations")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get build configurations where this change could potentially be deployed.",nickname="getDeploymentConfigurations")
+  //@ApiOperation(value="Get build configurations where this change could potentially be deployed.",nickname="getDeploymentConfigurations")
   public BuildTypes getDeploymentConfigurations(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                      @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
@@ -319,7 +320,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/deployments")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get deployments with this change.",nickname="getDeployments")
+  //@ApiOperation(value="Get deployments with this change.",nickname="getDeployments")
   public Builds getDeployments(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
 
@@ -337,7 +338,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/testsTree")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get failed tests tree for the matching change.",nickname="getChangeFailedTestsTree")
+  //@ApiOperation(value="Get failed tests tree for the matching change.",nickname="getChangeFailedTestsTree")
   public TestScopeTree getChangeFailedTestsTree(
     @ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
     @QueryParam(TestScopeTreeCollector.SUBTREE_ROOT_ID) String subTreeRootId,
@@ -359,7 +360,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/problemsTree")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get problems tree for the matching change.",nickname="getChangeProblemsTree")
+  //@ApiOperation(value="Get problems tree for the matching change.",nickname="getChangeProblemsTree")
   public ProblemOccurrencesTree getChangeProblemsTree(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                       @QueryParam(ProblemOccurrencesTreeCollector.SUB_TREE_ROOT_ID) String subTreeRootId,
                                       @QueryParam("fields") String fields) {
@@ -380,7 +381,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/commiters")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get unique commiters of the matching changes.",nickname="getUniqueCommiters")
+  //@ApiOperation(value="Get unique commiters of the matching changes.",nickname="getUniqueCommiters")
   public Commiters getUniqueCommiters(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                       @QueryParam("fields") String fields) {
     Locator patchedChangeLocator = Locator.createPotentiallyEmptyLocator(changeLocator);
@@ -393,5 +394,41 @@ public class ChangeRequest {
 
     List<CommiterData> commiters = CommitersUtil.getUniqueCommiters(changes.myEntries.stream().map(modOrDesc -> modOrDesc.getSVcsModification()));
     return new Commiters(commiters, new Fields(fields), myBeanContext);
+  }
+
+  /**
+   * Experimental support only!
+   * todo: Is it better to have this somewhere in Change model? E.g. fields=change(files($filterByBuildType(<buildTypeId>),name,...)))
+   * @since 2021.1.1
+   */
+  @GET
+  @Path("/{changeLocator}/files")
+  @Produces({"application/xml", "application/json"})
+  //@ApiOperation(value="Get files of the matching change filtered by relation to a given buildType.",nickname="getFilteredFiles")
+  public FileChanges getFilteredFiles(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocatorString,
+                                      @QueryParam("buildTypeId") String builtTypeId,
+                                      @QueryParam("fields") String fields) {
+    Locator changeLocator = Locator.createPotentiallyEmptyLocator(changeLocatorString);
+    SVcsModification change = myChangeFinder.getItem(changeLocator.getStringRepresentation()).getSVcsModification();
+
+    if(builtTypeId == null) {
+      // Convenience method, same as Change.getFileChanges()
+      ChangeStatusProvider myStatusProvider = myServiceLocator.getSingletonService(ChangeStatusProvider.class);
+      ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
+      return new FileChanges(new ArrayList<>(changeStatus.getMergedVcsModificationInfo().getChangedFiles()), new Fields(fields));
+    }
+
+    SBuildType buildType = myBuildTypeFinder.getItem(builtTypeId).getBuildType();
+    if(buildType == null) {
+      throw new NotFoundException("Build type not found.");
+    }
+
+    if(change.getRelatedConfigurations().stream().noneMatch(relatedBt -> relatedBt.getExternalId().equals(buildType.getExternalId()))) {
+      ChangeStatusProvider myStatusProvider = myServiceLocator.getSingletonService(ChangeStatusProvider.class);
+      ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
+      return new FileChanges(new ArrayList<>(changeStatus.getMergedVcsModificationInfo().getChangedFiles()), new Fields(fields));
+    }
+
+    return new FileChanges(change.getFilteredChanges(buildType), new Fields(fields));
   }
 }

@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.change;
 
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.ExtensionProperty;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
@@ -42,6 +43,7 @@ import java.util.List;
     value = ObjectType.LIST,
     baseEntity = "FileChange"
 )
+@XmlRootElement(name = "files")
 public class FileChanges {
   private static final Logger LOG = Logger.getInstance(FileChanges.class.getName());
   protected static final String REST_BEANS_FILES_NESTED_FILE_ITEMS_LIMIT = "rest.beans.change.files.nestedFileItemsLimit";
@@ -54,7 +56,7 @@ public class FileChanges {
   public FileChanges() {
   }
 
-  public FileChanges(@NotNull final List<VcsFileModification> fileChanges, final @NotNull Fields fields) {
+  public FileChanges(@NotNull final List<? extends VcsFileModification> fileChanges, final @NotNull Fields fields) {
     count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), fileChanges.size()); // this can differ from the actual number of sub-elements included
 
     files = ValueWithDefault.decideDefault(fields.isIncluded("file", true), new ValueWithDefault.Value<List<FileChange>>() {
