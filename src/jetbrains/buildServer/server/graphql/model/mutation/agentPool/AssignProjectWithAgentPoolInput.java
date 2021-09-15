@@ -17,11 +17,14 @@
 package jetbrains.buildServer.server.graphql.model.mutation.agentPool;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class AssignProjectWithAgentPoolInput {
   @NotNull
   private String myProjectId;
   private int myAgentPoolId;
+  @Nullable
+  private Boolean myExclusively;
 
   public void setProjectId(@NotNull String projectId) {
     myProjectId = projectId;
@@ -38,5 +41,14 @@ public class AssignProjectWithAgentPoolInput {
 
   public int getAgentPoolId() {
     return myAgentPoolId;
+  }
+
+  @Nullable
+  public Boolean getExclusively() {
+    return myExclusively;
+  }
+
+  public void setExclusively(@NotNull Boolean exclusively) {
+    myExclusively = exclusively;
   }
 }

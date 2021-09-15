@@ -157,6 +157,35 @@ public class AgentPoolMutationTest extends BaseResolverTest {
   }
 
   @Test
+  public void testAddProjectToPoolExclusively() throws AgentPoolCannotBeRenamedException {
+    final String poolName = "testPool";
+    final String projectName = "testProject";
+    AgentPool pool = myFixture.getAgentPoolManager().createNewAgentPool(poolName);
+
+    ProjectEx project = createProject(projectName);
+
+    AssignProjectWithAgentPoolInput input = new AssignProjectWithAgentPoolInput();
+    input.setAgentPoolId(pool.getAgentPoolId());
+    input.setProjectId(project.getExternalId());
+    input.setExclusively(true);
+
+    DataFetcherResult<AssignProjectWithAgentPoolPayload> result = myMutation.assignProjectWithAgentPool(input);
+    assertNotNull(result);
+    assertFalse(result.hasErrors());
+    assertNotNull(result.getData());
+
+    AssignProjectWithAgentPoolPayload payload = result.getData();
+
+    assertEquals(poolName, payload.getAgentPool().getName());
+    assertEquals(projectName, payload.getProject().getName());
+
+    assertContains(myFixture.getAgentPoolManager().getPoolProjects(pool.getAgentPoolId()), project.getProjectId());
+    assertEquals("Only one pool should contain project after exclusive assignment.",
+                 1, myFixture.getAgentPoolManager().getAgentPoolsWithProject(project.getProjectId()).size()
+    );
+  }
+
+  @Test
   public void testRemoveProjectFromPool() throws AgentPoolCannotBeRenamedException, NoSuchAgentPoolException {
     final String poolName = "testPool";
     final String projectName = "testProject";

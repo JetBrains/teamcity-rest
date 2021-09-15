@@ -349,7 +349,7 @@ type SetAgentRunPolicyPayload {
 input AssignProjectWithAgentPoolInput {
   projectId: ID!,
   agentPoolId: ID!
-  exclusively: Boolean
+  exclusively: Boolean! = false
 }
 
 type AssignProjectWithAgentPoolPayload {

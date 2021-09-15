@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.graphql.util.UnexpectedServerGraphQLError;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.*;
+import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -156,6 +157,10 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
       myAgentPoolManager.associateProjectsWithPool(input.getAgentPoolId(), Collections.singleton(project.getProjectId()));
     } catch (NoSuchAgentPoolException e) {
       return result.error(new EntityNotFoundGraphQLError("Agent pool with given id does not exist.")).build();
+    }
+
+    if(BooleanUtils.isTrue(input.getExclusively())) {
+      myAgentPoolManager.dissociateProjectsFromOtherPools(input.getAgentPoolId(), Collections.singleton(project.getProjectId()));
     }
 
     AgentPool agentPool = myAgentPoolManager.findAgentPoolById(input.getAgentPoolId());
