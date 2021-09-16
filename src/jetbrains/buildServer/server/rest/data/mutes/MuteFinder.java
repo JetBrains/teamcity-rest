@@ -365,7 +365,7 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
    */
   class MuteInfoWrapper implements MuteInfo {
     @NotNull private final MuteInfo myMuteInfo;
-    @NotNull private final Collection<Long> myTestNameIds = new TreeSet<>();
+    @NotNull private final Set<Long> myTestNameIds = new TreeSet<>();
     @NotNull private final Collection<Integer> myBuildProblemIds = new TreeSet<>();
     @NotNull private final Collection<String> myBuildTypeIds = new TreeSet<>();
 
@@ -470,10 +470,12 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
     @NotNull
     public Collection<STest> getTests() {
       // see MuteInfoRecord.getTests()
-      Collection<Long> ids = getTestNameIds();
-      List<STest> tests = new ArrayList<>(ids.size());
-      for (Long id: ids) {
-        final STest test = myLowLevelMutingService.getTestManager().findTest(id, getProjectId());
+      STestManager testManager = myLowLevelMutingService.getTestManager();
+      List<STest> tests = new ArrayList<>(myTestNameIds.size());
+      Map<Long, STest> foundTests = testManager.createTests(myTestNameIds, getProjectId());
+
+      for (Long id: myTestNameIds) {
+        final STest test = foundTests.get(id);
         if (test != null)
           tests.add(test);
       }
