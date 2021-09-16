@@ -182,11 +182,31 @@ public class User {
       if (!avatars.exists()) {
         return null;
       }
-      return new UserAvatars()
-        .setUrlToSize20(avatars.getUrlToSize20())
-        .setUrlToSize32(avatars.getUrlToSize32())
-        .setUrlToSize40(avatars.getUrlToSize40())
-        .setUrlToSize64(avatars.getUrlToSize64());
+
+      final Fields avatarsField = myFields.getNestedField("avatars");
+      if (avatarsField.getFieldsSpec().isEmpty()) {
+        return new UserAvatars()
+          .setUrlToSize20(avatars.getUrlToSize20())
+          .setUrlToSize32(avatars.getUrlToSize32())
+          .setUrlToSize40(avatars.getUrlToSize40())
+          .setUrlToSize64(avatars.getUrlToSize64());
+      } else {
+        final UserAvatars userAvatars = new UserAvatars();
+
+        final Boolean urlToSize20 = avatarsField.isIncluded("urlToSize20");
+        if (urlToSize20 != null && urlToSize20) userAvatars.setUrlToSize20(avatars.getUrlToSize20());
+
+        final Boolean urlToSize32 = avatarsField.isIncluded("urlToSize32");
+        if (urlToSize32 != null && urlToSize32) userAvatars.setUrlToSize32(avatars.getUrlToSize32());
+
+        final Boolean urlToSize40 = avatarsField.isIncluded("urlToSize40");
+        if (urlToSize40 != null && urlToSize40) userAvatars.setUrlToSize40(avatars.getUrlToSize40());
+
+        final Boolean urlToSize64 = avatarsField.isIncluded("urlToSize64");
+        if (urlToSize64 != null && urlToSize64) userAvatars.setUrlToSize64(avatars.getUrlToSize64());
+
+        return userAvatars;
+      }
     });
   }
 
