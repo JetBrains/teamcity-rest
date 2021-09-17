@@ -27,6 +27,7 @@ import jetbrains.buildServer.Used;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.change.ChangeUtil;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -66,6 +67,7 @@ import org.jetbrains.annotations.Nullable;
   "comment",
   "user",
   "type",
+  "snapshotDependencyLink",
   "fileChanges",
   "vcsRootInstance",
   "parentChanges",
@@ -212,6 +214,16 @@ public class Change {
   public String getType() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("type", false), () -> {
       return myDescriptor != null ? myDescriptor.getType() : null;
+    });
+  }
+
+  @XmlElement(name="snapshotDependencyLink")
+  public SnapshotDependencyLink getSnapshotDependencyLink() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("snapshotDependencyLink", false), () -> {
+      if(myDescriptor == null)
+        return null;
+
+      return ChangeUtil.getSnapshotDependencyLink(myDescriptor, myFields.getNestedField("snapshotDependencyLink"), myBeanContext);
     });
   }
 

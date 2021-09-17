@@ -32,7 +32,7 @@ import jetbrains.buildServer.server.rest.data.ChangeFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.change.CommiterData;
-import jetbrains.buildServer.server.rest.data.change.CommitersUtil;
+import jetbrains.buildServer.server.rest.data.change.ChangeUtil;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
 import jetbrains.buildServer.server.rest.data.problem.scope.ProblemOccurrencesTreeCollector;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector;
@@ -392,7 +392,7 @@ public class ChangeRequest {
 
     PagedSearchResult<SVcsModificationOrChangeDescriptor> changes = myChangeFinder.getItems(patchedChangeLocator.getStringRepresentation());
 
-    List<CommiterData> commiters = CommitersUtil.getUniqueCommiters(changes.myEntries.stream().map(modOrDesc -> modOrDesc.getSVcsModification()));
+    List<CommiterData> commiters = ChangeUtil.getUniqueCommiters(changes.myEntries.stream().map(modOrDesc -> modOrDesc.getSVcsModification()));
     return new Commiters(commiters, new Fields(fields), myBeanContext);
   }
 
