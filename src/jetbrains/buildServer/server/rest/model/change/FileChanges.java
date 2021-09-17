@@ -43,7 +43,7 @@ import java.util.List;
     value = ObjectType.LIST,
     baseEntity = "FileChange"
 )
-@XmlRootElement(name = "files")
+@XmlRootElement(name = "fileChanges")
 public class FileChanges {
   private static final Logger LOG = Logger.getInstance(FileChanges.class.getName());
   protected static final String REST_BEANS_FILES_NESTED_FILE_ITEMS_LIMIT = "rest.beans.change.files.nestedFileItemsLimit";
