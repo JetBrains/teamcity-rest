@@ -184,7 +184,7 @@ public class ProblemOccurrencesTreeCollector {
         myProblems.size(),
         (int) myProblems.stream().filter(bp -> {
           try {
-            return ((BuildProblemImpl) bp).isNew();
+            return BooleanUtils.isTrue(((BuildProblemImpl) bp).isNew());
           } catch (ClassCastException e) {
             // let's not count as new if we don't know for sure.
             return false;
