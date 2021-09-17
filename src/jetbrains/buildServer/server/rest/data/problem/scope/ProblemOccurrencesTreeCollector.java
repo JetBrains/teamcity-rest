@@ -104,7 +104,7 @@ public class ProblemOccurrencesTreeCollector {
   }
 
   public List<ScopeTree.Node<BuildProblem, ProblemCounters>> getTreeFromBuildPromotions(@NotNull Stream<BuildPromotion> promotionStream, @Nullable String subTreeRootId) {
-    final String problemsLocator = "build:%d";
+    final String problemsLocator = "build:%d,type:(snapshotDependencyProblem:false)";
     Stream<BuildProblem> problemStream = promotionStream
       .filter(promotion -> promotion.getAssociatedBuild() != null)
       .flatMap(promotion -> myProblemOccurrenceFinder.getItems(String.format(problemsLocator, promotion.getAssociatedBuild().getBuildId())).myEntries.stream());
