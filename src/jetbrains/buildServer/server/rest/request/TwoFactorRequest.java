@@ -56,6 +56,9 @@ public class TwoFactorRequest {
   @Path("/confirm")
   @ApiOperation(value = "Confirm 2FA secret key", nickname = "confirm2FA")
   public void confirmTwoFactor(@QueryParam("uuid") String uuid, @QueryParam("password") int password, @Context HttpServletRequest request) {
+    if (uuid == null){
+      throw new BadRequestException("Missing parameter 'uuid'");
+    }
     try {
       myKeysUpdater.confirmCredentials(myUserFinder.getCurrentUser(), UUID.fromString(uuid), password);
       TwoFactorAuthUtil.setTwoFactorCompletion(request);  // TODO: attempt to prevent instant kick after enabled 2FA without context request
