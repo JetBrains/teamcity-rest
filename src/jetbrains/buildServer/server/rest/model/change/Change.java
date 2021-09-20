@@ -43,6 +43,7 @@ import jetbrains.buildServer.serverSide.ChangeDescriptor;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.ChangeStatusProvider;
 import jetbrains.buildServer.vcs.RelationType;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.impl.VcsModificationEx;
@@ -73,7 +74,8 @@ import org.jetbrains.annotations.Nullable;
   "parentChanges",
   "parentRevisions",
   "attributes",
-  "storesProjectSettings"
+  "storesProjectSettings",
+  "status"
 })
 @ModelDescription(
     value = "Represents a VCS change (commit).",
@@ -279,6 +281,16 @@ public class Change {
   public Properties getAttributes() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("attributes", false, false),
                                           () -> new Properties(myModification.getAttributes(), null, myFields.getNestedField("attributes"), myBeanContext));
+  }
+
+  @XmlElement(name = "status")
+  public ChangeStatus getStatus() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("status", false, false), () -> {
+      ChangeStatusProvider statusProvider = myBeanContext.getSingletonService(ChangeStatusProvider.class);
+      jetbrains.buildServer.vcs.ChangeStatus mergedStatus = statusProvider.getMergedChangeStatus(myModification);
+
+      return new ChangeStatus(mergedStatus, myFields.getNestedField("status"));
+    });
   }
 
   /**
