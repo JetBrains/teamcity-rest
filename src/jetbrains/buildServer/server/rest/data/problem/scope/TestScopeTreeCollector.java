@@ -41,6 +41,7 @@ public class TestScopeTreeCollector {
   public static final String AFFECTED_PROJECT = "affectedProject";
   public static final String CURRENT = "currentlyFailing";
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
+  public static final String NEW_FAILURE = "newFailure";
   public static final String SUBTREE_ROOT_ID = "subTreeRootId";
 
   public static final int DEFAULT_MAX_CHILDREN = 5;
@@ -67,7 +68,7 @@ public class TestScopeTreeCollector {
   }
 
   public List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedTree(@NotNull Locator locator, @Nullable HttpServletRequest request) {
-    locator.addSupportedDimensions(BUILD, ORDER_BY, MAX_CHILDREN, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, SUBTREE_ROOT_ID);
+    locator.addSupportedDimensions(BUILD, ORDER_BY, MAX_CHILDREN, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, NEW_FAILURE, SUBTREE_ROOT_ID);
 
     if(locator.isAnyPresent(SUBTREE_ROOT_ID)) {
       return getSlicedSubTree(locator, request);
@@ -77,8 +78,6 @@ public class TestScopeTreeCollector {
   }
 
   private List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedTreeInternal(@NotNull Locator locator, @Nullable HttpServletRequest request) {
-    locator.addSupportedDimensions(BUILD, ORDER_BY, MAX_CHILDREN, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED);
-
     ScopeTree<STestRun, TestCountersData> tree = buildTree(locator, request);
     Comparator<ScopeTree.Node<STestRun, TestCountersData>> order = getNodeOrder(locator);
 
@@ -121,8 +120,6 @@ public class TestScopeTreeCollector {
 
   @NotNull
   private List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedSubTree(@NotNull Locator locator, @Nullable HttpServletRequest request) {
-    locator.addSupportedDimensions(BUILD, ORDER_BY, MAX_CHILDREN, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, SUBTREE_ROOT_ID);
-
     ScopeTree<STestRun, TestCountersData> tree = buildTree(locator, request);
     Comparator<ScopeTree.Node<STestRun, TestCountersData>> order = getNodeOrder(locator);
 
@@ -159,7 +156,7 @@ public class TestScopeTreeCollector {
     return new ScopeTree<STestRun, TestCountersData> (
       TestScopeInfo.ROOT,
       new TestCountersData(),
-      testScopes.collect(Collectors.toList())     // TODO: this is very fragile as we require all of those to be CLASS
+      testScopes.collect(Collectors.toList()) // this is a bit fragile as we require all of those to be CLASS
     );
   }
 
@@ -171,6 +168,7 @@ public class TestScopeTreeCollector {
     occurrencesLocator.setDimension(TestOccurrenceFinder.CURRENTLY_INVESTIGATED, locator.getDimensionValue(CURRENTLY_INVESTIGATED));
     occurrencesLocator.setDimension(TestOccurrenceFinder.CURRENT, locator.getDimensionValue(CURRENT));
     occurrencesLocator.setDimension(TestOccurrenceFinder.AFFECTED_PROJECT, locator.getDimensionValue(AFFECTED_PROJECT));
+    occurrencesLocator.setDimension(TestOccurrenceFinder.NEW_FAILURE, locator.getDimensionValue(NEW_FAILURE));
     occurrencesLocator.setDimension(TestOccurrenceFinder.MUTED, Locator.BOOLEAN_FALSE);
     occurrencesLocator.setDimension(TestOccurrenceFinder.IGNORED, Locator.BOOLEAN_FALSE);
 
