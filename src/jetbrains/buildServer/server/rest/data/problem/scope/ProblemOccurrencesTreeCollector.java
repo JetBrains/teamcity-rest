@@ -93,8 +93,7 @@ public class ProblemOccurrencesTreeCollector {
     if(locator.isAnyPresent(SUB_TREE_ROOT_ID)) {
       String subTreeRootId = locator.getSingleDimensionValue(SUB_TREE_ROOT_ID);
       locator.checkLocatorFullyProcessed();
-
-      assert subTreeRootId != null; // it is present, so not null. Let's make IDEA happy.
+      //noinspection ConstantConditions
       return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootId, maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
     }
 
@@ -103,7 +102,8 @@ public class ProblemOccurrencesTreeCollector {
     return tree.getSlicedOrderedTree(maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
   }
 
-  public List<ScopeTree.Node<BuildProblem, ProblemCounters>> getTreeFromBuildPromotions(@NotNull Stream<BuildPromotion> promotionStream, @Nullable String subTreeRootId) {
+  public List<ScopeTree.Node<BuildProblem, ProblemCounters>> getTreeFromBuildPromotions(@NotNull Stream<BuildPromotion> promotionStream, @NotNull Locator treeLocator) {
+    treeLocator.addSupportedDimensions(SUB_TREE_ROOT_ID);
     final String problemsLocator = "build:%d,type:(snapshotDependencyProblem:false)";
     Stream<BuildProblem> problemStream = promotionStream
       .filter(promotion -> promotion.getAssociatedBuild() != null)
@@ -119,10 +119,15 @@ public class ProblemOccurrencesTreeCollector {
 
     Comparator<ScopeTree.Node<BuildProblem, ProblemCounters>> defaultNodeOrder = SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT);
 
-    if(subTreeRootId != null && StringUtil.isNotEmpty(subTreeRootId)) {
+    if(treeLocator.isAnyPresent(SUB_TREE_ROOT_ID)) {
+      String subTreeRootId = treeLocator.getSingleDimensionValue(SUB_TREE_ROOT_ID);
+
+      treeLocator.checkLocatorFullyProcessed();
+      //noinspection ConstantConditions
       return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootId, DEFAULT_MAX_CHILDREN, NEW_FAILED_FIRST_THEN_BY_ID, defaultNodeOrder);
     }
 
+    treeLocator.checkLocatorFullyProcessed();
     return tree.getSlicedOrderedTree(DEFAULT_MAX_CHILDREN, NEW_FAILED_FIRST_THEN_BY_ID, defaultNodeOrder);
   }
 

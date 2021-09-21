@@ -341,7 +341,8 @@ public class ChangeRequest {
   //@ApiOperation(value="Get failed tests tree for the matching change.",nickname="getChangeFailedTestsTree")
   public TestScopeTree getChangeFailedTestsTree(
     @ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
-    @QueryParam(TestScopeTreeCollector.SUBTREE_ROOT_ID) String subTreeRootId,
+    @QueryParam(TestScopeTreeCollector.SUBTREE_ROOT_ID) String subTreeRootId, // todo: remove after ui migration
+    @QueryParam("treeLocator") String treeLocatorText,
     @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
 
@@ -349,8 +350,11 @@ public class ChangeRequest {
     ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
 
     Stream<BuildPromotion> firstBuildsPromotions = changeStatus.getBuildTypesStatusMap().values().stream().filter(Objects::nonNull);
-
-    return new TestScopeTree(myTestScopeTreeCollector.getSlicedTreeFromBuildPromotions(firstBuildsPromotions, subTreeRootId), new Fields(fields), myBeanContext);
+    Locator treeLocator = Locator.createPotentiallyEmptyLocator(treeLocatorText);
+    if(subTreeRootId != null) {
+      treeLocator.setDimension(ProblemOccurrencesTreeCollector.SUB_TREE_ROOT_ID, subTreeRootId);
+    }
+    return new TestScopeTree(myTestScopeTreeCollector.getSlicedTreeFromBuildPromotions(firstBuildsPromotions, treeLocator), new Fields(fields), myBeanContext);
   }
 
   /**
@@ -362,7 +366,8 @@ public class ChangeRequest {
   @Produces({"application/xml", "application/json"})
   //@ApiOperation(value="Get problems tree for the matching change.",nickname="getChangeProblemsTree")
   public ProblemOccurrencesTree getChangeProblemsTree(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
-                                      @QueryParam(ProblemOccurrencesTreeCollector.SUB_TREE_ROOT_ID) String subTreeRootId,
+                                      @QueryParam(ProblemOccurrencesTreeCollector.SUB_TREE_ROOT_ID) String subTreeRootId, // todo: remove after ui migration
+                                      @QueryParam("treeLocator") String treeLocatorText,
                                       @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
 
@@ -371,7 +376,12 @@ public class ChangeRequest {
 
     Stream<BuildPromotion> firstBuildsPromotions = changeStatus.getBuildTypesStatusMap().values().stream().filter(Objects::nonNull);
 
-    return new ProblemOccurrencesTree(myProblemOccurrencesTreeCollector.getTreeFromBuildPromotions(firstBuildsPromotions, subTreeRootId), new Fields(fields), myBeanContext);
+    Locator treeLocator = Locator.createPotentiallyEmptyLocator(treeLocatorText);
+    if(subTreeRootId != null) {
+      treeLocator.setDimension(ProblemOccurrencesTreeCollector.SUB_TREE_ROOT_ID, subTreeRootId);
+    }
+
+    return new ProblemOccurrencesTree(myProblemOccurrencesTreeCollector.getTreeFromBuildPromotions(firstBuildsPromotions, treeLocator), new Fields(fields), myBeanContext);
   }
 
   /**

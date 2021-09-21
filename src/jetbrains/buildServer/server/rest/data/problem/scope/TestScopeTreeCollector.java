@@ -67,6 +67,7 @@ public class TestScopeTreeCollector {
     myTestOccurrenceFinder = testOccurrenceFinder;
   }
 
+  @NotNull
   public List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedTree(@NotNull Locator locator, @Nullable HttpServletRequest request) {
     locator.addSupportedDimensions(BUILD, ORDER_BY, MAX_CHILDREN, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, NEW_FAILURE, SUBTREE_ROOT_ID);
 
@@ -77,6 +78,7 @@ public class TestScopeTreeCollector {
     return getSlicedTreeInternal(locator, request);
   }
 
+  @NotNull
   private List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedTreeInternal(@NotNull Locator locator, @Nullable HttpServletRequest request) {
     ScopeTree<STestRun, TestCountersData> tree = buildTree(locator, request);
     Comparator<ScopeTree.Node<STestRun, TestCountersData>> order = getNodeOrder(locator);
@@ -89,8 +91,13 @@ public class TestScopeTreeCollector {
     return tree.getSlicedOrderedTree(maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order);
   }
 
-  public List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedTreeFromBuildPromotions(@NotNull Stream<BuildPromotion> promotions, @Nullable String subTreeRootId) {
-    final String testRunsLocator = "build:%d,status:failure";
+  @NotNull
+  public List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedTreeFromBuildPromotions(@NotNull Stream<BuildPromotion> promotions, @NotNull Locator treeLocator) {
+    treeLocator.addSupportedDimensions(NEW_FAILURE, SUBTREE_ROOT_ID);
+
+    final String testRunsLocator = "build:%d,status:failure,muted:false,ignored:false"
+                                   + (treeLocator.isAnyPresent(NEW_FAILURE) ? ",newFailure:" + treeLocator.getSingleDimensionValue(NEW_FAILURE) : "");
+
     Stream<STestRun> testRunStream = promotions
       .filter(promotion -> promotion.getAssociatedBuildId() != null)
       .flatMap(promotion -> myTestOccurrenceFinder.getItems(String.format(testRunsLocator, promotion.getAssociatedBuildId())).myEntries.stream());
@@ -106,7 +113,11 @@ public class TestScopeTreeCollector {
       scopes
     );
 
-    if(subTreeRootId != null && StringUtil.isNotEmpty(subTreeRootId)) {
+    if(treeLocator.isAnyPresent(SUBTREE_ROOT_ID)) {
+      String subTreeRootId = treeLocator.getSingleDimensionValue(SUBTREE_ROOT_ID);
+      treeLocator.checkLocatorFullyProcessed();
+
+      //noinspection ConstantConditions
       return tree.getFullNodeAndSlicedOrderedSubtree(
         subTreeRootId,
         DEFAULT_MAX_CHILDREN,
@@ -115,6 +126,7 @@ public class TestScopeTreeCollector {
       );
     }
 
+    treeLocator.checkLocatorFullyProcessed();
     return tree.getSlicedOrderedTree(DEFAULT_MAX_CHILDREN, STestRun.NEW_FIRST_NAME_COMPARATOR, SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT));
   }
 
@@ -136,6 +148,7 @@ public class TestScopeTreeCollector {
     return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootID, maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order);
   }
 
+  @NotNull
   public List<ScopeTree.Node<STestRun, TestCountersData>> getTopSlicedTree(@NotNull Locator locator, @Nullable HttpServletRequest request) {
     locator.addSupportedDimensions(BUILD, ORDER_BY, AFFECTED_PROJECT);
 
@@ -148,6 +161,7 @@ public class TestScopeTreeCollector {
     return tree.getTopTreeSliceUpTo(order, scope -> ((TestScopeInfo) scope).getType().compareTo(TestScopeType.BUILD_TYPE) <= 0);
   }
 
+  @NotNull
   private ScopeTree<STestRun, TestCountersData> buildTree(@NotNull Locator locator, @Nullable HttpServletRequest request) {
     Locator scopesLocator = prepareScopesLocator(locator, request);
 
