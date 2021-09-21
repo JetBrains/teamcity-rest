@@ -177,7 +177,6 @@ public class User {
   @XmlElement(name = "avatars")
   public UserAvatars getAvatars() {
     return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("avatars", false), () -> {
-      checkCanViewUserDetails();
       final UserAvatarsManager.Avatars avatars = myUserAvatarsManager.getAvatars(myUser);
       if (!avatars.exists()) {
         return null;
