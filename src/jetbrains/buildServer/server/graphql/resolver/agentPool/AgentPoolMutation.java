@@ -63,8 +63,8 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     DataFetcherResult.Builder<CreateAgentPoolPayload> result = DataFetcherResult.newResult();
     try {
       AgentPool resultPool;
-      if (input.getMaxAgents() != null) {
-        resultPool = myAgentPoolManager.createNewAgentPool(input.getName(), new AgentPoolLimitsImpl(AgentPoolLimits.DEFAULT.getMinAgents(), input.getMaxAgents()));
+      if (input.getMaxAgentsNumber() != null) {
+        resultPool = myAgentPoolManager.createNewAgentPool(input.getName(), new AgentPoolLimitsImpl(AgentPoolLimits.DEFAULT.getMinAgents(), input.getMaxAgentsNumber()));
       } else {
         resultPool = myAgentPoolManager.createNewAgentPool(input.getName());
       }
@@ -87,7 +87,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
       return result.error(new EntityNotFoundGraphQLError("Pool with given id does not exist.")).build();
     }
 
-    int maxAgents = input.getMaxAgents() == null ? poolOfInterest.getMaxAgents() : input.getMaxAgents();
+    int maxAgents = input.getMaxAgentsNumber() == null ? poolOfInterest.getMaxAgents() : input.getMaxAgentsNumber();
     String name = input.getName() == null ? poolOfInterest.getName() : input.getName();
 
     try {

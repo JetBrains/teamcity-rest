@@ -51,7 +51,7 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     final String name = "myTestPool";
     final int maxAgents = 2;
     CreateAgentPoolInput input = new CreateAgentPoolInput();
-    input.setMaxAgents(2);
+    input.setMaxAgentsNumber(2);
     input.setName(name);
 
 
@@ -116,7 +116,7 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     UpdateAgentPoolInput input = new UpdateAgentPoolInput();
     input.setId(poolToUpdate.getAgentPoolId());
     input.setName(name2);
-    input.setMaxAgents(maxAgents2);
+    input.setMaxAgentsNumber(maxAgents2);
 
     DataFetcherResult<UpdateAgentPoolPayload> result = myMutation.updateAgentPool(input);
 

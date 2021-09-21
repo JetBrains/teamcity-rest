@@ -23,7 +23,7 @@ public class CreateAgentPoolInput {
   @NotNull
   private String myName;
   @Nullable
-  private Integer maxAgents;
+  private Integer myMaxAgentsNumber;
 
   public CreateAgentPoolInput() { }
 
@@ -31,8 +31,8 @@ public class CreateAgentPoolInput {
     myName = name;
   }
 
-  public void setMaxAgents(@Nullable Integer maxAgents) {
-    this.maxAgents = maxAgents;
+  public void setMaxAgentsNumber(@Nullable Integer maxAgentsNumber) {
+    myMaxAgentsNumber = maxAgentsNumber;
   }
 
   @NotNull
@@ -41,7 +41,7 @@ public class CreateAgentPoolInput {
   }
 
   @Nullable
-  public Integer getMaxAgents() {
-    return maxAgents;
+  public Integer getMaxAgentsNumber() {
+    return myMaxAgentsNumber;
   }
 }

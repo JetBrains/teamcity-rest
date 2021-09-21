@@ -25,7 +25,7 @@ public class UpdateAgentPoolInput {
   @Nullable
   private String myName;
   @Nullable
-  private Integer myMaxAgents;
+  private Integer myMaxAgentsNumber;
 
   public UpdateAgentPoolInput() { }
 
@@ -37,8 +37,8 @@ public class UpdateAgentPoolInput {
     myName = name;
   }
 
-  public void setMaxAgents(@Nullable Integer maxAgents) {
-    myMaxAgents = maxAgents;
+  public void setMaxAgentsNumber(@Nullable Integer maxAgentsNumber) {
+    myMaxAgentsNumber = maxAgentsNumber;
   }
 
   public int getId() {
@@ -51,7 +51,7 @@ public class UpdateAgentPoolInput {
   }
 
   @Nullable
-  public Integer getMaxAgents() {
-    return myMaxAgents;
+  public Integer getMaxAgentsNumber() {
+    return myMaxAgentsNumber;
   }
 }
