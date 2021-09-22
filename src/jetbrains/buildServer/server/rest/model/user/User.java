@@ -185,24 +185,36 @@ public class User {
       final Fields avatarsField = myFields.getNestedField("avatars");
       if (avatarsField.getFieldsSpec().isEmpty()) {
         return new UserAvatars()
-          .setUrlToSize20(avatars.getUrlToSize20())
-          .setUrlToSize32(avatars.getUrlToSize32())
-          .setUrlToSize40(avatars.getUrlToSize40())
-          .setUrlToSize64(avatars.getUrlToSize64());
+          .setUrlToSize20(avatars.getUrlToSize(20))
+          .setUrlToSize28(avatars.getUrlToSize(28))
+          .setUrlToSize32(avatars.getUrlToSize(32))
+          .setUrlToSize40(avatars.getUrlToSize(40))
+          .setUrlToSize56(avatars.getUrlToSize(56))
+          .setUrlToSize64(avatars.getUrlToSize(64))
+          .setUrlToSize80(avatars.getUrlToSize(80));
       } else {
         final UserAvatars userAvatars = new UserAvatars();
 
         final Boolean urlToSize20 = avatarsField.isIncluded("urlToSize20");
-        if (urlToSize20 != null && urlToSize20) userAvatars.setUrlToSize20(avatars.getUrlToSize20());
+        if (urlToSize20 != null && urlToSize20) userAvatars.setUrlToSize20(avatars.getUrlToSize(20));
+
+        final Boolean urlToSize28 = avatarsField.isIncluded("urlToSize28");
+        if (urlToSize28 != null && urlToSize28) userAvatars.setUrlToSize28(avatars.getUrlToSize(28));
 
         final Boolean urlToSize32 = avatarsField.isIncluded("urlToSize32");
-        if (urlToSize32 != null && urlToSize32) userAvatars.setUrlToSize32(avatars.getUrlToSize32());
+        if (urlToSize32 != null && urlToSize32) userAvatars.setUrlToSize32(avatars.getUrlToSize(32));
 
         final Boolean urlToSize40 = avatarsField.isIncluded("urlToSize40");
-        if (urlToSize40 != null && urlToSize40) userAvatars.setUrlToSize40(avatars.getUrlToSize40());
+        if (urlToSize40 != null && urlToSize40) userAvatars.setUrlToSize40(avatars.getUrlToSize(40));
+
+        final Boolean urlToSize56 = avatarsField.isIncluded("urlToSize56");
+        if (urlToSize56 != null && urlToSize56) userAvatars.setUrlToSize56(avatars.getUrlToSize(56));
 
         final Boolean urlToSize64 = avatarsField.isIncluded("urlToSize64");
-        if (urlToSize64 != null && urlToSize64) userAvatars.setUrlToSize64(avatars.getUrlToSize64());
+        if (urlToSize64 != null && urlToSize64) userAvatars.setUrlToSize64(avatars.getUrlToSize(64));
+
+        final Boolean urlToSize80 = avatarsField.isIncluded("urlToSize80");
+        if (urlToSize80 != null && urlToSize80) userAvatars.setUrlToSize80(avatars.getUrlToSize(80));
 
         return userAvatars;
       }

@@ -31,13 +31,22 @@ public class UserAvatars {
   public String urlToSize20;
 
   @XmlAttribute
+  public String urlToSize28;
+
+  @XmlAttribute
   public String urlToSize32;
 
   @XmlAttribute
   public String urlToSize40;
 
   @XmlAttribute
+  public String urlToSize56;
+
+  @XmlAttribute
   public String urlToSize64;
+
+  @XmlAttribute
+  public String urlToSize80;
 
   public UserAvatars setUrlToSize32(@Nullable String urlToSize32) {
     this.urlToSize32 = urlToSize32;
@@ -56,6 +65,21 @@ public class UserAvatars {
 
   public UserAvatars setUrlToSize64(@Nullable String urlToSize64) {
     this.urlToSize64 = urlToSize64;
+    return this;
+  }
+
+  public UserAvatars setUrlToSize28(String urlToSize28) {
+    this.urlToSize28 = urlToSize28;
+    return this;
+  }
+
+  public UserAvatars setUrlToSize56(String urlToSize56) {
+    this.urlToSize56 = urlToSize56;
+    return this;
+  }
+
+  public UserAvatars setUrlToSize80(String urlToSize80) {
+    this.urlToSize80 = urlToSize80;
     return this;
   }
 }
