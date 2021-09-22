@@ -320,7 +320,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
       assertNull(user.getGroups());
       assertNull(user.getHasPassword());
       assertNull(user.getPassword());
-      assertNull(user.getAvatars());
+      assertNotNull(user.getAvatars());
       assertNull(user.getEnabled2FA());
     });
   }
