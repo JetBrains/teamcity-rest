@@ -16,17 +16,19 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import com.sun.jersey.multipart.FormDataParam;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiParam;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.Map;
+import java.io.InputStream;
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.Response;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -38,8 +40,6 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserAvatarsManager;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.MediaType;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.multipart.support.DefaultMultipartHttpServletRequest;
 
 import static jetbrains.buildServer.server.rest.request.AvatarRequest.API_AVATARS_URL;
 
@@ -57,12 +57,12 @@ public class AvatarRequest {
   @GET
   @Produces(MediaType.IMAGE_PNG_VALUE)
   @Path("/{userLocator}/{size}/avatar.png")
-  public void getAvatar(
+  public Response getAvatar(
     @Context HttpServletResponse response,
     @ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
     @PathParam("size") Integer size
   ) throws IOException {
-    if (size <= 0 || size > 300) throw new BadRequestException("\"size\" must be bigger than 0 and lower or equal than 300");
+    if (size < 2 || size > 300) throw new BadRequestException("\"size\" must be bigger or equal than 2 and lower or equal than 300");
 
     final SUser user = myUserFinder.getItem(userLocator);
 
@@ -75,13 +75,15 @@ public class AvatarRequest {
     response.addHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + avatarCacheLifeTime);
 
     ImageIO.write(image, "png", response.getOutputStream());
+    return Response.ok().build();
   }
 
   @PUT
-  @Consumes(MediaType.MULTIPART_FORM_DATA_VALUE)
   @Path("/{userLocator}")
+  @Consumes(MediaType.MULTIPART_FORM_DATA_VALUE)
   public void putAvatar(
     @Context HttpServletRequest request,
+    @FormDataParam("avatar") InputStream avatar,
     @ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator
   ) throws IOException {
     final SUser currentUser = myUserFinder.getCurrentUser();
@@ -90,30 +92,20 @@ public class AvatarRequest {
     final SUser targetUser = myUserFinder.getItem(userLocator);
     ServerAuthUtil.canEditUser(currentUser, targetUser);
 
-    // get avatar file
-    final MultipartFile avatar;
-    if (request instanceof DefaultMultipartHttpServletRequest) {
-      final DefaultMultipartHttpServletRequest multipartRequest = (DefaultMultipartHttpServletRequest)request;
-      final Map<String, MultipartFile> fileMap = multipartRequest.getFileMap();
-      avatar = fileMap.get("avatar");
-    } else {
-      throw new BadRequestException("You must specify the \"avatar\" field");
-    }
-
     // check avatar file size
-    final long avatarMaxSize = TeamCityProperties.getLong(AVATAR_MAX_SIZE, 10_000_000);
-    if (avatar.getSize() >= avatarMaxSize) {
+    final long avatarMaxSize = TeamCityProperties.getLong(AVATAR_MAX_SIZE, 10_485_760);
+    if (request.getContentLength() >= avatarMaxSize) {
       throw new BadRequestException(String.format("The size of the avatar must be less than or equal to %d kilobytes (%d bytes)", avatarMaxSize / 1024, avatarMaxSize));
     }
 
-    final BufferedImage image = ImageIO.read(avatar.getInputStream());
+    final BufferedImage image = ImageIO.read(avatar);
 
     myUserAvatarsManager.saveAvatar(targetUser, image);
   }
 
   @DELETE
   @Path("/{userLocator}")
-  public void deleteAvatar(
+  public Response deleteAvatar(
     @ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator
   ) throws IOException {
     final SUser currentUser = myUserFinder.getCurrentUser();
@@ -123,5 +115,6 @@ public class AvatarRequest {
     ServerAuthUtil.canEditUser(currentUser, targetUser);
 
     myUserAvatarsManager.deleteAvatar(targetUser);
+    return Response.noContent().build();
   }
 }

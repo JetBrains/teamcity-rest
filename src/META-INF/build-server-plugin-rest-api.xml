@@ -107,8 +107,11 @@
   <bean id="healthStatusItemFinderProvider" class="jetbrains.buildServer.server.rest.jersey.HealthItemFinderProvider"/>
   <bean id="testScopesCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.TestScopesCollectorProvider"/>
   <bean id="testScopeTreeCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.TestScopeTreeCollectorProvider"/>
-  <bean id="problemOccurrencesTreeCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.ProblemOccurrencesTreeCollectorProvider" />
+  <bean id="problemOccurrencesTreeCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.ProblemOccurrencesTreeCollectorProvider"/>
   <bean id="twoFactorSecretKeysProvider" class="jetbrains.buildServer.server.rest.jersey.TwoFactorSecretKeysProvider"/>
+  <bean id="userAvatarsManagerResolver" class="jetbrains.buildServer.server.rest.jersey.UserAvatarsManagerResolver">
+    <constructor-arg ref="userAvatarsManager"/>
+  </bean>
 
   <bean id="restCloudUtil" class="jetbrains.buildServer.server.rest.data.CloudUtil"/>
   <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataUpdaterContextProvider"/>
