@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.sun.jersey.multipart.FormDataParam;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -57,6 +58,7 @@ public class AvatarRequest {
   @GET
   @Produces(MediaType.IMAGE_PNG_VALUE)
   @Path("/{userLocator}/{size}/avatar.png")
+  @ApiOperation("Get a users avatar")
   public Response getAvatar(
     @Context HttpServletResponse response,
     @ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
@@ -81,6 +83,7 @@ public class AvatarRequest {
   @PUT
   @Path("/{userLocator}")
   @Consumes(MediaType.MULTIPART_FORM_DATA_VALUE)
+  @ApiOperation("Update a users avatar")
   public void putAvatar(
     @Context HttpServletRequest request,
     @FormDataParam("avatar") InputStream avatar,
@@ -105,6 +108,7 @@ public class AvatarRequest {
 
   @DELETE
   @Path("/{userLocator}")
+  @ApiOperation("Delete a users avatar")
   public Response deleteAvatar(
     @ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator
   ) throws IOException {
