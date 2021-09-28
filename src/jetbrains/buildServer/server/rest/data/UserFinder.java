@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.Function;
+import java.util.*;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.SUserGroup;
@@ -35,32 +36,27 @@ import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.*;
-import jetbrains.buildServer.users.PropertyKey;
-import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.users.User;
-import jetbrains.buildServer.users.UserModel;
+import jetbrains.buildServer.users.*;
 import jetbrains.buildServer.users.impl.UserImpl;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-
 import static jetbrains.buildServer.server.rest.data.FinderDataBinding.getItemHolder;
 import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 
 /**
  * @author Yegor.Yarko
- *         Date: 23.03.13
+ * Date: 23.03.13
  */
 @LocatorResource(value = LocatorName.USER,
-    extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
-    baseEntity = "User",
-    examples = {
-        "`name:John Smith` — find user with name `John Smith`.",
-        "`group:<groupLocator>` — find all users in user group found by `groupLocator`."
-    }
+  extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
+  baseEntity = "User",
+  examples = {
+    "`name:John Smith` — find user with name `John Smith`.",
+    "`group:<groupLocator>` — find all users in user group found by `groupLocator`."
+  }
 )
 public class UserFinder extends DelegatingFinder<SUser> {
   private static final Logger LOG = Logger.getInstance(jetbrains.buildServer.serverSide.impl.audit.finders.UserFinder.class.getName());
@@ -68,6 +64,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
 
   @LocatorDimension("id") private static final Dimension<Long> ID = new Dimension<>("id");
   @LocatorDimension("username") private static final Dimension<String> USERNAME = new Dimension<>("username");
+  @LocatorDimension("avatarHash") private static final Dimension<String> AVATAR_HASH = new Dimension<>("avatarHash");
   @LocatorDimension(value = "group", format = LocatorName.USER_GROUP, notes = "User group (direct parent) locator.")
   private static final Dimension<SUserGroup> GROUP = new Dimension<>("group");
   @LocatorDimension(value = "affectedGroup", format = LocatorName.USER_GROUP, notes = "User group (direct or indirect parent) locator.")
@@ -77,7 +74,8 @@ public class UserFinder extends DelegatingFinder<SUser> {
   @LocatorDimension("name") private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
   private static final Dimension<Boolean> HAS_PASSWORD = new Dimension<>("hasPassword");
   private static final Dimension<String> PASSWORD = new Dimension<>("password");
-  @LocatorDimension(value = "lastLogin", dataType = LocatorDimensionDataType.TIMESTAMP, format = "yyyyMMddTHHmmss+ZZZZ") private static final Dimension<TimeCondition.ParsedTimeCondition> LAST_LOGIN_TIME = new Dimension<>("lastLogin");
+  @LocatorDimension(value = "lastLogin", dataType = LocatorDimensionDataType.TIMESTAMP, format = "yyyyMMddTHHmmss+ZZZZ") private static final Dimension<TimeCondition.ParsedTimeCondition>
+    LAST_LOGIN_TIME = new Dimension<>("lastLogin");
   @LocatorDimension(value = "role", format = LocatorName.ROLE, notes = "Role locator.")
   private static final Dimension<RoleEntryDatas> ROLE = new Dimension<>("role");
   private static final Dimension<ItemFilter<SUser>> PERMISSION = new Dimension<>("permission");
@@ -176,6 +174,10 @@ public class UserFinder extends DelegatingFinder<SUser> {
 
   public static String getLocatorByUsername(@NotNull final String username) {
     return Locator.getStringLocator(USERNAME.name, username);
+  }
+
+  public static String getLocatorByAvatarHash(@NotNull final String avatarHash) {
+    return Locator.getStringLocator(AVATAR_HASH.name, avatarHash);
   }
 
   public static String getLocatorByGroup(@NotNull final SUserGroup userGroup) {
@@ -481,6 +483,19 @@ public class UserFinder extends DelegatingFinder<SUser> {
                                  return Collections.singletonList(user);
                                });
 
+      dimensionString(AVATAR_HASH).description("user's avatar hash")
+                                  .filter((value, item) -> value.equalsIgnoreCase(item.getPropertyValue(UserAvatarsManager.AVATAR_HASH)))
+                                  .toItems(dimension -> {
+                                    Optional<SUser> optional = myUserModel.findUsersByPropertyValue(UserAvatarsManager.AVATAR_HASH, dimension, false)
+                                                                          .getUsers().stream().findFirst();
+                                    if (!optional.isPresent()) {
+                                      throw new NotFoundException("No user can be found by username '" + dimension + "'.");
+                                    }
+                                    final SUser user = optional.get();
+                                    checkViewUserPermission(user);
+                                    return Collections.singletonList(user);
+                                  });
+
       final Type<SUserGroup> myGroupMapper = type(dimensionValue -> myGroupFinder.getGroup(dimensionValue)).description("user groups locator");
 
       dimension(GROUP, myGroupMapper).description("user group including the user directly")
@@ -523,7 +538,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
         .filter((roleEntryDatas, item) -> roleEntryDatas.matches(item));
 
       PermissionCheck permissionCheck = new PermissionCheck();
-      dimension(PERMISSION, type(dimensionValue ->  permissionCheck.matches(dimensionValue)).description("permission check locator"))
+      dimension(PERMISSION, type(dimensionValue -> permissionCheck.matches(dimensionValue)).description("permission check locator"))
         .description("user's permission (experimental)").hidden()
         .filter((type, item) -> type.isIncluded(item));
 
@@ -546,7 +561,8 @@ public class UserFinder extends DelegatingFinder<SUser> {
 
     PermissionCheck() {
       TypedFinderBuilder<SUser> builder = new TypedFinderBuilder<SUser>();
-      builder.dimensionProjects(PROJECT, myServiceLocator).description("project to check permission in (matching when permission is present at least in one of the matched projects), when omitted checking globally");
+      builder.dimensionProjects(PROJECT, myServiceLocator)
+             .description("project to check permission in (matching when permission is present at least in one of the matched projects), when omitted checking globally");
       builder.dimensionEnum(PERMISSION, Permission.class).description("permission to check, should be present");
       builder.filter(locator -> locator.lookupSingleDimensionValue(PERMISSION.name) != null && locator.lookupDimensionValue(PROJECT.name).size() <= 1,
                      dimensions -> new UserPermissionFilter(dimensions));
