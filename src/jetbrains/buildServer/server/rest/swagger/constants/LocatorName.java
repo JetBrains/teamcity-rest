@@ -23,6 +23,9 @@ public class LocatorName {
   public static final String BRANCH = "BranchLocator";
   public static final String BUILD = "BuildLocator";
   public static final String BUILD_TYPE = "BuildTypeLocator";
+  public static final String CLOUD_IMAGE = "CloudImageLocator";
+  public static final String CLOUD_INSTANCE = "CloudInstanceLocator";
+  public static final String CLOUD_PROFILE = "CloudProfileLocator";
   public static final String CHANGE = "ChangeLocator";
   public static final String PROJECT = "ProjectLocator";
   public static final String PROJECT_FEATURE = "ProjectLocator";

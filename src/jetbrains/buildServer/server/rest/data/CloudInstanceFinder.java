@@ -28,6 +28,10 @@ import jetbrains.buildServer.clouds.InstanceStatus;
 import jetbrains.buildServer.clouds.server.CloudInstancesProvider;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
@@ -35,18 +39,31 @@ import org.jetbrains.annotations.NotNull;
 
 import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 
+@LocatorResource(value = LocatorName.CLOUD_INSTANCE,
+  extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
+  baseEntity = "CloudInstance",
+  examples = {
+    "`agent:<agentLocator>` - find cloud instance which hosts agent found by `agentLocator`.",
+    "`profile:<profileLocator>` - find all cloud instances in cloud profile found by `profileLocator`."
+  }
+)
 public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
   private static final Logger LOG = Logger.getInstance(CloudInstanceFinder.class.getName());
 
-  private static final Dimension<CloudUtil.InstanceIdData> ID = new Dimension<>("id");
+  @LocatorDimension("id") private static final Dimension<CloudUtil.InstanceIdData> ID = new Dimension<>("id");
   private static final Dimension<ValueCondition> ERROR = new Dimension<>("errorMessage");
   private static final Dimension<InstanceStatus> STATE = new Dimension<>("state");
-  private static final Dimension<ValueCondition> NETWORK_ADDRESS = new Dimension<>("networkAddress");
+  @LocatorDimension("networkAddress") private static final Dimension<ValueCondition> NETWORK_ADDRESS = new Dimension<>("networkAddress");
   private static final Dimension<TimeCondition.ParsedTimeCondition> START_DATE = new Dimension<>("startDate");
+  @LocatorDimension(value = "agent", format = LocatorName.AGENT, notes = "Agent locator.")
   private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
+  @LocatorDimension(value = "instance", format = LocatorName.CLOUD_IMAGE, notes = "Cloud image locator.")
   private static final Dimension<List<CloudImage>> IMAGE = new Dimension<>("image");
+  @LocatorDimension(value = "profile", format = LocatorName.CLOUD_PROFILE, notes = "Cloud profile locator.")
   private static final Dimension<List<CloudProfile>> PROFILE = new Dimension<>("profile");
+  @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
   private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
+  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
   private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
 
   @NotNull private final ServiceLocator myServiceLocator;

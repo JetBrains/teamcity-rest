@@ -27,6 +27,10 @@ import jetbrains.buildServer.clouds.CloudImage;
 import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
@@ -35,17 +39,31 @@ import org.jetbrains.annotations.NotNull;
 
 import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 
+@LocatorResource(value = LocatorName.CLOUD_IMAGE,
+  extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
+  baseEntity = "CloudImage",
+  examples = {
+    "`name:MyImage` - find image with name `MyImage`.",
+    "`profile:<profileLocator>` - find all images in cloud profile found by `profileLocator`."
+  }
+)
 public class CloudImageFinder extends DelegatingFinder<CloudImage> {
   private static final Logger LOG = Logger.getInstance(CloudImageFinder.class.getName());
 
-  private static final Dimension<CloudUtil.ImageIdData> ID = new Dimension<>("id");
-  private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
+  @LocatorDimension("id") private static final Dimension<CloudUtil.ImageIdData> ID = new Dimension<>("id");
+  @LocatorDimension("name") private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
   private static final Dimension<ValueCondition> ERROR = new Dimension<>("errorMessage");
+  @LocatorDimension(value = "agent", format = LocatorName.AGENT, notes = "Agent locator.")
   private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
+  @LocatorDimension(value = "agentPool", format = LocatorName.AGENT_POOL, notes = "Agent pool locator.")
   private static final Dimension<List<AgentPool>> AGENT_POOL = new Dimension<>("agentPool");
+  @LocatorDimension(value = "instance", format = LocatorName.CLOUD_INSTANCE, notes = "Cloud instance locator.")
   private static final Dimension<List<CloudInstanceData>> INSTANCE = new Dimension<>("instance");
+  @LocatorDimension(value = "profile", format = LocatorName.CLOUD_PROFILE, notes = "Cloud profile locator.")
   private static final Dimension<List<CloudProfile>> PROFILE = new Dimension<>("profile");
+  @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
   private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
+  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
   private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
 
   @NotNull private final ServiceLocator myServiceLocator;
