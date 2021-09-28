@@ -74,10 +74,10 @@ public class AvatarRequest {
     }
 
     if (userLocator.startsWith("avatarHash")) {
-      response.addHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + 31536000);  // never expires
+      response.setHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + 31536000);  // never expires
     } else {
       final int avatarCacheLifeTime = TeamCityProperties.getInteger(AVATAR_CACHE_LIFETIME, 86400);
-      response.addHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + avatarCacheLifeTime);
+      response.setHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + avatarCacheLifeTime);
     }
 
     ImageIO.write(image, "png", response.getOutputStream());
