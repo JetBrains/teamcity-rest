@@ -73,32 +73,12 @@ public class AvatarRequest {
       throw new NotFoundException("avatar (username: " + user.getUsername() + ") not found");
     }
 
-    final int avatarCacheLifeTime = TeamCityProperties.getInteger(AVATAR_CACHE_LIFETIME, 86400);
-    response.addHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + avatarCacheLifeTime);
-
-    ImageIO.write(image, "png", response.getOutputStream());
-    return Response.ok().build();
-  }
-
-  @GET
-  @Produces(MediaType.IMAGE_PNG_VALUE)
-  @Path("/{userLocator}/{size}/{hash}/avatar.png")
-  @ApiOperation("Get a users avatar")
-  public Response getAvatarWithHash(
-    @Context HttpServletResponse response,
-    @ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
-    @PathParam("size") Integer size
-  ) throws IOException {
-    if (size < 2 || size > 300) throw new BadRequestException("\"size\" must be bigger or equal than 2 and lower or equal than 300");
-
-    final SUser user = myUserFinder.getItem(userLocator);
-
-    final BufferedImage image = myUserAvatarsManager.getAvatar(user, size);
-    if (image == null) {
-      throw new NotFoundException("avatar (username: " + user.getUsername() + ") not found");
+    if (userLocator.startsWith("avatarHash")) {
+      response.addHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + 31536000);  // never expires
+    } else {
+      final int avatarCacheLifeTime = TeamCityProperties.getInteger(AVATAR_CACHE_LIFETIME, 86400);
+      response.addHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + avatarCacheLifeTime);
     }
-
-    response.addHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + 31536000);  // never expires
 
     ImageIO.write(image, "png", response.getOutputStream());
     return Response.ok().build();
