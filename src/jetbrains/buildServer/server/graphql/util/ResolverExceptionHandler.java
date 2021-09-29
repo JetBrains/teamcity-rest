@@ -40,8 +40,13 @@ public class ResolverExceptionHandler implements DataFetcherExceptionHandler {
 
     GraphqlErrorBuilder builder = GraphqlErrorBuilder.newError()
                                                      .path(path)
-                                                     .location(sourceLocation)
-                                                     .message(exception.getMessage());
+                                                     .location(sourceLocation);
+
+    if(exception.getMessage() != null) {
+      builder.message(exception.getMessage());
+    } else {
+      builder.message(exception.getClass().getSimpleName());
+    }
 
     if(exception instanceof AccessDeniedException) {
       GraphQLError error = builder.errorType(TeamCityGraphQLErrorType.ACCESS_DENIED).build();
