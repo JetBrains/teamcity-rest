@@ -64,14 +64,14 @@ public class AgentResolver implements GraphQLResolver<Agent> {
 
   @NotNull
   public AbstractAgentPool agentPool(@NotNull Agent agent, @NotNull DataFetchingEnvironment env) {
-    SBuildAgent realAgent = env.getLocalContext();
+    SBuildAgent realAgent = getRealAgent(agent, env);
 
     return myPoolFactory.produce(realAgent.getAgentPool());
   }
 
   @NotNull
   public AgentEnvironment environment(@NotNull Agent agent, @NotNull DataFetchingEnvironment env) {
-    SBuildAgent realAgent = env.getLocalContext();
+    SBuildAgent realAgent = getRealAgent(agent, env);
 
     return new AgentEnvironment(new OS(realAgent.getOperatingSystemName(), OSType.guessByName(realAgent.getOperatingSystemName())));
   }
@@ -79,7 +79,7 @@ public class AgentResolver implements GraphQLResolver<Agent> {
   @NotNull
   public AssociatedAgentBuildTypesConnection associatedBuildTypes(@NotNull Agent agent, @Nullable AgentBuildTypesFilter filter, @NotNull DataFetchingEnvironment env) {
     return buildTypes(
-      agent,
+      getRealAgent(agent, env),
       filter == null ? null : filter.getCompatible(),
       filter == null ? null : filter.getAssigned(),
       true,
@@ -90,7 +90,7 @@ public class AgentResolver implements GraphQLResolver<Agent> {
   @NotNull
   public DiassociatedAgentBuildTypesConnection dissociatedBuildTypes(@NotNull Agent agent, @Nullable AgentBuildTypesFilter filter, @NotNull DataFetchingEnvironment env) {
     return buildTypes(
-      agent,
+      getRealAgent(agent, env),
       filter == null ? null : filter.getCompatible(),
       filter == null ? null : filter.getAssigned(),
       true,
@@ -98,14 +98,23 @@ public class AgentResolver implements GraphQLResolver<Agent> {
     );
   }
 
+  private SBuildAgent getRealAgent(@NotNull Agent agent, @NotNull DataFetchingEnvironment env) {
+    SBuildAgent realAgent = env.getLocalContext();
+
+    if(realAgent != null) {
+      return realAgent;
+    }
+
+    return myAgentManager.findAgentById(agent.getId(), true);
+  }
+
   @NotNull
   private DiassociatedAgentBuildTypesConnection buildTypes(
-    @NotNull Agent agent,
+    @NotNull SBuildAgent realAgent,
     @Nullable Boolean compatible,
     @Nullable Boolean assigned,
     @NotNull Boolean associatedWithPool,
     @NotNull DataFetchingEnvironment env) {
-    SBuildAgent realAgent = env.getLocalContext();
     AgentRunPolicy policy = (myAgentManager.getRunConfigurationPolicy(realAgent) == BuildAgentManager.RunConfigurationPolicy.ALL_COMPATIBLE_CONFIGURATIONS) ?
                            AgentRunPolicy.ALL :
                            AgentRunPolicy.ASSIGNED;
