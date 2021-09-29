@@ -36,7 +36,10 @@ import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.*;
-import jetbrains.buildServer.users.*;
+import jetbrains.buildServer.users.PropertyKey;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.users.impl.UserImpl;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
@@ -64,7 +67,6 @@ public class UserFinder extends DelegatingFinder<SUser> {
 
   @LocatorDimension("id") private static final Dimension<Long> ID = new Dimension<>("id");
   @LocatorDimension("username") private static final Dimension<String> USERNAME = new Dimension<>("username");
-  @LocatorDimension("avatarHash") private static final Dimension<String> AVATAR_HASH = new Dimension<>("avatarHash");
   @LocatorDimension(value = "group", format = LocatorName.USER_GROUP, notes = "User group (direct parent) locator.")
   private static final Dimension<SUserGroup> GROUP = new Dimension<>("group");
   @LocatorDimension(value = "affectedGroup", format = LocatorName.USER_GROUP, notes = "User group (direct or indirect parent) locator.")
@@ -174,10 +176,6 @@ public class UserFinder extends DelegatingFinder<SUser> {
 
   public static String getLocatorByUsername(@NotNull final String username) {
     return Locator.getStringLocator(USERNAME.name, username);
-  }
-
-  public static String getLocatorByAvatarHash(@NotNull final String avatarHash) {
-    return Locator.getStringLocator(AVATAR_HASH.name, avatarHash);
   }
 
   public static String getLocatorByGroup(@NotNull final SUserGroup userGroup) {
@@ -482,19 +480,6 @@ public class UserFinder extends DelegatingFinder<SUser> {
                                  }
                                  return Collections.singletonList(user);
                                });
-
-      dimensionString(AVATAR_HASH).description("user's avatar hash")
-                                  .filter((value, item) -> value.equalsIgnoreCase(item.getPropertyValue(UserAvatarsManager.AVATAR_HASH)))
-                                  .toItems(dimension -> {
-                                    Optional<SUser> optional = myUserModel.findUsersByPropertyValue(UserAvatarsManager.AVATAR_HASH, dimension, false)
-                                                                          .getUsers().stream().findFirst();
-                                    if (!optional.isPresent()) {
-                                      throw new NotFoundException("No user can be found by avatar hash '" + dimension + "'.");
-                                    }
-                                    final SUser user = optional.get();
-                                    checkViewUserPermission(user);
-                                    return Collections.singletonList(user);
-                                  });
 
       final Type<SUserGroup> myGroupMapper = type(dimensionValue -> myGroupFinder.getGroup(dimensionValue)).description("user groups locator");
 
