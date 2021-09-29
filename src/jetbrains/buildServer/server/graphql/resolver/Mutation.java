@@ -16,35 +16,30 @@
 
 package jetbrains.buildServer.server.graphql.resolver;
 
-import com.intellij.openapi.diagnostic.Logger;
-import graphql.GraphqlErrorBuilder;
 import graphql.execution.DataFetcherResult;
 import graphql.kickstart.tools.GraphQLMutationResolver;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import jetbrains.buildServer.server.graphql.model.Agent;
 import jetbrains.buildServer.server.graphql.model.AgentRunPolicy;
+import jetbrains.buildServer.server.graphql.model.Project;
+import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.server.graphql.model.mutation.*;
-import jetbrains.buildServer.server.graphql.util.TeamCityGraphQLErrorType;
+import jetbrains.buildServer.server.graphql.util.EntityNotFoundGraphQLError;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
-import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.serverSide.BuildAgentManager;
-import jetbrains.buildServer.serverSide.SBuildAgent;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeManager;
-import jetbrains.buildServer.util.Action;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class Mutation implements GraphQLMutationResolver {
-  private static final Logger LOG = Logger.getInstance(Mutation.class.getName());
-
   @Autowired
   @NotNull
   private AgentFinder myAgentFinder;
@@ -62,112 +57,118 @@ public class Mutation implements GraphQLMutationResolver {
   private AgentTypeManager myAgentTypeManager;
 
   @NotNull
-  public SetAgentRunPolicyPayload setAgentRunPolicy(@NotNull SetAgentRunPolicyInput input) {
-    /*return performSafe(
+  public DataFetcherResult<SetAgentRunPolicyPayload> setAgentRunPolicy(@NotNull SetAgentRunPolicyInput input) {
+    return runWithAgent(
       input.getAgentId(),
-      (agent) -> {
+      realAgent -> {
         BuildAgentManager.RunConfigurationPolicy policy = input.getAgentRunPolicy() == AgentRunPolicy.ALL ?
                                                           BuildAgentManager.RunConfigurationPolicy.ALL_COMPATIBLE_CONFIGURATIONS :
                                                           BuildAgentManager.RunConfigurationPolicy.SELECTED_COMPATIBLE_CONFIGURATIONS;
 
-        myAgentTypeManager.setRunConfigurationPolicy(agent.getAgentTypeId(), policy);
-      },
-      "Exception while setting agent run scope."
-    );
-     */
+        myAgentTypeManager.setRunConfigurationPolicy(realAgent.getAgentTypeId(), policy);
 
-    return null;
+        return DataFetcherResult.<SetAgentRunPolicyPayload>newResult()
+                                .data(new SetAgentRunPolicyPayload(new Agent(realAgent)))
+                                .build();
+      }
+    );
   }
 
   @NotNull
-  public AssignBuildTypeWithAgentPayload assignBuildTypeWithAgent(@NotNull AssignBuildTypeWithAgentInput input) {
-    return null;
-    /*
-    return performSafe(
+  public DataFetcherResult<AssignBuildTypeWithAgentPayload> assignBuildTypeWithAgent(@NotNull AssignBuildTypeWithAgentInput input) {
+    return runWithAgent(
       input.getAgentId(),
-      (agent) -> {
+      agent -> {
+        DataFetcherResult.Builder<AssignBuildTypeWithAgentPayload> result = DataFetcherResult.newResult();
         SBuildType bt = myBuildTypeFinder.getItem("id:" + input.getBuildTypeId()).getBuildType();
+        if(bt == null) {
+          final String errorMessage = String.format("Build type with id=%s is not found.", input.getBuildTypeId());
+          return result.error(new EntityNotFoundGraphQLError(errorMessage)).build();
+        }
+
         myAgentTypeManager.includeRunConfigurationsToAllowed(agent.getAgentTypeId(), new String[] { bt.getInternalId() });
-      },
-      "Exception while assigning build type to an agent."
+
+        return result.data(new AssignBuildTypeWithAgentPayload(new Agent(agent), new BuildType(bt))).build();
+      }
     );
-    */
   }
 
   @NotNull
-  public UnassignBuildTypeFromAgentPayload unassignBuildTypeFromAgent(@NotNull UnassignBuildTypeFromAgentInput input) {
-    /*
-    return performSafe(
+  public DataFetcherResult<UnassignBuildTypeFromAgentPayload> unassignBuildTypeFromAgent(@NotNull UnassignBuildTypeFromAgentInput input) {
+    return runWithAgent(
       input.getAgentId(),
-      (agent) -> {
+      agent -> {
+        DataFetcherResult.Builder<UnassignBuildTypeFromAgentPayload> result = DataFetcherResult.newResult();
         SBuildType bt = myBuildTypeFinder.getItem("id:" + input.getBuildTypeId()).getBuildType();
-        myAgentTypeManager.excludeRunConfigurationsFromAllowed(agent.getAgentTypeId(), new String[]{bt.getInternalId()});
-      },
-      "Exception while unassigning build type from an agent."
-    );
-     */
 
-    return null;
+        if(bt == null) {
+          final String errorMessage = String.format("Build type with id=%s is not found.", input.getBuildTypeId());
+          return result.error(new EntityNotFoundGraphQLError(errorMessage)).build();
+        }
+
+        myAgentTypeManager.excludeRunConfigurationsFromAllowed(agent.getAgentTypeId(), new String[]{ bt.getInternalId() });
+
+        return result.data(new UnassignBuildTypeFromAgentPayload(new Agent(agent), new BuildType(bt))).build();
+      }
+    );
   }
 
   @NotNull
-  public AssignProjectBuildTypesWithAgentPayload assignProjectBuildTypesWithAgent(@NotNull AssignProjectBuildTypesWithAgentInput input) {
-    /*
-    return performSafe(
+  public DataFetcherResult<AssignProjectBuildTypesWithAgentPayload> assignProjectBuildTypesWithAgent(@NotNull AssignProjectBuildTypesWithAgentInput input) {
+    return runWithAgent(
       input.getAgentId(),
-      (agent) -> {
+      agent -> {
         SProject project = myProjectFinder.getItem("id:" + input.getProjectId());
         String[] bts = project.getBuildTypes().stream().map(bt -> bt.getInternalId()).collect(Collectors.toSet()).toArray(new String[0]);
         myAgentTypeManager.includeRunConfigurationsToAllowed(agent.getAgentTypeId(), bts);
-      },
-      "Exception while assigning build type to an agent."
-    );
 
-     */
-    return null;
+        return DataFetcherResult.<AssignProjectBuildTypesWithAgentPayload>newResult()
+                                .data(new AssignProjectBuildTypesWithAgentPayload(new Agent(agent), new Project(project)))
+                                .build();
+      }
+    );
   }
 
   @NotNull
-  public UnassignProjectBuildTypesFromAgentPayload unassignProjectBuildTypesFromAgent(@NotNull UnassignProjectBuildTypesFromAgentInput input) {
-    return null;
-    /*
-    return performSafe(
+  public DataFetcherResult<UnassignProjectBuildTypesFromAgentPayload> unassignProjectBuildTypesFromAgent(@NotNull UnassignProjectBuildTypesFromAgentInput input) {
+    return runWithAgent(
       input.getAgentId(),
-      (agent) -> {
+      agent -> {
         SProject project = myProjectFinder.getItem("id:" + input.getProjectId());
         List<String> bts = project.getBuildTypes().stream().map(bt -> bt.getInternalId()).collect(Collectors.toList());
         myAgentTypeManager.excludeRunConfigurationsFromAllowed(agent.getAgentTypeId(), bts.toArray(new String[0]));
-      },
-      "Exception while unassigning build type from an agent."
-    );
 
-     */
+        return DataFetcherResult.<UnassignProjectBuildTypesFromAgentPayload>newResult()
+                                .data(new UnassignProjectBuildTypesFromAgentPayload(new Agent(agent), new Project(project)))
+                                .build();
+      }
+    );
   }
 
   @NotNull
-  public UnassignAllAgentBuildTypesPayload unassignAllAgentBuildTypes(@NotNull UnassignAllAgentBuildTypesInput input) {
-    /*
-    return performSafe(
+  public DataFetcherResult<UnassignAllAgentBuildTypesPayload> unassignAllAgentBuildTypes(@NotNull UnassignAllAgentBuildTypesInput input) {
+    return runWithAgent(
       input.getAgentId(),
-      (agent) -> {
+      agent -> {
         Set<String> assignedBuildTypes = AgentFinder.getAssignedBuildTypes(agent);
 
         myAgentTypeManager.excludeBuildTypesFromAllowed(agent.getAgentTypeId(), assignedBuildTypes);
-      },
-      "Exception while unassigning all build types from an agent."
-    );*/
-    return null;
+
+        return DataFetcherResult.<UnassignAllAgentBuildTypesPayload>newResult()
+                                .data(new UnassignAllAgentBuildTypesPayload(new Agent(agent)))
+                                .build();
+      }
+    );
   }
 
   @NotNull
-  private DataFetcherResult<Boolean> performSafe(@NotNull String agentId, @NotNull Action<SBuildAgent> action, @NotNull String exceptionMessage) {
+  private <T> DataFetcherResult<T> runWithAgent(int agentId, @NotNull Function<SBuildAgent, DataFetcherResult<T>> action) {
     SBuildAgent agent = myAgentFinder.findSingleItem(Locator.locator("id:" + agentId));
 
     if(agent == null) {
-      throw new NotFoundException(String.format("Agent with id=%s does not exist", agentId));
+      return DataFetcherResult.<T>newResult().error(new EntityNotFoundGraphQLError(String.format("Agent with id=%s does not exist", agentId))).build();
     }
 
-    action.apply(agent);
-    return DataFetcherResult.<Boolean>newResult().data(true).build();
+    return action.apply(agent);
   }
 }

@@ -20,19 +20,19 @@ import jetbrains.buildServer.server.graphql.model.AgentRunPolicy;
 import org.jetbrains.annotations.NotNull;
 
 public class SetAgentRunPolicyInput {
-  @NotNull
-  private final String agentId;
+  private int agentId;
 
-  @NotNull
-  private final AgentRunPolicy agentRunPolicy;
+  private AgentRunPolicy agentRunPolicy;
 
-  public SetAgentRunPolicyInput(@NotNull String agentId, @NotNull AgentRunPolicy agentRunPolicy) {
+  public void setAgentId(int agentId) {
     this.agentId = agentId;
+  }
+
+  public void setAgentRunPolicy(AgentRunPolicy agentRunPolicy) {
     this.agentRunPolicy = agentRunPolicy;
   }
 
-  @NotNull
-  public String getAgentId() {
+  public int getAgentId() {
     return agentId;
   }
 

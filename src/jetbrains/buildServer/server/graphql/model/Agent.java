@@ -20,20 +20,18 @@ import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
 
 public class Agent {
-  @NotNull
-  private final String myId;
+  private final int myId;
   @NotNull
   private final String myName;
   private final boolean myAuthorized;
 
   public Agent(@NotNull SBuildAgent realAgent) {
-    myId = Integer.toString(realAgent.getId());
+    myId = realAgent.getId();
     myName = realAgent.getName();
     myAuthorized = realAgent.isAuthorized();
   }
 
-  @NotNull
-  public String getId() {
+  public int getId() {
     return myId;
   }
 

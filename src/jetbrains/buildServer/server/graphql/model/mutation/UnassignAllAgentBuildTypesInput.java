@@ -16,18 +16,14 @@
 
 package jetbrains.buildServer.server.graphql.model.mutation;
 
-import org.jetbrains.annotations.NotNull;
-
 public class UnassignAllAgentBuildTypesInput {
-  @NotNull
-  private final String myAgentId;
+  private int myAgentId;
 
-  public UnassignAllAgentBuildTypesInput(@NotNull String agentId) {
+  public void setAgentId(int agentId) {
     myAgentId = agentId;
   }
 
-  @NotNull
-  public String getAgentId() {
+  public int getAgentId() {
     return myAgentId;
   }
 }
