@@ -489,7 +489,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
                                     Optional<SUser> optional = myUserModel.findUsersByPropertyValue(UserAvatarsManager.AVATAR_HASH, dimension, false)
                                                                           .getUsers().stream().findFirst();
                                     if (!optional.isPresent()) {
-                                      throw new NotFoundException("No user can be found by username '" + dimension + "'.");
+                                      throw new NotFoundException("No user can be found by avatar hash '" + dimension + "'.");
                                     }
                                     final SUser user = optional.get();
                                     checkViewUserPermission(user);
