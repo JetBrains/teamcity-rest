@@ -43,6 +43,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.http.MediaType;
 
 import static jetbrains.buildServer.server.rest.request.AvatarRequest.API_AVATARS_URL;
+import static jetbrains.buildServer.users.UserAvatarsManager.AVATAR_HASH;
 
 @Api("Avatar")
 @Path(API_AVATARS_URL)
@@ -91,6 +92,8 @@ public class AvatarRequest {
     if (size < 2 || size > 300) throw new BadRequestException("\"size\" must be bigger or equal than 2 and lower or equal than 300");
 
     final SUser user = myUserFinder.getItem(userLocator);
+
+    if (!hash.equals(user.getPropertyValue(AVATAR_HASH))) throw new NotFoundException("Avatar with hash - " + hash + " not found");
 
     final BufferedImage image = myUserAvatarsManager.getAvatar(user, size);
     if (image == null) throw new NotFoundException("avatar (username: " + user.getUsername() + ") not found");
