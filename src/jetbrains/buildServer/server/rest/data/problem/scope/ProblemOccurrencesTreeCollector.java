@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.data.problem.scope;
 
+import com.google.common.base.Charsets;
+import com.google.common.hash.Hashing;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -112,7 +114,7 @@ public class ProblemOccurrencesTreeCollector {
     List<LeafInfo<BuildProblem, ProblemCounters>> problems = groupProblems(problemStream);
 
     ScopeTree<BuildProblem, ProblemCounters> tree = new ScopeTree<>(
-      new ProblemScope(SProject.ROOT_PROJECT_ID, ProblemScopeType.PROJECT),
+      new ProblemScope(SProject.ROOT_PROJECT_ID, SProject.ROOT_PROJECT_ID, ProblemScopeType.PROJECT),
       new ProblemCounters(0, 0),
       problems
     );
@@ -136,7 +138,7 @@ public class ProblemOccurrencesTreeCollector {
     List<LeafInfo<BuildProblem, ProblemCounters>> problems = groupProblems(myProblemOccurrenceFinder.getItems(problemsLocator).myEntries.stream());
 
     return new ScopeTree<>(
-      new ProblemScope(SProject.ROOT_PROJECT_ID, ProblemScopeType.PROJECT),
+      new ProblemScope(SProject.ROOT_PROJECT_ID, SProject.ROOT_PROJECT_ID, ProblemScopeType.PROJECT),
       new ProblemCounters(0, 0),
       problems
     );
@@ -225,12 +227,15 @@ public class ProblemOccurrencesTreeCollector {
 
       for (SProject ancestor : buildType.getProject().getProjectPath()) {
         String ancestorId = ancestor.getExternalId();
+        String nodeId = Hashing.sha1().hashString("P" + ancestor.getProjectId(), Charsets.UTF_8).toString();
 
-        scopes.add(new ProblemScope(ancestorId, ProblemScopeType.PROJECT));
+        scopes.add(new ProblemScope(nodeId, ancestorId, ProblemScopeType.PROJECT));
       }
 
-      scopes.add(new ProblemScope(buildType.getExternalId(), ProblemScopeType.BUILD_TYPE));
-      scopes.add(new ProblemScope(Long.toString(promotion.getId()), ProblemScopeType.BUILD));
+      String btNodeId = Hashing.sha1().hashString("BT" + buildType.getInternalId(), Charsets.UTF_8).toString();
+      scopes.add(new ProblemScope(btNodeId, buildType.getExternalId(), ProblemScopeType.BUILD_TYPE));
+      String buildNodeId = Hashing.sha1().hashString("B" + Long.toString(promotion.getId()), Charsets.UTF_8).toString();
+      scopes.add(new ProblemScope(buildNodeId, Long.toString(promotion.getId()), ProblemScopeType.BUILD));
 
       String problemType = firstProblem.getBuildProblemData().getType();
       scopes.add(new ProblemScope(buildType.getExternalId() + Long.toString(promotion.getId()) + problemType, problemType, ProblemScopeType.PROBLEM_TYPE));
@@ -249,12 +254,6 @@ public class ProblemOccurrencesTreeCollector {
     private final String myId;
     private final String myName;
     private final ProblemScopeType myType;
-
-    public ProblemScope(@NotNull String id, @NotNull ProblemScopeType type) {
-      myId = id;
-      myName = id;
-      myType = type;
-    }
 
     public ProblemScope(@NotNull String id, @NotNull String name, @NotNull ProblemScopeType type) {
       myId = id;

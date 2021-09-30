@@ -142,9 +142,11 @@ public class TestScope implements LeafInfo<STestRun, TestCountersData> {
     for (SProject ancestor : myBuildType.getProject().getProjectPath()) {
       String ancestorId = ancestor.getExternalId();
 
-      myPath.add(new TestScopeInfo(ancestorId, ancestorId, TestScopeType.PROJECT));
+      String id = Hashing.sha1().hashString("P" + ancestor.getExternalId(), Charsets.UTF_8).toString();
+      myPath.add(new TestScopeInfo(id, ancestorId, TestScopeType.PROJECT));
     }
-    myPath.add(new TestScopeInfo(myBuildType.getExternalId(), myBuildType.getExternalId(), TestScopeType.BUILD_TYPE));
+    String btId = Hashing.sha1().hashString("BT" + myBuildType.getInternalId(), Charsets.UTF_8).toString();
+    myPath.add(new TestScopeInfo(btId, myBuildType.getExternalId(), TestScopeType.BUILD_TYPE));
 
     String suiteId = Hashing.sha1().hashString(myBuildType.getExternalId() + "s" + mySuite, Charsets.UTF_8).toString();
     myPath.add(new TestScopeInfo(suiteId, mySuite, TestScopeType.SUITE));
