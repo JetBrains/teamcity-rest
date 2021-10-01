@@ -19,15 +19,11 @@ package jetbrains.buildServer.server.graphql.resolver;
 import graphql.execution.DataFetcherResult;
 import java.util.Arrays;
 import java.util.Collections;
-import jetbrains.buildServer.server.graphql.model.mutation.AssignProjectWithAgentPoolPayload;
-import jetbrains.buildServer.server.graphql.model.mutation.UnassignProjectFromAgentPoolInput;
-import jetbrains.buildServer.server.graphql.model.mutation.UnassignProjectFromAgentPoolPayload;
+import jetbrains.buildServer.server.graphql.model.mutation.*;
 import jetbrains.buildServer.server.graphql.model.mutation.agentPool.*;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AgentPoolMutation;
-import jetbrains.buildServer.serverSide.agentPools.AgentPool;
-import jetbrains.buildServer.serverSide.agentPools.AgentPoolCannotBeRenamedException;
-import jetbrains.buildServer.serverSide.agentPools.AgentPoolLimitsImpl;
-import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
+import jetbrains.buildServer.serverSide.BuildAgentEx;
+import jetbrains.buildServer.serverSide.agentPools.*;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -43,7 +39,7 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     super.setUp();
 
     myChecker = new AgentPoolAccessCheckerForTests();
-    myMutation = new AgentPoolMutation(myFixture.getAgentPoolManager(), myFixture.getProjectManager(), myChecker);
+    myMutation = new AgentPoolMutation(myFixture.getAgentPoolManager(), myFixture.getProjectManager(), myFixture.getBuildAgentManager(), myChecker);
   }
 
   @Test
@@ -154,6 +150,37 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     assertEquals(projectName, payload.getProject().getName());
 
     assertContains(myFixture.getAgentPoolManager().getPoolProjects(pool.getAgentPoolId()), project.getProjectId());
+  }
+
+  @Test
+  public void testMoveAgentToPool() throws AgentPoolCannotBeRenamedException {
+    final String poolName = "testPool";
+    AgentPool targetPool = myFixture.getAgentPoolManager().createNewAgentPool(poolName);
+    BuildAgentEx agent = myFixture.createEnabledAgent("test");
+
+    // Let's ensure that our mock agent is created in default pool
+    assertEquals(AgentPool.DEFAULT_POOL_ID, agent.getAgentPoolId());
+
+    MoveAgentToAgentPoolInput input = new MoveAgentToAgentPoolInput();
+    input.setAgentId(agent.getId());
+    input.setTargetAgentPoolId(targetPool.getAgentPoolId());
+
+    DataFetcherResult<MoveAgentToAgentPoolPayload> result = myMutation.moveAgentToAgentPool(input);
+    assertNotNull(result);
+    assertFalse(result.hasErrors());
+    assertNotNull(result.getData());
+
+    MoveAgentToAgentPoolPayload payload = result.getData();
+
+    assertEquals(AgentPool.DEFAULT_POOL_ID, payload.getSourceAgentPool().getId());
+    assertEquals(targetPool.getAgentPoolId(), payload.getTargetAgentPool().getId());
+    assertEquals(agent.getId(), payload.getAgent().getId());
+
+    // Agent must be deleted from source pool
+    assertNotContains(myFixture.getAgentPoolManager().getAgentTypeIdsByPool(AgentPool.DEFAULT_POOL_ID), agent.getAgentTypeId());
+
+    // Agent must be moved to target pool
+    assertContains(myFixture.getAgentPoolManager().getAgentTypeIdsByPool(targetPool.getAgentPoolId()), agent.getAgentTypeId());
   }
 
   @Test

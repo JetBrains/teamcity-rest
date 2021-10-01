@@ -16,26 +16,22 @@
 
 package jetbrains.buildServer.server.graphql.model.mutation;
 
-import org.jetbrains.annotations.NotNull;
-
 public class MoveAgentToAgentPoolInput {
-  @NotNull
-  private final String myAgentId;
-  @NotNull
-  private final String myTargetAgentPoolId;
+  private int myAgentId;
+  private int myTargetAgentPoolId;
 
-  public MoveAgentToAgentPoolInput(@NotNull String agentId, @NotNull String targetAgentPoolId) {
+  public void setAgentId(int agentId) {
     myAgentId = agentId;
+  }
+
+  public void setTargetAgentPoolId(int targetAgentPoolId) {
     myTargetAgentPoolId = targetAgentPoolId;
   }
 
-  @NotNull
-  public String getAgentId() {
+  public int getAgentId() {
     return myAgentId;
   }
-
-  @NotNull
-  public String getTargetAgentPoolId() {
+  public int getTargetAgentPoolId() {
     return myTargetAgentPoolId;
   }
 }

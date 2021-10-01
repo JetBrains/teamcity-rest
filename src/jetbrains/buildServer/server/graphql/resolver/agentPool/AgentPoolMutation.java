@@ -23,14 +23,14 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.Used;
+import jetbrains.buildServer.server.graphql.model.Agent;
 import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.model.mutation.*;
 import jetbrains.buildServer.server.graphql.model.mutation.agentPool.*;
 import jetbrains.buildServer.server.graphql.util.EntityNotFoundGraphQLError;
 import jetbrains.buildServer.server.graphql.util.OperationFailedGraphQLError;
 import jetbrains.buildServer.server.graphql.util.UnexpectedServerGraphQLError;
-import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.*;
 import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
@@ -47,13 +47,18 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   private final ProjectManager myProjectManager;
 
   @NotNull
+  private final BuildAgentManagerEx myBuildAgentManager;
+
+  @NotNull
   private final AgentPoolActionsAccessChecker myAgentPoolActionsAccessChecker;
 
   public AgentPoolMutation(@NotNull AgentPoolManager agentPoolManager,
                            @NotNull ProjectManager projectManager,
+                           @NotNull BuildAgentManagerEx buildAgentManager,
                            @NotNull AgentPoolActionsAccessChecker agentPoolActionsAccessChecker) {
     myAgentPoolManager = agentPoolManager;
     myProjectManager = projectManager;
+    myBuildAgentManager = buildAgentManager;
     myAgentPoolActionsAccessChecker = agentPoolActionsAccessChecker;
   }
 
@@ -131,8 +136,38 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   }
 
   @NotNull
-  public MoveAgentToAgentPoolPayload moveAgentToAgentPool(@NotNull MoveAgentToAgentPoolInput input) {
-    return null;
+  public DataFetcherResult<MoveAgentToAgentPoolPayload> moveAgentToAgentPool(@NotNull MoveAgentToAgentPoolInput input) {
+    DataFetcherResult.Builder<MoveAgentToAgentPoolPayload> result = DataFetcherResult.newResult();
+    int agentId = input.getAgentId();
+    int targetPoolId = input.getTargetAgentPoolId();
+
+    BuildAgentEx agent = myBuildAgentManager.findAgentById(agentId, true);
+    if(agent == null) {
+      return result.error(new EntityNotFoundGraphQLError(String.format("Agent with id=%d is not found.", agentId))).build();
+    }
+    int sourcePoolId = agent.getAgentPoolId();
+
+    try {
+      myAgentPoolManager.moveAgentToPool(targetPoolId, agent);
+    } catch (NoSuchAgentPoolException e) {
+      return result.error(new EntityNotFoundGraphQLError(String.format("Agent pool with id=%d is not found.", targetPoolId))).build();
+    } catch (AgentTypeCannotBeMovedException e) {
+      return result.error(new OperationFailedGraphQLError("Agent can't be moved.")).build();
+    } catch (PoolQuotaExceededException e) {
+      return result.error(new OperationFailedGraphQLError("Agent can't be moved, target agent pool is full.")).build();
+    }
+
+    AgentPool sourcePool = myAgentPoolManager.findAgentPoolById(sourcePoolId);
+    AgentPool targetPool = myAgentPoolManager.findAgentPoolById(targetPoolId);
+
+    // Neither of those pools should not be null as we've just moved an agent from one pool to another.
+    // However, someone could have deleted a pool in between.
+    // Strictly speaking, the same is true for an agent, but let's not bother.
+    return result.data(new MoveAgentToAgentPoolPayload(
+      new Agent(agent),
+      sourcePool == null ? null : new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(sourcePool),
+      targetPool == null ? null : new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(targetPool)
+    )).build();
   }
 
   @NotNull

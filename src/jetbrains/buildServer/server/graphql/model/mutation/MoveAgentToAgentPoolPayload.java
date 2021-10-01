@@ -20,18 +20,19 @@ package jetbrains.buildServer.server.graphql.model.mutation;
 import jetbrains.buildServer.server.graphql.model.Agent;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class MoveAgentToAgentPoolPayload {
   @NotNull
   private final Agent myAgent;
 
-  @NotNull
+  @Nullable
   private final AgentPool mySourceAgentPool;
 
-  @NotNull
+  @Nullable
   private final AgentPool myTargetAgentPool;
 
-  public MoveAgentToAgentPoolPayload(@NotNull Agent agent, @NotNull AgentPool sourceAgentPool, @NotNull AgentPool targetAgentPool) {
+  public MoveAgentToAgentPoolPayload(@NotNull Agent agent, @Nullable AgentPool sourceAgentPool, @Nullable AgentPool targetAgentPool) {
     myAgent = agent;
     mySourceAgentPool = sourceAgentPool;
     myTargetAgentPool = targetAgentPool;
@@ -42,12 +43,12 @@ public class MoveAgentToAgentPoolPayload {
     return myAgent;
   }
 
-  @NotNull
+  @Nullable
   public AgentPool getSourceAgentPool() {
     return mySourceAgentPool;
   }
 
-  @NotNull
+  @Nullable
   public AgentPool getTargetAgentPool() {
     return myTargetAgentPool;
   }
