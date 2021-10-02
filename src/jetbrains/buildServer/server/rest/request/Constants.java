@@ -24,6 +24,7 @@ import jetbrains.buildServer.serverSide.TeamCityProperties;
  */
 public class Constants {
   public static final int DEFAULT_PAGE_ITEMS_COUNT = 100;
+  public static final int CACHE_CONTROL_NEVER_EXPIRES = 31536000;
 
   public static final String API_URL = "/app/rest";
   public static final String GRAPHQL_API_URL = "/app/graphql";

@@ -43,6 +43,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.http.MediaType;
 
 import static jetbrains.buildServer.server.rest.request.AvatarRequest.API_AVATARS_URL;
+import static jetbrains.buildServer.server.rest.request.Constants.CACHE_CONTROL_NEVER_EXPIRES;
 import static jetbrains.buildServer.users.UserAvatarsManager.AVATAR_HASH;
 
 @Api("Avatar")
@@ -52,6 +53,9 @@ public class AvatarRequest {
   public static final String API_AVATARS_URL = Constants.API_URL + "/avatars";
   public static final String AVATAR_MAX_SIZE = "teamcity.user.avatar.maxSize";  // in bytes
   public static final String AVATAR_CACHE_LIFETIME = "teamcity.user.avatar.cacheLifetime";  // in seconds
+
+  private static final int MIN_AVATAR_SIZE = 2;
+  private static final int MAX_AVATAR_SIZE = 300;
 
   @Context @NotNull private UserFinder myUserFinder;
   @Context @NotNull private UserAvatarsManager myUserAvatarsManager;
@@ -63,16 +67,18 @@ public class AvatarRequest {
   public Response getAvatar(
     @Context HttpServletResponse response,
     @ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
-    @ApiParam(value = "avatar's size", allowableValues = "range[2, 300]") @PathParam("size") Integer size
+    @ApiParam(value = "avatar's size", allowableValues = "range[" + MIN_AVATAR_SIZE + ", " + MAX_AVATAR_SIZE + "]") @PathParam("size") Integer size
   ) throws IOException {
-    if (size < 2 || size > 300) throw new BadRequestException("\"size\" must be bigger or equal than 2 and lower or equal than 300");
+    if (size < MIN_AVATAR_SIZE || size > MAX_AVATAR_SIZE) {
+      throw new BadRequestException("\"size\" must be bigger or equal than " + MIN_AVATAR_SIZE + " and lower or equal than " + MAX_AVATAR_SIZE);
+    }
 
     final SUser user = myUserFinder.getItem(userLocator);
 
     final BufferedImage image = myUserAvatarsManager.getAvatar(user, size);
     if (image == null) throw new NotFoundException("avatar (username: " + user.getUsername() + ") not found");
 
-    final int avatarCacheLifeTime = TeamCityProperties.getInteger(AVATAR_CACHE_LIFETIME, 86400);
+    final int avatarCacheLifeTime = getAvatarCacheLifetime();
     response.setHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + avatarCacheLifeTime);
 
     ImageIO.write(image, "png", response.getOutputStream());
@@ -86,10 +92,12 @@ public class AvatarRequest {
   public Response getAvatarWithHash(
     @Context HttpServletResponse response,
     @ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
-    @ApiParam(value = "avatar's size", allowableValues = "range[2, 300]") @PathParam("size") Integer size,
+    @ApiParam(value = "avatar's size", allowableValues = "range[" + MIN_AVATAR_SIZE + ", " + MAX_AVATAR_SIZE + "]") @PathParam("size") Integer size,
     @PathParam("hash") String hash
   ) throws IOException {
-    if (size < 2 || size > 300) throw new BadRequestException("\"size\" must be bigger or equal than 2 and lower or equal than 300");
+    if (size < MIN_AVATAR_SIZE || size > MAX_AVATAR_SIZE) {
+      throw new BadRequestException("\"size\" must be bigger or equal than " + MIN_AVATAR_SIZE + " and lower or equal than " + MAX_AVATAR_SIZE);
+    }
 
     final SUser user = myUserFinder.getItem(userLocator);
 
@@ -98,7 +106,7 @@ public class AvatarRequest {
     final BufferedImage image = myUserAvatarsManager.getAvatar(user, size);
     if (image == null) throw new NotFoundException("avatar (username: " + user.getUsername() + ") not found");
 
-    response.setHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + 31536000);  // never expires
+    response.setHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + CACHE_CONTROL_NEVER_EXPIRES);
 
     ImageIO.write(image, "png", response.getOutputStream());
     return Response.ok().build();
@@ -120,7 +128,7 @@ public class AvatarRequest {
     ServerAuthUtil.canEditUser(currentUser, targetUser);
 
     // check avatar file size
-    final long avatarMaxSize = TeamCityProperties.getLong(AVATAR_MAX_SIZE, 10_485_760);
+    final long avatarMaxSize = getAvatarMaxSize();
     if (request.getContentLength() >= avatarMaxSize) {
       throw new BadRequestException(String.format("The size of the avatar must be less than or equal to %d kilobytes (%d bytes)", avatarMaxSize / 1024, avatarMaxSize));
     }
@@ -144,5 +152,13 @@ public class AvatarRequest {
 
     myUserAvatarsManager.deleteAvatar(targetUser);
     return Response.noContent().build();
+  }
+
+  private static int getAvatarCacheLifetime() {
+    return TeamCityProperties.getInteger(AVATAR_CACHE_LIFETIME, 86400);
+  }
+
+  private static long getAvatarMaxSize() {
+    return TeamCityProperties.getLong(AVATAR_MAX_SIZE, 10_485_760);
   }
 }
