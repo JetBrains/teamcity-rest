@@ -43,6 +43,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.http.MediaType;
 
 import static jetbrains.buildServer.server.rest.request.AvatarRequest.API_AVATARS_URL;
+import static jetbrains.buildServer.server.rest.request.Constants.CACHE_CONTROL_MAX_AGE;
 import static jetbrains.buildServer.server.rest.request.Constants.CACHE_CONTROL_NEVER_EXPIRES;
 import static jetbrains.buildServer.users.UserAvatarsManager.AVATAR_HASH;
 
@@ -79,7 +80,7 @@ public class AvatarRequest {
     if (image == null) throw new NotFoundException("avatar (username: " + user.getUsername() + ") not found");
 
     final int avatarCacheLifeTime = getAvatarCacheLifetime();
-    response.setHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + avatarCacheLifeTime);
+    response.setHeader(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_MAX_AGE + avatarCacheLifeTime);
 
     ImageIO.write(image, "png", response.getOutputStream());
     return Response.ok().build();
@@ -106,7 +107,7 @@ public class AvatarRequest {
     final BufferedImage image = myUserAvatarsManager.getAvatar(user, size);
     if (image == null) throw new NotFoundException("avatar (username: " + user.getUsername() + ") not found");
 
-    response.setHeader(HttpHeaders.CACHE_CONTROL, "max-age=" + CACHE_CONTROL_NEVER_EXPIRES);
+    response.setHeader(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_MAX_AGE + CACHE_CONTROL_NEVER_EXPIRES);
 
     ImageIO.write(image, "png", response.getOutputStream());
     return Response.ok().build();
