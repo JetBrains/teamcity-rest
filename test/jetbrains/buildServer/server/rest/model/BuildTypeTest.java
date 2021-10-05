@@ -46,9 +46,9 @@ import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.vcs.CheckoutRules;
+import jetbrains.buildServer.vcs.OperationRequestor;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
-import jetbrains.buildServer.vcs.OperationRequestor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -525,7 +525,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     {
       BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long,settings($long,$locator(defaults:any))"), myBeanContext);
 
-      assertEquals(23, buildType.getSettings().properties.size());
+      assertEquals(24, buildType.getSettings().properties.size());
       parameterEquals(find(buildType.getSettings().properties, "buildNumberCounter"), "buildNumberCounter", "1", null);
       parameterEquals(find(buildType.getSettings().properties, "buildNumberPattern"), "buildNumberPattern", "aaa", null);
     }

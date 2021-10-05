@@ -1324,6 +1324,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
                            p("excludeDefaultBranchChanges", "false", true, null),
                            p("buildDefaultBranch", "true", true, null),
                            p("branchFilter", "+:*", true, null),
+                           p("generatedBuildConfigurationChecksum", "", true, null),
                            p("buildConfigurationType", "REGULAR", true, null));
 
     assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:true"), fields),
@@ -1344,6 +1345,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
                            p("excludeDefaultBranchChanges", "false", true, null),
                            p("buildDefaultBranch", "true", true, null),
                            p("branchFilter", "+:*", true, null),
+                           p("generatedBuildConfigurationChecksum", "", true, null),
                            p("buildConfigurationType", "REGULAR", true, null));
 
     assertCollectionEquals("", settingsSubResource.getParameters(new Locator("defaults:false"), fields),
