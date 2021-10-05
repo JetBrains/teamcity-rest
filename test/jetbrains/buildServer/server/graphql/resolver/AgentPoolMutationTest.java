@@ -39,7 +39,14 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     super.setUp();
 
     myChecker = new AgentPoolAccessCheckerForTests();
-    myMutation = new AgentPoolMutation(myFixture.getAgentPoolManager(), myFixture.getProjectManager(), myFixture.getBuildAgentManager(), myChecker);
+    myMutation = new AgentPoolMutation(
+      myFixture.getAgentPoolManager(),
+      myFixture.getProjectManager(),
+      myFixture.getBuildAgentManager(),
+      myFixture.getCloudManagerBase(),
+      myFixture.getAgentTypeFinder(),
+      myChecker
+    );
   }
 
   @Test

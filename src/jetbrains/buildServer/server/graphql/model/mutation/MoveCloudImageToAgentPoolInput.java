@@ -16,26 +16,24 @@
 
 package jetbrains.buildServer.server.graphql.model.mutation;
 
-import org.jetbrains.annotations.NotNull;
 
 public class MoveCloudImageToAgentPoolInput {
-  @NotNull
-  private final String myAgentTypeId;
-  @NotNull
-  private final String myTargetAgentPoolId;
+  private int myAgentTypeId;
+  private int myTargetAgentPoolId;
 
-  public MoveCloudImageToAgentPoolInput(@NotNull String agentTypeId, @NotNull String targetAgentPoolId) {
+  public void setAgentTypeId(int agentTypeId) {
     myAgentTypeId = agentTypeId;
+  }
+
+  public void setTargetAgentPoolId(int targetAgentPoolId) {
     myTargetAgentPoolId = targetAgentPoolId;
   }
 
-  @NotNull
-  public String getAgentTypeId() {
+  public int getAgentTypeId() {
     return myAgentTypeId;
   }
 
-  @NotNull
-  public String getTargetAgentPoolId() {
+  public int getTargetAgentPoolId() {
     return myTargetAgentPoolId;
   }
 }

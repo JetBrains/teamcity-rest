@@ -23,7 +23,11 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.Used;
+import jetbrains.buildServer.clouds.CloudClientEx;
+import jetbrains.buildServer.clouds.CloudProfile;
+import jetbrains.buildServer.clouds.server.CloudManagerBase;
 import jetbrains.buildServer.server.graphql.model.Agent;
+import jetbrains.buildServer.server.graphql.model.CloudImage;
 import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.model.mutation.*;
 import jetbrains.buildServer.server.graphql.model.mutation.agentPool.*;
@@ -32,6 +36,7 @@ import jetbrains.buildServer.server.graphql.util.OperationFailedGraphQLError;
 import jetbrains.buildServer.server.graphql.util.UnexpectedServerGraphQLError;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.*;
+import jetbrains.buildServer.serverSide.agentTypes.*;
 import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
@@ -52,13 +57,23 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   @NotNull
   private final AgentPoolActionsAccessChecker myAgentPoolActionsAccessChecker;
 
+  @NotNull
+  private final CloudManagerBase myCloudManager;
+
+  @NotNull
+  private final AgentTypeFinder myAgentTypeFinder;
+
   public AgentPoolMutation(@NotNull AgentPoolManager agentPoolManager,
                            @NotNull ProjectManager projectManager,
                            @NotNull BuildAgentManagerEx buildAgentManager,
+                           @NotNull CloudManagerBase cloudManager,
+                           @NotNull AgentTypeFinder agentTypeFinder,
                            @NotNull AgentPoolActionsAccessChecker agentPoolActionsAccessChecker) {
     myAgentPoolManager = agentPoolManager;
     myProjectManager = projectManager;
     myBuildAgentManager = buildAgentManager;
+    myCloudManager = cloudManager;
+    myAgentTypeFinder = agentTypeFinder;
     myAgentPoolActionsAccessChecker = agentPoolActionsAccessChecker;
   }
 
@@ -171,8 +186,46 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   }
 
   @NotNull
-  public MoveCloudImageToAgentPoolPayload moveCloudImageToAgentPool(@NotNull MoveCloudImageToAgentPoolInput input) {
-    return null;
+  public DataFetcherResult<MoveCloudImageToAgentPoolPayload> moveCloudImageToAgentPool(@NotNull MoveCloudImageToAgentPoolInput input) {
+    DataFetcherResult.Builder<MoveCloudImageToAgentPoolPayload> result = DataFetcherResult.newResult();
+    final int targetPoolId = input.getTargetAgentPoolId();
+
+    SAgentType agentType = myAgentTypeFinder.findAgentType(input.getAgentTypeId());
+    if (agentType == null) {
+      return result.error(new EntityNotFoundGraphQLError(String.format("Cloud image with agent type=%d does not exist.", input.getAgentTypeId()))).build();
+    }
+    final int sourcePoolId = agentType.getAgentPoolId();
+
+    if (!agentType.isCloud()) {
+      return result.error(new OperationFailedGraphQLError(String.format("Agent type=%d does not correspond to a cloud agent.", input.getAgentTypeId()))).build();
+    }
+
+    final AgentTypeKey typeKey = agentType.getAgentTypeKey();
+    CloudProfile profile = myCloudManager.findProfileGloballyById(typeKey.getProfileId());
+    if(profile == null) {
+      return result.error(new UnexpectedServerGraphQLError(String.format("Cloud profile with id=%s does not exist.", typeKey.getProfileId()))).build();
+    }
+
+    CloudClientEx client = myCloudManager.getClient(profile.getProjectId(), profile.getProfileId());
+    try {
+      myAgentPoolManager.moveAgentTypesToPool(targetPoolId, Collections.singleton(agentType.getAgentTypeId()));
+    } catch (NoSuchAgentPoolException e) {
+      return result.error(new EntityNotFoundGraphQLError(String.format("Agent pool with id=%d is not found.", targetPoolId))).build();
+    } catch (AgentTypeCannotBeMovedException e) {
+      return result.error(new OperationFailedGraphQLError("Image can't be moved.")).build();
+    } catch (PoolQuotaExceededException e) {
+      return result.error(new OperationFailedGraphQLError("Image can't be moved, target agent pool is full.")).build();
+    }
+
+    AgentPool sourcePool = myAgentPoolManager.findAgentPoolById(sourcePoolId);
+    AgentPool targetPool = myAgentPoolManager.findAgentPoolById(targetPoolId);
+    jetbrains.buildServer.clouds.CloudImage image = client.findImageById(typeKey.getTypeId());
+
+    return result.data(new MoveCloudImageToAgentPoolPayload(
+      new CloudImage(image, profile.getProfileId()),
+      new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(sourcePool),
+      new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(targetPool)
+    )).build();
   }
 
   @Used("graphql")
