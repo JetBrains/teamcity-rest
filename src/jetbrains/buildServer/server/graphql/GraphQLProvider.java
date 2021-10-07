@@ -23,9 +23,11 @@ import graphql.execution.AsyncExecutionStrategy;
 import graphql.execution.AsyncSerialExecutionStrategy;
 import graphql.execution.SubscriptionExecutionStrategy;
 import graphql.kickstart.tools.SchemaParser;
+import graphql.kickstart.tools.SchemaParserOptions;
 import graphql.schema.GraphQLSchema;
 import java.io.IOException;
 import java.net.URL;
+import java.util.concurrent.ExecutorService;
 import javax.annotation.PostConstruct;
 import jetbrains.buildServer.server.graphql.model.agentPool.actions.*;
 import jetbrains.buildServer.server.graphql.model.buildType.incompatibility.*;
@@ -34,6 +36,10 @@ import jetbrains.buildServer.server.graphql.resolver.agentPool.AgentPoolMutation
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AgentPoolResolver;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.ProjectAgentPoolResolver;
 import jetbrains.buildServer.server.graphql.util.ResolverExceptionHandler;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.util.executors.ExecutorsFactory;
+import kotlin.coroutines.CoroutineContext;
+import kotlinx.coroutines.ExecutorsKt;
 import org.apache.log4j.Level;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +48,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class GraphQLProvider {
+  private static final String GRAPHQL_RESOLVER_POOL_SIZE = "teamcity.graphql.resolvers.poolSize";
+  private static final int POOL_SIZE = TeamCityProperties.getInteger(GRAPHQL_RESOLVER_POOL_SIZE, 1);
+
+  private final ExecutorService myExecutor = ExecutorsFactory.newFixedDaemonExecutor("GraphQL resolver", POOL_SIZE);
   private GraphQL graphQL;
 
   @Autowired
@@ -116,6 +126,7 @@ public class GraphQLProvider {
   private GraphQLSchema buildSchema(String sdl) {
     return SchemaParser.newParser()
                 .schemaString(sdl)
+                .options(SchemaParserOptions.newOptions().coroutineContext((CoroutineContext) ExecutorsKt.from(myExecutor)).build())
                 .resolvers(
                   myQuery,
                   myMutation,
