@@ -41,6 +41,8 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.ChangeDescriptor;
 import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.ChangeStatusProvider;
@@ -210,6 +212,20 @@ public class Change {
   @XmlElement
   public String getComment() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("comment", false), () -> escapeNonPrintedCharacters(myModification.getDescription()));
+  }
+
+  /**
+   * Exeprimental, is there a better way to represent action availability across REST?
+   */
+  @XmlAttribute(name = "canEditComment")
+  public Boolean getCanEditComment() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("canEditComment", false, false),
+      () -> {
+        SecurityContext context = myBeanContext.getSingletonService(SecurityContext.class);
+        return AuthUtil.hasPermissionToEditModification(context.getAuthorityHolder(), myModification);
+      }
+    );
   }
 
   @XmlElement
