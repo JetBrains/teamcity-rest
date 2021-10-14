@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import java.util.UUID;
@@ -36,6 +37,7 @@ import jetbrains.buildServer.web.util.TwoFactorAuthUtil;
 import org.jetbrains.annotations.NotNull;
 
 @Path(Constants.API_URL + "/2FA")
+@Api(value = "2FA", hidden = true)
 public class TwoFactorRequest {
   @Context @NotNull private UserFinder myUserFinder;
   @Context @NotNull private TwoFactorSecretKeysUpdater myKeysUpdater;
