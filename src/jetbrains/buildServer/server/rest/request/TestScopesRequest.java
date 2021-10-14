@@ -45,7 +45,7 @@ import jetbrains.buildServer.serverSide.STestRun;
 import org.jetbrains.annotations.NotNull;
 
 @Path(TestScopesRequest.API_SUB_URL)
-@Api("TestScopes")
+@Api(value = "TestScopes", hidden = true)
 public class TestScopesRequest {
   public static final String API_SUB_URL = Constants.API_URL + "/testScopes";
   @Context @NotNull private BeanContext myBeanContext;
