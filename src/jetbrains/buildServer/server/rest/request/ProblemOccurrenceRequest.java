@@ -92,7 +92,7 @@ public class ProblemOccurrenceRequest {
    */
   @GET
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get all build problem occurrences.",nickname="getAllBuildProblemOccurrences")
+  @ApiOperation(value="Get all build problem occurrences.", nickname="getAllBuildProblemOccurrences")
   public ProblemOccurrences getProblems(@ApiParam(format = LocatorName.PROBLEM_OCCURRENCE) @QueryParam("locator") String locatorText,
                                         @QueryParam("fields") String fields,
                                         @Context UriInfo uriInfo,
@@ -111,11 +111,11 @@ public class ProblemOccurrenceRequest {
   @GET
   @Path("/tree")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get tree of build problem occurrences.",nickname="getBuildProblemOccurrencesTree")
+  @ApiOperation(value="Get tree of build problem occurrences.", nickname="getProblemsTree", hidden = true)
   public ProblemOccurrencesTree getProblemsTree(@QueryParam("locator") String locatorText,
-                                        @QueryParam("fields") String fields,
-                                        @Context UriInfo uriInfo,
-                                        @Context HttpServletRequest request) {
+                                                @QueryParam("fields") String fields,
+                                                @Context UriInfo uriInfo,
+                                                @Context HttpServletRequest request) {
     List<ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters>> tree = myProblemOccurrencesTreeCollector.getTree(new Locator(locatorText));
 
     return new jetbrains.buildServer.server.rest.model.problem.scope.ProblemOccurrencesTree(tree, new Fields(fields), myBeanContext);
@@ -125,7 +125,7 @@ public class ProblemOccurrenceRequest {
   @GET
   @Path("/subtree")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get tree of build problem occurrences.",nickname="getBuildProblemOccurrencesTree")
+  @ApiOperation(value="Get subtree of build problem occurrences.", nickname="getProblemsSubTree", hidden = true)
   public ProblemOccurrencesTree getProblemsSubTree(@QueryParam("locator") String locatorText,
                                                    @QueryParam("fields") String fields,
                                                    @Context UriInfo uriInfo,
@@ -138,7 +138,7 @@ public class ProblemOccurrenceRequest {
   @GET
   @Path("/{problemLocator}")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get a matching build problem occurrence.",nickname="getBuildProblemOccurrence")
+  @ApiOperation(value="Get a matching build problem occurrence.", nickname="getBuildProblemOccurrence")
   public ProblemOccurrence serveInstance(@ApiParam(format = LocatorName.PROBLEM_OCCURRENCE) @PathParam("problemLocator") String locatorText,
                                          @QueryParam("fields") String fields) {
     return new ProblemOccurrence(myProblemOccurrenceFinder.getItem(locatorText), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder),
