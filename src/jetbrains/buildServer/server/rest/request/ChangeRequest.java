@@ -267,7 +267,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/buildTypes")
   @Produces({"application/xml", "application/json"})
-  //@ApiOperation(value="Get build configurations related to the matching change.",nickname="getChangeRelatedBuildTypes")
+  @ApiOperation(value="Get build configurations related to the matching change.", nickname="getRelatedBuildTypes", hidden = true)
   public BuildTypes getRelatedBuildTypes(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                          @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
@@ -283,7 +283,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/firstBuilds")
   @Produces({"application/xml", "application/json"})
-  //@ApiOperation(value="Get first builds of the matching change.",nickname="getChangeFirstBuilds")
+  @ApiOperation(value="Get first builds of the matching change.", nickname="getChangeFirstBuilds", hidden = true)
   public Builds getChangeFirstBuilds(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                      @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
@@ -303,7 +303,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/deploymentConfigurations")
   @Produces({"application/xml", "application/json"})
-  //@ApiOperation(value="Get build configurations where this change could potentially be deployed.",nickname="getDeploymentConfigurations")
+  @ApiOperation(value="Get build configurations where this change could potentially be deployed.", nickname="getDeploymentConfigurations", hidden = true)
   public BuildTypes getDeploymentConfigurations(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                      @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
@@ -320,7 +320,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/deployments")
   @Produces({"application/xml", "application/json"})
-  //@ApiOperation(value="Get deployments with this change.",nickname="getDeployments")
+  @ApiOperation(value="Get deployments with this change.", nickname="getDeployments", hidden = true)
   public Builds getDeployments(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator, @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
 
@@ -338,7 +338,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/testsTree")
   @Produces({"application/xml", "application/json"})
-  //@ApiOperation(value="Get failed tests tree for the matching change.",nickname="getChangeFailedTestsTree")
+  @ApiOperation(value="Get failed tests tree for the matching change.", nickname="getChangeFailedTestsTree", hidden = true)
   public TestScopeTree getChangeFailedTestsTree(
     @ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
     @QueryParam(TestScopeTreeCollector.SUBTREE_ROOT_ID) String subTreeRootId, // todo: remove after ui migration
@@ -364,7 +364,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/problemsTree")
   @Produces({"application/xml", "application/json"})
-  //@ApiOperation(value="Get problems tree for the matching change.",nickname="getChangeProblemsTree")
+  @ApiOperation(value="Get problems tree for the matching change.", nickname="getChangeProblemsTree", hidden = true)
   public ProblemOccurrencesTree getChangeProblemsTree(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                       @QueryParam(ProblemOccurrencesTreeCollector.SUB_TREE_ROOT_ID) String subTreeRootId, // todo: remove after ui migration
                                       @QueryParam("treeLocator") String treeLocatorText,
@@ -391,7 +391,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/commiters")
   @Produces({"application/xml", "application/json"})
-  //@ApiOperation(value="Get unique commiters of the matching changes.",nickname="getUniqueCommiters")
+  @ApiOperation(value="Get unique commiters of the matching changes.", nickname="getUniqueCommiters", hidden = true)
   public Commiters getUniqueCommiters(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                       @QueryParam("fields") String fields) {
     Locator patchedChangeLocator = Locator.createPotentiallyEmptyLocator(changeLocator);
@@ -414,7 +414,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/files")
   @Produces({"application/xml", "application/json"})
-  //@ApiOperation(value="Get files of the matching change filtered by relation to a given buildType.",nickname="getFilteredFiles")
+  @ApiOperation(value="Get files of the matching change filtered by relation to a given buildType.", nickname="getFilteredFiles", hidden = true)
   public FileChanges getFilteredFiles(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocatorString,
                                       @QueryParam("buildTypeId") String builtTypeId,
                                       @QueryParam("fields") String fields) {
