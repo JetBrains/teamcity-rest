@@ -220,13 +220,13 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertSize(4, artifacts);
 
     artifacts = getArtifacts(".teamcity/logs", null);
-    assertSize(2, artifacts);
+    int logsCount = artifacts.size();
 
     artifacts = getArtifacts(".teamcity/logs", "hidden:true");
-    assertSize(2, artifacts);
+    assertSize(logsCount, artifacts);
 
     artifacts = getArtifacts(".teamcity/logs", "hidden:false");
-    assertSize(2, artifacts);
+    assertSize(logsCount, artifacts);
   }
 
   @Test
