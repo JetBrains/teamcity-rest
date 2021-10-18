@@ -52,6 +52,7 @@ import jetbrains.buildServer.serverSide.dependency.CyclicDependencyFoundExceptio
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
+import jetbrains.buildServer.serverSide.impl.xml.XmlConstants;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -62,6 +63,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import java.io.File;
 import java.util.*;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singleton;
 
 /*
  * User: Yegor Yarko
@@ -664,7 +668,7 @@ public class ProjectRequest {
     final AgentPoolManager agentPoolManager = myServiceLocator.getSingletonService(AgentPoolManager.class);
     final int agentPoolId = agentPool.getAgentPoolId();
     try {
-      agentPoolManager.dissociateProjectsFromPool(agentPoolId, Collections.singleton(project.getProjectId()));
+      agentPoolManager.dissociateProjectsFromPool(agentPoolId, singleton(project.getProjectId()));
     } catch (NoSuchAgentPoolException e) {
       throw new BadRequestException("Agent pool with id \'" + agentPoolId + "' is not found.");
     }
@@ -695,7 +699,7 @@ public class ProjectRequest {
     final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPoolFromPosted = pool.getAgentPoolFromPosted(myAgentPoolFinder);
     final int agentPoolId = agentPoolFromPosted.getAgentPoolId();
     try {
-      agentPoolManager.associateProjectsWithPool(agentPoolId, Collections.singleton(project.getProjectId()));
+      agentPoolManager.associateProjectsWithPool(agentPoolId, singleton(project.getProjectId()));
     } catch (NoSuchAgentPoolException e) {
       throw new BadRequestException("Agent pool with id \'" + agentPoolId + "' is not found.");
     }
@@ -922,10 +926,22 @@ public class ProjectRequest {
   public Project reloadSettingsFile (@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                      @QueryParam("fields") String fields) {
     myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
-    final SProject project = myProjectFinder.getItem(projectLocator);
-    final String projectConfigFile = project.getConfigurationFile().getAbsolutePath();
-    final List<File> emptyList = Collections.emptyList();
-    myBeanContext.getSingletonService(ProjectsLoader.class).reloadProjects(emptyList, Collections.singleton(new File(projectConfigFile)), emptyList);
+
+    try {
+      SProject project = myProjectFinder.getItem(projectLocator);
+      String projectConfigFile = project.getConfigurationFile().getAbsolutePath();
+      myBeanContext.getSingletonService(ProjectsLoader.class).reloadProjects(emptyList(), Collections.singleton(new File(projectConfigFile)), emptyList());
+    } catch (NotFoundException e) {
+      //this server doesn't see this project
+      if (!projectLocator.contains("id:")) {
+        throw e;
+      }
+      File projectsDir = myServiceLocator.getSingletonService(ServerPaths.class).getProjectsDir();
+      File projectDir = new File(projectsDir, projectLocator.substring(projectLocator.indexOf("id:") + 3));
+      String projectConfigFile = new File(projectDir, XmlConstants.PROJECT_CONFIG_FILENAME).getAbsolutePath();
+      myBeanContext.getSingletonService(ProjectsLoader.class).reloadProjects(singleton(new File(projectConfigFile)), emptyList(), emptyList());
+    }
+
     return new Project(myProjectFinder.getItem(projectLocator), new Fields(fields), myBeanContext);
   }
 
