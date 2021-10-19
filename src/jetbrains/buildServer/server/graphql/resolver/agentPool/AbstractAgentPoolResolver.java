@@ -21,6 +21,7 @@ import graphql.schema.DataFetchingEnvironment;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.clouds.CloudImage;
@@ -38,6 +39,7 @@ import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -101,12 +103,13 @@ public class AbstractAgentPoolResolver {
     int poolId = realPool.getAgentPoolId();
     AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
 
-    boolean canAuthorizeUnauthorizeAgent = AuthUtil.hasPermissionToAuthorizeAgentsInPool(authHolder, realPool);
-    boolean canEnableDisableAgent = AuthUtil.hasPermissionToEnableAgentsInPool(authHolder, realPool);
-    boolean canManageProjectPoolAssociations = myPoolActionsAccessChecker.canManageProjectsInPool(poolId);
-    boolean canRemoveAgents = myPoolActionsAccessChecker.canManageAgentsInPool(poolId);
+    boolean canManagePool = authHolder.isPermissionGrantedGlobally(Permission.MANAGE_AGENT_POOLS);
+    BooleanSupplier canAuthorizeUnauthorizeAgent     = () -> AuthUtil.hasPermissionToAuthorizeAgentsInPool(authHolder, realPool);
+    BooleanSupplier canEnableDisableAgent            = () -> AuthUtil.hasPermissionToEnableAgentsInPool(authHolder, realPool);
+    BooleanSupplier canManageProjectPoolAssociations = () -> myPoolActionsAccessChecker.canManageProjectsInPool(poolId);
+    BooleanSupplier canRemoveAgents                  = () -> myPoolActionsAccessChecker.canManageAgentsInPool(poolId);
 
-    return new AgentPoolPermissions(canAuthorizeUnauthorizeAgent, canManageProjectPoolAssociations, canEnableDisableAgent, canRemoveAgents);
+    return new AgentPoolPermissions(canAuthorizeUnauthorizeAgent, canManageProjectPoolAssociations, canEnableDisableAgent, canRemoveAgents, canManagePool);
   }
 
   @NotNull
