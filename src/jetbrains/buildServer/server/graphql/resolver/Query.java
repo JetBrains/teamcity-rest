@@ -20,7 +20,9 @@ import graphql.execution.DataFetcherResult;
 import graphql.kickstart.tools.GraphQLQueryResolver;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.List;
+import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.Agent;
+import jetbrains.buildServer.server.graphql.model.ProjectPermissions;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.GlobalPermissions;
@@ -39,6 +41,8 @@ import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
@@ -123,8 +127,14 @@ public class Query implements GraphQLQueryResolver {
   }
 
   @NotNull
-  public GlobalPermissions globalPermissions() {
-    // TODO: actually check
-    return new GlobalPermissions(false);
+  public GlobalPermissions globalPermissions(@NotNull DataFetchingEnvironment env) {
+    GraphQLContext ctx = env.getContext();
+
+    SUser user = ctx.getUser();
+    if(user == null) {
+      return new GlobalPermissions(false);
+    }
+
+    return new GlobalPermissions(user.getGlobalPermissions().contains(Permission.MANAGE_AGENT_POOLS));
   }
 }
