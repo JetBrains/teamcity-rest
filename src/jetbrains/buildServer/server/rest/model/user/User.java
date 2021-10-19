@@ -135,16 +135,14 @@ public class User {
 
   @XmlAttribute
   public String getName() {
-    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("name"), () -> {
-      checkCanViewUserDetails();
+    return myUser == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("name"), () -> {
       return StringUtil.isEmpty(myUser.getName()) ? null : myUser.getName();
     });
   }
 
   @XmlAttribute
   public String getUsername() {
-    return myUser == null ? null : ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("username"), () -> {
-      checkCanViewUserDetails();
+    return myUser == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("username"), () -> {
       return myUser.getUsername();
     });
   }

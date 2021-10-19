@@ -36,6 +36,7 @@ import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.*;
+import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
@@ -121,17 +122,16 @@ public class UserFinder extends DelegatingFinder<SUser> {
   }
 
   public void checkViewUserPermission(final @Nullable SUser user) throws AuthorizationFailedException {
-    if (user != null) {
-      final jetbrains.buildServer.users.User currentUser = getCurrentUser();
+    if (user == null) return;
+
+    final jetbrains.buildServer.users.User currentUser = getCurrentUser();
       if (currentUser != null && currentUser.getId() == user.getId()) {
         return;
+    }
+
+      if (!ServerAuthUtil.canViewUser(mySecurityContext.getAuthorityHolder(), user)) {
+        throw new AuthorizationFailedException("No permission to view user");
       }
-    }
-    try {
-      checkViewAllUsersPermission();
-    } catch (AuthorizationFailedException e) {
-      throw new AuthorizationFailedException("No permission to reference users: " + e.getMessage(), e);
-    }
   }
 
   @Nullable
