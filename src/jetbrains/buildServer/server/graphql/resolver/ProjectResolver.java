@@ -83,7 +83,8 @@ public class ProjectResolver implements GraphQLResolver<Project> {
       return new ProjectPermissions(false);
     }
 
-    Permissions permissions = user.getPermissionsGrantedForProject(source.getId());
+    SProject self = getSelfFromContextSafe(source, env);
+    Permissions permissions = user.getPermissionsGrantedForProject(self.getProjectId());
 
     return new ProjectPermissions(permissions.contains(Permission.MANAGE_AGENT_POOLS_FOR_PROJECT));
   }
