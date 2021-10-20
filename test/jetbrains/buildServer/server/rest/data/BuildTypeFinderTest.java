@@ -385,7 +385,7 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     securityContext.runAs(user2, () -> {checkExceptionOnItemsSearch(AuthorizationFailedException.class, "selectedByUser:(user:(username:user1),mode:selected_and_unknown)");});
     securityContext.runAs(user2, () -> {checkExceptionOnItemsSearch(AuthorizationFailedException.class, "selectedByUser:(user:(username:user1),mode:all_with_order)");});
 
-    RoleImpl role_viewUsers = new RoleImpl("role_viewUsers", "custom role", new Permissions(Permission.VIEW_USER_PROFILE), null);
+    RoleImpl role_viewUsers = new RoleImpl("role_viewUsers", "custom role", new Permissions(Permission.VIEW_ALL_USERS, Permission.VIEW_USER_PROFILE), null);
     myFixture.getRolesManager().addRole(role_viewUsers);
     user2.addRole(RoleScope.globalScope(), role_viewUsers);
     securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
