@@ -21,6 +21,12 @@ import com.intellij.util.Function;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import java.util.*;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
@@ -41,15 +47,9 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.web.util.QueueWebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
-import java.util.*;
 
 /**
  * @author Yegor.Yarko
@@ -424,7 +424,14 @@ public class  BuildQueueRequest {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value="Add a new build to the queue.",nickname="addBuildToQueue")
-  public Build queueNewBuild(Build build, @QueryParam("moveToTop") Boolean moveToTop, @Context HttpServletRequest request){
+  public Build queueNewBuild(Build build, @QueryParam("moveToTop") Boolean moveToTop,
+                             @Context HttpServletRequest request,
+                             @Context HttpServletResponse response){
+
+    if (QueueWebUtil.processLargeQueueCase(request, response, myServiceLocator.getSingletonService(BuildQueue.class))) {
+      return null;
+    }
+
     final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     SQueuedBuild queuedBuild = build.triggerBuild(user, myServiceLocator, new HashMap<Long, Long>());
     if (moveToTop != null && moveToTop){
