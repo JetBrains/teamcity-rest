@@ -307,8 +307,8 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
       Build build = buildRequest.serveBuild("id:" + build20.getBuildId(), fields, new FakeHttpServletRequest());
       // check that all is present
       User user = build.getTriggered().user;
-      assertNull(user.getUsername());
-      assertNull(user.getName());
+      assertNotNull(user.getUsername());
+      assertNotNull(user.getName());
       assertNotNull(user.getId());
       assertNull(user.getEmail());
       assertNull(user.getLastLogin());
@@ -342,7 +342,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     });
 
     SUser user3 = createUser("user3");
-    user3.addRole(RoleScope.globalScope(), getTestRoles().createRole(Permission.VIEW_USER_PROFILE));
+    user3.addRole(RoleScope.globalScope(), getTestRoles().createRole(Permission.VIEW_USER_PROFILE, Permission.VIEW_ALL_USERS));
     user3.addRole(RoleScope.projectScope(project2.getProjectId()), getTestRoles().createRole(Permission.VIEW_PROJECT));
 
     myFixture.getSecurityContext().runAs(user3, () -> {
