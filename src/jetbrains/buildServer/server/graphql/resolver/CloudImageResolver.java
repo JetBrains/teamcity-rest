@@ -123,9 +123,11 @@ public class CloudImageResolver implements GraphQLResolver<CloudImage> {
     return result.data(new ProjectAgentPool(pool)).localContext(pool).build();
   }
 
+  @Deprecated
   @NotNull
   public AgentPoolsConnection assignableAgentPools(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
-    return null;
+    // deprecated, remove after ui migration
+    return AgentPoolsConnection.empty();
   }
 
   @NotNull

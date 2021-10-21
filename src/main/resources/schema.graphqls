@@ -51,7 +51,7 @@ type CloudImage {
   instances: CloudImageInstancesConnection
   project: Project
   agentPool: AbstractAgentPool
-  assignableAgentPools: AgentPoolsConnection
+  assignableAgentPools: AgentPoolsConnection @deprecated(reason: "Use AgentPool.assignableCloudImages instead")
 }
 
 type AgentPoolCloudImageEdge {

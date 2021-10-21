@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
+import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.connections.ExtensibleConnection;
 import jetbrains.buildServer.server.graphql.model.connections.LazyEdge;
 import jetbrains.buildServer.server.graphql.model.connections.PaginatingConnection;
@@ -32,8 +33,8 @@ import org.jetbrains.annotations.Nullable;
 
 
 public class AgentPoolsConnection implements ExtensibleConnection<AbstractAgentPool, AgentPoolsConnection.AgentPoolsConnectionEdge> {
-  public static jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection empty() {
-    return new jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection(Collections.emptyList(), PaginationArguments.everything());
+  public static AgentPoolsConnection empty() {
+    return new AgentPoolsConnection(Collections.emptyList(), pool -> new AgentPool(pool), PaginationArguments.everything());
   }
 
   private final Function<jetbrains.buildServer.serverSide.agentPools.AgentPool, AbstractAgentPool> myPoolFactory;
