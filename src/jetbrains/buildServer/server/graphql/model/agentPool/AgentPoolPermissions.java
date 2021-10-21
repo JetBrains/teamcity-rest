@@ -17,23 +17,46 @@
 package jetbrains.buildServer.server.graphql.model.agentPool;
 
 import java.util.function.BooleanSupplier;
+import jetbrains.buildServer.util.impl.Lazy;
 import org.jetbrains.annotations.NotNull;
 
 public class AgentPoolPermissions {
-  private final LazyPropWrapper myAuthorizeAgents;
-  private final LazyPropWrapper myManageProjects;
-  private final LazyPropWrapper myEnableAgents;
-  private final LazyPropWrapper myManageAgents;
+  private final Lazy<Boolean> myAuthorizeAgents;
+  private final Lazy<Boolean> myManageProjects;
+  private final Lazy<Boolean> myEnableAgents;
+  private final Lazy<Boolean> myManageAgents;
   private final boolean myManagePool;
 
   public AgentPoolPermissions(@NotNull BooleanSupplier authorizeAgents,
                               @NotNull BooleanSupplier manageProjects,
                               @NotNull BooleanSupplier enableAgents,
                               @NotNull BooleanSupplier manageAgents, boolean managePool) {
-    myAuthorizeAgents = new LazyPropWrapper(authorizeAgents);
-    myManageProjects = new LazyPropWrapper(manageProjects);
-    myEnableAgents = new LazyPropWrapper(enableAgents);
-    myManageAgents = new LazyPropWrapper(manageAgents);
+    myAuthorizeAgents = new Lazy<Boolean>() {
+      @Override
+      protected Boolean createValue() {
+        return authorizeAgents.getAsBoolean();
+      }
+    };
+    myManageProjects = new Lazy<Boolean>() {
+      @Override
+      protected Boolean createValue() {
+        return manageProjects.getAsBoolean();
+      }
+    };
+    myEnableAgents = new Lazy<Boolean>() {
+      @Override
+      protected Boolean createValue() {
+        return enableAgents.getAsBoolean();
+      }
+    };
+
+    myManageAgents = new Lazy<Boolean>() {
+      @Override
+      protected Boolean createValue() {
+        return manageAgents.getAsBoolean();
+      }
+    };
+
     myManagePool = managePool;
   }
 
@@ -55,23 +78,5 @@ public class AgentPoolPermissions {
 
   public boolean isManageAgents() {
     return myManageAgents.get();
-  }
-
-  private class LazyPropWrapper {
-    private final BooleanSupplier mySupplier;
-    private boolean myCreated = false;
-    private boolean myValue = false;
-    LazyPropWrapper(@NotNull BooleanSupplier valueSupplier) {
-      mySupplier = valueSupplier;
-    }
-
-    public boolean get() {
-      if(myCreated) {
-        return myValue;
-      }
-
-      myCreated = true;
-      return (myValue = mySupplier.getAsBoolean());
-    }
   }
 }
