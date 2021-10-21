@@ -49,6 +49,12 @@ public class AgentPoolAccessCheckerForTests implements AgentPoolActionsAccessChe
     return myRestrictingProjects;
   }
 
+  @NotNull
+  @Override
+  public Set<Integer> getManageablePoolIds() {
+    return Collections.emptySet();
+  }
+
   @Override
   public boolean canManageAgentsInPool(int agentPoolId) {
     return myCanManageAgentsInPool;

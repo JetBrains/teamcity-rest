@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.BuildProject;
+import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.server.graphql.resolver.Mutation;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
@@ -30,6 +31,7 @@ import jetbrains.buildServer.serverSide.agentPools.ProjectAgentPoolImpl;
 import jetbrains.buildServer.serverSide.agentTypes.AgentType;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
 import jetbrains.buildServer.serverSide.auth.*;
+import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -144,6 +146,28 @@ public class AgentPoolActionsAccessCheckerImpl implements AgentPoolActionsAccess
   public boolean canModifyAgentPool(int agentPoolId) {
     // TODO: implement me
     return false;
+  }
+
+  // Duplicates PoolAgentTypeSelectorDescriptor.getManageablePoolIdsForUser,
+  // so this is a candidate to be moved into some utility class.
+  @NotNull
+  public Set<Integer> getManageablePoolIds() {
+    AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    final Set<Integer> manageablePoolIds = new HashSet<Integer>();
+    try {
+      mySecurityContext.runAsSystem(() -> {
+        for (final jetbrains.buildServer.serverSide.agentPools.AgentPool pool : myAgentPoolManager.getAllAgentPools()) {
+          final int poolId = pool.getAgentPoolId();
+          if (AuthUtil.hasPermissionToManageAgentPoolsWithProjects(authorityHolder, myAgentPoolManager.getPoolProjects(poolId))) {
+            manageablePoolIds.add(poolId);
+          }
+        }
+      });
+    }
+    catch (final Throwable e) {
+      Loggers.SERVER.warn(e.getMessage(), e);
+    }
+    return manageablePoolIds;
   }
 
   private boolean hasPermissionToManageAgentPoolsForProject(@NotNull AuthorityHolder authHolder, @NotNull String projectId) {

@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.graphql.model.connections.agentPool;
 
 import com.intellij.openapi.util.Pair;
 import graphql.execution.DataFetcherResult;
+import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.clouds.CloudImage;
 import jetbrains.buildServer.server.graphql.model.connections.ExtensibleConnection;
@@ -28,6 +29,10 @@ import jetbrains.buildServer.server.graphql.model.connections.PaginationArgument
 import org.jetbrains.annotations.NotNull;
 
 public class AgentPoolCloudImagesConnection implements ExtensibleConnection<jetbrains.buildServer.server.graphql.model.CloudImage, AgentPoolCloudImagesConnection.AgentPoolCloudImagesConnectionEdge> {
+  public static AgentPoolCloudImagesConnection empty() {
+    return new AgentPoolCloudImagesConnection(Collections.emptyList(), PaginationArguments.everything());
+  }
+
   @NotNull
   private final PaginatingConnection<Pair<String, CloudImage>, jetbrains.buildServer.server.graphql.model.CloudImage, AgentPoolCloudImagesConnectionEdge> myDelegate;
 

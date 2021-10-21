@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.graphql.resolver.agentPool;
 
 import java.util.Set;
+import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,6 +40,12 @@ public interface AgentPoolActionsAccessChecker {
    */
   @NotNull
   Set<String> getRestrictingProjectsInPool(int agentPoolId);
+
+  /**
+   * Retrieve a set of agent pool ids for pools without projects disallowing user to manage agents assigned with said pools.
+   */
+  @NotNull
+  Set<Integer> getManageablePoolIds();
 
   /**
    * Check if current user has enough permissions to move some agent to the specified pool.

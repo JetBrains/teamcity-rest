@@ -120,6 +120,9 @@ type AgentPool implements AbstractAgentPool {
   agents: AgentPoolAgentsConnection
   maxAgentsNumber: Int
 
+  assignableAgents: AgentPoolAgentsConnection
+  assignableCloudImages: AgentPoolCloudImagesConnection
+
   actions: AgentPoolActions
   permissions: AgentPoolPermissions @deprecated
 }
