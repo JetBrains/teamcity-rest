@@ -37,6 +37,7 @@ import jetbrains.buildServer.server.rest.data.CloudUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -48,7 +49,6 @@ public class AbstractAgentPoolResolver {
   private final ProjectManager myProjectManager;
   private final AgentPoolActionsAccessChecker myPoolActionsAccessChecker;
   private final SecurityContextEx mySecurityContext;
-  private final BuildAgentManager myBuildAgentManager;
   private final AgentPoolManager myAgentPoolManager;
   private final AgentTypeFinder myAgentTypeFinder;
   private final CloudManager myCloudManager;
@@ -56,7 +56,6 @@ public class AbstractAgentPoolResolver {
 
   public AbstractAgentPoolResolver(@NotNull ProjectManager projectManager,
                                    @NotNull AgentPoolActionsAccessChecker poolActionsAccessChecker,
-                                   @NotNull BuildAgentManager buildAgentManager,
                                    @NotNull AgentPoolManager agentPoolManager,
                                    @NotNull CloudManager cloudManager,
                                    @NotNull CloudUtil cloudUtil,
@@ -65,7 +64,6 @@ public class AbstractAgentPoolResolver {
     myProjectManager = projectManager;
     myPoolActionsAccessChecker = poolActionsAccessChecker;
     mySecurityContext = securityContext;
-    myBuildAgentManager = buildAgentManager;
     myAgentPoolManager = agentPoolManager;
     myCloudManager = cloudManager;
     myCloudUtil = cloudUtil;
@@ -74,12 +72,10 @@ public class AbstractAgentPoolResolver {
 
   @NotNull
   public AgentPoolAgentsConnection agents(@NotNull AbstractAgentPool pool, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = getRealPoolSafe(pool, env);
-
-    List<SBuildAgent> agents = realPool.getAgentTypeIds().stream()
-                                       .map(agentId -> (SBuildAgent) myBuildAgentManager.findAgentById(agentId, false))
-                                       .filter(Objects::nonNull)
-                                       .collect(Collectors.toList());
+    List<SBuildAgent> agents = myAgentTypeFinder.getAgentTypesByPool(pool.getId()).stream()
+                                                .filter(agentType -> !agentType.isCloud())
+                                                .map(SAgentType::getRealAgent)
+                                                .collect(Collectors.toList());
 
     return new AgentPoolAgentsConnection(agents, PaginationArguments.everything());
   }
