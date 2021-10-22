@@ -107,9 +107,9 @@ public class AbstractAgentPoolResolver {
     BooleanSupplier canAuthorizeUnauthorizeAgent     = () -> AuthUtil.hasPermissionToAuthorizeAgentsInPool(authHolder, realPool);
     BooleanSupplier canEnableDisableAgent            = () -> AuthUtil.hasPermissionToEnableAgentsInPool(authHolder, realPool);
     BooleanSupplier canManageProjectPoolAssociations = () -> myPoolActionsAccessChecker.canManageProjectsInPool(poolId);
-    BooleanSupplier canRemoveAgents                  = () -> myPoolActionsAccessChecker.canManageAgentsInPool(poolId);
+    BooleanSupplier canManageAgents                  = () -> myPoolActionsAccessChecker.canManageAgentsInPool(poolId);
 
-    return new AgentPoolPermissions(canAuthorizeUnauthorizeAgent, canManageProjectPoolAssociations, canEnableDisableAgent, canRemoveAgents, canManagePool);
+    return new AgentPoolPermissions(canAuthorizeUnauthorizeAgent, canManageProjectPoolAssociations, canEnableDisableAgent, canManageAgents, canManagePool);
   }
 
   @NotNull

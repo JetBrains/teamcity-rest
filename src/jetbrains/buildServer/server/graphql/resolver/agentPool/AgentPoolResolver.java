@@ -16,13 +16,19 @@
 
 package jetbrains.buildServer.server.graphql.resolver.agentPool;
 
+import com.intellij.openapi.util.Pair;
 import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.log.Loggers;
+import jetbrains.buildServer.BuildProject;
+import jetbrains.buildServer.clouds.CloudClientEx;
+import jetbrains.buildServer.clouds.CloudConstants;
+import jetbrains.buildServer.clouds.CloudImage;
+import jetbrains.buildServer.clouds.server.CloudManagerBase;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPoolPermissions;
 import jetbrains.buildServer.server.graphql.model.agentPool.actions.*;
@@ -33,11 +39,7 @@ import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoo
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.auth.AuthUtil;
-import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.auth.SecurityContext;
-import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -47,18 +49,18 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
   private final AgentPoolActionsAccessChecker myPoolActionsAccessChecker;
   private final ProjectManager myProjectManager;
   private final BuildAgentManagerEx myAgentManager;
-  private final SecurityContextEx mySecurityContext;
+  private final CloudManagerBase myCloudManager;
 
   public AgentPoolResolver(@NotNull AbstractAgentPoolResolver delegate,
                            @NotNull AgentPoolActionsAccessChecker agentPoolActionsAccessChecker,
                            @NotNull BuildAgentManagerEx agentManager,
-                           @NotNull SecurityContextEx securityContext,
+                           @NotNull CloudManagerBase cloudManager,
                            @NotNull ProjectManager projectManager) {
     myDelegate = delegate;
     myPoolActionsAccessChecker = agentPoolActionsAccessChecker;
     myProjectManager = projectManager;
     myAgentManager = agentManager;
-    mySecurityContext = securityContext;
+    myCloudManager = cloudManager;
   }
 
   @NotNull
@@ -98,8 +100,24 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
 
   @NotNull
   public AgentPoolCloudImagesConnection assignableCloudImages(@NotNull AgentPool pool, @NotNull DataFetchingEnvironment env) {
-    // todo implement me;
-    return AgentPoolCloudImagesConnection.empty();
+    final Set<String> profileIdsInRootProject = myProjectManager.getRootProject()
+                                                                .getOwnFeaturesOfType(CloudConstants.CLOUD_PROFILE_FEATURE_TYPE).stream()
+                                                                .map(SProjectFeatureDescriptor::getId)
+                                                                .collect(Collectors.toSet());
+
+    List<Pair<String, CloudImage>> images = new ArrayList<>();
+    profileIdsInRootProject.forEach(profileId -> {
+      CloudClientEx client = myCloudManager.getClientIfExists(BuildProject.ROOT_PROJECT_ID, profileId);
+      if(client == null) return;
+
+      client.getImages().stream()
+            .filter(image -> !Objects.equals(pool.getId(), image.getAgentPoolId()))
+            .forEach(image -> {
+              images.add(new Pair<>(profileId, image));
+            });
+    });
+
+    return new AgentPoolCloudImagesConnection(images, PaginationArguments.everything());
   }
 
   @NotNull
