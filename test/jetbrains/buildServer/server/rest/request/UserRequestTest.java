@@ -63,6 +63,8 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
 
   @Test
   void testBasic1() throws Throwable {
+    myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
+
     final SUser user1 = createUser("user1");
     final SUser user2 = createUser("user2");
 
@@ -188,6 +190,8 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
 
   @Test
   void testUserEnityExposure() throws Throwable {
+    myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
+
     final SUser user1 = createUser("user1");
     final SUser user2 = createUser("user2");
 

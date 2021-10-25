@@ -244,6 +244,8 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
 
   @Test
   public void testSecurity() throws Throwable {
+    myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
+
     final SUser user1 = createUser("user1");
     final SUser user2 = createUser("user2");
 
