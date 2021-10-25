@@ -3280,6 +3280,7 @@
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/cloud-server.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/cloud-interface.jar!/" />
         <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/server-metrics.jar!/" />
+        <root url="jar://$TeamCityDistribution$/webapps/ROOT/WEB-INF/lib/cloud-shared.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES />
