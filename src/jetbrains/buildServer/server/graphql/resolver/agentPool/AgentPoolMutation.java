@@ -19,8 +19,8 @@ package jetbrains.buildServer.server.graphql.resolver.agentPool;
 import com.intellij.openapi.diagnostic.Logger;
 import graphql.execution.DataFetcherResult;
 import graphql.kickstart.tools.GraphQLMutationResolver;
-import java.util.Collections;
-import java.util.Set;
+import graphql.schema.DataFetchingEnvironment;
+import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.Used;
 import jetbrains.buildServer.clouds.CloudClientEx;
@@ -37,6 +37,9 @@ import jetbrains.buildServer.server.graphql.util.UnexpectedServerGraphQLError;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.*;
 import jetbrains.buildServer.serverSide.agentTypes.*;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
@@ -63,17 +66,21 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   @NotNull
   private final AgentTypeFinder myAgentTypeFinder;
 
+  private final SecurityContext mySecurityContext;
+
   public AgentPoolMutation(@NotNull AgentPoolManager agentPoolManager,
                            @NotNull ProjectManager projectManager,
                            @NotNull BuildAgentManagerEx buildAgentManager,
                            @NotNull CloudManagerBase cloudManager,
                            @NotNull AgentTypeFinder agentTypeFinder,
+                           @NotNull SecurityContext securityContext,
                            @NotNull AgentPoolActionsAccessChecker agentPoolActionsAccessChecker) {
     myAgentPoolManager = agentPoolManager;
     myProjectManager = projectManager;
     myBuildAgentManager = buildAgentManager;
     myCloudManager = cloudManager;
     myAgentTypeFinder = agentTypeFinder;
+    mySecurityContext = securityContext;
     myAgentPoolActionsAccessChecker = agentPoolActionsAccessChecker;
   }
 
@@ -151,7 +158,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   }
 
   @NotNull
-  public DataFetcherResult<MoveAgentToAgentPoolPayload> moveAgentToAgentPool(@NotNull MoveAgentToAgentPoolInput input) {
+  public DataFetcherResult<MoveAgentToAgentPoolPayload> moveAgentToAgentPool(@NotNull MoveAgentToAgentPoolInput input, @NotNull DataFetchingEnvironment env) {
     DataFetcherResult.Builder<MoveAgentToAgentPoolPayload> result = DataFetcherResult.newResult();
     int agentId = input.getAgentId();
     int targetPoolId = input.getTargetAgentPoolId();
@@ -322,5 +329,65 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     }
 
     return result.data(new BulkAssignProjectWithAgentPoolPayload(new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(agentPool))).build();
+  }
+
+  @Used("graphql")
+  @NotNull
+  public DataFetcherResult<BulkMoveAgentToAgentPoolPayload> bulkMoveAgentToAgentPool(@NotNull BulkMoveAgentToAgentPoolInput input) {
+    DataFetcherResult.Builder<BulkMoveAgentToAgentPoolPayload> result = DataFetcherResult.newResult();
+
+    AgentPool targetPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolId());
+    if(targetPool == null) {
+      return result.error(new EntityNotFoundGraphQLError("Target pool is not found.")).build();
+    }
+
+    if(targetPool.isProjectPool() || targetPool instanceof ReadOnlyAgentPool) {
+      return result.error(new OperationFailedGraphQLError("Can't move agents to target pool.")).build();
+    }
+
+    if(!myAgentPoolActionsAccessChecker.canManageAgentsInPool(input.getTargetAgentPoolId())) {
+      return result.error(new OperationFailedGraphQLError("Can't move agents to target pool.")).build();
+    }
+
+    Set<String> projectsToCheck = new HashSet<>();
+    Set<Integer> agentTypes = new HashSet<>();
+    for(Integer agentId : input.getAgentIds()) {
+      SBuildAgent agent = myBuildAgentManager.findAgentById(agentId, true);
+      if(agent == null) {
+        return result.error(new OperationFailedGraphQLError("One of the agents with given ids is not found.")).build();
+      }
+
+      agentTypes.add(agent.getAgentTypeId());
+      projectsToCheck.addAll(agent.getAgentPool().getProjectIds());
+    }
+
+    AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
+    if(!AuthUtil.hasPermissionToManageAgentPoolsWithProjects(authHolder, projectsToCheck)) {
+      return result.error(new OperationFailedGraphQLError("Not enough permissions on one of the agent pools.")).build();
+    }
+
+    try {
+      myAgentPoolManager.moveAgentTypesToPool(input.getTargetAgentPoolId(), agentTypes);
+    } catch (NoSuchAgentPoolException e) {
+      return result.error(new EntityNotFoundGraphQLError("Target pool does not exist.")).build();
+    } catch (PoolQuotaExceededException e) {
+      return result.error(new OperationFailedGraphQLError("Target pool does not accept agents.")).build();
+    } catch (AgentTypeCannotBeMovedException e) {
+      return result.error(new OperationFailedGraphQLError("One of the selected agents can not be moved.")).build();
+    }
+
+    List<Agent> agents = new ArrayList<>();
+    for(Integer agentId : input.getAgentIds()) {
+      SBuildAgent agent = myBuildAgentManager.findAgentById(agentId, true);
+      if(agent == null) {
+        continue;
+      }
+
+      agents.add(new Agent(agent));
+    }
+
+    AgentPool updatedTargetPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolId()); // should not be null at this stage
+    BulkMoveAgentToAgentPoolPayload payload = new BulkMoveAgentToAgentPoolPayload(agents, new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(updatedTargetPool));
+    return result.data(payload).build();
   }
 }

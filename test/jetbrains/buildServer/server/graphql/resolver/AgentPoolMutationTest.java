@@ -18,13 +18,17 @@ package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.execution.DataFetcherResult;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.mutation.*;
 import jetbrains.buildServer.server.graphql.model.mutation.agentPool.*;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AgentPoolMutation;
 import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.agentPools.*;
+import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -45,6 +49,7 @@ public class AgentPoolMutationTest extends BaseResolverTest {
       myFixture.getBuildAgentManager(),
       myFixture.getCloudManagerBase(),
       myFixture.getAgentTypeFinder(),
+      myFixture.getSecurityContext(),
       myChecker
     );
   }
@@ -172,7 +177,7 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     input.setAgentId(agent.getId());
     input.setTargetAgentPoolId(targetPool.getAgentPoolId());
 
-    DataFetcherResult<MoveAgentToAgentPoolPayload> result = myMutation.moveAgentToAgentPool(input);
+    DataFetcherResult<MoveAgentToAgentPoolPayload> result = myMutation.moveAgentToAgentPool(input, new MockDataFetchingEnvironment());
     assertNotNull(result);
     assertFalse(result.hasErrors());
     assertNotNull(result.getData());
@@ -303,5 +308,37 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     // check that no other pool has association with said projects
     assertEquals(1, myFixture.getAgentPoolManager().getAgentPoolsWithProject(project1.getProjectId()).size());
     assertEquals(1, myFixture.getAgentPoolManager().getAgentPoolsWithProject(project2.getProjectId()).size());
+  }
+
+  @Test
+  public void testBulkMoveAgentsToPool() throws NoSuchAgentPoolException, AgentTypeCannotBeMovedException, PoolQuotaExceededException, AgentPoolCannotBeRenamedException {
+    AgentPool sourcePool1 = myFixture.getAgentPoolManager().createNewAgentPool("sourcePool1");
+    AgentPool sourcePool2 = myFixture.getAgentPoolManager().createNewAgentPool("sourcePool2");
+    AgentPool targetPool = myFixture.getAgentPoolManager().createNewAgentPool("targetPool");
+
+    MockBuildAgent agent1 = myFixture.createEnabledAgent("smth"); registerAndEnableAgent(agent1);
+    MockBuildAgent agent2 = myFixture.createEnabledAgent("smth"); registerAndEnableAgent(agent2);
+
+    myFixture.getAgentPoolManager().moveAgentToPool(sourcePool1.getAgentPoolId(), agent1);
+    myFixture.getAgentPoolManager().moveAgentToPool(sourcePool2.getAgentPoolId(), agent2);
+
+    BulkMoveAgentToAgentPoolInput input = new BulkMoveAgentToAgentPoolInput();
+    input.setAgentIds(Arrays.asList(agent1.getId(), agent2.getId()));
+    input.setTargetAgentPoolId(targetPool.getAgentPoolId());
+
+    MockDataFetchingEnvironment dfe = new MockDataFetchingEnvironment();
+
+    dfe.setContext(new GraphQLContext(new MockHttpServletRequest()));
+
+    DataFetcherResult<BulkMoveAgentToAgentPoolPayload> result = myMutation.bulkMoveAgentToAgentPool(input);
+    assertNotNull(result);
+    assertFalse(result.hasErrors());
+    assertNotNull(result.getData());
+
+    BulkMoveAgentToAgentPoolPayload payload = result.getData();
+    assertEquals(targetPool.getName(), payload.getTargetAgentPool().getName());
+
+    Collection<Integer> agentsInPool = myFixture.getAgentPoolManager().getAgentTypeIdsByPool(targetPool.getAgentPoolId());
+    assertContains(agentsInPool, agent1.getAgentTypeId(), agent2.getAgentTypeId());
   }
 }

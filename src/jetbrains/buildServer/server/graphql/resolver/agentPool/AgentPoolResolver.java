@@ -39,7 +39,9 @@ import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoo
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -50,17 +52,20 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
   private final ProjectManager myProjectManager;
   private final BuildAgentManagerEx myAgentManager;
   private final CloudManagerBase myCloudManager;
+  private final SecurityContext mySecurityContext;
 
   public AgentPoolResolver(@NotNull AbstractAgentPoolResolver delegate,
                            @NotNull AgentPoolActionsAccessChecker agentPoolActionsAccessChecker,
                            @NotNull BuildAgentManagerEx agentManager,
                            @NotNull CloudManagerBase cloudManager,
+                           @NotNull SecurityContext securityContext,
                            @NotNull ProjectManager projectManager) {
     myDelegate = delegate;
     myPoolActionsAccessChecker = agentPoolActionsAccessChecker;
     myProjectManager = projectManager;
     myAgentManager = agentManager;
     myCloudManager = cloudManager;
+    mySecurityContext = securityContext;
   }
 
   @NotNull
@@ -85,7 +90,10 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
 
   @NotNull
   public AgentPoolAgentsConnection assignableAgents(@NotNull AgentPool pool, @NotNull DataFetchingEnvironment env) {
-    final List<BuildAgentEx> allAgents = myAgentManager.getAllAgents(true);
+    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = myDelegate.getRealPoolSafe(pool, env);
+    boolean includeUnathorized = AuthUtil.hasPermissionToAuthorizeAgentsInPool(mySecurityContext.getAuthorityHolder(), realPool);
+
+    final List<BuildAgentEx> allAgents = myAgentManager.getAllAgents(includeUnathorized);
 
     Set<Integer> managablePools = myPoolActionsAccessChecker.getManageablePoolIds();
 
