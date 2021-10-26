@@ -322,7 +322,7 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     myFixture.getAgentPoolManager().moveAgentToPool(sourcePool1.getAgentPoolId(), agent1);
     myFixture.getAgentPoolManager().moveAgentToPool(sourcePool2.getAgentPoolId(), agent2);
 
-    BulkMoveAgentToAgentPoolInput input = new BulkMoveAgentToAgentPoolInput();
+    BulkMoveAgentsToAgentPoolInput input = new BulkMoveAgentsToAgentPoolInput();
     input.setAgentIds(Arrays.asList(agent1.getId(), agent2.getId()));
     input.setTargetAgentPoolId(targetPool.getAgentPoolId());
 
@@ -330,12 +330,12 @@ public class AgentPoolMutationTest extends BaseResolverTest {
 
     dfe.setContext(new GraphQLContext(new MockHttpServletRequest()));
 
-    DataFetcherResult<BulkMoveAgentToAgentPoolPayload> result = myMutation.bulkMoveAgentToAgentPool(input);
+    DataFetcherResult<BulkMoveAgentToAgentsPoolPayload> result = myMutation.bulkMoveAgentsToAgentPool(input);
     assertNotNull(result);
     assertFalse(result.hasErrors());
     assertNotNull(result.getData());
 
-    BulkMoveAgentToAgentPoolPayload payload = result.getData();
+    BulkMoveAgentToAgentsPoolPayload payload = result.getData();
     assertEquals(targetPool.getName(), payload.getTargetAgentPool().getName());
 
     Collection<Integer> agentsInPool = myFixture.getAgentPoolManager().getAgentTypeIdsByPool(targetPool.getAgentPoolId());

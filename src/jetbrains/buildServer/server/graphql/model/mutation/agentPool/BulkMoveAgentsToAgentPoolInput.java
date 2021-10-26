@@ -17,24 +17,25 @@
 package jetbrains.buildServer.server.graphql.model.mutation.agentPool;
 
 import java.util.List;
-import jetbrains.buildServer.server.graphql.model.Agent;
-import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import org.jetbrains.annotations.NotNull;
 
-public class BulkMoveAgentToAgentPoolPayload {
-  private final List<Agent> myAgents;
-  private final AgentPool myTargetAgentPool;
+public class BulkMoveAgentsToAgentPoolInput {
+  private List<Integer> myAgentIds;
+  private int myTargetAgentPoolId;
 
-  public BulkMoveAgentToAgentPoolPayload(@NotNull List<Agent> agents, @NotNull AgentPool targetAgentPool) {
-    myAgents = agents;
-    myTargetAgentPool = targetAgentPool;
+  public List<Integer> getAgentIds() {
+    return myAgentIds;
   }
 
-  public List<Agent> getAgents() {
-    return myAgents;
+  public void setAgentIds(@NotNull List<Integer> agentIds) {
+    myAgentIds = agentIds;
   }
 
-  public AgentPool getTargetAgentPool() {
-    return myTargetAgentPool;
+  public int getTargetAgentPoolId() {
+    return myTargetAgentPoolId;
+  }
+
+  public void setTargetAgentPoolId(int targetAgentPoolId) {
+    myTargetAgentPoolId = targetAgentPoolId;
   }
 }

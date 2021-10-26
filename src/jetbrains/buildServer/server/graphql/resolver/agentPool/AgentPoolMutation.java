@@ -333,8 +333,8 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
 
   @Used("graphql")
   @NotNull
-  public DataFetcherResult<BulkMoveAgentToAgentPoolPayload> bulkMoveAgentToAgentPool(@NotNull BulkMoveAgentToAgentPoolInput input) {
-    DataFetcherResult.Builder<BulkMoveAgentToAgentPoolPayload> result = DataFetcherResult.newResult();
+  public DataFetcherResult<BulkMoveAgentToAgentsPoolPayload> bulkMoveAgentsToAgentPool(@NotNull BulkMoveAgentsToAgentPoolInput input) {
+    DataFetcherResult.Builder<BulkMoveAgentToAgentsPoolPayload> result = DataFetcherResult.newResult();
 
     AgentPool targetPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolId());
     if(targetPool == null) {
@@ -387,7 +387,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     }
 
     AgentPool updatedTargetPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolId()); // should not be null at this stage
-    BulkMoveAgentToAgentPoolPayload payload = new BulkMoveAgentToAgentPoolPayload(agents, new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(updatedTargetPool));
+    BulkMoveAgentToAgentsPoolPayload payload = new BulkMoveAgentToAgentsPoolPayload(agents, new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(updatedTargetPool));
     return result.data(payload).build();
   }
 }

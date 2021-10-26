@@ -439,12 +439,12 @@ type MoveAgentToAgentPoolPayload {
   targetAgentPool: AgentPool
 }
 
-input BulkMoveAgentToAgentPoolInput {
+input BulkMoveAgentToAgentsPoolInput {
   agentIds: [ID!]!,
   targetAgentPoolId: ID!
 }
 
-type BulkMoveAgentToAgentPoolPayload {
+type BulkMoveAgentsToAgentPoolPayload {
   agents: [Agent],
   targetAgentPool: AgentPool
 }
@@ -470,7 +470,7 @@ type Mutation {
   moveAgentToAgentPool(input: MoveAgentToAgentPoolInput): MoveAgentToAgentPoolPayload
   moveCloudImageToAgentPool(input: MoveCloudImageToAgentPoolInput): MoveCloudImageToAgentPoolPayload
 
-  bulkMoveAgentToAgentPool(input: BulkMoveAgentToAgentPoolInput): BulkMoveAgentToAgentPoolPayload
+  bulkMoveAgentsToAgentPool(input: BulkMoveAgentToAgentsPoolInput): BulkMoveAgentsToAgentPoolPayload
 
   assignProjectWithAgentPool(input: AssignProjectWithAgentPoolInput): AssignProjectWithAgentPoolPayload
   unassignProjectFromAgentPool(input: UnassignProjectFromAgentPoolInput): UnassignProjectFromAgentPoolPayload
