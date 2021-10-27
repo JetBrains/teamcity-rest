@@ -291,7 +291,7 @@ public class BuildRequest {
                                                @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildPromotionFinder.getItem(buildLocator);
     myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build);
-    return new Properties(Build.getBuildResultingParameters(build, myBeanContext.getServiceLocator()).getAll(), null, new Fields(fields), myBeanContext);
+    return new Properties(Build.getBuildResultingParameters(build, myBeanContext.getServiceLocator()), null, new Fields(fields), myBeanContext);
   }
 
   @GET

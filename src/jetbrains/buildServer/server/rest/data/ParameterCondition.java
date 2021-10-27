@@ -17,10 +17,9 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.requirements.RequirementType;
@@ -29,6 +28,7 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.InheritableUserParametersHolder;
 import jetbrains.buildServer.serverSide.Parameter;
+import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -55,7 +55,7 @@ public class ParameterCondition {
 
   @NotNull private final ValueCondition myNameCondition;
   @NotNull private final ValueCondition myValueCondition;
-  private final boolean myNameCheckShouldMatchAll;
+  private final boolean myNameCheckShouldMatchAll; // all parameters matching by name must be matching by value too.
   @Nullable private final Boolean myInheritedCondition;
 
   private ParameterCondition(@NotNull final ValueCondition nameCondition,
@@ -312,6 +312,33 @@ public class ParameterCondition {
   public boolean parameterMatches(@NotNull final Parameter parameter, @Nullable final Boolean inherited) {
     if (myNameCheckShouldMatchAll) throw new OperationException("Dimension '" + NAME_MATCH_CHECK + "' is not supported for this filter");
     return myNameCondition.matches(parameter.getName()) && myValueCondition.matches(parameter.getValue()) && FilterUtil.isIncludedByBooleanFilter(myInheritedCondition, inherited);
+  }
+
+  /** Use this condition to check parameters obtained from parametersProvider and return only matched ones.
+   * @param parametersProvider
+   * @return parameters stream, matching the condition.
+   */
+  @NotNull
+  public Stream<Parameter> filterAllMatchingParameters(final @NotNull ParametersProvider parametersProvider) {
+    // It is unclear what to do in a case when myNameCheckShouldMatchAll is true and some parameters do not pass this check.
+    if (myNameCheckShouldMatchAll) {
+      throw new OperationException("Dimension '" + NAME_MATCH_CHECK + "' is not supported for this filter");
+    }
+
+    String exactParameterName = myNameCondition.getConstantValueIfSimpleEqualsCondition();
+    if (!StringUtil.isEmpty(exactParameterName)) {
+      final String value = parametersProvider.get(exactParameterName);
+      if(value != null && myValueCondition.matches(value)) {
+        return Stream.of(new SimpleParameter(exactParameterName, value));
+      }
+
+      return Stream.empty();
+    }
+
+    return parametersProvider.getAll().entrySet().stream()
+                             .filter(entry -> myNameCondition.matches(entry.getKey()))
+                             .filter(entry -> myValueCondition.matches(entry.getValue()))
+                             .map(entry -> new SimpleParameter(entry.getKey(), entry.getValue()));
   }
 
   @Override

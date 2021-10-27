@@ -18,8 +18,10 @@ package jetbrains.buildServer.server.rest.model;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.containers.SortedList;
-import io.swagger.annotations.ExtensionProperty;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.server.rest.data.FilterUtil;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
@@ -31,7 +33,6 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
@@ -56,6 +57,13 @@ import java.util.*;
 @ModelBaseType(ObjectType.LIST)
 public class Properties  implements DefaultValueAware {
   private static final Logger LOG = Logger.getInstance(Properties.class.getName());
+  private static final Comparator<Property> PROPERTY_COMPARATOR = new Comparator<Property>() {
+    private final CaseInsensitiveStringComparator comp = new CaseInsensitiveStringComparator();
+
+    public int compare(final Property o1, final Property o2) {
+      return comp.compare(o1.name, o2.name);
+    }
+  };
 
   protected static final String PROPERTY = "property";
   @XmlAttribute
@@ -68,8 +76,7 @@ public class Properties  implements DefaultValueAware {
   @XmlElement(name = PROPERTY)
   public List<Property> properties;
 
-  public Properties() {
-  }
+  public Properties() { }
 
   //todo: review all null usages for href to include due URL
   public Properties(@Nullable final Map<String, String> properties, @Nullable String href, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
@@ -107,7 +114,7 @@ public class Properties  implements DefaultValueAware {
         Collection<Parameter> parametersCollection = parameters.getParametersCollection(propertiesLocator); // pass locator here
         final ParameterCondition parameterCondition = ParameterCondition.create(propertiesLocator); // pass locator here and make sure it's used and supported dimensions are preserved
         if (externalLocator == null && propertiesLocator != null) propertiesLocator.checkLocatorFullyProcessed();
-        this.properties = enforceSorting ? getEmptyProperties() : new ArrayList<>();
+        this.properties = enforceSorting ? new SortedList<>(PROPERTY_COMPARATOR) : new ArrayList<>();
         for (Parameter parameter : parametersCollection) {
           Boolean inherited = parameters.isInherited(parameter.getName());
           if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
@@ -122,16 +129,30 @@ public class Properties  implements DefaultValueAware {
     this.href = href == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(href));
   }
 
+  public Properties(@NotNull final ParametersProvider paramsProvider, @Nullable String href, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    this.href = href == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(href));
 
-  @NotNull
-  private static SortedList<Property> getEmptyProperties() {
-    return new SortedList<Property>(new Comparator<Property>() {
-      private final CaseInsensitiveStringComparator comp = new CaseInsensitiveStringComparator();
+    if (fields.isIncluded(PROPERTY, false, true)) {
+      final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
+      Locator propertiesLocator = fields.getLocator() == null ? null : new Locator(fields.getLocator());
 
-      public int compare(final Property o1, final Property o2) {
-        return comp.compare(o1.name, o2.name);
+      Stream<Parameter> parameters;
+      if(propertiesLocator == null) {
+        parameters = Properties.convertToSimpleParameters(paramsProvider.getAll()).stream();
+      } else {
+        final ParameterCondition parameterCondition = ParameterCondition.create(propertiesLocator);
+        propertiesLocator.checkLocatorFullyProcessed();
+
+        parameters = parameterCondition.filterAllMatchingParameters(paramsProvider);
       }
-    });
+
+      this.properties = parameters.map(parameter -> new Property(parameter, null, propertyFields, beanContext.getServiceLocator()))
+                                  .sorted(PROPERTY_COMPARATOR).collect(Collectors.toList());
+
+      this.count = this.properties.size();
+    } else {
+      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), paramsProvider.size()); //actual count when no properties are included
+    }
   }
 
   @Nullable

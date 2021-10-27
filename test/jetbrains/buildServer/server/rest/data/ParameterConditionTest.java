@@ -16,10 +16,14 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
+import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.util.CollectionsUtil;
 import org.jetbrains.annotations.NotNull;
@@ -292,6 +296,62 @@ public class ParameterConditionTest extends BaseServerTestCase { //need to exten
     exceptionSingle(LocatorProcessException.class, "name:xxx,value:aaa,matchType:equals,nameMatchType:contains");
     exceptionSingle(LocatorProcessException.class, "name:xxx,value:aaa,matchType:equals,matchScope:any");
   }
+
+  @Test
+  public void testAllMatchingParameters() {
+    TestProvider provider = new TestProvider(map("p1", "v1", "p2", "v2", "p3", "v3"));
+
+    {
+      ParameterCondition exactNameCondition = ParameterCondition.create("name:p2");
+      List<Parameter> result = exactNameCondition.filterAllMatchingParameters(provider).collect(Collectors.toList());
+
+      assertEquals(1, result.size());
+      assertEquals("p2", result.get(0).getName());
+      assertEquals("v2", result.get(0).getValue());
+
+      assertFalse("Should not get all parameters when asked for exact name match.", provider.wereAllCalled());
+    }
+
+    {
+      ParameterCondition startsWithNameCondition = ParameterCondition.create("name:(matchType:starts-with,value:p)");
+      List<Parameter> result = startsWithNameCondition.filterAllMatchingParameters(provider).collect(Collectors.toList());
+
+      assertEquals(3, result.size());
+
+      assertTrue("Should get all parameters when asked for non-exact name match.", provider.wereAllCalled());
+    }
+  }
+
+  private static class TestProvider implements ParametersProvider {
+    private final Map<String, String> myParams;
+    private boolean myGetAllCalled = false;
+
+    TestProvider(@NotNull Map<String, String> params) {
+      myParams = params;
+    }
+
+    @Nullable
+    @Override
+    public String get(@NotNull String key) {
+      return myParams.get(key);
+    }
+
+    @Override
+    public int size() {
+      return myParams.size();
+    }
+
+    @Override
+    public Map<String, String> getAll() {
+      myGetAllCalled = true;
+      return myParams;
+    }
+
+    boolean wereAllCalled() {
+      return myGetAllCalled;
+    }
+  }
+
 
   // ==============================
   private static void matchesTrue(@NotNull final String propertyConditionLocator, @NotNull String... args) {

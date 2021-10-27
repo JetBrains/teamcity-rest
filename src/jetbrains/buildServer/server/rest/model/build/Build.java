@@ -536,7 +536,7 @@ public class Build {
   public Properties getResultingProperties() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("resultingProperties", false, false), () -> {
       checkCanViewRuntimeData();
-      return new Properties(getBuildResultingParameters(myBuildPromotion, myServiceLocator).getAll(), null,
+      return new Properties(getBuildResultingParameters(myBuildPromotion, myServiceLocator), null,
                             myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
     });
   }
