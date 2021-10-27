@@ -28,7 +28,6 @@ import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.agentPools.*;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -327,8 +326,6 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     input.setTargetAgentPoolId(targetPool.getAgentPoolId());
 
     MockDataFetchingEnvironment dfe = new MockDataFetchingEnvironment();
-
-    dfe.setContext(new GraphQLContext(new MockHttpServletRequest()));
 
     DataFetcherResult<BulkMoveAgentToAgentsPoolPayload> result = myMutation.bulkMoveAgentsToAgentPool(input);
     assertNotNull(result);
