@@ -55,8 +55,20 @@ public class CloudImageResolver implements GraphQLResolver<CloudImage> {
   @NotNull
   private AgentPoolManager myAgentPoolManager;
 
-  public int agentTypeId(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
-    return -1;
+  public DataFetcherResult<Integer> agentTypeId(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
+    DataFetcherResult.Builder<Integer> result = DataFetcherResult.newResult();
+    jetbrains.buildServer.clouds.CloudImage realImage = getRealImage(image, env);
+
+    CloudProfile profile = myCloudUtil.getProfile(realImage);
+    if(profile == null) {
+      return result.error(new EntityNotFoundGraphQLError(String.format("Cloud profile for image id=%s is no found.", image.getId()))).build();
+    }
+    SAgentType type = myCloudManager.getDescriptionFor(profile, realImage.getId());
+    if(type == null) {
+      return result.error(new EntityNotFoundGraphQLError(String.format("Agent type for image id=%s is no found.", image.getId()))).build();
+    }
+
+    return result.data(type.getAgentTypeId()).build();
   }
 
   @NotNull
