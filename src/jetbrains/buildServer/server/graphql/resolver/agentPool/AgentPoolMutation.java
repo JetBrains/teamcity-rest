@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.graphql.resolver.agentPool;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.Pair;
 import graphql.execution.DataFetcherResult;
 import graphql.kickstart.tools.GraphQLMutationResolver;
 import graphql.schema.DataFetchingEnvironment;
@@ -157,6 +158,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     }
   }
 
+  @Used("graphql")
   @NotNull
   public DataFetcherResult<MoveAgentToAgentPoolPayload> moveAgentToAgentPool(@NotNull MoveAgentToAgentPoolInput input, @NotNull DataFetchingEnvironment env) {
     DataFetcherResult.Builder<MoveAgentToAgentPoolPayload> result = DataFetcherResult.newResult();
@@ -192,6 +194,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     )).build();
   }
 
+  @Used("graphql")
   @NotNull
   public DataFetcherResult<MoveCloudImageToAgentPoolPayload> moveCloudImageToAgentPool(@NotNull MoveCloudImageToAgentPoolInput input) {
     DataFetcherResult.Builder<MoveCloudImageToAgentPoolPayload> result = DataFetcherResult.newResult();
@@ -389,5 +392,65 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     AgentPool updatedTargetPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolId()); // should not be null at this stage
     BulkMoveAgentToAgentsPoolPayload payload = new BulkMoveAgentToAgentsPoolPayload(agents, new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(updatedTargetPool));
     return result.data(payload).build();
+  }
+
+  @Used("graphql")
+  @NotNull
+  public DataFetcherResult<BulkMoveCloudImagesToAgentPoolPayload> bulkMoveCloudImagesToAgentPool(@NotNull BulkMoveCloudImagesToAgentPoolInput input) {
+    DataFetcherResult.Builder<BulkMoveCloudImagesToAgentPoolPayload> result = DataFetcherResult.newResult();
+    final int targetPoolId = input.getTargetAgentPoolId();
+    AgentPool targetPool = myAgentPoolManager.findAgentPoolById(targetPoolId);
+    if(targetPool == null) {
+      return result.error(new EntityNotFoundGraphQLError("Target agent pool is not found.")).build();
+    }
+
+    Map<Integer, Pair<CloudClientEx, AgentTypeKey>> cloudClientsAndTypeKeys = new HashMap<>(); // agentTypeId -> CloudClient, AgentTypeKey
+    input.getAgentTypeIds().forEach(agentTypeId -> {
+      SAgentType agentType = myAgentTypeFinder.findAgentType(agentTypeId);
+
+      if (agentType == null) {
+        result.error(new EntityNotFoundGraphQLError(String.format("Cloud image with agent type=%d does not exist.", agentTypeId)));
+        return;
+      }
+
+      if (!agentType.isCloud()) {
+        result.error(new OperationFailedGraphQLError(String.format("Agent type=%d does not correspond to a cloud agent.", agentTypeId)));
+        return;
+      }
+
+      final AgentTypeKey typeKey = agentType.getAgentTypeKey();
+      CloudProfile profile = myCloudManager.findProfileGloballyById(typeKey.getProfileId());
+      if(profile == null) {
+        result.error(new UnexpectedServerGraphQLError(String.format("Cloud profile with id=%s does not exist.", typeKey.getProfileId())));
+        return;
+      }
+
+      CloudClientEx client = myCloudManager.getClient(profile.getProjectId(), profile.getProfileId());
+      cloudClientsAndTypeKeys.put(agentTypeId, new Pair<>(client, typeKey));
+    });
+
+    try {
+      myAgentPoolManager.moveAgentTypesToPool(targetPoolId, cloudClientsAndTypeKeys.keySet());
+    } catch (NoSuchAgentPoolException e) {
+      return result.error(new EntityNotFoundGraphQLError(String.format("Agent pool with id=%d is not found.", targetPoolId))).build();
+    } catch (AgentTypeCannotBeMovedException e) {
+      return result.error(new OperationFailedGraphQLError("Some of the images can't be moved.")).build();
+    } catch (PoolQuotaExceededException e) {
+      return result.error(new OperationFailedGraphQLError("Image can't be moved, target agent pool is full.")).build();
+    }
+
+    List<CloudImage> cloudImages = new ArrayList<>(cloudClientsAndTypeKeys.size());
+    cloudClientsAndTypeKeys.forEach((agentTypeId, clientAndTypeKey) -> {
+      CloudClientEx client = clientAndTypeKey.getFirst();
+      AgentTypeKey typeKey = clientAndTypeKey.getSecond();
+
+      jetbrains.buildServer.clouds.CloudImage image = client.findImageById(typeKey.getTypeId());
+      if(image != null) {
+        cloudImages.add(new CloudImage(image, typeKey.getProfileId()));
+      }
+    });
+
+    return result.data(new BulkMoveCloudImagesToAgentPoolPayload(cloudImages, new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(targetPool)))
+                 .build();
   }
 }
