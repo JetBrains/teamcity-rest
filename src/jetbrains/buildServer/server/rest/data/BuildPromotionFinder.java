@@ -331,7 +331,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @NotNull
   @Override
   public ItemFilter<BuildPromotion> getFilter(@NotNull final Locator locator) {
-
     final MultiCheckerFilter<BuildPromotion> result = new MultiCheckerFilter<BuildPromotion>();
 
     //checking permissions to view - workaround for TW-45544
@@ -539,28 +538,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    final List<String> tag = locator.getDimensionValue(TAG); //need to pass through the filter even though some builds might have been pre-filtered - exact filter still needs to be applied
-    if (!tag.isEmpty()) {
-      if (tag.size() == 1 && tag.get(0).startsWith("format:extended")) { //pre-9.1 compatibility
-        //todo: log this?
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            try {
-              return isTagsMatchLocator(item.getTags(), new Locator(tag.get(0)));
-            } catch (LocatorProcessException e) {
-              throw new BadRequestException("Invalid locator 'tag' (legacy format is used): " + e.getMessage(), e);
-            }
-          }
-        });
-      } else {
-        for (String singleTag : tag) {
-          result.add(new FilterConditionChecker<BuildPromotion>() {
-            public boolean isIncluded(@NotNull final BuildPromotion item) {
-              return TagFinder.isIncluded(item, singleTag, myUserFinder);
-            }
-          });
-        }
-      }
+    if(locator.isUnused(TAG)) {
+      result.add(getFilterByTag(locator.getDimensionValue(TAG)));
     }
 
     final String compatibleAgentLocator = locator.getSingleDimensionValue(COMPATIBLE_AGENT);
@@ -882,6 +861,29 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     return getFilterWithProcessingCutOff(result, locator.getSingleDimensionValueAsLong(SINCE_BUILD_ID_LOOK_AHEAD_COUNT), sinceBuildPromotion, sinceBuildId, sinceStartDate);
+  }
+
+  private FilterConditionChecker<BuildPromotion> getFilterByTag(@NotNull final List<String> tags) {
+    if (tags.isEmpty()) {
+      return item -> true;
+    }
+    if (tags.size() == 1 && tags.get(0).startsWith("format:extended")) { //pre-9.1 compatibility
+      //todo: log this?
+      return item -> {
+        try {
+          return isTagsMatchLocator(item.getTags(), new Locator(tags.get(0)));
+        } catch (LocatorProcessException e) {
+          throw new BadRequestException("Invalid locator 'tag' (legacy format is used): " + e.getMessage(), e);
+        }
+      };
+    }
+
+    MultiCheckerFilter<BuildPromotion> filterByEachTag = new MultiCheckerFilter<>();
+    for (String singleTag : tags) {
+      filterByEachTag.add(item -> TagFinder.isIncluded(item, singleTag, myUserFinder));
+    }
+
+    return filterByEachTag;
   }
 
   @Nullable
@@ -1310,25 +1312,39 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    if (TeamCityProperties.getBoolean("rest.request.builds.prefilterByTag")) { //this is temporary logic, can be dropped
+    if (locator.isAnyPresent(TAG) && TeamCityProperties.getBoolean("rest.request.builds.prefilterByTag")) {
       Locator stateLocator = getStateLocator(new Locator(locator)); //using locator copy so that no dimensions are marked as used
       if (isStateIncluded(stateLocator, STATE_FINISHED)) {//no sense in going further here if no finished builds are requested
-        final List<String> tagLocators = locator.lookupDimensionValue(TAG); //not marking as used to enforce filter processing
+        final List<String> tagLocators = locator.lookupDimensionValue(TAG); //not marking as used to enforce filter processing later
+
         Stream<BuildPromotion> finishedBuilds = TagFinder.getPrefilteredFinishedBuildPromotions(tagLocators, myServiceLocator);
         if (finishedBuilds != null) {
-          // all queued - to be filtered by the filter
-          Stream<BuildPromotion> queuedBuilds =
-            isStateIncluded(stateLocator, STATE_QUEUED) ? myBuildQueue.getItems().stream().map(sQueuedBuild -> sQueuedBuild.getBuildPromotion()) : null;
+          FilterConditionChecker<BuildPromotion> tagsFilter = getFilterByTag(tagLocators);
+          // After this point no other builds will be added
+          locator.markUsed(Collections.singleton(TAG));
 
-          // all running - to be filtered by the filter
-          Stream<BuildPromotion> runningBuilds =
-            isStateIncluded(stateLocator, STATE_RUNNING) ? myBuildsManager.getRunningBuilds().stream().map(sQueuedBuild -> sQueuedBuild.getBuildPromotion()) : null;
+          Stream<BuildPromotion> queuedBuilds = Stream.empty();
+          if(isStateIncluded(stateLocator, STATE_QUEUED)) {
+             queuedBuilds = myBuildQueue.getItems().stream()
+                                        .map(SQueuedBuild::getBuildPromotion);
+          }
 
-          return processor -> {
-            if (queuedBuilds != null) queuedBuilds.forEach(buildPromotion -> processor.processItem(buildPromotion));
-            if (runningBuilds != null) runningBuilds.forEach(buildPromotion -> processor.processItem(buildPromotion));
-            finishedBuilds.forEach(buildPromotion -> processor.processItem(buildPromotion));
-          };
+          Stream<BuildPromotion> runningBuilds = Stream.empty();
+          if(isStateIncluded(stateLocator, STATE_RUNNING)) {
+            // BuildsManager.processBuilds could be used here instead of getting finished and running builds separately, but BuildQueryOptions support
+            // only exact tag name match, so we can't satisfy all possible TAG queriy conditions with it. To counter that we use
+            // TagFinder.getPrefilteredFinishedBuildPromotions to obtain a subset of required finished builds and BuildsManager.getRunningBuilds()
+            // to get all runing builds and later filter everything properly.
+            runningBuilds = myBuildsManager.getRunningBuilds().stream()
+                                           .map(SRunningBuild::getBuildPromotion);
+          }
+
+          // None of the concatenated streams were properly filtered, so let's filter them now.
+          // This hopefully allows for avoiding of hitting a lookupLimit because of a large queue.
+          Stream<BuildPromotion> allBuildsFilteredByTag = Stream.concat(Stream.concat(queuedBuilds, runningBuilds), finishedBuilds)
+                                                                .filter(tagsFilter::isIncluded);
+
+          return processor -> allBuildsFilteredByTag.forEach(processor::processItem);
         }
       }
     }

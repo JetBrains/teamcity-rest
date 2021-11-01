@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -2031,11 +2032,50 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkCounts("tag:a", 3, 3);
     checkCounts("tag:c", 0, 0);
     String bt = ",buildType:(id:" + buildConf1.getExternalId() + ")";
+
+    // We exepect finder to get prefiltered items using build type, so maxProcessedCount = 2
+    setInternalProperty("rest.request.builds.prefilterByTag", "false");
     checkCounts("tag:a" + bt, 2, 2);
+
+    // We exepect finder to get prefiltered items using exact tag value.
+    // This means that we filter by build type after, which cases 1 extra build to be checked, so maxProcessedCount = 3
+    setInternalProperty("rest.request.builds.prefilterByTag", "true");
+    checkCounts("tag:a" + bt, 2, 3);
 
     String userFilter = ",owner:(id:" + user.getId() + ")";
     checkCounts("tag:(condition:(value:a,matchType:(equals),ignoreCase:false),private:true" + userFilter + ")", 1, 1);
     checkCounts("tag:(condition:(value:a,matchType:(equals),ignoreCase:false),private:true" + userFilter + ")" + bt, 1, 1);
+  }
+
+  @Test
+  public void testEffectiveTagsSearch2() {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildType = (BuildTypeEx) project.createBuildType("buildConf1", "buildConf1");
+
+    // One finished build without tags
+    build().in(buildType).finish();
+
+    // One finished build with tags
+    BuildPromotion finishedBuild = build().in(buildType).finish().getBuildPromotion();
+    finishedBuild.setTags(Arrays.asList("a"));
+
+    // One running build without tags
+    createRunningBuild(buildType, new String[]{}, new String[]{});
+
+    // One queued build without tags
+    addToQueue(buildType);
+
+    // When disabled, we exepect BuildPromotionFinder to filter through queue and running builds,
+    // without prefiltering by tag.
+    setInternalProperty("rest.request.builds.prefilterByTag", "false");
+    checkCounts("state:any,tag:a", 1, 3);
+
+    // When enabled, we exepect BuildPromotionFinder to prefilter through queue and running builds,
+    // so that they do not propagate into into final filtering.
+    setInternalProperty("rest.request.builds.prefilterByTag", "true");
+    checkCounts("state:any,tag:a", 1,  1);
+
+    finishAllBuilds();
   }
 
   @Test
