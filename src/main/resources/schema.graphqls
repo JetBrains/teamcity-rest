@@ -470,12 +470,25 @@ type BulkMoveCloudImagesToAgentPoolPayload {
   targetAgentPool: AgentPool
 }
 
+input AuthorizeAgentInput {
+  agentId: ID!
+  reason: String
+  targetAgentPoolId: ID
+}
+
+type AuthorizeAgentPayload {
+  agent: Agent
+  targetAgentPool: AbstractAgentPool
+}
+
 type Mutation {
   createAgentPool(input: CreateAgentPoolInput): CreateAgentPoolPayload
   updateAgentPool(input: UpdateAgentPoolInput): UpdateAgentPoolPayload
   removeAgentPool(input: RemoveAgentPoolInput): RemoveAgentPoolPayload
 
   setAgentRunPolicy(input: SetAgentRunPolicyInput): SetAgentRunPolicyPayload
+
+  authorizeAgent(input: AuthorizeAgentInput): AuthorizeAgentPayload
 
   moveAgentToAgentPool(input: MoveAgentToAgentPoolInput): MoveAgentToAgentPoolPayload
   moveCloudImageToAgentPool(input: MoveCloudImageToAgentPoolInput): MoveCloudImageToAgentPoolPayload

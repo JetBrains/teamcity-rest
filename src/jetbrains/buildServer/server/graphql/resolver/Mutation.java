@@ -18,21 +18,25 @@ package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.execution.DataFetcherResult;
 import graphql.kickstart.tools.GraphQLMutationResolver;
+import graphql.schema.DataFetchingEnvironment;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.server.graphql.model.Agent;
-import jetbrains.buildServer.server.graphql.model.AgentRunPolicy;
-import jetbrains.buildServer.server.graphql.model.Project;
+import jetbrains.buildServer.Used;
+import jetbrains.buildServer.server.graphql.GraphQLContext;
+import jetbrains.buildServer.server.graphql.model.*;
+import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.server.graphql.model.mutation.*;
+import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
 import jetbrains.buildServer.server.graphql.util.EntityNotFoundGraphQLError;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.agentPools.*;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeManager;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,10 +44,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class Mutation implements GraphQLMutationResolver {
-  @Autowired
-  @NotNull
-  private AgentFinder myAgentFinder;
-
   @Autowired
   @NotNull
   private ProjectFinder myProjectFinder;
@@ -55,6 +55,19 @@ public class Mutation implements GraphQLMutationResolver {
   @Autowired
   @NotNull
   private AgentTypeManager myAgentTypeManager;
+
+  @Autowired
+  @NotNull
+  private AgentPoolManager myAgentPoolManager;
+
+  @Autowired
+  @NotNull
+  private BuildAgentManagerEx myBuildAgentManager;
+
+  @Autowired
+  @NotNull
+  private AbstractAgentPoolFactory myAgentPoolFactory;
+
 
   @NotNull
   public DataFetcherResult<SetAgentRunPolicyPayload> setAgentRunPolicy(@NotNull SetAgentRunPolicyInput input) {
@@ -161,9 +174,46 @@ public class Mutation implements GraphQLMutationResolver {
     );
   }
 
+  @Used("graphql")
   @NotNull
-  private <T> DataFetcherResult<T> runWithAgent(int agentId, @NotNull Function<SBuildAgent, DataFetcherResult<T>> action) {
-    SBuildAgent agent = myAgentFinder.findSingleItem(Locator.locator("id:" + agentId));
+  public DataFetcherResult<AuthorizeAgentPayload> authorizeAgent(@NotNull AuthorizeAgentInput input, @NotNull DataFetchingEnvironment dfe) {
+    return runWithAgent(
+      input.getAgentId(),
+      agent -> {
+        DataFetcherResult.Builder<AuthorizeAgentPayload> result = DataFetcherResult.newResult();
+        GraphQLContext context = dfe.getContext();
+        String authReason  = input.getReason() == null ? "No reason given" : input.getReason();
+
+        // Move agent to another pool first as we don't want some cheeky build to start while agent is in a wrong pool.
+        if(input.getTargetAgentPoolId() != null) {
+          try {
+            myAgentPoolManager.moveAgentToPool(input.getTargetAgentPoolId(), agent);
+          } catch (NoSuchAgentPoolException e) {
+            return result.error(new EntityNotFoundGraphQLError(String.format("Agent pool with id=%d is not found.", input.getTargetAgentPoolId()))).build();
+          } catch (PoolQuotaExceededException e) {
+            return result.error(new EntityNotFoundGraphQLError(String.format("Agent pool with id=%d does not accept agents.", input.getTargetAgentPoolId()))).build();
+          } catch (AgentTypeCannotBeMovedException e) {
+            return result.error(new EntityNotFoundGraphQLError(String.format("Agent witd id=%d can not be moved.", input.getAgentId()))).build();
+          }
+        }
+        agent.setAuthorized(true, context.getUser(), authReason);
+
+        Agent agentModel = new Agent(agent);
+        AbstractAgentPool targetPoolModel = null;
+        if(input.getTargetAgentPoolId() != null) {
+          AgentPool realPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolId());
+          if(realPool != null) {
+            targetPoolModel = myAgentPoolFactory.produce(realPool);
+          }
+        }
+        return result.data(new AuthorizeAgentPayload(agentModel, targetPoolModel)).build();
+      }
+    );
+  }
+
+  @NotNull
+  private <T> DataFetcherResult<T> runWithAgent(int agentId, @NotNull Function<BuildAgentEx, DataFetcherResult<T>> action) {
+    BuildAgentEx agent = myBuildAgentManager.findAgentById(agentId, true);
 
     if(agent == null) {
       return DataFetcherResult.<T>newResult().error(new EntityNotFoundGraphQLError(String.format("Agent with id=%s does not exist", agentId))).build();
