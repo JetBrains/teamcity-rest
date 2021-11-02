@@ -145,7 +145,6 @@ public class GraphQLProvider {
                   RunnerAgentBuildTypeIncompatibility.class,
                   UndefinedRunParameterAgentBuildTypeIncompatibility.class,
                   UnmetRequirementAgentBuildTypeIncompatibility.class,
-                  AgentPoolActionStatus.class,
                   MissingGlobalOrPerProjectPermission.class,
                   MissingGlobalPermission.class
                 )
