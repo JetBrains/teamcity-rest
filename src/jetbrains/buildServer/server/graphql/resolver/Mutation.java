@@ -211,6 +211,24 @@ public class Mutation implements GraphQLMutationResolver {
     );
   }
 
+  @Used("graphql")
+  @NotNull
+  public DataFetcherResult<UnauthorizeAgentPayload> unauthorizeAgent(@NotNull UnauthorizeAgentInput input, @NotNull DataFetchingEnvironment dfe) {
+    return runWithAgent(
+      input.getAgentId(),
+      agent -> {
+        DataFetcherResult.Builder<UnauthorizeAgentPayload> result = DataFetcherResult.newResult();
+        GraphQLContext context = dfe.getContext();
+        String authReason = input.getReason() == null ? "No reason given" : input.getReason();
+
+        agent.setAuthorized(false, context.getUser(), authReason);
+
+        Agent agentModel = new Agent(agent);
+        return result.data(new UnauthorizeAgentPayload(agentModel)).build();
+      }
+    );
+  }
+
   @NotNull
   private <T> DataFetcherResult<T> runWithAgent(int agentId, @NotNull Function<BuildAgentEx, DataFetcherResult<T>> action) {
     BuildAgentEx agent = myBuildAgentManager.findAgentById(agentId, true);

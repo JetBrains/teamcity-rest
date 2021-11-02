@@ -481,6 +481,15 @@ type AuthorizeAgentPayload {
   targetAgentPool: AbstractAgentPool
 }
 
+input UnauthorizeAgentInput {
+  agentId: ID!
+  reason: String
+}
+
+type UnauthorizeAgentPayload {
+  agent: Agent
+}
+
 type Mutation {
   createAgentPool(input: CreateAgentPoolInput): CreateAgentPoolPayload
   updateAgentPool(input: UpdateAgentPoolInput): UpdateAgentPoolPayload
@@ -489,6 +498,7 @@ type Mutation {
   setAgentRunPolicy(input: SetAgentRunPolicyInput): SetAgentRunPolicyPayload
 
   authorizeAgent(input: AuthorizeAgentInput): AuthorizeAgentPayload
+  unauthorizeAgent(input: UnauthorizeAgentInput): UnauthorizeAgentPayload
 
   moveAgentToAgentPool(input: MoveAgentToAgentPoolInput): MoveAgentToAgentPoolPayload
   moveCloudImageToAgentPool(input: MoveCloudImageToAgentPoolInput): MoveCloudImageToAgentPoolPayload
