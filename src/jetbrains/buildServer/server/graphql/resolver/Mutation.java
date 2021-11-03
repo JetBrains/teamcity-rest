@@ -19,6 +19,8 @@ package jetbrains.buildServer.server.graphql.resolver;
 import graphql.execution.DataFetcherResult;
 import graphql.kickstart.tools.GraphQLMutationResolver;
 import graphql.schema.DataFetchingEnvironment;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -33,7 +35,6 @@ import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPool
 import jetbrains.buildServer.server.graphql.util.EntityNotFoundGraphQLError;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.*;
@@ -182,7 +183,7 @@ public class Mutation implements GraphQLMutationResolver {
       agent -> {
         DataFetcherResult.Builder<AuthorizeAgentPayload> result = DataFetcherResult.newResult();
         GraphQLContext context = dfe.getContext();
-        String authReason  = input.getReason() == null ? "No reason given" : input.getReason();
+        String authReason = input.getReason() == null ? "" : input.getReason();
 
         // Move agent to another pool first as we don't want some cheeky build to start while agent is in a wrong pool.
         if(input.getTargetAgentPoolId() != null) {
@@ -213,13 +214,54 @@ public class Mutation implements GraphQLMutationResolver {
 
   @Used("graphql")
   @NotNull
+  public DataFetcherResult<BulkAuthorizeAgentsPayload> bulkAuthorizeAgents(@NotNull BulkAuthorizeAgentsInput input, @NotNull DataFetchingEnvironment dfe) {
+    DataFetcherResult.Builder<BulkAuthorizeAgentsPayload> result = DataFetcherResult.newResult();
+    GraphQLContext context = dfe.getContext();
+    String authReason = input.getReason() == null ? "" : input.getReason();
+
+    Set<Integer> agentTypeIds = new HashSet<>(input.getAgentIds().size());
+    List<BuildAgentEx> agents = new ArrayList<>();
+
+    for(int agentId : input.getAgentIds()) {
+      BuildAgentEx agent = myBuildAgentManager.findAgentById(agentId, true);
+      if(agent == null) {
+        return result.error(new EntityNotFoundGraphQLError(String.format("Agent with id=%d is not found.", agentId))).build();
+      }
+
+      agentTypeIds.add(agent.getAgentTypeId());
+      agents.add(agent);
+    }
+
+    if(input.getTargetPoolId() != null) {
+      try {
+        myAgentPoolManager.moveAgentTypesToPool(input.getTargetPoolId(), agentTypeIds);
+      } catch (NoSuchAgentPoolException e) {
+        return result.error(new EntityNotFoundGraphQLError("Agent pool is not found.")).build();
+      } catch (AgentTypeCannotBeMovedException e) {
+        return result.error(new EntityNotFoundGraphQLError("One of the given agents can't be moved.")).build();
+      } catch (PoolQuotaExceededException e) {
+        return result.error(new EntityNotFoundGraphQLError(String.format("Agent pool can't accept %d agents.", agentTypeIds.size()))).build();
+      }
+    }
+
+    List<Agent> agentModels = new ArrayList<>();
+    for(BuildAgentEx agent : agents) {
+      agent.setAuthorized(true, context.getUser(), authReason);
+      agentModels.add(new Agent(agent));
+    }
+
+    return result.data(new BulkAuthorizeAgentsPayload(agentModels)).build();
+  }
+
+  @Used("graphql")
+  @NotNull
   public DataFetcherResult<UnauthorizeAgentPayload> unauthorizeAgent(@NotNull UnauthorizeAgentInput input, @NotNull DataFetchingEnvironment dfe) {
     return runWithAgent(
       input.getAgentId(),
       agent -> {
         DataFetcherResult.Builder<UnauthorizeAgentPayload> result = DataFetcherResult.newResult();
         GraphQLContext context = dfe.getContext();
-        String authReason = input.getReason() == null ? "No reason given" : input.getReason();
+        String authReason = input.getReason() == null ? "" : input.getReason();
 
         agent.setAuthorized(false, context.getUser(), authReason);
 

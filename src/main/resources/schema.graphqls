@@ -445,7 +445,7 @@ input BulkMoveAgentToAgentsPoolInput {
 }
 
 type BulkMoveAgentsToAgentPoolPayload {
-  agents: [Agent],
+  agents: [Agent!],
   targetAgentPool: AgentPool
 }
 
@@ -466,7 +466,7 @@ input BulkMoveCloudImagesToAgentPoolInput {
 }
 
 type BulkMoveCloudImagesToAgentPoolPayload {
-  cloudImages: [CloudImage],
+  cloudImages: [CloudImage!],
   targetAgentPool: AgentPool
 }
 
@@ -490,6 +490,16 @@ type UnauthorizeAgentPayload {
   agent: Agent
 }
 
+input BulkAuthorizeAgentsInput {
+  agentIds: [ID!]!
+  reason: String
+  targetAgentPoolId: ID
+}
+
+type BulkAuthorizeAgentsPayload {
+  agents: [Agent!]
+}
+
 type Mutation {
   createAgentPool(input: CreateAgentPoolInput): CreateAgentPoolPayload
   updateAgentPool(input: UpdateAgentPoolInput): UpdateAgentPoolPayload
@@ -499,6 +509,7 @@ type Mutation {
 
   authorizeAgent(input: AuthorizeAgentInput): AuthorizeAgentPayload
   unauthorizeAgent(input: UnauthorizeAgentInput): UnauthorizeAgentPayload
+  bulkAuthorizeAgents(input: BulkAuthorizeAgentsInput): BulkAuthorizeAgentsPayload
 
   moveAgentToAgentPool(input: MoveAgentToAgentPoolInput): MoveAgentToAgentPoolPayload
   moveCloudImageToAgentPool(input: MoveCloudImageToAgentPoolInput): MoveCloudImageToAgentPoolPayload
