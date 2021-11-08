@@ -99,6 +99,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
 
       result.data(new CreateAgentPoolPayload(new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(resultPool)));
     } catch (AgentPoolCannotBeRenamedException e) {
+      LOG.debug(e);
       result.error(new OperationFailedGraphQLError(e.getMessage()));
     }
 
@@ -121,10 +122,12 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     try {
       myAgentPoolManager.updateAgentPool(poolId, name, new AgentPoolLimitsImpl(AgentPoolLimits.DEFAULT.getMinAgents(), maxAgents));
     } catch (AgentPoolCannotBeRenamedException e) {
+      LOG.debug(e);
       return result.data(new UpdateAgentPoolPayload(new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(poolOfInterest)))
                    .error(new OperationFailedGraphQLError(e.getMessage()))
                    .build();
     } catch (NoSuchAgentPoolException e) {
+      LOG.debug(e);
       return result.error(new EntityNotFoundGraphQLError("Pool with given id does not exist.")).build();
     }
 
@@ -152,8 +155,10 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
 
       return result.data(new RemoveAgentPoolPayload(new ShallowAgentPool(poolId, removedPool.getName()))).build();
     } catch (NoSuchAgentPoolException e) {
+      LOG.debug(e);
       return result.error(new EntityNotFoundGraphQLError("Pool with given id does not exist.")).build();
     } catch (AgentPoolCannotBeDeletedException e) {
+      LOG.debug(e);
       return result.error(new OperationFailedGraphQLError(e.getMessage())).build();
     }
   }
@@ -174,10 +179,13 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     try {
       myAgentPoolManager.moveAgentToPool(targetPoolId, agent);
     } catch (NoSuchAgentPoolException e) {
+      LOG.debug(e);
       return result.error(new EntityNotFoundGraphQLError(String.format("Agent pool with id=%d is not found.", targetPoolId))).build();
     } catch (AgentTypeCannotBeMovedException e) {
+      LOG.debug(e);
       return result.error(new OperationFailedGraphQLError("Agent can't be moved.")).build();
     } catch (PoolQuotaExceededException e) {
+      LOG.debug(e);
       return result.error(new OperationFailedGraphQLError("Agent can't be moved, target agent pool is full.")).build();
     }
 
@@ -220,10 +228,13 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     try {
       myAgentPoolManager.moveAgentTypesToPool(targetPoolId, Collections.singleton(agentType.getAgentTypeId()));
     } catch (NoSuchAgentPoolException e) {
+      LOG.debug(e);
       return result.error(new EntityNotFoundGraphQLError(String.format("Agent pool with id=%d is not found.", targetPoolId))).build();
     } catch (AgentTypeCannotBeMovedException e) {
+      LOG.debug(e);
       return result.error(new OperationFailedGraphQLError("Image can't be moved.")).build();
     } catch (PoolQuotaExceededException e) {
+      LOG.debug(e);
       return result.error(new OperationFailedGraphQLError("Image can't be moved, target agent pool is full.")).build();
     }
 
