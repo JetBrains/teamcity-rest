@@ -23,7 +23,7 @@ import org.jetbrains.annotations.Nullable;
 public class BulkAuthorizeAgentsInput {
   private List<Integer> myAgentIds;
   private String myReason;
-  private Integer myTargetPoolId;
+  private Integer myTargetAgentPoolId;
 
   @NotNull
   public List<Integer> getAgentIds() {
@@ -44,11 +44,11 @@ public class BulkAuthorizeAgentsInput {
   }
 
   @Nullable
-  public Integer getTargetPoolId() {
-    return myTargetPoolId;
+  public Integer getTargetAgentPoolId() {
+    return myTargetAgentPoolId;
   }
 
-  public void setTargetPoolId(@Nullable Integer targetPoolId) {
-    myTargetPoolId = targetPoolId;
+  public void setTargetAgentPoolId(@Nullable Integer targetAgentPoolId) {
+    myTargetAgentPoolId = targetAgentPoolId;
   }
 }

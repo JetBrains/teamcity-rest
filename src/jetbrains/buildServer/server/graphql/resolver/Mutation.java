@@ -244,9 +244,9 @@ public class Mutation implements GraphQLMutationResolver {
       agents.add(agent);
     }
 
-    if(input.getTargetPoolId() != null) {
+    if(input.getTargetAgentPoolId() != null) {
       try {
-        myAgentPoolManager.moveAgentTypesToPool(input.getTargetPoolId(), agentTypeIds);
+        myAgentPoolManager.moveAgentTypesToPool(input.getTargetAgentPoolId(), agentTypeIds);
       } catch (NoSuchAgentPoolException e) {
         LOG.debug(e);
         return result.error(new EntityNotFoundGraphQLError("Agent pool is not found.")).build();
