@@ -497,7 +497,8 @@ input BulkAuthorizeAgentsInput {
 }
 
 type BulkAuthorizeAgentsPayload {
-  agents: [Agent!]
+  agents: [Agent!]!
+  targetAgentPool: AbstractAgentPool
 }
 
 type Mutation {

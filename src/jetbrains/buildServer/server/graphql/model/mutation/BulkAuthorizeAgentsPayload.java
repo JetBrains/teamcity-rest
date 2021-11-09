@@ -18,17 +18,26 @@ package jetbrains.buildServer.server.graphql.model.mutation;
 
 import java.util.List;
 import jetbrains.buildServer.server.graphql.model.Agent;
+import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class BulkAuthorizeAgentsPayload {
   private final List<Agent> myAgents;
+  private final AbstractAgentPool myTargetAgentPool;
 
-  public BulkAuthorizeAgentsPayload(@NotNull List<Agent> agents) {
+  public BulkAuthorizeAgentsPayload(@NotNull List<Agent> agents, @Nullable AbstractAgentPool pool) {
     myAgents = agents;
+    myTargetAgentPool = pool;
   }
 
   @NotNull
   public List<Agent> getAgents() {
     return myAgents;
+  }
+
+  @Nullable
+  public AbstractAgentPool getTargetAgentPool() {
+    return myTargetAgentPool;
   }
 }

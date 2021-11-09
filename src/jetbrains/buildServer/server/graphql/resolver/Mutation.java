@@ -259,13 +259,24 @@ public class Mutation implements GraphQLMutationResolver {
       }
     }
 
+    AbstractAgentPool poolModel = null;
+    if(input.getTargetAgentPoolId() != null) {
+      AgentPool targetRealPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolId());
+      if(targetRealPool != null) {
+        poolModel = myAgentPoolFactory.produce(targetRealPool);
+      } else {
+        LOG.debug("Agent pool ");
+        result.error(new EntityNotFoundGraphQLError("Agent pool is not found after successfully moving agents to it. Possibly it was deleted already."));
+      }
+    }
+
     List<Agent> agentModels = new ArrayList<>();
     for(BuildAgentEx agent : agents) {
       agent.setAuthorized(true, context.getUser(), authReason);
       agentModels.add(new Agent(agent));
     }
 
-    return result.data(new BulkAuthorizeAgentsPayload(agentModels)).build();
+    return result.data(new BulkAuthorizeAgentsPayload(agentModels, poolModel)).build();
   }
 
   @Used("graphql")
