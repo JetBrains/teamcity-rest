@@ -28,6 +28,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
@@ -54,7 +55,6 @@ import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.request.RootApiRequest;
 import jetbrains.buildServer.server.rest.request.ServerRequest;
-import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildServerAdapter;
 import jetbrains.buildServer.serverSide.SBuildServer;
@@ -82,18 +82,17 @@ import static jetbrains.buildServer.util.Util.doUnderContextClassLoader;
 
 /**
  * @author Yegor.Yarko
- *         Date: 23.03.2009
+ * Date: 23.03.2009
  */
 public class APIController extends BaseController implements ServletContextAware {
   public static final String REST_COMPATIBILITY_ALLOW_EXTERNAL_ID_AS_INTERNAL = "rest.compatibility.allowExternalIdAsInternal";
   public static final String INCLUDE_INTERNAL_ID_PROPERTY_NAME = "rest.beans.includeInternalId";
   public static final String LATEST_REST_API_PLUGIN_NAME = "rest-api";
-  private final Logger LOG;
   public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";
   public static final String REST_PREFER_OWN_BIND_PATHS = "rest.allow.bind.paths.override.for.plugins";
-
   private static final String CONTEXT_REQUEST_ARGUMENTS_PREFIX = RestApiInternalRequestTag.REQUEST_ARGUMENTS_PREFIX;
-
+  public static String ourFirstBindPath;
+  private final Logger LOG;
   private final boolean myInternalAuthProcessing = TeamCityProperties.getBoolean("rest.cors.optionsRequest.allowUnauthorized");
   private final String[] myPathsWithoutAuth = new String[]{
     BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/*/" + "statusIcon" + "*",
@@ -105,7 +104,6 @@ public class APIController extends BaseController implements ServletContextAware
     Constants.EXTERNAL_APPLICATION_WADL_NAME + "/xsd*.xsd",
     "/swagger**",
   };
-
   private final JerseyWebComponent myWebComponent;
   private final AtomicBoolean myWebComponentInitialized = new AtomicBoolean(false);
   private final ConfigurableApplicationContext myConfigurableApplicationContext;
@@ -115,15 +113,13 @@ public class APIController extends BaseController implements ServletContextAware
   private final AuthorizationInterceptor myAuthorizationInterceptor;
   @NotNull private final HttpAuthenticationManager myAuthManager;
   @NotNull private final PluginManager myPluginManager;
-
   private final ClassLoader myClassloader;
-  private String myAuthToken;
   private final RequestPathTransformInfo myRequestPathTransformInfo;
   private final PathSet myUnauthenticatedPathSet = new PathSet();
 
   private final CorsOrigins myAllowedOrigins = new CorsOrigins();
   private final CachingValues myDisabledRequests = new CachingValues();
-  public static String ourFirstBindPath;
+  private String myAuthToken;
 
   public APIController(final SBuildServer server,
                        WebControllerManager webControllerManager,
@@ -165,6 +161,45 @@ public class APIController extends BaseController implements ServletContextAware
       } catch (UnsupportedEncodingException e) {
         LOG.warn(e);
       }
+    }
+  }
+
+  private static void addEntries(final Map<String, String> map, final List<String> keys, final String value) {
+    for (String key : keys) {
+      map.put(key, value);
+    }
+  }
+
+  private static boolean processRequestAuthentication(@NotNull final HttpServletRequest request,
+                                                      @NotNull final HttpServletResponse response,
+                                                      @NotNull final HttpAuthenticationManager authManager) throws IOException {
+    if (WebUtil.isAjaxRequest(request)) { // do not try to authenticate ajax requests, see TW-56019, TW-35022
+      new UnauthorizedResponseHelper(response, false).send(request, null);
+      return true;
+    }
+    boolean canRedirect = UserAgentUtil.isBrowser(request) && !WebUtil.isAjaxRequest(request) &&
+                          !WebUtil.isWebSocketUpgradeRequest(request); //see jetbrains.buildServer.controllers.interceptors.AuthorizationInterceptorImpl.preHandle()
+    final HttpAuthenticationResult authResult = authManager.processAuthenticationRequest(request, response, canRedirect);
+    if (canRedirect) {
+      final String redirectUrl = authResult.getRedirectUrl();
+      if (redirectUrl != null) {
+        response.sendRedirect(redirectUrl);
+        return true;
+      }
+    }
+
+    if (authResult.getType() != HttpAuthenticationResult.Type.AUTHENTICATED) {
+      authManager.processUnauthenticatedRequest(request, response, null, canRedirect);
+      return true;
+    }
+    return false;
+  }
+
+  private static <T> boolean equalsNullable(@Nullable T a, @Nullable T b) {
+    if (a == null) {
+      return b == null;
+    } else {
+      return b != null && a.equals(b);
     }
   }
 
@@ -252,13 +287,14 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   private List<String> filterOtherPlugins(final List<String> bindPaths) {
-    final String pluginNames = TeamCityProperties.getProperty(REST_PREFER_OWN_BIND_PATHS, LATEST_REST_API_PLUGIN_NAME); //by default allow only the latest/main plugin paths to be overriden
+    final String pluginNames =
+      TeamCityProperties.getProperty(REST_PREFER_OWN_BIND_PATHS, LATEST_REST_API_PLUGIN_NAME); //by default allow only the latest/main plugin paths to be overriden
     final String[] pluginNamesList = pluginNames.split(",");
 
     final String ownPluginName = myPluginDescriptor.getPluginName();
     boolean overridesAllowed = false;
     for (String pluginName : pluginNamesList) {
-      if (ownPluginName.equals(pluginName.trim())){
+      if (ownPluginName.equals(pluginName.trim())) {
         overridesAllowed = true;
         break;
       }
@@ -279,7 +315,7 @@ public class APIController extends BaseController implements ServletContextAware
         String bindPath = pluginDescriptor.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
         if (!StringUtil.isEmpty(bindPath)) {
           final List<String> pathToExclude = getBindPaths(pluginDescriptor);
-          if (result.removeAll(pathToExclude)){
+          if (result.removeAll(pathToExclude)) {
             LOG.info("Excluding paths from handling by plugin '" + ownPluginName + "' as they are handled by plugin '" + plugin.getPluginName() + "': " +
                      pathToExclude + ". Set " + REST_PREFER_OWN_BIND_PATHS + " internal property to empty value to prohibit overriding." +
                      " (The property sets comma-separated list of plugin names which bind paths can be overriden.)");
@@ -295,12 +331,6 @@ public class APIController extends BaseController implements ServletContextAware
 
   public String getPluginIdentifyingText() {
     return "plugin '" + myPluginDescriptor.getPluginName() + "'";
-  }
-
-  private static void addEntries(final Map<String, String> map, final List<String> keys, final String value) {
-    for (String key : keys) {
-      map.put(key, value);
-    }
   }
 
   private List<String> addPrefix(final List<String> paths, final String prefix) {
@@ -325,7 +355,8 @@ public class APIController extends BaseController implements ServletContextAware
         LOG.debug("Binding REST API " + getPluginIdentifyingText() + " to path '" + controllerBindPath + "'");
         myWebControllerManager.registerController(controllerBindPath + "/**", this);
         if (myInternalAuthProcessing &&
-            !controllerBindPath.equals(Constants.API_URL)) {// this is a special case as it contains paths of other plugins under it. Thus, it cannot be registered as not requiring auth
+            !controllerBindPath.equals(
+              Constants.API_URL)) {// this is a special case as it contains paths of other plugins under it. Thus, it cannot be registered as not requiring auth
           myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + "/**");
           for (String path : myPathsWithoutAuth) {
             myUnauthenticatedPathSet.addPath(controllerBindPath + path);
@@ -422,14 +453,12 @@ public class APIController extends BaseController implements ServletContextAware
 
     String requestType = getRequestType(request);
 
-    CachingValue<String> requestDump = CachingValue.simple(() -> WebUtil.getRequestDump(request));
-
     if (shouldLogToDebug && TeamCityProperties.getBoolean("rest.log.debug.requestStart") && LOG.isDebugEnabled()) {
-      LOG.debug("REST API " + requestType + " request received: " + requestDump.get());
+      LOG.debug(() -> "REST API " + requestType + " request received: " + WebUtil.getRequestDump(request));
     }
 
     try {
-      initJerseyWebComponent(() -> "during request " + requestDump.get());
+      initJerseyWebComponent(() -> "during request " + WebUtil.getRequestDump(request));
     } catch (Throwable throwable) {
       reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, "Error initializing REST API", Level.ERROR, request);
       return null;
@@ -452,19 +481,19 @@ public class APIController extends BaseController implements ServletContextAware
       }
     }
 
-    boolean errorEncountered = false;
+    final AtomicBoolean errorEncountered = new AtomicBoolean(false);
     final boolean runAsSystemActual = runAsSystem;
     try {
 
       final boolean corsRequest = myAllowedOrigins.processCorsOriginHeaders(request, response, LOG);
-      if (corsRequest && request.getMethod().equalsIgnoreCase("OPTIONS")){
+      if (corsRequest && request.getMethod().equalsIgnoreCase("OPTIONS")) {
         //handling browser pre-flight requests
         LOG.debug("Pre-flight OPTIONS request detected, replying with status 204");
         response.setStatus(HttpServletResponse.SC_NO_CONTENT);
         return null;
       }
-      if (myInternalAuthProcessing && SessionUser.getUser(request) == null && !requestForMyPathNotRequiringAuth(request)){
-        if (processRequestAuthentication(request, response, myAuthManager)){
+      if (myInternalAuthProcessing && SessionUser.getUser(request) == null && !requestForMyPathNotRequiringAuth(request)) {
+        if (processRequestAuthentication(request, response, myAuthManager)) {
           return null;
         }
         //TeamCity API issue: SecurityContext.getAuthorityHolder is "SYSTEM" if request is not authorized
@@ -472,43 +501,43 @@ public class APIController extends BaseController implements ServletContextAware
         if (notAuthorizedRequest) {
           response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
           response.getWriter().write("TeamCity core was unable to handle authentication (no current user).");
-          LOG.warn("TeamCity core was unable to handle authentication (no current user), replying with 401 status. Request details: " + requestDump.get());
+          LOG.warn("TeamCity core was unable to handle authentication (no current user), replying with 401 status. Request details: " + WebUtil.getRequestDump(request));
           return null;
         }
       }
 
-      patchThread(requestDump, requestType, () -> {
+      patchThread(() -> WebUtil.getRequestDump(request), requestType, () -> {
         // workaround for http://jetbrains.net/tracker/issue2/TW-7656
         doUnderContextClassLoader(myClassloader, new FuncThrow<Void, Throwable>() {
           public Void apply() throws Throwable {
             return new RestContext(name -> request.getAttribute(CONTEXT_REQUEST_ARGUMENTS_PREFIX + name))
               .run(() -> {
-              // patching request
-              final HttpServletRequest actualRequest =
-                new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
+                // patching request
+                final HttpServletRequest actualRequest =
+                  new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
 
-              if (runAsSystemActual) {
-                if (shouldLogToDebug && LOG.isDebugEnabled()) LOG.debug("Executing request with system security level");
-                mySecurityContext.runAsSystem(() -> {
+                if (runAsSystemActual) {
+                  if (shouldLogToDebug && LOG.isDebugEnabled()) LOG.debug("Executing request with system security level");
+                  mySecurityContext.runAsSystem(() -> {
                     myWebComponent.doFilter(actualRequest, response, null);
-                });
-              } else {
-                myWebComponent.doFilter(actualRequest, response, null);
-              }
-              return null;
-            });
+                  });
+                } else {
+                  myWebComponent.doFilter(actualRequest, response, null);
+                }
+                return null;
+              });
           }
         });
         return null;
       });
     } catch (Throwable throwable) {
-      errorEncountered = true;
+      errorEncountered.set(true);
       processException(request, response, throwable);
-    } finally{
+    } finally {
       if (shouldLogToDebug && LOG.isDebugEnabled()) {
-        LOG.debug("REST API " + requestType + " request processing finished in " +
-                  TimePrinter.createMillisecondsFormatter().formatTime(requestStart.elapsedMillis()) +
-                  (errorEncountered ? " with errors, original " : ", ") + "status code: " + getStatus(response) + ", request: " + requestDump.get());
+        LOG.debug(() -> "REST API " + requestType + " request processing finished in " +
+                        TimePrinter.createMillisecondsFormatter().formatTime(requestStart.elapsedMillis()) +
+                        (errorEncountered.get() ? " with errors, original " : ", ") + "status code: " + getStatus(response) + ", request: " + WebUtil.getRequestDump(request));
       }
     }
     return null;
@@ -531,7 +560,7 @@ public class APIController extends BaseController implements ServletContextAware
 
     // see ContainerResponse.mapException
     WebApplication wa = myWebComponent.getWebApplication();
-    if (wa!= null) {
+    if (wa != null) {
       ExceptionMapper em = wa.getExceptionMapperContext().find(throwable.getClass());
       if (em != null && em instanceof ExceptionMapperBase) {
         ExceptionMapperBase mapper = (ExceptionMapperBase)em;
@@ -551,7 +580,7 @@ public class APIController extends BaseController implements ServletContextAware
     reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, Level.WARN, request);
   }
 
-  private void patchThread(@NotNull final CachingValue<String> requestDump, @NotNull final String requestType,
+  private void patchThread(@NotNull final Supplier<String> requestDump, @NotNull final String requestType,
                            @NotNull final FuncThrow<Void, Throwable> action) throws Throwable {
     if (TeamCityProperties.getBooleanOrTrue("rest.debug.APIController.patchThread")) {
       StringBuilder activityName = new StringBuilder();
@@ -560,9 +589,7 @@ public class APIController extends BaseController implements ServletContextAware
         activityName.append(" ").append(requestType);
       }
       activityName.append(" request");
-      if (requestDump.isCached()) {
-        activityName.append(requestDump.get());
-      }
+      activityName.append(requestDump.get());
 
       NamedThreadFactory.executeWithNewThreadNameFuncThrow(activityName.toString(), action);
     } else {
@@ -574,33 +601,9 @@ public class APIController extends BaseController implements ServletContextAware
     return !RestApiFacade.isInternal(request) || TeamCityProperties.getBoolean("rest.log.debug.internalRequests");
   }
 
-  private static boolean processRequestAuthentication(@NotNull final HttpServletRequest request,
-                                                   @NotNull final HttpServletResponse response,
-                                                   @NotNull final HttpAuthenticationManager authManager) throws IOException {
-    if (WebUtil.isAjaxRequest(request)) { // do not try to authenticate ajax requests, see TW-56019, TW-35022
-      new UnauthorizedResponseHelper(response, false).send(request, null);
-      return true;
-    }
-      boolean canRedirect = UserAgentUtil.isBrowser(request) && !WebUtil.isAjaxRequest(request) && !WebUtil.isWebSocketUpgradeRequest(request); //see jetbrains.buildServer.controllers.interceptors.AuthorizationInterceptorImpl.preHandle()
-      final HttpAuthenticationResult authResult = authManager.processAuthenticationRequest(request, response, canRedirect);
-      if (canRedirect) {
-        final String redirectUrl = authResult.getRedirectUrl();
-        if (redirectUrl != null) {
-          response.sendRedirect(redirectUrl);
-          return true;
-        }
-      }
-
-      if (authResult.getType() != HttpAuthenticationResult.Type.AUTHENTICATED) {
-        authManager.processUnauthenticatedRequest(request, response, null, canRedirect);
-        return true;
-      }
-    return false;
-  }
-
-  private boolean matches(final String requestURI, final  String[] disabledRequests) {
+  private boolean matches(final String requestURI, final String[] disabledRequests) {
     for (String requestPattern : disabledRequests) {
-      if (requestURI.matches(requestPattern)){
+      if (requestURI.matches(requestPattern)) {
         return true;
       }
     }
@@ -632,31 +635,12 @@ public class APIController extends BaseController implements ServletContextAware
     return myServer.getExtensions(RESTControllerExtension.class);
   }
 
-  class CachingValues {
-    private String myCachedValue;
-    private String myCachedDelimiter;
-    private String[] myParsedValues;
-
-    @NotNull
-    private synchronized String[] getParsedValues(@NotNull final String currentValue, @Nullable final String delimiter) {
-      if (!equalsNullable(myCachedValue, currentValue) || !equalsNullable(myCachedDelimiter, delimiter)) {
-        myCachedValue = currentValue;
-        myCachedDelimiter = delimiter;
-        myParsedValues = currentValue.split(StringUtil.isEmpty(delimiter) ? "," : delimiter);
-        for (int i = 0; i < myParsedValues.length; i++) {
-          myParsedValues[i] = myParsedValues[i].trim();
-        }
-      }
-      return myParsedValues;
-    }
-  }
-
   public void reportRestErrorResponse(@NotNull final HttpServletResponse response,
-                                             final int statusCode,
-                                             @Nullable final Throwable e,
-                                             @Nullable final String message,
-                                             final Level level,
-                                             @NotNull final HttpServletRequest request) {
+                                      final int statusCode,
+                                      @Nullable final Throwable e,
+                                      @Nullable final String message,
+                                      final Level level,
+                                      @NotNull final HttpServletRequest request) {
     final String responseText =
       ExceptionMapperBase.getResponseTextAndLogRestErrorErrorMessage(statusCode, e, message, statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR, level, request);
 
@@ -708,11 +692,22 @@ public class APIController extends BaseController implements ServletContextAware
     return myAuthToken;
   }
 
-  private static <T> boolean equalsNullable(@Nullable T a, @Nullable T b) {
-    if (a == null) {
-      return b == null;
-    } else {
-      return b != null && a.equals(b);
+  class CachingValues {
+    private String myCachedValue;
+    private String myCachedDelimiter;
+    private String[] myParsedValues;
+
+    @NotNull
+    private synchronized String[] getParsedValues(@NotNull final String currentValue, @Nullable final String delimiter) {
+      if (!equalsNullable(myCachedValue, currentValue) || !equalsNullable(myCachedDelimiter, delimiter)) {
+        myCachedValue = currentValue;
+        myCachedDelimiter = delimiter;
+        myParsedValues = currentValue.split(StringUtil.isEmpty(delimiter) ? "," : delimiter);
+        for (int i = 0; i < myParsedValues.length; i++) {
+          myParsedValues[i] = myParsedValues[i].trim();
+        }
+      }
+      return myParsedValues;
     }
   }
 }
