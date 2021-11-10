@@ -199,13 +199,12 @@ public class Mutation implements GraphQLMutationResolver {
           try {
             myAgentPoolManager.moveAgentToPool(input.getTargetAgentPoolId(), agent);
           } catch (NoSuchAgentPoolException e) {
-            LOG.debug(e);
             return result.error(new EntityNotFoundGraphQLError(String.format("Agent pool with id=%d is not found.", input.getTargetAgentPoolId()))).build();
           } catch (PoolQuotaExceededException e) {
-            LOG.debug(e);
+            LOG.debug(e.getMessage());
             return result.error(new OperationFailedGraphQLError(String.format("Agent pool with id=%d does not accept agents.", input.getTargetAgentPoolId()))).build();
           } catch (AgentTypeCannotBeMovedException e) {
-            LOG.debug(e);
+            LOG.debug(e.getMessage());
             return result.error(new OperationFailedGraphQLError(String.format("Agent with id=%d can not be moved.", input.getAgentId()))).build();
           }
         }
@@ -248,13 +247,12 @@ public class Mutation implements GraphQLMutationResolver {
       try {
         myAgentPoolManager.moveAgentTypesToPool(input.getTargetAgentPoolId(), agentTypeIds);
       } catch (NoSuchAgentPoolException e) {
-        LOG.debug(e);
         return result.error(new EntityNotFoundGraphQLError("Agent pool is not found.")).build();
       } catch (AgentTypeCannotBeMovedException e) {
-        LOG.debug(e);
+        LOG.debug(e.getMessage());
         return result.error(new OperationFailedGraphQLError("One of the given agents can't be moved.")).build();
       } catch (PoolQuotaExceededException e) {
-        LOG.debug(e);
+        LOG.debug(e.getMessage());
         return result.error(new OperationFailedGraphQLError(String.format("Agent pool can't accept %d agents.", agentTypeIds.size()))).build();
       }
     }
@@ -265,14 +263,17 @@ public class Mutation implements GraphQLMutationResolver {
       if(targetRealPool != null) {
         poolModel = myAgentPoolFactory.produce(targetRealPool);
       } else {
-        LOG.debug("Agent pool ");
         result.error(new EntityNotFoundGraphQLError("Agent pool is not found after successfully moving agents to it. Possibly it was deleted already."));
       }
     }
 
     List<Agent> agentModels = new ArrayList<>();
     for(BuildAgentEx agent : agents) {
-      agent.setAuthorized(true, context.getUser(), authReason);
+      try {
+        agent.setAuthorized(true, context.getUser(), authReason);
+      } catch (LicenseNotGrantedException e) {
+        result.error(new OperationFailedGraphQLError(e.getMessage()));
+      }
       agentModels.add(new Agent(agent));
     }
 
@@ -292,7 +293,6 @@ public class Mutation implements GraphQLMutationResolver {
         try {
           agent.setAuthorized(false, context.getUser(), authReason);
         } catch (LicenseNotGrantedException e) {
-          LOG.debug(e);
           return result.error(new OperationFailedGraphQLError(e.getMessage())).build();
         }
 
