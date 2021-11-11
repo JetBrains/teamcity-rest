@@ -97,8 +97,8 @@ public class WadlGenerator extends WadlGeneratorConfig {
       Resource resource = super.createResource(ar, path);
       if (resource != null) {
         String originalPath = resource.getPath();
-        if (originalPath != null && originalPath.startsWith(Constants.API_URL) && APIController.ourFirstBindPath != null) {
-          resource.setPath(StringUtil.removeLeadingSlash(APIController.ourFirstBindPath) + originalPath.substring(Constants.API_URL.length()));
+        if (originalPath != null && originalPath.startsWith(Constants.API_URL) && APIController.getFirstBindPath() != null) {
+          resource.setPath(StringUtil.removeLeadingSlash(APIController.getFirstBindPath()) + originalPath.substring(Constants.API_URL.length()));
         }
       }
       if (ourExcludePlugins && resource != null && ar.getResourceClass().getClassLoader() != getClass().getClassLoader()) {

@@ -26,6 +26,7 @@ import com.sun.jersey.spi.container.servlet.WebComponent;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Objects;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -91,7 +92,7 @@ public class APIController extends BaseController implements ServletContextAware
   public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";
   public static final String REST_PREFER_OWN_BIND_PATHS = "rest.allow.bind.paths.override.for.plugins";
   private static final String CONTEXT_REQUEST_ARGUMENTS_PREFIX = RestApiInternalRequestTag.REQUEST_ARGUMENTS_PREFIX;
-  public static String ourFirstBindPath;
+  private static String OUR_FIRST_BIND_PATH = null;
   private final Logger LOG;
   private final boolean myInternalAuthProcessing = TeamCityProperties.getBoolean("rest.cors.optionsRequest.allowUnauthorized");
   private final String[] myPathsWithoutAuth = new String[]{
@@ -177,8 +178,8 @@ public class APIController extends BaseController implements ServletContextAware
       new UnauthorizedResponseHelper(response, false).send(request, null);
       return true;
     }
-    boolean canRedirect = UserAgentUtil.isBrowser(request) && !WebUtil.isAjaxRequest(request) &&
-                          !WebUtil.isWebSocketUpgradeRequest(request); //see jetbrains.buildServer.controllers.interceptors.AuthorizationInterceptorImpl.preHandle()
+
+    boolean canRedirect = canRedirect(request);
     final HttpAuthenticationResult authResult = authManager.processAuthenticationRequest(request, response, canRedirect);
     if (canRedirect) {
       final String redirectUrl = authResult.getRedirectUrl();
@@ -195,12 +196,19 @@ public class APIController extends BaseController implements ServletContextAware
     return false;
   }
 
-  private static <T> boolean equalsNullable(@Nullable T a, @Nullable T b) {
-    if (a == null) {
-      return b == null;
-    } else {
-      return b != null && a.equals(b);
-    }
+  /**
+   * see {@link jetbrains.buildServer.controllers.interceptors.AuthorizationInterceptorImpl.preHandle()}
+   *
+   * @param request
+   * @return
+   */
+  private static boolean canRedirect(@NotNull HttpServletRequest request) {
+    return UserAgentUtil.isBrowser(request) && !WebUtil.isWebSocketUpgradeRequest(request);
+  }
+
+  @Nullable
+  public static String getFirstBindPath() {
+    return OUR_FIRST_BIND_PATH;
   }
 
   public void initializeController() {
@@ -210,7 +218,7 @@ public class APIController extends BaseController implements ServletContextAware
       LOG.error(message + " Reporting plugin load error.");
       throw new RuntimeException(message);
     }
-    ourFirstBindPath = unfilteredOriginalBindPaths.get(0);
+    OUR_FIRST_BIND_PATH = unfilteredOriginalBindPaths.get(0);
 
     final List<String> originalBindPaths = filterOtherPlugins(unfilteredOriginalBindPaths);
     if (originalBindPaths.isEmpty()) {
@@ -231,7 +239,7 @@ public class APIController extends BaseController implements ServletContextAware
 
     Map<String, String> transformBindPaths = new HashMap<>();
     addEntries(transformBindPaths, bindPaths, Constants.API_URL);
-    addEntries(transformBindPaths, addSuffix(bindPaths, Constants.EXTERNAL_APPLICATION_WADL_NAME), Constants.JERSEY_APPLICATION_WADL_NAME);
+    addEntries(transformBindPaths, addWadlSuffix(bindPaths), Constants.JERSEY_APPLICATION_WADL_NAME);
 
     myRequestPathTransformInfo.setPathMapping(transformBindPaths);
     LOG.debug("Will use request mapping: " + myRequestPathTransformInfo);
@@ -341,10 +349,10 @@ public class APIController extends BaseController implements ServletContextAware
     return result;
   }
 
-  private List<String> addSuffix(final List<String> paths, final String suffix) {
+  private List<String> addWadlSuffix(final List<String> paths) {
     List<String> result = new ArrayList<>(paths.size());
     for (String path : paths) {
-      result.add(path + suffix);
+      result.add(path + Constants.EXTERNAL_APPLICATION_WADL_NAME);
     }
     return result;
   }
@@ -426,7 +434,7 @@ public class APIController extends BaseController implements ServletContextAware
         return initParameters.get(s);
       }
 
-      public Enumeration getInitParameterNames() {
+      public Enumeration<String> getInitParameterNames() {
         return new Vector<>(initParameters.keySet()).elements();
       }
     };
@@ -514,7 +522,7 @@ public class APIController extends BaseController implements ServletContextAware
               .run(() -> {
                 // patching request
                 final HttpServletRequest actualRequest =
-                  new RequestWrapper(patchRequest(request, "Accept", "overrideAccept"), myRequestPathTransformInfo);
+                  new RequestWrapper(patchRequestWithAcceptHeader(request), myRequestPathTransformInfo);
 
                 if (runAsSystemActual) {
                   if (shouldLogToDebug && LOG.isDebugEnabled()) LOG.debug("Executing request with system security level");
@@ -561,9 +569,9 @@ public class APIController extends BaseController implements ServletContextAware
     // see ContainerResponse.mapException
     WebApplication wa = myWebComponent.getWebApplication();
     if (wa != null) {
-      ExceptionMapper em = wa.getExceptionMapperContext().find(throwable.getClass());
-      if (em != null && em instanceof ExceptionMapperBase) {
-        ExceptionMapperBase mapper = (ExceptionMapperBase)em;
+      @SuppressWarnings("rawtypes") ExceptionMapper em = wa.getExceptionMapperContext().find(throwable.getClass());
+      if (em instanceof ExceptionMapperBase) {
+        @SuppressWarnings("rawtypes") ExceptionMapperBase mapper = (ExceptionMapperBase)em;
         ExceptionMapperBase.ResponseData responseData;
         try {
           //noinspection unchecked
@@ -614,7 +622,7 @@ public class APIController extends BaseController implements ServletContextAware
     String result = "<unknown>";
     try {
       result = String.valueOf(response.getStatus());
-    } catch (NoSuchMethodError e) {
+    } catch (NoSuchMethodError ignored) {
       //ignore: this occurs for Servlet API < 3.0
     }
     return result;
@@ -634,6 +642,9 @@ public class APIController extends BaseController implements ServletContextAware
   public Collection<RESTControllerExtension> getExtensions() {
     return myServer.getExtensions(RESTControllerExtension.class);
   }
+
+
+  //todo: move to RequestWrapper
 
   public void reportRestErrorResponse(@NotNull final HttpServletResponse response,
                                       final int statusCode,
@@ -657,30 +668,29 @@ public class APIController extends BaseController implements ServletContextAware
     }
   }
 
-
-  //todo: move to RequestWrapper
-
-  private HttpServletRequest patchRequest(final HttpServletRequest request, final String headerName, final String parameterName) {
-    final String newValue = request.getParameter(parameterName);
+  @NotNull
+  private HttpServletRequest patchRequestWithAcceptHeader(@NotNull final HttpServletRequest request) {
+    final String newValue = request.getParameter("overrideAccept");
     if (!StringUtil.isEmpty(newValue)) {
-      return modifyRequestHeader(request, headerName, newValue);
+      return modifyAcceptHeader(request, newValue);
     }
     return request;
   }
 
-  private HttpServletRequest modifyRequestHeader(final HttpServletRequest request, final String headerName, final String newValue) {
+  @NotNull
+  private HttpServletRequest modifyAcceptHeader(@NotNull final HttpServletRequest request, @NotNull final String newValue) {
     return new HttpServletRequestWrapper(request) {
       @Override
       public String getHeader(final String name) {
-        if (headerName.equalsIgnoreCase(name)) {
+        if ("Accept".equalsIgnoreCase(name)) {
           return newValue;
         }
         return super.getHeader(name);
       }
 
       @Override
-      public Enumeration getHeaders(final String name) {
-        if (headerName.equalsIgnoreCase(name)) {
+      public Enumeration<String> getHeaders(final String name) {
+        if ("Accept".equalsIgnoreCase(name)) {
           return Collections.enumeration(Collections.singletonList(newValue));
         }
         return super.getHeaders(name);
@@ -699,7 +709,7 @@ public class APIController extends BaseController implements ServletContextAware
 
     @NotNull
     private synchronized String[] getParsedValues(@NotNull final String currentValue, @Nullable final String delimiter) {
-      if (!equalsNullable(myCachedValue, currentValue) || !equalsNullable(myCachedDelimiter, delimiter)) {
+      if (!Objects.equals(myCachedValue, currentValue) || !Objects.equals(myCachedDelimiter, delimiter)) {
         myCachedValue = currentValue;
         myCachedDelimiter = delimiter;
         myParsedValues = currentValue.split(StringUtil.isEmpty(delimiter) ? "," : delimiter);
