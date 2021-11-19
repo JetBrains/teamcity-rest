@@ -596,7 +596,7 @@ public class APIController extends BaseController implements ServletContextAware
       if (!requestType.isEmpty()) {
         activityName.append(" ").append(requestType);
       }
-      activityName.append(" request");
+      activityName.append(" request ");
       activityName.append(requestDump.get());
 
       NamedThreadFactory.executeWithNewThreadNameFuncThrow(activityName.toString(), action);
