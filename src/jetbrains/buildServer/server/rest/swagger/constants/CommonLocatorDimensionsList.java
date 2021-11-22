@@ -26,6 +26,7 @@ import java.util.Map;
 
 public class CommonLocatorDimensionsList {
   public static final String PROPERTY = "property";
+  public static final String CURRENT = "current";
 
   public static final Map<String, CommonLocatorDimension> dimensionHashMap = createMap();
 
@@ -61,6 +62,11 @@ public class CommonLocatorDimensionsList {
             PROPERTY, LocatorDimensionDataType.STRING, "property:(name:<name>,value:<value>,matchType:<matchType>)", "",
             "exists,not-exists,equals,does-not-equal,starts-with,contains,does-not-contain,ends-with,any,matches,does-not-match,more-than,no-more-than,less-than,no-less-than,ver-more-than,ver-no-more-than,ver-less-than,ver-no-less-than"
         )
+    );
+    dimensionHashMap.put(
+      CURRENT, new CommonLocatorDimension(
+        CURRENT, LocatorDimensionDataType.STRING, "current", "Return user that has issued this request.", ""
+      )
     );
     return dimensionHashMap;
   }

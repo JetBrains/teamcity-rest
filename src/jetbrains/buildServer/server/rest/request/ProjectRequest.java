@@ -762,7 +762,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/order/projects")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get all subprojects ordered of the matching project.",nickname="getAllSubprojectsOrdered")
+  @ApiOperation(value="Get all subprojects of the matching project, with custom ordering applied.",nickname="getAllSubprojectsOrdered")
   public Projects getProjectsOrder(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                    @QueryParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
@@ -776,7 +776,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/order/projects")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Update all subprojects order of the matching project.",nickname="setSubprojectsOrder")
+  @ApiOperation(value="Update custom ordering of subprojects of the matching project.",nickname="setSubprojectsOrder")
   public Projects setProjectsOrder(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                    Projects projects,
                                    @QueryParam("field") String fields) {
@@ -805,7 +805,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/order/buildTypes")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get all build configurations ordered from the matching project.", nickname="getAllBuildTypesOrdered", hidden = true)
+  @ApiOperation(value="Get all build configurations from the matching project, with custom ordering applied.", nickname="getAllBuildTypesOrdered")
   public BuildTypes getBuildTypesOrder(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                        @QueryParam("field") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
@@ -819,7 +819,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/order/buildTypes")
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Update all build configurations order of the matching project.",nickname="setBuildTypesOrder")
+  @ApiOperation(value="Update custom ordering of build configurations of the matching project.",nickname="setBuildTypesOrder")
   public BuildTypes setBuildTypesOrder(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                                        BuildTypes buildTypes,
                                        @QueryParam("field") String fields) {

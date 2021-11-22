@@ -55,7 +55,11 @@ import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimensio
  * Date: 23.03.13
  */
 @LocatorResource(value = LocatorName.USER,
-  extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
+  extraDimensions = {
+    CommonLocatorDimensionsList.PROPERTY,
+    CommonLocatorDimensionsList.CURRENT,
+    AbstractFinder.DIMENSION_ITEM
+  },
   baseEntity = "User",
   examples = {
     "`name:John Smith` — find user with name `John Smith`.",
