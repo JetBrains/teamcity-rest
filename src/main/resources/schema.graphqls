@@ -361,8 +361,9 @@ type AssignProjectWithAgentPoolPayload {
 }
 
 input UnassignProjectFromAgentPoolInput {
-  projectId: ID!,
+  projectId: ID!
   agentPoolId: ID!
+  recursive: Boolean! = false
 }
 
 type UnassignProjectFromAgentPoolPayload {

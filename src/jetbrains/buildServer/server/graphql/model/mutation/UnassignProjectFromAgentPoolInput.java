@@ -21,8 +21,8 @@ import org.jetbrains.annotations.NotNull;
 public class UnassignProjectFromAgentPoolInput {
   @NotNull
   private String myProjectId;
-  @NotNull
   private int myAgentPoolId;
+  private boolean myRecursive;
 
   public void setProjectId(@NotNull String projectId) {
     myProjectId = projectId;
@@ -37,8 +37,15 @@ public class UnassignProjectFromAgentPoolInput {
     return myProjectId;
   }
 
-  @NotNull
   public int getAgentPoolId() {
     return myAgentPoolId;
+  }
+
+  public boolean isRecursive() {
+    return myRecursive;
+  }
+
+  public void setRecursive(boolean recursive) {
+    myRecursive = recursive;
   }
 }

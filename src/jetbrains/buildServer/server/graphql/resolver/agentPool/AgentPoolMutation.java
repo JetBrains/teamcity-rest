@@ -293,8 +293,17 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
       return result.error(new EntityNotFoundGraphQLError("Project with given id does not exist.")).build();
     }
 
+    Set<String> projectsToDisassociate;
+    if(input.isRecursive()) {
+      projectsToDisassociate = new HashSet<>();
+      projectsToDisassociate.add(project.getProjectId());
+      project.getProjects().stream().map(p -> p.getProjectId()).forEach(projectsToDisassociate::add);
+    } else {
+      projectsToDisassociate = Collections.singleton(project.getProjectId());
+    }
+
     try {
-      myAgentPoolManager.dissociateProjectsFromPool(input.getAgentPoolId(), Collections.singleton(project.getProjectId()));
+      myAgentPoolManager.dissociateProjectsFromPool(input.getAgentPoolId(), projectsToDisassociate);
     } catch (NoSuchAgentPoolException e) {
       return result.error(new EntityNotFoundGraphQLError("Agent pool with given id does not exist.")).build();
     }

@@ -17,9 +17,7 @@
 package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.execution.DataFetcherResult;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.*;
 import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.mutation.*;
 import jetbrains.buildServer.server.graphql.model.mutation.agentPool.*;
@@ -248,6 +246,75 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     assertEquals(projectName, payload.getProject().getName());
 
     assertNotContains(myFixture.getAgentPoolManager().getPoolProjects(pool.getAgentPoolId()), project.getProjectId());
+  }
+
+  @Test
+  public void testRemoveProjectFromPoolRecursive() throws AgentPoolCannotBeRenamedException, NoSuchAgentPoolException {
+    final String poolName = "testPool";
+    final String projectName = "testProject";
+    final String childProjectName = "testProjectChild";
+    AgentPool pool = myFixture.getAgentPoolManager().createNewAgentPool(poolName);
+
+    ProjectEx project = createProject(projectName, projectName);
+    ProjectEx childProject = project.createProject(childProjectName, childProjectName);
+    Set<String> associateList = new HashSet<>();
+    associateList.add(project.getProjectId());
+    associateList.add(childProject.getProjectId());
+
+    myFixture.getAgentPoolManager().associateProjectsWithPool(pool.getAgentPoolId(), associateList);
+
+    UnassignProjectFromAgentPoolInput input = new UnassignProjectFromAgentPoolInput();
+    input.setAgentPoolId(pool.getAgentPoolId());
+    input.setProjectId(project.getExternalId());
+    input.setRecursive(true);
+
+    DataFetcherResult<UnassignProjectFromAgentPoolPayload> result = myMutation.unassignProjectFromAgentPool(input);
+    assertNotNull(result);
+    assertFalse(result.hasErrors());
+    assertNotNull(result.getData());
+
+    UnassignProjectFromAgentPoolPayload payload = result.getData();
+
+    assertEquals(poolName, payload.getAgentPool().getName());
+    assertEquals(projectName, payload.getProject().getName());
+
+    assertNotContains(myFixture.getAgentPoolManager().getPoolProjects(pool.getAgentPoolId()), project.getProjectId(), childProject.getProjectId());
+  }
+
+  @Test
+  public void testRemoveProjectFromPoolNonRecursiveByDefault() throws AgentPoolCannotBeRenamedException, NoSuchAgentPoolException {
+    final String poolName = "testPool";
+    final String projectName = "testProject";
+    final String childProjectName = "testProjectChild";
+    AgentPool pool = myFixture.getAgentPoolManager().createNewAgentPool(poolName);
+
+    ProjectEx project = createProject(projectName, projectName);
+    ProjectEx childProject = project.createProject(childProjectName, childProjectName);
+    Set<String> associateList = new HashSet<>();
+    associateList.add(project.getProjectId());
+    associateList.add(childProject.getProjectId());
+
+    myFixture.getAgentPoolManager().associateProjectsWithPool(pool.getAgentPoolId(), associateList);
+
+    UnassignProjectFromAgentPoolInput input = new UnassignProjectFromAgentPoolInput();
+    input.setAgentPoolId(pool.getAgentPoolId());
+    input.setProjectId(project.getExternalId());
+
+    DataFetcherResult<UnassignProjectFromAgentPoolPayload> result = myMutation.unassignProjectFromAgentPool(input);
+    assertNotNull(result);
+    assertFalse(result.hasErrors());
+    assertNotNull(result.getData());
+
+    UnassignProjectFromAgentPoolPayload payload = result.getData();
+
+    assertEquals(poolName, payload.getAgentPool().getName());
+    assertEquals(projectName, payload.getProject().getName());
+
+    Set<String> poolProjectsAfterRemoval = myFixture.getAgentPoolManager().getPoolProjects(pool.getAgentPoolId());
+    assertNotContains(poolProjectsAfterRemoval, project.getProjectId());
+
+    // We didn't set recursive to true and expect it to be false by default, so the child project should remain in the pool.
+    assertContains(poolProjectsAfterRemoval, childProject.getProjectId());
   }
 
   @Test
