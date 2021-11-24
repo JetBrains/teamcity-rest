@@ -59,6 +59,7 @@
       <class name="jetbrains.buildServer.server.graphql.resolver.ProjectResolverTest" />
       <class name="jetbrains.buildServer.server.graphql.model.connections.PaginatingConnectionTest" />
       <class name="jetbrains.buildServer.server.graphql.resolver.AgentPoolMutationTest" />
+      <class name="jetbrains.buildServer.server.graphql.resolver.AbstractAgentPoolResolverTest" />
     </classes>
   </test>
 </suite>
