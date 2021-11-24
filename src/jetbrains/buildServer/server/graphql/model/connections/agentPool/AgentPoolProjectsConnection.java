@@ -28,13 +28,21 @@ import org.jetbrains.annotations.Nullable;
 public class AgentPoolProjectsConnection implements ExtensibleConnection<Project, AgentPoolProjectsConnection.AgentPoolProjectsConnectionEdge> {
   @NotNull
   private final PaginatingConnection<SProject, Project, AgentPoolProjectsConnectionEdge> myDelegate;
+  @Nullable
+  private Integer myExcludedCount;
 
-  public AgentPoolProjectsConnection(@NotNull List<SProject> data, @NotNull PaginationArguments paginationArguments) {
+  public AgentPoolProjectsConnection(@NotNull List<SProject> data, @Nullable Integer excludedCount, @NotNull PaginationArguments paginationArguments) {
     myDelegate = new PaginatingConnection<>(data, AgentPoolProjectsConnectionEdge::new, paginationArguments);
+    myExcludedCount = excludedCount;
   }
 
   public int getCount() {
     return myDelegate.getData().size();
+  }
+
+  @Nullable
+  public Integer getExcludedCount() {
+    return myExcludedCount;
   }
 
   @NotNull

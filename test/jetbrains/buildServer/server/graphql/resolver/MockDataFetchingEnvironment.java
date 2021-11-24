@@ -44,6 +44,8 @@ public class MockDataFetchingEnvironment implements DataFetchingEnvironment {
   private Object myContext;
   @Nullable
   private Object myLocalContext;
+  @Nullable
+  private DataFetchingFieldSelectionSet mySelectionSet;
 
   @Override
   public <T> T getSource() {
@@ -153,7 +155,11 @@ public class MockDataFetchingEnvironment implements DataFetchingEnvironment {
 
   @Override
   public DataFetchingFieldSelectionSet getSelectionSet() {
-    return null;
+    return mySelectionSet;
+  }
+
+  public void setSelectionSet(@Nullable DataFetchingFieldSelectionSet selectionSet) {
+    mySelectionSet = selectionSet;
   }
 
   @Override

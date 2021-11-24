@@ -24,8 +24,9 @@ import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import jetbrains.buildServer.clouds.CloudClientEx;
 import jetbrains.buildServer.clouds.CloudImage;
-import jetbrains.buildServer.clouds.server.CloudManager;
+import jetbrains.buildServer.clouds.server.CloudManagerBase;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPoolPermissions;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
@@ -33,7 +34,6 @@ import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoo
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolCloudImagesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
-import jetbrains.buildServer.server.rest.data.CloudUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
@@ -51,14 +51,12 @@ public class AbstractAgentPoolResolver {
   private final SecurityContextEx mySecurityContext;
   private final AgentPoolManager myAgentPoolManager;
   private final AgentTypeFinder myAgentTypeFinder;
-  private final CloudManager myCloudManager;
-  private final CloudUtil myCloudUtil;
+  private final CloudManagerBase myCloudManager;
 
   public AbstractAgentPoolResolver(@NotNull ProjectManager projectManager,
                                    @NotNull AgentPoolActionsAccessChecker poolActionsAccessChecker,
                                    @NotNull AgentPoolManager agentPoolManager,
-                                   @NotNull CloudManager cloudManager,
-                                   @NotNull CloudUtil cloudUtil,
+                                   @NotNull CloudManagerBase cloudManager,
                                    @NotNull AgentTypeFinder agentTypeFinder,
                                    @NotNull final SecurityContextEx securityContext) {
     myProjectManager = projectManager;
@@ -66,7 +64,6 @@ public class AbstractAgentPoolResolver {
     mySecurityContext = securityContext;
     myAgentPoolManager = agentPoolManager;
     myCloudManager = cloudManager;
-    myCloudUtil = cloudUtil;
     myAgentTypeFinder = agentTypeFinder;
   }
 
@@ -90,7 +87,13 @@ public class AbstractAgentPoolResolver {
       projects = projects.filter(p -> p.isArchived() == filter.getArchived());
     }
 
-    return new AgentPoolProjectsConnection(projects.collect(Collectors.toList()), PaginationArguments.everything());
+    Integer excludedProjectsCount = null;
+    if(env.getSelectionSet().contains("excludedCount")) {
+      AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
+      excludedProjectsCount = (int) projectIds.stream().filter(projectId -> !authHolder.isPermissionGrantedForProject(projectId, Permission.VIEW_PROJECT)).count();
+    }
+
+    return new AgentPoolProjectsConnection(projects.collect(Collectors.toList()), excludedProjectsCount, PaginationArguments.everything());
   }
 
   @NotNull
@@ -115,7 +118,10 @@ public class AbstractAgentPoolResolver {
                      .filter(agentType -> agentType.isCloud())
                      .map(cloudAgentType -> myCloudManager.findProfileGloballyById(cloudAgentType.getAgentTypeKey().getProfileId()))
                      .filter(Objects::nonNull)
-                     .flatMap(profile -> myCloudUtil.getImages(profile).stream().map(img -> new Pair<>(profile.getProfileId(), (CloudImage) img)))
+                     .flatMap(profile -> {
+                       CloudClientEx client = myCloudManager.getClient(profile.getProjectId(), profile.getProfileId());
+                       return client.getImages().stream().map(img -> new Pair<>(profile.getProfileId(), (CloudImage) img));
+                     })
                      .collect(Collectors.toList());
 
     return new AgentPoolCloudImagesConnection(images, PaginationArguments.everything());

@@ -37,6 +37,7 @@ type AgentPoolProjectEdge {
 type AgentPoolProjectsConnection {
   edges: [AgentPoolProjectEdge!]!
   count: Int!
+  excludedCount: Int
 }
 
 type CloudImageInstancesConnection {
