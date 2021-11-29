@@ -465,7 +465,7 @@ public class LocatorTest {
 
   @Test
   public void testValueLess1() {
-    final Locator locator = new Locator("id,number,status", true, null);
+    final Locator locator = new Locator("id,number,status", true, (String) null);
     assertEquals(3, locator.getDimensionsCount());
     assertEquals("", locator.getSingleDimensionValue("id"));
     assertEquals("", locator.getSingleDimensionValue("number"));
@@ -474,14 +474,14 @@ public class LocatorTest {
 
   @Test
   public void testValueLess2() {
-    final Locator locator = new Locator("buildType(name,project(id,name))", true, null);
+    final Locator locator = new Locator("buildType(name,project(id,name))", true, (String) null);
     assertEquals(1, locator.getDimensionsCount());
     assertEquals("name,project(id,name)", locator.getSingleDimensionValue("buildType"));
   }
 
   @Test
   public void testValueLess21() {
-    final Locator locator = new Locator("buildType(name,project(id,name),builds)", true, null);
+    final Locator locator = new Locator("buildType(name,project(id,name),builds)", true, (String) null);
     assertEquals(1, locator.getDimensionsCount());
     assertEquals("name,project(id,name),builds", locator.getSingleDimensionValue("buildType"));
     assertEquals(null, locator.getSingleDimensionValue("builds"));
@@ -489,7 +489,7 @@ public class LocatorTest {
 
   @Test
   public void testValueLess22() {
-    final Locator locator = new Locator("buildType(name,project(id,name),builds),href", true, null);
+    final Locator locator = new Locator("buildType(name,project(id,name),builds),href", true, (String) null);
     assertEquals(2, locator.getDimensionsCount());
     assertEquals("name,project(id,name),builds", locator.getSingleDimensionValue("buildType"));
     assertEquals("", locator.getSingleDimensionValue("href"));
@@ -497,7 +497,7 @@ public class LocatorTest {
 
   @Test
   public void testValueLess23() {
-    final Locator locator = new Locator("count,buildType:(name,project(id,name),builds),href", true, null);
+    final Locator locator = new Locator("count,buildType:(name,project(id,name),builds),href", true, (String) null);
     assertEquals(3, locator.getDimensionsCount());
     assertEquals("", locator.getSingleDimensionValue("count"));
     assertEquals("name,project(id,name),builds", locator.getSingleDimensionValue("buildType"));
@@ -506,7 +506,7 @@ public class LocatorTest {
 
   @Test
   public void testValueLess3() {
-    final Locator locator = new Locator("name,project(id,name)", true, null);
+    final Locator locator = new Locator("name,project(id,name)", true, (String) null);
     assertEquals(2, locator.getDimensionsCount());
     assertEquals("", locator.getSingleDimensionValue("name"));
     assertEquals("id,name", locator.getSingleDimensionValue("project"));
@@ -514,7 +514,7 @@ public class LocatorTest {
 
   @Test
   public void testValueLess4() {
-    final Locator locator = new Locator("name,project(id,name),builds(),x", true, null);
+    final Locator locator = new Locator("name,project(id,name),builds(),x", true, (String) null);
     assertEquals(4, locator.getDimensionsCount());
     assertEquals("", locator.getSingleDimensionValue("name"));
     assertEquals("id,name", locator.getSingleDimensionValue("project"));
@@ -524,7 +524,7 @@ public class LocatorTest {
 
   @Test
   public void testValueLess5() {
-    final Locator locator = new Locator("count,parentProject(id),projects(id)", true, null);
+    final Locator locator = new Locator("count,parentProject(id),projects(id)", true, (String) null);
     assertEquals(3, locator.getDimensionsCount());
     assertEquals("", locator.getSingleDimensionValue("count"));
     assertEquals(null, locator.getSingleDimensionValue("parentproject"));
@@ -534,7 +534,7 @@ public class LocatorTest {
 
   @Test
   public void testMisc2() {
-    final Locator locator = new Locator("a:x y ,b(x y),c", true, null);
+    final Locator locator = new Locator("a:x y ,b(x y),c", true, (String) null);
     assertEquals(3, locator.getDimensionsCount());
     assertEquals("x y ", locator.getSingleDimensionValue("a"));
     assertEquals("x y", locator.getSingleDimensionValue("b"));
@@ -543,7 +543,7 @@ public class LocatorTest {
 
   @Test
   public void testMisc3() {
-    final Locator locator = new Locator("name:,a", true, null);
+    final Locator locator = new Locator("name:,a", true, (String) null);
     assertEquals(2, locator.getDimensionsCount());
     assertEquals("", locator.getSingleDimensionValue("name"));
     assertEquals("", locator.getSingleDimensionValue("a"));
@@ -552,7 +552,7 @@ public class LocatorTest {
 
   @Test
   public void testSingleValueExtendedMode() {
-    final Locator locator = new Locator("a", true, null);
+    final Locator locator = new Locator("a", true, (String) null);
     assertEquals(false, locator.isSingleValue());
     assertEquals(1, locator.getDimensionsCount());
     assertEquals("", locator.getSingleDimensionValue("a"));
@@ -693,7 +693,7 @@ public class LocatorTest {
 
   @Test(dataProvider = "invalid-complex-values-extendedMode", expectedExceptions = LocatorProcessException.class)
   public void testComplexValuesParsingErrorsExtendedMode(String value) {
-    new Locator(value, true, null);
+    new Locator(value, true, (String)null);
   }
 
   @DataProvider(name = "valid-complex-values-extendedMode")
@@ -709,7 +709,7 @@ public class LocatorTest {
 
   @Test(dataProvider = "valid-complex-values-extendedMode")
   public void testComplexValuesParsingNoErrorsExtendedMode(String value) {
-    new Locator(value, true, null);
+    new Locator(value, true, (String)null);
   }
 
   static <E extends Throwable> void checkException(String locatorText, @NotNull Class<E> exception) {
