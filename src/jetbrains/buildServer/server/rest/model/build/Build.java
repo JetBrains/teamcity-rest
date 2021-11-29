@@ -1174,13 +1174,17 @@ public class Build {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("delayedByBuild", false, false),
       () -> {
-        if(myQueuedBuild == null || myQueuedBuild.getBuildEstimates() == null) {
+        if(myQueuedBuild == null || myQueuedBuild.getBuildPromotion().isCompositeBuild()) {
           return null;
         }
 
-        BuildAgent agent = myQueuedBuild.getBuildEstimates().getAgent();
-        if(!(agent instanceof SBuildAgent)) {
-          // what?!
+        BuildEstimates estimates = myQueuedBuild.getBuildEstimates();
+        if(estimates == null) {
+          return null;
+        }
+
+        BuildAgent agent = estimates.getAgent();
+        if(agent == null || !(agent instanceof SBuildAgent)) {
           return null;
         }
 
@@ -1199,13 +1203,17 @@ public class Build {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("plannedAgent", false, false),
       () -> {
-        if(myQueuedBuild == null || myQueuedBuild.getBuildEstimates() == null) {
+        if(myQueuedBuild == null || myQueuedBuild.getBuildPromotion().isCompositeBuild()) {
           return null;
         }
 
-        BuildAgent agent = myQueuedBuild.getBuildEstimates().getAgent();
-        if(!(agent instanceof SBuildAgent)) {
-          // what?!
+        BuildEstimates estimates = myQueuedBuild.getBuildEstimates();
+        if(estimates == null) {
+          return null;
+        }
+
+        BuildAgent agent = estimates.getAgent();
+        if(agent == null || !(agent instanceof SBuildAgent)) {
           return null;
         }
 
