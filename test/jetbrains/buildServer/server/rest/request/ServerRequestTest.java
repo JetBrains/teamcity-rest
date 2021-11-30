@@ -22,8 +22,10 @@ import jetbrains.buildServer.server.rest.model.server.LicensingData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.Permissions;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
+import jetbrains.buildServer.serverSide.impl.MockAuthorityHolder;
 import jetbrains.buildServer.users.SUser;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -87,18 +89,17 @@ public class ServerRequestTest extends BaseServerTestCase {
 
   @Test
   public void test_user_needs_manage_server_licenses_permission_to_access_licensing_data() throws Throwable {
-    final SUser user = createUser("user");
+    MockAuthorityHolder mockUser = new MockAuthorityHolder();
 
-    myFixture.getSecurityContext().runAs(user, () -> {
+    myFixture.getSecurityContext().runAs(mockUser, () -> {
       LicensingData data = myRequest.getLicensingData("maxAgents,serverLicenseType,agentsLeft");
       assertNull(data.maxAgents);
       assertNull(data.serverLicenseType);
       assertNull(data.getAgentsLeft());
     });
 
-    user.addRole(RoleScope.globalScope(), myFixture.getTestRoles().createRole(Permission.MANAGE_SERVER_LICENSES));
-
-    myFixture.getSecurityContext().runAs(user, () -> {
+    mockUser.globalPerms = new Permissions(Permission.MANAGE_SERVER_LICENSES);
+    myFixture.getSecurityContext().runAs(mockUser, () -> {
       LicensingData data = myRequest.getLicensingData("maxAgents,serverLicenseType,agentsLeft");
       assertNotNull(data.maxAgents);
       assertNotNull(data.serverLicenseType);
@@ -108,11 +109,11 @@ public class ServerRequestTest extends BaseServerTestCase {
 
   @Test(description = "TW-68673")
   public void test_user_needs_view_agent_details_permission_to_access_avaliable_agents() throws Throwable {
-    final SUser user = createUser("user");
+    MockAuthorityHolder mockUser = new MockAuthorityHolder();
 
-    user.addRole(RoleScope.globalScope(), myFixture.getTestRoles().createRole(Permission.VIEW_AGENT_DETAILS));
+    mockUser.globalPerms = new Permissions(Permission.VIEW_AGENT_DETAILS);
 
-    myFixture.getSecurityContext().runAs(user, () -> {
+    myFixture.getSecurityContext().runAs(mockUser, () -> {
       LicensingData data = myRequest.getLicensingData("maxAgents,serverLicenseType,agentsLeft");
       assertNull(data.maxAgents);
       assertNull(data.serverLicenseType);

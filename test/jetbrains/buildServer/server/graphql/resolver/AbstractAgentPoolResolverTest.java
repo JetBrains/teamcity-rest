@@ -22,9 +22,10 @@ import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolResolver;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.Permissions;
+import jetbrains.buildServer.serverSide.impl.MockAuthorityHolder;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
-import jetbrains.buildServer.serverSide.impl.UserAccountBuilder;
-import jetbrains.buildServer.serverSide.impl.auth.DefaultRoles;
 import jetbrains.buildServer.serverSide.impl.auth.SecuredProjectManager;
 import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
@@ -55,14 +56,16 @@ public class AbstractAgentPoolResolverTest extends BaseResolverTest {
 
   @Test
   public void projectsConnection() throws Throwable {
-    UserAccountBuilder userBuilder = UserAccountBuilder.username("testuser");
     jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = myFixture.getAgentPoolManager().createNewAgentPool("testAgentPool");
 
     Set<String> allProjectIds = new HashSet<>();
     Set<String> visibleProjectNames = new HashSet<>();
+
+    MockAuthorityHolder mockUser = new MockAuthorityHolder();
+    Permissions viewProjectPermissions = new Permissions(Permission.VIEW_PROJECT);
     for (int i = 0; i < 5; i++) {
       ProjectEx project = createProject("visibleProject" + i);
-      userBuilder.withProjectRole(project, DefaultRoles.PROJECT_VIEWER);
+      mockUser.projectPerms.put(project.getProjectId(), viewProjectPermissions);
 
       allProjectIds.add(project.getProjectId());
       visibleProjectNames.add(project.getName());
@@ -83,12 +86,13 @@ public class AbstractAgentPoolResolverTest extends BaseResolverTest {
 
 
     AgentPoolProjectsConnection connection = myFixture.getSecurityContext().runAs(
-      createUser(userBuilder),
+      mockUser,
       () -> myResolver.projects(new AgentPool(realPool), new ProjectsFilter(), myDataFetchingEnvironment)
     );
 
     connection.getEdges().getData().forEach(edge -> {
-      assertTrue(visibleProjectNames.contains(edge.getNode().getData().getName()));
+      String name = edge.getNode().getData().getName();
+      assertTrue("Project '" + name + "' is visible, but shouldn't be.", visibleProjectNames.contains(name));
     });
 
     assertEquals(visibleProjectNames.size(), connection.getCount());
