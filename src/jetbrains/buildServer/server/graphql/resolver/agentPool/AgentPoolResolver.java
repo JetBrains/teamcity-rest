@@ -28,6 +28,7 @@ import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.clouds.CloudClientEx;
 import jetbrains.buildServer.clouds.CloudConstants;
 import jetbrains.buildServer.clouds.CloudImage;
+import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.clouds.server.CloudManagerBase;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPoolPermissions;
@@ -113,15 +114,16 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
                                                                 .map(SProjectFeatureDescriptor::getId)
                                                                 .collect(Collectors.toSet());
 
-    List<Pair<String, CloudImage>> images = new ArrayList<>();
+    List<Pair<CloudProfile, CloudImage>> images = new ArrayList<>();
     profileIdsInRootProject.forEach(profileId -> {
       CloudClientEx client = myCloudManager.getClientIfExists(BuildProject.ROOT_PROJECT_ID, profileId);
-      if(client == null) return;
+      CloudProfile profile = myCloudManager.findProfileById(BuildProject.ROOT_PROJECT_ID, profileId);
+      if(client == null || profile == null) return;
 
       client.getImages().stream()
             .filter(image -> !Objects.equals(pool.getId(), image.getAgentPoolId()))
             .forEach(image -> {
-              images.add(new Pair<>(profileId, image));
+              images.add(new Pair<>(profile, image));
             });
     });
 

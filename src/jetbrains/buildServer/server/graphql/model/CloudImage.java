@@ -16,28 +16,37 @@
 
 package jetbrains.buildServer.server.graphql.model;
 
+import jetbrains.buildServer.clouds.CloudProfile;
 import org.jetbrains.annotations.NotNull;
 
 public class CloudImage {
-  private final String myId;
-  private final String myName;
-  private final String myProfileId;
+  private final jetbrains.buildServer.clouds.CloudImage myRealImage;
+  private final CloudProfile myRealProfile;
 
-  public CloudImage(@NotNull jetbrains.buildServer.clouds.CloudImage realImage, @NotNull String profileId) {
-    myId = realImage.getId();
-    myName = realImage.getName();
-    myProfileId = profileId;
+  public CloudImage(@NotNull jetbrains.buildServer.clouds.CloudImage realImage, @NotNull CloudProfile profile) {
+    myRealImage = realImage;
+    myRealProfile = profile;
   }
 
   public String getId() {
-    return myId;
+    return myRealImage.getId();
   }
 
   public String getName() {
-    return myName;
+    return myRealImage.getName();
   }
 
   public String getProfileId() {
-    return myProfileId;
+    return myRealProfile.getProfileId();
+  }
+
+  @NotNull
+  public jetbrains.buildServer.clouds.CloudImage getRealImage() {
+    return myRealImage;
+  }
+
+  @NotNull
+  public CloudProfile getRealProfile() {
+    return myRealProfile;
   }
 }

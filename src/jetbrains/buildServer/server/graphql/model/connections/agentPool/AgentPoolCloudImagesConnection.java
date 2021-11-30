@@ -22,6 +22,7 @@ import graphql.execution.DataFetcherResult;
 import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.clouds.CloudImage;
+import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.server.graphql.model.connections.ExtensibleConnection;
 import jetbrains.buildServer.server.graphql.model.connections.LazyEdge;
 import jetbrains.buildServer.server.graphql.model.connections.PaginatingConnection;
@@ -34,10 +35,9 @@ public class AgentPoolCloudImagesConnection implements ExtensibleConnection<jetb
   }
 
   @NotNull
-  private final PaginatingConnection<Pair<String, CloudImage>, jetbrains.buildServer.server.graphql.model.CloudImage, AgentPoolCloudImagesConnectionEdge> myDelegate;
+  private final PaginatingConnection<Pair<CloudProfile, CloudImage>, jetbrains.buildServer.server.graphql.model.CloudImage, AgentPoolCloudImagesConnectionEdge> myDelegate;
 
-  /** @param data List[profileId, image] */
-  public AgentPoolCloudImagesConnection(@NotNull List<Pair<String, CloudImage>> data, @NotNull PaginationArguments paginationArguments) {
+  public AgentPoolCloudImagesConnection(@NotNull List<Pair<CloudProfile, CloudImage>> data, @NotNull PaginationArguments paginationArguments) {
     myDelegate = new PaginatingConnection<>(data, AgentPoolCloudImagesConnectionEdge::new, paginationArguments);
   }
 
@@ -47,8 +47,8 @@ public class AgentPoolCloudImagesConnection implements ExtensibleConnection<jetb
     return myDelegate.getEdges();
   }
 
-  public static class AgentPoolCloudImagesConnectionEdge extends LazyEdge<Pair<String, CloudImage>, jetbrains.buildServer.server.graphql.model.CloudImage> {
-    public AgentPoolCloudImagesConnectionEdge(@NotNull Pair<String, CloudImage> data) {
+  public static class AgentPoolCloudImagesConnectionEdge extends LazyEdge<Pair<CloudProfile, CloudImage>, jetbrains.buildServer.server.graphql.model.CloudImage> {
+    public AgentPoolCloudImagesConnectionEdge(@NotNull Pair<CloudProfile, CloudImage> data) {
       super(
         data,
         pair -> new jetbrains.buildServer.server.graphql.model.CloudImage(pair.getSecond(), pair.getFirst()),

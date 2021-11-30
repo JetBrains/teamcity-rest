@@ -239,7 +239,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     jetbrains.buildServer.clouds.CloudImage image = client.findImageById(typeKey.getTypeId());
 
     return result.data(new MoveCloudImageToAgentPoolPayload(
-      new CloudImage(image, profile.getProfileId()),
+      new CloudImage(image, profile),
       new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(sourcePool),
       new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(targetPool)
     )).build();
@@ -465,8 +465,9 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
       AgentTypeKey typeKey = clientAndTypeKey.getSecond();
 
       jetbrains.buildServer.clouds.CloudImage image = client.findImageById(typeKey.getTypeId());
-      if(image != null) {
-        cloudImages.add(new CloudImage(image, typeKey.getProfileId()));
+      CloudProfile profile = myCloudManager.findProfileGloballyById(typeKey.getProfileId());
+      if(image != null && profile != null) {
+        cloudImages.add(new CloudImage(image, profile));
       }
     });
 

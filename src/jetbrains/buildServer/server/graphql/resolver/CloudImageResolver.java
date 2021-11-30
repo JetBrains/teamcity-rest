@@ -19,10 +19,9 @@ package jetbrains.buildServer.server.graphql.resolver;
 import graphql.execution.DataFetcherResult;
 import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
-import java.util.List;
-import java.util.stream.Collectors;
-import jetbrains.buildServer.clouds.CloudProfile;
-import jetbrains.buildServer.clouds.server.CloudManager;
+import java.util.*;
+import java.util.stream.Stream;
+import jetbrains.buildServer.clouds.CloudInstance;
 import jetbrains.buildServer.server.graphql.model.*;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.ProjectAgentPool;
@@ -30,14 +29,14 @@ import jetbrains.buildServer.server.graphql.model.connections.PaginationArgument
 import jetbrains.buildServer.server.graphql.model.connections.agent.CloudImageInstancesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolsConnection;
 import jetbrains.buildServer.server.graphql.util.EntityNotFoundGraphQLError;
-import jetbrains.buildServer.server.rest.data.CloudUtil;
-import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.serverSide.SBuildAgent;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeKey;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -45,72 +44,117 @@ import org.springframework.stereotype.Component;
 public class CloudImageResolver implements GraphQLResolver<CloudImage> {
   @Autowired
   @NotNull
-  private CloudManager myCloudManager;
-
-  @Autowired
-  @NotNull
-  private CloudUtil myCloudUtil;
-
-  @Autowired
-  @NotNull
   private AgentPoolManager myAgentPoolManager;
 
+  @Autowired
+  @NotNull
+  private AgentTypeFinder myAgentTypeFinder;
+
+  @Autowired
+  @NotNull
+  private ProjectManager myProjectManager;
+
+  @Autowired
+  @NotNull
+  private BuildAgentManager myAgentManager;
+
+  public void initForTests(@NotNull AgentPoolManager agentPoolManager,
+                           @NotNull ProjectManager projectManager) {
+    myAgentPoolManager = agentPoolManager;
+    myProjectManager = projectManager;
+  }
+
+  @NotNull
   public DataFetcherResult<Integer> agentTypeId(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
     DataFetcherResult.Builder<Integer> result = DataFetcherResult.newResult();
-    jetbrains.buildServer.clouds.CloudImage realImage = getRealImage(image, env);
 
-    CloudProfile profile = myCloudUtil.getProfile(realImage);
-    if(profile == null) {
-      return result.error(new EntityNotFoundGraphQLError(String.format("Cloud profile for image id=%s is no found.", image.getId()))).build();
-    }
-    SAgentType type = myCloudManager.getDescriptionFor(profile, realImage.getId());
-    if(type == null) {
+    SAgentType agentType = findAgentType(image);
+    if(agentType == null) {
       return result.error(new EntityNotFoundGraphQLError(String.format("Agent type for image id=%s is no found.", image.getId()))).build();
     }
 
-    return result.data(type.getAgentTypeId()).build();
+    return result.data(agentType.getAgentTypeId()).build();
   }
 
   @NotNull
   public AgentEnvironment environment(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.clouds.CloudImage realImage = getRealImage(image, env);
-
-    CloudProfile profile = myCloudUtil.getProfile(realImage);
-    if(profile == null) {
-      return AgentEnvironment.UNKNOWN;
-    }
-    SAgentType type = myCloudManager.getDescriptionFor(profile, realImage.getId());
-    if(type == null) {
+    SAgentType agentType = findAgentType(image);
+    if(agentType == null) {
       return AgentEnvironment.UNKNOWN;
     }
 
-    return new AgentEnvironment(new OS(type.getOperatingSystemName(), OSType.guessByName(type.getOperatingSystemName())));
+    return new AgentEnvironment(new OS(agentType.getOperatingSystemName(), OSType.guessByName(agentType.getOperatingSystemName())));
+  }
+
+  @Nullable
+  private SAgentType findAgentType(@NotNull CloudImage image) {
+    Stream<SAgentType> agentTypeStream;
+    if(image.getRealImage().getAgentPoolId() != null) {
+      agentTypeStream = myAgentTypeFinder.getAgentTypesByPool(image.getRealImage().getAgentPoolId()).stream();
+    } else {
+      agentTypeStream = myAgentTypeFinder.getActiveCloudAgentTypes().stream();
+    }
+
+    Optional<SAgentType> typeOptional = agentTypeStream.filter(agentType -> agentType.isCloud())
+                                                       .filter(agentType -> {
+                                                         AgentTypeKey agentTypeKey = agentType.getAgentTypeKey();
+                                                         return agentTypeKey.getProfileId().equals(image.getProfileId()) && agentTypeKey.getTypeId().equals(image.getId());
+                                                       })
+                                                       .findFirst();
+
+    if(!typeOptional.isPresent()) {
+      return null;
+    }
+
+    return typeOptional.get();
   }
 
   @NotNull
   public CloudImageInstancesConnection instances(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.clouds.CloudImage realImage = getRealImage(image, env);
-    CloudProfile profile = myCloudUtil.getProfile(realImage);
-    if(profile == null) {
-      return CloudImageInstancesConnection.EMPTY;
+    jetbrains.buildServer.clouds.CloudImage realImage = image.getRealImage();
+
+    List<CloudInstance> instancesToCheck = new ArrayList<>(realImage.getInstances());
+    boolean[] instanceAgentIsFound = new boolean[instancesToCheck.size()]; Arrays.fill(instanceAgentIsFound, false);
+    int agentsFound = 0;
+
+    List<SBuildAgent> resultingAgents = new ArrayList<>(instancesToCheck.size());
+    for(SBuildAgent agent : myAgentManager.getRegisteredAgents()) {
+      if(!agent.isCloudAgent()) {
+        continue;
+      }
+
+      for(int i = 0; i < instanceAgentIsFound.length; i++) {
+        if(instanceAgentIsFound[i]) {
+          continue;
+        }
+
+        if(instancesToCheck.get(i).containsAgent(agent)) {
+          agentsFound++;
+          instanceAgentIsFound[i] = true;
+          resultingAgents.add(agent);
+        }
+      }
+
+      if(agentsFound == instanceAgentIsFound.length) {
+        break;
+      }
     }
 
-    List<SBuildAgent> result = realImage.getInstances().stream()
-                                        .map(instance -> myCloudManager.findAgentByInstance(profile.getProfileId(), instance.getInstanceId()))
-                                        .flatMap(agents -> agents.stream())
-                                        .collect(Collectors.toList());
-
-
-    return new CloudImageInstancesConnection(result, PaginationArguments.everything());
+    return new CloudImageInstancesConnection(resultingAgents, PaginationArguments.everything());
   }
 
   @NotNull
   public DataFetcherResult<Project> project(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.clouds.CloudImage realImage = getRealImage(image, env);
-    SProject project = myCloudUtil.getProject(realImage);
+    String projectId = image.getRealProfile().getProjectId();
+
+    SProject project;
+    if(SProject.ROOT_PROJECT_ID.equals(projectId)) {
+      project = myProjectManager.getRootProject();
+    } else {
+      project = myProjectManager.findProjectById(projectId);
+    }
 
     DataFetcherResult.Builder<Project> result = new DataFetcherResult.Builder<>();
-
     if(project == null) {
       result.error(new EntityNotFoundGraphQLError(String.format("Could not find project for instance id=%s", image.getId())));
     } else {
@@ -122,7 +166,7 @@ public class CloudImageResolver implements GraphQLResolver<CloudImage> {
 
   @NotNull
   public DataFetcherResult<AbstractAgentPool> agentPool(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.clouds.CloudImage realImage = getRealImage(image, env);
+    jetbrains.buildServer.clouds.CloudImage realImage = image.getRealImage();
     DataFetcherResult.Builder<AbstractAgentPool> result = new DataFetcherResult.Builder<>();
 
     AgentPool pool = realImage.getAgentPoolId() != null ? myAgentPoolManager.findAgentPoolById(realImage.getAgentPoolId()) : null;
@@ -140,19 +184,5 @@ public class CloudImageResolver implements GraphQLResolver<CloudImage> {
   public AgentPoolsConnection assignableAgentPools(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
     // deprecated, remove after ui migration
     return AgentPoolsConnection.empty();
-  }
-
-  @NotNull
-  private jetbrains.buildServer.clouds.CloudImage getRealImage(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.clouds.CloudImage realImage = env.getLocalContext();
-    if(realImage != null)
-      return realImage;
-
-    jetbrains.buildServer.clouds.CloudImage result = myCloudUtil.getImage(image.getProfileId(), image.getId());
-    if(result == null) {
-      throw new NotFoundException("Cloud image not found.");
-    }
-
-    return result;
   }
 }

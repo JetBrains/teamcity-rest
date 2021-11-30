@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.clouds.CloudClientEx;
 import jetbrains.buildServer.clouds.CloudImage;
+import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.clouds.server.CloudManagerBase;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPoolPermissions;
@@ -113,16 +114,15 @@ public class AbstractAgentPoolResolver {
 
   @NotNull
   public AgentPoolCloudImagesConnection cloudImages(@NotNull AbstractAgentPool pool, @NotNull DataFetchingEnvironment env) {
-    // List[profileId, image]
-    List<Pair<String, CloudImage>> images = myAgentTypeFinder.getAgentTypesByPool(pool.getId()).stream()
-                     .filter(agentType -> agentType.isCloud())
-                     .map(cloudAgentType -> myCloudManager.findProfileGloballyById(cloudAgentType.getAgentTypeKey().getProfileId()))
-                     .filter(Objects::nonNull)
-                     .flatMap(profile -> {
-                       CloudClientEx client = myCloudManager.getClient(profile.getProjectId(), profile.getProfileId());
-                       return client.getImages().stream().map(img -> new Pair<>(profile.getProfileId(), (CloudImage) img));
-                     })
-                     .collect(Collectors.toList());
+    List<Pair<CloudProfile, CloudImage>> images = myAgentTypeFinder.getAgentTypesByPool(pool.getId()).stream()
+                                                                   .filter(agentType -> agentType.isCloud())
+                                                                   .map(cloudAgentType -> myCloudManager.findProfileGloballyById(cloudAgentType.getAgentTypeKey().getProfileId()))
+                                                                   .filter(Objects::nonNull)
+                                                                   .flatMap(profile -> {
+                                                                     CloudClientEx client = myCloudManager.getClient(profile.getProjectId(), profile.getProfileId());
+                                                                     return client.getImages().stream().map(img -> new Pair<>(profile, (CloudImage) img));
+                                                                   })
+                                                                   .collect(Collectors.toList());
 
     return new AgentPoolCloudImagesConnection(images, PaginationArguments.everything());
   }
