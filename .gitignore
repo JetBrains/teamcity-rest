@@ -7,3 +7,4 @@ out/
 rest-api.iws
 dist/
 temp/
+test-output/
