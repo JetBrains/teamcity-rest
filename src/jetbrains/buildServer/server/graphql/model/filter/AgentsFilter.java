@@ -20,14 +20,14 @@ import org.jetbrains.annotations.Nullable;
 
 public class AgentsFilter {
   @Nullable
-  private final Boolean myAutorized;
+  private Boolean myAuthorized;
 
-  public AgentsFilter(@Nullable Boolean autorized) {
-    myAutorized = autorized;
+  public void setAuthorized(@Nullable Boolean authorized) {
+    myAuthorized = authorized;
   }
 
   @Nullable
-  public Boolean getAutorized() {
-    return myAutorized;
+  public Boolean getAuthorized() {
+    return myAuthorized;
   }
 }
