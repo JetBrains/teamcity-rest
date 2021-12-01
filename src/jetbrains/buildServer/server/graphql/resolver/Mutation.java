@@ -78,7 +78,7 @@ public class Mutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<SetAgentRunPolicyPayload> setAgentRunPolicy(@NotNull SetAgentRunPolicyInput input) {
     return runWithAgent(
-      input.getAgentId(),
+      input.getAgentRawId(),
       realAgent -> {
         BuildAgentManager.RunConfigurationPolicy policy = input.getAgentRunPolicy() == AgentRunPolicy.ALL ?
                                                           BuildAgentManager.RunConfigurationPolicy.ALL_COMPATIBLE_CONFIGURATIONS :
@@ -97,12 +97,12 @@ public class Mutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<AssignBuildTypeWithAgentPayload> assignBuildTypeWithAgent(@NotNull AssignBuildTypeWithAgentInput input) {
     return runWithAgent(
-      input.getAgentId(),
+      input.getAgentRawId(),
       agent -> {
         DataFetcherResult.Builder<AssignBuildTypeWithAgentPayload> result = DataFetcherResult.newResult();
-        SBuildType bt = myBuildTypeFinder.getItem("id:" + input.getBuildTypeId()).getBuildType();
+        SBuildType bt = myBuildTypeFinder.getItem("id:" + input.getBuildTypeRawId()).getBuildType();
         if(bt == null) {
-          final String errorMessage = String.format("Build type with id=%s is not found.", input.getBuildTypeId());
+          final String errorMessage = String.format("Build type with id=%s is not found.", input.getBuildTypeRawId());
           return result.error(new EntityNotFoundGraphQLError(errorMessage)).build();
         }
 
@@ -117,13 +117,13 @@ public class Mutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<UnassignBuildTypeFromAgentPayload> unassignBuildTypeFromAgent(@NotNull UnassignBuildTypeFromAgentInput input) {
     return runWithAgent(
-      input.getAgentId(),
+      input.getAgentRawId(),
       agent -> {
         DataFetcherResult.Builder<UnassignBuildTypeFromAgentPayload> result = DataFetcherResult.newResult();
-        SBuildType bt = myBuildTypeFinder.getItem("id:" + input.getBuildTypeId()).getBuildType();
+        SBuildType bt = myBuildTypeFinder.getItem("id:" + input.getBuildTypeRawId()).getBuildType();
 
         if(bt == null) {
-          final String errorMessage = String.format("Build type with id=%s is not found.", input.getBuildTypeId());
+          final String errorMessage = String.format("Build type with id=%s is not found.", input.getBuildTypeRawId());
           return result.error(new EntityNotFoundGraphQLError(errorMessage)).build();
         }
 
@@ -138,9 +138,9 @@ public class Mutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<AssignProjectBuildTypesWithAgentPayload> assignProjectBuildTypesWithAgent(@NotNull AssignProjectBuildTypesWithAgentInput input) {
     return runWithAgent(
-      input.getAgentId(),
+      input.getAgentRawId(),
       agent -> {
-        SProject project = myProjectFinder.getItem("id:" + input.getProjectId());
+        SProject project = myProjectFinder.getItem("id:" + input.getProjectRawId());
         String[] bts = project.getBuildTypes().stream().map(bt -> bt.getInternalId()).collect(Collectors.toSet()).toArray(new String[0]);
         myAgentTypeManager.includeRunConfigurationsToAllowed(agent.getAgentTypeId(), bts);
 
@@ -155,9 +155,9 @@ public class Mutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<UnassignProjectBuildTypesFromAgentPayload> unassignProjectBuildTypesFromAgent(@NotNull UnassignProjectBuildTypesFromAgentInput input) {
     return runWithAgent(
-      input.getAgentId(),
+      input.getAgentRawId(),
       agent -> {
-        SProject project = myProjectFinder.getItem("id:" + input.getProjectId());
+        SProject project = myProjectFinder.getItem("id:" + input.getProjectRawId());
         List<String> bts = project.getBuildTypes().stream().map(bt -> bt.getInternalId()).collect(Collectors.toList());
         myAgentTypeManager.excludeRunConfigurationsFromAllowed(agent.getAgentTypeId(), bts.toArray(new String[0]));
 
@@ -171,7 +171,7 @@ public class Mutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<UnassignAllAgentBuildTypesPayload> unassignAllAgentBuildTypes(@NotNull UnassignAllAgentBuildTypesInput input) {
     return runWithAgent(
-      input.getAgentId(),
+      input.getAgentRawId(),
       agent -> {
         Set<String> assignedBuildTypes = AgentFinder.getAssignedBuildTypes(agent);
 
@@ -188,32 +188,32 @@ public class Mutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<AuthorizeAgentPayload> authorizeAgent(@NotNull AuthorizeAgentInput input, @NotNull DataFetchingEnvironment dfe) {
     return runWithAgent(
-      input.getAgentId(),
+      input.getAgentRawId(),
       agent -> {
         DataFetcherResult.Builder<AuthorizeAgentPayload> result = DataFetcherResult.newResult();
         GraphQLContext context = dfe.getContext();
         String authReason = input.getReason() == null ? "" : input.getReason();
 
         // Move agent to another pool first as we don't want some cheeky build to start while agent is in a wrong pool.
-        if(input.getTargetAgentPoolId() != null) {
+        if(input.getTargetAgentPoolRawId() != null) {
           try {
-            myAgentPoolManager.moveAgentToPool(input.getTargetAgentPoolId(), agent);
+            myAgentPoolManager.moveAgentToPool(input.getTargetAgentPoolRawId(), agent);
           } catch (NoSuchAgentPoolException e) {
-            return result.error(new EntityNotFoundGraphQLError(String.format("Agent pool with id=%d is not found.", input.getTargetAgentPoolId()))).build();
+            return result.error(new EntityNotFoundGraphQLError(String.format("Agent pool with id=%d is not found.", input.getTargetAgentPoolRawId()))).build();
           } catch (PoolQuotaExceededException e) {
             LOG.debug(e.getMessage());
-            return result.error(new OperationFailedGraphQLError(String.format("Agent pool with id=%d does not accept agents.", input.getTargetAgentPoolId()))).build();
+            return result.error(new OperationFailedGraphQLError(String.format("Agent pool with id=%d does not accept agents.", input.getTargetAgentPoolRawId()))).build();
           } catch (AgentTypeCannotBeMovedException e) {
             LOG.debug(e.getMessage());
-            return result.error(new OperationFailedGraphQLError(String.format("Agent with id=%d can not be moved.", input.getAgentId()))).build();
+            return result.error(new OperationFailedGraphQLError(String.format("Agent with id=%d can not be moved.", input.getAgentRawId()))).build();
           }
         }
         agent.setAuthorized(true, context.getUser(), authReason);
 
         Agent agentModel = new Agent(agent);
         AbstractAgentPool targetPoolModel = null;
-        if(input.getTargetAgentPoolId() != null) {
-          AgentPool realPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolId());
+        if(input.getTargetAgentPoolRawId() != null) {
+          AgentPool realPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolRawId());
           if(realPool != null) {
             targetPoolModel = myAgentPoolFactory.produce(realPool);
           }
@@ -230,10 +230,10 @@ public class Mutation implements GraphQLMutationResolver {
     GraphQLContext context = dfe.getContext();
     String authReason = input.getReason() == null ? "" : input.getReason();
 
-    Set<Integer> agentTypeIds = new HashSet<>(input.getAgentIds().size());
+    Set<Integer> agentTypeIds = new HashSet<>(input.getAgentRawIds().size());
     List<BuildAgentEx> agents = new ArrayList<>();
 
-    for(int agentId : input.getAgentIds()) {
+    for(int agentId : input.getAgentRawIds()) {
       BuildAgentEx agent = myBuildAgentManager.findAgentById(agentId, true);
       if(agent == null) {
         return result.error(new EntityNotFoundGraphQLError(String.format("Agent with id=%d is not found.", agentId))).build();
@@ -243,9 +243,9 @@ public class Mutation implements GraphQLMutationResolver {
       agents.add(agent);
     }
 
-    if(input.getTargetAgentPoolId() != null) {
+    if(input.getTargetAgentPoolRawId() != null) {
       try {
-        myAgentPoolManager.moveAgentTypesToPool(input.getTargetAgentPoolId(), agentTypeIds);
+        myAgentPoolManager.moveAgentTypesToPool(input.getTargetAgentPoolRawId(), agentTypeIds);
       } catch (NoSuchAgentPoolException e) {
         return result.error(new EntityNotFoundGraphQLError("Agent pool is not found.")).build();
       } catch (AgentTypeCannotBeMovedException e) {
@@ -258,8 +258,8 @@ public class Mutation implements GraphQLMutationResolver {
     }
 
     AbstractAgentPool poolModel = null;
-    if(input.getTargetAgentPoolId() != null) {
-      AgentPool targetRealPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolId());
+    if(input.getTargetAgentPoolRawId() != null) {
+      AgentPool targetRealPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolRawId());
       if(targetRealPool != null) {
         poolModel = myAgentPoolFactory.produce(targetRealPool);
       } else {
@@ -284,7 +284,7 @@ public class Mutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<UnauthorizeAgentPayload> unauthorizeAgent(@NotNull UnauthorizeAgentInput input, @NotNull DataFetchingEnvironment dfe) {
     return runWithAgent(
-      input.getAgentId(),
+      input.getAgentRawId(),
       agent -> {
         DataFetcherResult.Builder<UnauthorizeAgentPayload> result = DataFetcherResult.newResult();
         GraphQLContext context = dfe.getContext();

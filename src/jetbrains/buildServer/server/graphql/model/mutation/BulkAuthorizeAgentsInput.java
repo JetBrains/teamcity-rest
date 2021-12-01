@@ -21,17 +21,17 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class BulkAuthorizeAgentsInput {
-  private List<Integer> myAgentIds;
+  private List<Integer> myAgentRawIds;
   private String myReason;
-  private Integer myTargetAgentPoolId;
+  private Integer myTargetAgentPoolRawId;
 
   @NotNull
-  public List<Integer> getAgentIds() {
-    return myAgentIds;
+  public List<Integer> getAgentRawIds() {
+    return myAgentRawIds;
   }
 
-  public void setAgentIds(@NotNull List<Integer> agentIds) {
-    myAgentIds = agentIds;
+  public void setAgentRawIds(@NotNull List<Integer> agentRawIds) {
+    myAgentRawIds = agentRawIds;
   }
 
   @Nullable
@@ -44,11 +44,11 @@ public class BulkAuthorizeAgentsInput {
   }
 
   @Nullable
-  public Integer getTargetAgentPoolId() {
-    return myTargetAgentPoolId;
+  public Integer getTargetAgentPoolRawId() {
+    return myTargetAgentPoolRawId;
   }
 
-  public void setTargetAgentPoolId(@Nullable Integer targetAgentPoolId) {
-    myTargetAgentPoolId = targetAgentPoolId;
+  public void setTargetAgentPoolRawId(@Nullable Integer targetAgentPoolRawId) {
+    myTargetAgentPoolRawId = targetAgentPoolRawId;
   }
 }

@@ -19,25 +19,25 @@ package jetbrains.buildServer.server.graphql.model;
 import org.jetbrains.annotations.Nullable;
 
 public class AuthorizeAgentInput {
-  private int myAgentId;
-  private Integer myTargetAgentPoolId;
+  private int myAgentRawId;
+  private Integer myTargetAgentPoolRawId;
   private String myReason;
 
-  public int getAgentId() {
-    return myAgentId;
+  public int getAgentRawId() {
+    return myAgentRawId;
   }
 
-  public void setAgentId(int agentId) {
-    myAgentId = agentId;
+  public void setAgentRawId(int agentRawId) {
+    myAgentRawId = agentRawId;
   }
 
   @Nullable
-  public Integer getTargetAgentPoolId() {
-    return myTargetAgentPoolId;
+  public Integer getTargetAgentPoolRawId() {
+    return myTargetAgentPoolRawId;
   }
 
-  public void setTargetAgentPoolId(@Nullable Integer targetAgentPoolId) {
-    myTargetAgentPoolId = targetAgentPoolId;
+  public void setTargetAgentPoolRawId(@Nullable Integer targetAgentPoolRawId) {
+    myTargetAgentPoolRawId = targetAgentPoolRawId;
   }
 
   @Nullable

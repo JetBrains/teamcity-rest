@@ -21,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class UpdateAgentPoolInput {
   @NotNull
-  private int myId;
+  private int myRawId;
   @Nullable
   private String myName;
   @Nullable
@@ -29,8 +29,8 @@ public class UpdateAgentPoolInput {
 
   public UpdateAgentPoolInput() { }
 
-  public void setId(int id) {
-    myId = id;
+  public void setRawId(int rawId) {
+    myRawId = rawId;
   }
 
   public void setName(@Nullable String name) {
@@ -41,8 +41,8 @@ public class UpdateAgentPoolInput {
     myMaxAgentsNumber = maxAgentsNumber;
   }
 
-  public int getId() {
-    return myId;
+  public int getRawId() {
+    return myRawId;
   }
 
   @Nullable

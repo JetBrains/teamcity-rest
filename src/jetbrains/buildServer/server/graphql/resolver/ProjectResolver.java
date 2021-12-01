@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.graphql.resolver;
 
-import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +25,7 @@ import jetbrains.buildServer.server.graphql.model.agentPool.ProjectAgentPool;
 import jetbrains.buildServer.server.graphql.model.connections.*;
 import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
+import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.server.graphql.util.ParentsFetcher;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ProjectResolver implements GraphQLResolver<Project> {
+public class ProjectResolver extends ModelResolver<Project> {
   @NotNull
   private final ProjectManager myProjectManager;
   @NotNull
@@ -110,6 +110,16 @@ public class ProjectResolver implements GraphQLResolver<Project> {
     return new ProjectAgentPool(pool);
   }
 
+  @Override
+  public String getIdPrefix() {
+    return Project.class.getSimpleName();
+  }
+
+  @Override
+  public Project findById(String id) {
+    return null;
+  }
+
   @NotNull
   private SProject getSelfFromContextSafe(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
     SProject self = env.getLocalContext();
@@ -117,7 +127,7 @@ public class ProjectResolver implements GraphQLResolver<Project> {
       return self;
     }
 
-    self = myProjectManager.findProjectByExternalId(source.getId());
+    self = myProjectManager.findProjectByExternalId(source.getRawId());
     if(self == null) {
       throw new BadRequestException("Malformed source project id");
     }

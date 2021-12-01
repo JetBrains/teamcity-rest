@@ -16,10 +16,11 @@
 
 package jetbrains.buildServer.server.graphql.model;
 
+import jetbrains.buildServer.server.graphql.util.ObjectIdentificationNode;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 
-public class Project {
+public class Project implements ObjectIdentificationNode {
   @NotNull
   private final String myId;
   @NotNull
@@ -33,7 +34,7 @@ public class Project {
   }
 
   @NotNull
-  public String getId() {
+  public String getRawId() {
     return myId;
   }
 

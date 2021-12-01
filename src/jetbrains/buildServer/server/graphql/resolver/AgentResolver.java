@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.graphql.resolver;
 
-import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.*;
 import java.util.function.Predicate;
@@ -30,6 +29,7 @@ import jetbrains.buildServer.server.graphql.model.connections.agent.AssociatedAg
 import jetbrains.buildServer.server.graphql.model.connections.agent.DiassociatedAgentBuildTypesConnection;
 import jetbrains.buildServer.server.graphql.model.filter.AgentBuildTypesFilter;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
+import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
@@ -40,7 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AgentResolver implements GraphQLResolver<Agent> {
+public class AgentResolver extends ModelResolver<Agent> {
 
   @Autowired
   @NotNull
@@ -105,7 +105,7 @@ public class AgentResolver implements GraphQLResolver<Agent> {
       return realAgent;
     }
 
-    return myAgentManager.findAgentById(agent.getId(), true);
+    return myAgentManager.findAgentById(Integer.parseInt(agent.getRawId()), true);
   }
 
   @NotNull
@@ -171,5 +171,15 @@ public class AgentResolver implements GraphQLResolver<Agent> {
                                              .collect(Collectors.toCollection(HashSet::new));
 
     return bt -> assignedToPool == assignedBuildTypes.contains(bt.getInternalId());
+  }
+
+  @Override
+  public String getIdPrefix() {
+    return Agent.class.getSimpleName();
+  }
+
+  @Override
+  public Agent findById(@NotNull String id) {
+    return null;
   }
 }

@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.execution.DataFetcherResult;
-import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.*;
 import java.util.stream.Stream;
@@ -29,7 +28,11 @@ import jetbrains.buildServer.server.graphql.model.connections.PaginationArgument
 import jetbrains.buildServer.server.graphql.model.connections.agent.CloudImageInstancesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolsConnection;
 import jetbrains.buildServer.server.graphql.util.EntityNotFoundGraphQLError;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.server.graphql.util.ModelResolver;
+import jetbrains.buildServer.serverSide.BuildAgentManager;
+import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
@@ -41,7 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class CloudImageResolver implements GraphQLResolver<CloudImage> {
+public class CloudImageResolver extends ModelResolver<CloudImage> {
   @Autowired
   @NotNull
   private AgentPoolManager myAgentPoolManager;
@@ -65,12 +68,12 @@ public class CloudImageResolver implements GraphQLResolver<CloudImage> {
   }
 
   @NotNull
-  public DataFetcherResult<Integer> agentTypeId(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
+  public DataFetcherResult<Integer> agentTypeRawId(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
     DataFetcherResult.Builder<Integer> result = DataFetcherResult.newResult();
 
     SAgentType agentType = findAgentType(image);
     if(agentType == null) {
-      return result.error(new EntityNotFoundGraphQLError(String.format("Agent type for image id=%s is no found.", image.getId()))).build();
+      return result.error(new EntityNotFoundGraphQLError(String.format("Agent type for image id=%s is no found.", image.getRawId()))).build();
     }
 
     return result.data(agentType.getAgentTypeId()).build();
@@ -98,7 +101,7 @@ public class CloudImageResolver implements GraphQLResolver<CloudImage> {
     Optional<SAgentType> typeOptional = agentTypeStream.filter(agentType -> agentType.isCloud())
                                                        .filter(agentType -> {
                                                          AgentTypeKey agentTypeKey = agentType.getAgentTypeKey();
-                                                         return agentTypeKey.getProfileId().equals(image.getProfileId()) && agentTypeKey.getTypeId().equals(image.getId());
+                                                         return agentTypeKey.getProfileId().equals(image.getProfileId()) && agentTypeKey.getTypeId().equals(image.getRawId());
                                                        })
                                                        .findFirst();
 
@@ -155,8 +158,9 @@ public class CloudImageResolver implements GraphQLResolver<CloudImage> {
     }
 
     DataFetcherResult.Builder<Project> result = new DataFetcherResult.Builder<>();
+
     if(project == null) {
-      result.error(new EntityNotFoundGraphQLError(String.format("Could not find project for instance id=%s", image.getId())));
+      result.error(new EntityNotFoundGraphQLError(String.format("Could not find project for instance id=%s", image.getRawId())));
     } else {
       result.data(new Project(project)).localContext(project);
     }
@@ -172,7 +176,7 @@ public class CloudImageResolver implements GraphQLResolver<CloudImage> {
     AgentPool pool = realImage.getAgentPoolId() != null ? myAgentPoolManager.findAgentPoolById(realImage.getAgentPoolId()) : null;
 
     if(realImage.getAgentPoolId() == null || pool == null) {
-      result.error(new EntityNotFoundGraphQLError(String.format("Could not find agent pool for instance id=%s", image.getId())));
+      result.error(new EntityNotFoundGraphQLError(String.format("Could not find agent pool for instance id=%s", image.getRawId())));
       return result.build();
     }
 
@@ -184,5 +188,21 @@ public class CloudImageResolver implements GraphQLResolver<CloudImage> {
   public AgentPoolsConnection assignableAgentPools(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
     // deprecated, remove after ui migration
     return AgentPoolsConnection.empty();
+  }
+
+  @Override
+  public String getId(CloudImage imageModel) {
+    return getIdPrefix() + SEPARATOR + imageModel.getProfileId() + SEPARATOR + imageModel.getRawId();
+  }
+
+  @Override
+  public String getIdPrefix() {
+    return CloudImage.class.getSimpleName();
+  }
+
+  @Nullable
+  @Override
+  public CloudImage findById(@NotNull String id) {
+    return null;
   }
 }

@@ -16,6 +16,32 @@
 
 package jetbrains.buildServer.server.graphql.model.agentPool;
 
-public interface AbstractAgentPool {
-  int getId();
+import jetbrains.buildServer.server.graphql.util.ObjectIdentificationNode;
+import org.jetbrains.annotations.NotNull;
+
+public abstract class AbstractAgentPool implements ObjectIdentificationNode {
+  @NotNull
+  private final jetbrains.buildServer.serverSide.agentPools.AgentPool myRealPool;
+
+  public AbstractAgentPool(@NotNull jetbrains.buildServer.serverSide.agentPools.AgentPool realPool) {
+    myRealPool = realPool;
+  }
+
+  public String getRawId() {
+    return Integer.toString(myRealPool.getAgentPoolId());
+  }
+
+  @NotNull
+  public String getName() {
+    return myRealPool.getName();
+  }
+
+  public int getMaxAgentsNumber() {
+    return myRealPool.getMaxAgents();
+  }
+
+  @NotNull
+  public jetbrains.buildServer.serverSide.agentPools.AgentPool getRealPool() {
+    return myRealPool;
+  }
 }

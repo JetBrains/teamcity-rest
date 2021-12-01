@@ -21,26 +21,26 @@ import org.jetbrains.annotations.Nullable;
 
 public class AssignProjectWithAgentPoolInput {
   @NotNull
-  private String myProjectId;
-  private int myAgentPoolId;
+  private String myProjectRawId;
+  private int myAgentPoolRawId;
   @Nullable
   private Boolean myExclusively;
 
-  public void setProjectId(@NotNull String projectId) {
-    myProjectId = projectId;
+  public void setProjectRawId(@NotNull String projectRawId) {
+    myProjectRawId = projectRawId;
   }
 
-  public void setAgentPoolId(int agentPoolId) {
-    myAgentPoolId = agentPoolId;
+  public void setAgentPoolRawId(int agentPoolRawId) {
+    myAgentPoolRawId = agentPoolRawId;
   }
 
   @NotNull
-  public String getProjectId() {
-    return myProjectId;
+  public String getProjectRawId() {
+    return myProjectRawId;
   }
 
-  public int getAgentPoolId() {
-    return myAgentPoolId;
+  public int getAgentPoolRawId() {
+    return myAgentPoolRawId;
   }
 
   @Nullable

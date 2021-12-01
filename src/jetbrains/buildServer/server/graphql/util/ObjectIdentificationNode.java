@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model.agentPool;
+package jetbrains.buildServer.server.graphql.util;
 
-import jetbrains.buildServer.serverSide.agentPools.AgentPool;
-import org.jetbrains.annotations.NotNull;
-
-public class ProjectAgentPool extends AbstractAgentPool {
-  public ProjectAgentPool(@NotNull AgentPool realPool) {
-    super(realPool);
-  }
+public interface ObjectIdentificationNode {
+  // TODO:
+  //  API issue: what if underlying data has int or long id? It's not that convenient nor efficient to convert it to/from String.
+  String getRawId();
 }

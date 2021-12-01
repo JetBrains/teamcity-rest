@@ -22,7 +22,6 @@ import graphql.schema.DataFetchingEnvironment;
 import java.util.List;
 import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.Agent;
-import jetbrains.buildServer.server.graphql.model.ProjectPermissions;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.GlobalPermissions;
@@ -35,6 +34,8 @@ import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoo
 import jetbrains.buildServer.server.graphql.model.filter.AgentsFilter;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
+import jetbrains.buildServer.server.graphql.util.ModelResolver;
+import jetbrains.buildServer.server.graphql.util.ObjectIdentificationNode;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
 import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -45,29 +46,44 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class Query implements GraphQLQueryResolver {
+  @Autowired
   @NotNull
-  private final AgentFinder myAgentFinder;
-  @NotNull
-  private final AgentPoolFinder myAgentPoolFinder;
-  @NotNull
-  private final ProjectManager myProjectManager;
-  @NotNull
-  private final PaginationArgumentsProvider myPaginationArgumentsProvider;
-  @NotNull
-  private final AgentPoolManager myAgentPoolManager;
-  @NotNull
-  private final AbstractAgentPoolFactory myPoolFactory;
+  private AgentFinder myAgentFinder;
 
-  public Query(@NotNull AgentFinder agentFinder,
-               @NotNull AgentPoolFinder agentPoolFinder,
-               @NotNull ProjectManager projectManager,
-               @NotNull AgentPoolManager agentPoolManager,
-               @NotNull PaginationArgumentsProvider paginationArgumentsProvider,
-               @NotNull AbstractAgentPoolFactory poolFactory) {
+  @Autowired
+  @NotNull
+  private AgentPoolFinder myAgentPoolFinder;
+
+  @Autowired
+  @NotNull
+  private ProjectManager myProjectManager;
+
+  @Autowired
+  @NotNull
+  private PaginationArgumentsProvider myPaginationArgumentsProvider;
+
+  @Autowired
+  @NotNull
+  private AgentPoolManager myAgentPoolManager;
+
+  @Autowired
+  @NotNull
+  private AbstractAgentPoolFactory myPoolFactory;
+
+  @Autowired
+  private List<ModelResolver<?>> myModelResolvers;
+
+  void initForTests(@NotNull AgentFinder agentFinder,
+                    @NotNull AgentPoolFinder agentPoolFinder,
+                    @NotNull ProjectManager projectManager,
+                    @NotNull AgentPoolManager agentPoolManager,
+                    @NotNull PaginationArgumentsProvider paginationArgumentsProvider,
+                    @NotNull AbstractAgentPoolFactory poolFactory) {
     myAgentFinder = agentFinder;
     myAgentPoolFinder = agentPoolFinder;
     myProjectManager = projectManager;
@@ -136,5 +152,24 @@ public class Query implements GraphQLQueryResolver {
     }
 
     return new GlobalPermissions(user.getGlobalPermissions().contains(Permission.MANAGE_AGENT_POOLS));
+  }
+
+  @Nullable
+  public ObjectIdentificationNode node(@NotNull String id) {
+    int prefixEnd = id.indexOf(ModelResolver.SEPARATOR);
+    if(prefixEnd == -1) {
+      return null;
+    }
+
+    String prefix = id.substring(0, prefixEnd);
+    ModelResolver<?> targetResolver = null;
+    for(ModelResolver<?> resolver : myModelResolvers) {
+      if (resolver.getIdPrefix().equals(prefix)) {
+        targetResolver = resolver;
+        break;
+      }
+    }
+
+    return targetResolver == null ? null : targetResolver.findById(id);
   }
 }

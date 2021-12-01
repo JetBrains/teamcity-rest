@@ -18,29 +18,8 @@ package jetbrains.buildServer.server.graphql.model.agentPool;
 
 import org.jetbrains.annotations.NotNull;
 
-public class AgentPool implements AbstractAgentPool {
-  private final int myId;
-  @NotNull
-  private final String myName;
-
-  private final int myMaxAgentsNumber;
-
+public class AgentPool extends AbstractAgentPool {
   public AgentPool(@NotNull jetbrains.buildServer.serverSide.agentPools.AgentPool realPool) {
-    myId = realPool.getAgentPoolId();
-    myName = realPool.getName();
-    myMaxAgentsNumber = realPool.getMaxAgents();
-  }
-
-  public int getId() {
-    return myId;
-  }
-
-  @NotNull
-  public String getName() {
-    return myName;
-  }
-
-  public int getMaxAgentsNumber() {
-    return myMaxAgentsNumber;
+    super(realPool);
   }
 }

@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.graphql.resolver.agentPool;
 
-import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
 import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPoolPermissions;
@@ -27,6 +26,7 @@ import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoo
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolCloudImagesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
+import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
@@ -35,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ProjectAgentPoolResolver implements GraphQLResolver<ProjectAgentPool> {
+public class ProjectAgentPoolResolver extends ModelResolver<ProjectAgentPool> {
   private final AbstractAgentPoolResolver myDelegate;
   private final ProjectManager myProjectManager;
 
@@ -66,7 +66,7 @@ public class ProjectAgentPoolResolver implements GraphQLResolver<ProjectAgentPoo
 
   @NotNull
   public Project project(@NotNull ProjectAgentPool pool, @NotNull DataFetchingEnvironment env) {
-    AgentPool realPool = myDelegate.getRealPoolSafe(pool, env);
+    AgentPool realPool = pool.getRealPool();
 
     if(!realPool.isProjectPool()) {
       throw new RuntimeException(String.format("Pool id=%d is not a project pool.", realPool.getAgentPoolId()));
@@ -84,5 +84,15 @@ public class ProjectAgentPoolResolver implements GraphQLResolver<ProjectAgentPoo
   @NotNull
   public ProjectAgentPoolActions actions(@NotNull ProjectAgentPool pool) {
     return new ProjectAgentPoolActions(AgentPoolActionStatus.unavailable(null));
+  }
+
+  @Override
+  public String getIdPrefix() {
+    return ProjectAgentPool.class.getSimpleName();
+  }
+
+  @Override
+  public ProjectAgentPool findById(String id) {
+    return null;
   }
 }

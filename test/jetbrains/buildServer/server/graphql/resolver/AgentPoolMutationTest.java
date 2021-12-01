@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.execution.DataFetcherResult;
 import java.util.*;
-import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.mutation.*;
 import jetbrains.buildServer.server.graphql.model.mutation.agentPool.*;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AgentPoolMutation;
@@ -72,7 +71,7 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     assertEquals(name, payload.getAgentPool().getName());
     assertEquals(maxAgents, payload.getAgentPool().getMaxAgentsNumber());
 
-    AgentPool createdPool = myFixture.getAgentPoolManager().findAgentPoolById(payload.getAgentPool().getId());
+    AgentPool createdPool = myFixture.getAgentPoolManager().findAgentPoolById(payload.getAgentPool().getRealPool().getAgentPoolId());
     assertNotNull(createdPool);
     assertEquals(createdPool.getName(), payload.getAgentPool().getName());
     assertEquals(createdPool.getMaxAgents(), payload.getAgentPool().getMaxAgentsNumber());
@@ -87,7 +86,7 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     DataFetcherResult<CreateAgentPoolPayload> result = myMutation.createAgentPool(input);
 
 
-    AgentPool createdPool = myFixture.getAgentPoolManager().findAgentPoolById(result.getData().getAgentPool().getId());
+    AgentPool createdPool = myFixture.getAgentPoolManager().findAgentPoolById(result.getData().getAgentPool().getRealPool().getAgentPoolId());
 
     assertEquals(createdPool.getMaxAgents(), result.getData().getAgentPool().getMaxAgentsNumber());
   }
@@ -107,7 +106,7 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     RemoveAgentPoolPayload payload = result.getData();
     assertNotNull(payload);
     assertNotNull(payload.getAgentPool());
-    assertNull(myFixture.getAgentPoolManager().findAgentPoolById(payload.getAgentPool().getId()));
+    assertNull(myFixture.getAgentPoolManager().findAgentPoolById(Integer.parseInt(payload.getAgentPool().getRawId())));
   }
 
   @Test
@@ -119,7 +118,7 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     AgentPool poolToUpdate = myFixture.getAgentPoolManager().createNewAgentPool(name1, new AgentPoolLimitsImpl(0, maxAgents1));
 
     UpdateAgentPoolInput input = new UpdateAgentPoolInput();
-    input.setId(poolToUpdate.getAgentPoolId());
+    input.setRawId(poolToUpdate.getAgentPoolId());
     input.setName(name2);
     input.setMaxAgentsNumber(maxAgents2);
 
@@ -145,8 +144,8 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     ProjectEx project = createProject(projectName);
 
     AssignProjectWithAgentPoolInput input = new AssignProjectWithAgentPoolInput();
-    input.setAgentPoolId(pool.getAgentPoolId());
-    input.setProjectId(project.getExternalId());
+    input.setAgentPoolRawId(pool.getAgentPoolId());
+    input.setProjectRawId(project.getExternalId());
 
     DataFetcherResult<AssignProjectWithAgentPoolPayload> result = myMutation.assignProjectWithAgentPool(input);
     assertNotNull(result);
@@ -171,8 +170,8 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     assertEquals(AgentPool.DEFAULT_POOL_ID, agent.getAgentPoolId());
 
     MoveAgentToAgentPoolInput input = new MoveAgentToAgentPoolInput();
-    input.setAgentId(agent.getId());
-    input.setTargetAgentPoolId(targetPool.getAgentPoolId());
+    input.setAgentRawId(agent.getId());
+    input.setTargetAgentPoolRawId(targetPool.getAgentPoolId());
 
     DataFetcherResult<MoveAgentToAgentPoolPayload> result = myMutation.moveAgentToAgentPool(input, new MockDataFetchingEnvironment());
     assertNotNull(result);
@@ -181,9 +180,9 @@ public class AgentPoolMutationTest extends BaseResolverTest {
 
     MoveAgentToAgentPoolPayload payload = result.getData();
 
-    assertEquals(AgentPool.DEFAULT_POOL_ID, payload.getSourceAgentPool().getId());
-    assertEquals(targetPool.getAgentPoolId(), payload.getTargetAgentPool().getId());
-    assertEquals(agent.getId(), payload.getAgent().getId());
+    assertEquals(AgentPool.DEFAULT_POOL_ID, payload.getSourceAgentPool().getRealPool().getAgentPoolId());
+    assertEquals(targetPool.getAgentPoolId(), payload.getTargetAgentPool().getRealPool().getAgentPoolId());
+    assertEquals(agent.getId(), Integer.parseInt(payload.getAgent().getRawId()));
 
     // Agent must be deleted from source pool
     assertNotContains(myFixture.getAgentPoolManager().getAgentTypeIdsByPool(AgentPool.DEFAULT_POOL_ID), agent.getAgentTypeId());
@@ -201,8 +200,8 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     ProjectEx project = createProject(projectName);
 
     AssignProjectWithAgentPoolInput input = new AssignProjectWithAgentPoolInput();
-    input.setAgentPoolId(pool.getAgentPoolId());
-    input.setProjectId(project.getExternalId());
+    input.setAgentPoolRawId(pool.getAgentPoolId());
+    input.setProjectRawId(project.getExternalId());
     input.setExclusively(true);
 
     DataFetcherResult<AssignProjectWithAgentPoolPayload> result = myMutation.assignProjectWithAgentPool(input);
@@ -232,8 +231,8 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     myFixture.getAgentPoolManager().associateProjectsWithPool(pool.getAgentPoolId(), Collections.singleton(project.getProjectId()));
 
     UnassignProjectFromAgentPoolInput input = new UnassignProjectFromAgentPoolInput();
-    input.setAgentPoolId(pool.getAgentPoolId());
-    input.setProjectId(project.getExternalId());
+    input.setAgentPoolRawId(pool.getAgentPoolId());
+    input.setProjectRawId(project.getExternalId());
 
     DataFetcherResult<UnassignProjectFromAgentPoolPayload> result = myMutation.unassignProjectFromAgentPool(input);
     assertNotNull(result);
@@ -264,8 +263,8 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     myFixture.getAgentPoolManager().associateProjectsWithPool(pool.getAgentPoolId(), associateList);
 
     UnassignProjectFromAgentPoolInput input = new UnassignProjectFromAgentPoolInput();
-    input.setAgentPoolId(pool.getAgentPoolId());
-    input.setProjectId(project.getExternalId());
+    input.setAgentPoolRawId(pool.getAgentPoolId());
+    input.setProjectRawId(project.getExternalId());
     input.setRecursive(true);
 
     DataFetcherResult<UnassignProjectFromAgentPoolPayload> result = myMutation.unassignProjectFromAgentPool(input);
@@ -297,8 +296,8 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     myFixture.getAgentPoolManager().associateProjectsWithPool(pool.getAgentPoolId(), associateList);
 
     UnassignProjectFromAgentPoolInput input = new UnassignProjectFromAgentPoolInput();
-    input.setAgentPoolId(pool.getAgentPoolId());
-    input.setProjectId(project.getExternalId());
+    input.setAgentPoolRawId(pool.getAgentPoolId());
+    input.setProjectRawId(project.getExternalId());
 
     DataFetcherResult<UnassignProjectFromAgentPoolPayload> result = myMutation.unassignProjectFromAgentPool(input);
     assertNotNull(result);
@@ -328,8 +327,8 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     ProjectEx project2 = createProject(projectName2);
 
     BulkAssignProjectWithAgentPoolInput input = new BulkAssignProjectWithAgentPoolInput();
-    input.setAgentPoolId(pool.getAgentPoolId());
-    input.setProjectIds(Arrays.asList(project1.getExternalId(), project2.getExternalId()));
+    input.setAgentPoolRawId(pool.getAgentPoolId());
+    input.setProjectRawIds(Arrays.asList(project1.getExternalId(), project2.getExternalId()));
     input.setExclusively(false);
 
     DataFetcherResult<BulkAssignProjectWithAgentPoolPayload> result = myMutation.bulkAssignProjectWithAgentPool(input);
@@ -357,8 +356,8 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     ProjectEx project2 = createProject(projectName2);
 
     BulkAssignProjectWithAgentPoolInput input = new BulkAssignProjectWithAgentPoolInput();
-    input.setAgentPoolId(pool.getAgentPoolId());
-    input.setProjectIds(Arrays.asList(project1.getExternalId(), project2.getExternalId()));
+    input.setAgentPoolRawId(pool.getAgentPoolId());
+    input.setProjectRawIds(Arrays.asList(project1.getExternalId(), project2.getExternalId()));
     input.setExclusively(true);
 
     DataFetcherResult<BulkAssignProjectWithAgentPoolPayload> result = myMutation.bulkAssignProjectWithAgentPool(input);
@@ -389,8 +388,8 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     myFixture.getAgentPoolManager().moveAgentToPool(sourcePool2.getAgentPoolId(), agent2);
 
     BulkMoveAgentsToAgentPoolInput input = new BulkMoveAgentsToAgentPoolInput();
-    input.setAgentIds(Arrays.asList(agent1.getId(), agent2.getId()));
-    input.setTargetAgentPoolId(targetPool.getAgentPoolId());
+    input.setAgentRawIds(Arrays.asList(agent1.getId(), agent2.getId()));
+    input.setTargetAgentPoolRawId(targetPool.getAgentPoolId());
 
     MockDataFetchingEnvironment dfe = new MockDataFetchingEnvironment();
 

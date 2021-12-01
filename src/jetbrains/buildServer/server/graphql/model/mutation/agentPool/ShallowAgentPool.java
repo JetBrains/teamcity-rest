@@ -19,19 +19,17 @@ package jetbrains.buildServer.server.graphql.model.mutation.agentPool;
 import org.jetbrains.annotations.NotNull;
 
 public class ShallowAgentPool {
-  @NotNull
   private final int myId;
   @NotNull
   private final String myName;
 
-  public ShallowAgentPool(@NotNull int id, @NotNull String name) {
+  public ShallowAgentPool(int id, @NotNull String name) {
     myId = id;
     myName = name;
   }
 
-  @NotNull
-  public int getId() {
-    return myId;
+  public String getRawId() {
+    return Integer.toString(myId);
   }
 
   @NotNull

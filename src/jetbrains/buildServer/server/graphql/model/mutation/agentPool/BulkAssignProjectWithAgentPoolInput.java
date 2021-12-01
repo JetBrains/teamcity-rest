@@ -21,27 +21,27 @@ import org.jetbrains.annotations.NotNull;
 
 public class BulkAssignProjectWithAgentPoolInput {
   @NotNull
-  private List<String> myProjectIds;
-  private int myAgentPoolId;
+  private List<String> myProjectRawIds;
+  private int myAgentPoolRawId;
   private boolean myExclusively;
 
-  public void setProjectIds(@NotNull List<String> projectIds) {
-    myProjectIds = projectIds;
+  public void setProjectRawIds(@NotNull List<String> projectRawIds) {
+    myProjectRawIds = projectRawIds;
   }
 
-  public void setAgentPoolId(int agentPoolId) {
-    myAgentPoolId = agentPoolId;
+  public void setAgentPoolRawId(int agentPoolRawId) {
+    myAgentPoolRawId = agentPoolRawId;
   }
 
   public void setExclusively(boolean exclusively) {myExclusively = exclusively; }
 
   @NotNull
-  public List<String> getProjectIds() {
-    return myProjectIds;
+  public List<String> getProjectRawIds() {
+    return myProjectRawIds;
   }
 
-  public int getAgentPoolId() {
-    return myAgentPoolId;
+  public int getAgentPoolRawId() {
+    return myAgentPoolRawId;
   }
 
   public boolean getExclusively() { return myExclusively; }

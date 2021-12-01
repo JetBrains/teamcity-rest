@@ -16,22 +16,23 @@
 
 package jetbrains.buildServer.server.graphql.model;
 
+import jetbrains.buildServer.server.graphql.util.ObjectIdentificationNode;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
 
-public class Agent {
-  private final int myId;
+public class Agent implements ObjectIdentificationNode {
+  private final String myId;
   @NotNull
   private final String myName;
   private final boolean myAuthorized;
 
   public Agent(@NotNull SBuildAgent realAgent) {
-    myId = realAgent.getId();
+    myId = Integer.toString(realAgent.getId());
     myName = realAgent.getName();
     myAuthorized = realAgent.isAuthorized();
   }
 
-  public int getId() {
+  public String getRawId() {
     return myId;
   }
 

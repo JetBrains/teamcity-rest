@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.graphql.resolver.agentPool;
 
 import com.intellij.openapi.util.Pair;
-import graphql.kickstart.tools.GraphQLResolver;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,15 +38,17 @@ import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoo
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolCloudImagesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
+import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
+public class AgentPoolResolver extends ModelResolver<AgentPool> {
   private final AbstractAgentPoolResolver myDelegate;
   private final AgentPoolActionsAccessChecker myPoolActionsAccessChecker;
   private final ProjectManager myProjectManager;
@@ -91,7 +92,7 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
 
   @NotNull
   public AgentPoolAgentsConnection assignableAgents(@NotNull AgentPool pool, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = myDelegate.getRealPoolSafe(pool, env);
+    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = pool.getRealPool();
     boolean includeUnathorized = AuthUtil.hasPermissionToAuthorizeAgentsInPool(mySecurityContext.getAuthorityHolder(), realPool);
 
     final List<BuildAgentEx> allAgents = myAgentManager.getAllAgents(includeUnathorized);
@@ -99,7 +100,7 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
     Set<Integer> managablePools = myPoolActionsAccessChecker.getManageablePoolIds();
 
     List<SBuildAgent> agents = allAgents.stream()
-                                        .filter(agent -> agent.getAgentPoolId() != pool.getId()) // agents from the same pool can't be assigned to it
+                                        .filter(agent -> agent.getAgentPoolId() != pool.getRealPool().getAgentPoolId()) // agents from the same pool can't be assigned to it
                                         .filter(agent -> !agent.getAgentType().isCloud()) // cloud agents are not interesting too, see assignableCloudImages instead
                                         .filter(agent -> managablePools.contains(agent.getAgentPoolId()))
                                         .collect(Collectors.toList());
@@ -121,7 +122,7 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
       if(client == null || profile == null) return;
 
       client.getImages().stream()
-            .filter(image -> !Objects.equals(pool.getId(), image.getAgentPoolId()))
+            .filter(image -> !Objects.equals(pool.getRealPool().getAgentPoolId(), image.getAgentPoolId()))
             .forEach(image -> {
               images.add(new Pair<>(profile, image));
             });
@@ -132,7 +133,7 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
 
   @NotNull
   public AgentPoolActions actions(@NotNull AgentPool pool) {
-    ManageAgentsInPoolUnmetRequirements unmetMoveReqs = myPoolActionsAccessChecker.getUnmetRequirementsToManageAgentsInPool(pool.getId());
+    ManageAgentsInPoolUnmetRequirements unmetMoveReqs = myPoolActionsAccessChecker.getUnmetRequirementsToManageAgentsInPool(pool.getRealPool().getAgentPoolId());
     AgentPoolActionStatus moveAgentsActionStatus;
     if(unmetMoveReqs == null) {
       moveAgentsActionStatus = AgentPoolActionStatus.available();
@@ -153,5 +154,16 @@ public class AgentPoolResolver implements GraphQLResolver<AgentPool> {
       AgentPoolActionStatus.unavailable(null),
       AgentPoolActionStatus.unavailable(null)
     );
+  }
+
+  @Override
+  public String getIdPrefix() {
+    return AgentPool.class.getSimpleName();
+  }
+
+  @Override
+  @Nullable
+  public AgentPool findById(String id) {
+    return null;
   }
 }

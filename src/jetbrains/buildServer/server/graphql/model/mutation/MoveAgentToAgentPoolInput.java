@@ -17,21 +17,21 @@
 package jetbrains.buildServer.server.graphql.model.mutation;
 
 public class MoveAgentToAgentPoolInput {
-  private int myAgentId;
-  private int myTargetAgentPoolId;
+  private int myAgentRawId;
+  private int myTargetAgentPoolRawId;
 
-  public void setAgentId(int agentId) {
-    myAgentId = agentId;
+  public void setAgentRawId(int agentRawId) {
+    myAgentRawId = agentRawId;
   }
 
-  public void setTargetAgentPoolId(int targetAgentPoolId) {
-    myTargetAgentPoolId = targetAgentPoolId;
+  public void setTargetAgentPoolRawId(int targetAgentPoolRawId) {
+    myTargetAgentPoolRawId = targetAgentPoolRawId;
   }
 
-  public int getAgentId() {
-    return myAgentId;
+  public int getAgentRawId() {
+    return myAgentRawId;
   }
-  public int getTargetAgentPoolId() {
-    return myTargetAgentPoolId;
+  public int getTargetAgentPoolRawId() {
+    return myTargetAgentPoolRawId;
   }
 }

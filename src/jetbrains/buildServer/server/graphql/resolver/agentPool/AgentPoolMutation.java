@@ -110,7 +110,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<UpdateAgentPoolPayload> updateAgentPool(@NotNull UpdateAgentPoolInput input) {
     DataFetcherResult.Builder<UpdateAgentPoolPayload> result = DataFetcherResult.newResult();
-    int poolId = input.getId();
+    int poolId = input.getRawId();
     AgentPool poolOfInterest = myAgentPoolManager.findAgentPoolById(poolId);
     if (poolOfInterest == null) {
       return result.error(new EntityNotFoundGraphQLError("Pool with given id does not exist.")).build();
@@ -165,8 +165,8 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<MoveAgentToAgentPoolPayload> moveAgentToAgentPool(@NotNull MoveAgentToAgentPoolInput input, @NotNull DataFetchingEnvironment env) {
     DataFetcherResult.Builder<MoveAgentToAgentPoolPayload> result = DataFetcherResult.newResult();
-    int agentId = input.getAgentId();
-    int targetPoolId = input.getTargetAgentPoolId();
+    int agentId = input.getAgentRawId();
+    int targetPoolId = input.getTargetAgentPoolRawId();
 
     BuildAgentEx agent = myBuildAgentManager.findAgentById(agentId, true);
     if(agent == null) {
@@ -203,16 +203,16 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<MoveCloudImageToAgentPoolPayload> moveCloudImageToAgentPool(@NotNull MoveCloudImageToAgentPoolInput input) {
     DataFetcherResult.Builder<MoveCloudImageToAgentPoolPayload> result = DataFetcherResult.newResult();
-    final int targetPoolId = input.getTargetAgentPoolId();
+    final int targetPoolId = input.getTargetAgentPoolRawId();
 
-    SAgentType agentType = myAgentTypeFinder.findAgentType(input.getAgentTypeId());
+    SAgentType agentType = myAgentTypeFinder.findAgentType(input.getAgentTypeRawId());
     if (agentType == null) {
-      return result.error(new EntityNotFoundGraphQLError(String.format("Cloud image with agent type=%d does not exist.", input.getAgentTypeId()))).build();
+      return result.error(new EntityNotFoundGraphQLError(String.format("Cloud image with agent type=%d does not exist.", input.getAgentTypeRawId()))).build();
     }
     final int sourcePoolId = agentType.getAgentPoolId();
 
     if (!agentType.isCloud()) {
-      return result.error(new OperationFailedGraphQLError(String.format("Agent type=%d does not correspond to a cloud agent.", input.getAgentTypeId()))).build();
+      return result.error(new OperationFailedGraphQLError(String.format("Agent type=%d does not correspond to a cloud agent.", input.getAgentTypeRawId()))).build();
     }
 
     final AgentTypeKey typeKey = agentType.getAgentTypeKey();
@@ -249,28 +249,28 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<AssignProjectWithAgentPoolPayload> assignProjectWithAgentPool(@NotNull AssignProjectWithAgentPoolInput input) {
     DataFetcherResult.Builder<AssignProjectWithAgentPoolPayload> result = DataFetcherResult.newResult();
-    if(!myAgentPoolActionsAccessChecker.canManageProjectsInPool(input.getAgentPoolId())) {
+    if(!myAgentPoolActionsAccessChecker.canManageProjectsInPool(input.getAgentPoolRawId())) {
       return result.error(new OperationFailedGraphQLError("Can't assign project.")).build();
     }
 
-    SProject project = myProjectManager.findProjectByExternalId(input.getProjectId());
+    SProject project = myProjectManager.findProjectByExternalId(input.getProjectRawId());
     if(project == null) {
       return result.error(new EntityNotFoundGraphQLError("Project with given id does not exist.")).build();
     }
 
     try {
-      myAgentPoolManager.associateProjectsWithPool(input.getAgentPoolId(), Collections.singleton(project.getProjectId()));
+      myAgentPoolManager.associateProjectsWithPool(input.getAgentPoolRawId(), Collections.singleton(project.getProjectId()));
     } catch (NoSuchAgentPoolException e) {
       return result.error(new EntityNotFoundGraphQLError("Agent pool with given id does not exist.")).build();
     }
 
     if(BooleanUtils.isTrue(input.getExclusively())) {
-      myAgentPoolManager.dissociateProjectsFromOtherPools(input.getAgentPoolId(), Collections.singleton(project.getProjectId()));
+      myAgentPoolManager.dissociateProjectsFromOtherPools(input.getAgentPoolRawId(), Collections.singleton(project.getProjectId()));
     }
 
-    AgentPool agentPool = myAgentPoolManager.findAgentPoolById(input.getAgentPoolId());
+    AgentPool agentPool = myAgentPoolManager.findAgentPoolById(input.getAgentPoolRawId());
     if(agentPool == null) {
-      LOG.warn(String.format("Agent pool with id=%d is missing after associating project id=%s", input.getAgentPoolId(), project.getProjectId()));
+      LOG.warn(String.format("Agent pool with id=%d is missing after associating project id=%s", input.getAgentPoolRawId(), project.getProjectId()));
       return result.error(new UnexpectedServerGraphQLError("Agent pool with given id could not be found after operation.")).build();
     }
 
@@ -284,11 +284,11 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<UnassignProjectFromAgentPoolPayload> unassignProjectFromAgentPool(@NotNull UnassignProjectFromAgentPoolInput input) {
     DataFetcherResult.Builder<UnassignProjectFromAgentPoolPayload> result = DataFetcherResult.newResult();
-    if(!myAgentPoolActionsAccessChecker.canManageProjectsInPool(input.getAgentPoolId())) {
+    if(!myAgentPoolActionsAccessChecker.canManageProjectsInPool(input.getAgentPoolRawId())) {
       return result.error(new OperationFailedGraphQLError("Can't assign project.")).build();
     }
 
-    SProject project = myProjectManager.findProjectByExternalId(input.getProjectId());
+    SProject project = myProjectManager.findProjectByExternalId(input.getProjectRawId());
     if(project == null) {
       return result.error(new EntityNotFoundGraphQLError("Project with given id does not exist.")).build();
     }
@@ -303,14 +303,14 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     }
 
     try {
-      myAgentPoolManager.dissociateProjectsFromPool(input.getAgentPoolId(), projectsToDisassociate);
+      myAgentPoolManager.dissociateProjectsFromPool(input.getAgentPoolRawId(), projectsToDisassociate);
     } catch (NoSuchAgentPoolException e) {
       return result.error(new EntityNotFoundGraphQLError("Agent pool with given id does not exist.")).build();
     }
 
-    AgentPool agentPool = myAgentPoolManager.findAgentPoolById(input.getAgentPoolId());
+    AgentPool agentPool = myAgentPoolManager.findAgentPoolById(input.getAgentPoolRawId());
     if(agentPool == null) {
-      LOG.warn(String.format("Agent pool with id=%d is missing after associating project id=%s", input.getAgentPoolId(), project.getProjectId()));
+      LOG.warn(String.format("Agent pool with id=%d is missing after associating project id=%s", input.getAgentPoolRawId(), project.getProjectId()));
       return result.error(new UnexpectedServerGraphQLError("Agent pool with given id could not be found after operation.")).build();
     }
 
@@ -325,25 +325,25 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   public DataFetcherResult<BulkAssignProjectWithAgentPoolPayload> bulkAssignProjectWithAgentPool(@NotNull BulkAssignProjectWithAgentPoolInput input) {
     DataFetcherResult.Builder<BulkAssignProjectWithAgentPoolPayload> result = DataFetcherResult.newResult();
 
-    if(!myAgentPoolActionsAccessChecker.canManageProjectsInPool(input.getAgentPoolId())) {
+    if(!myAgentPoolActionsAccessChecker.canManageProjectsInPool(input.getAgentPoolRawId())) {
       return result.error(new OperationFailedGraphQLError("Can't assign projects.")).build();
     }
 
-    Set<String> projectIds = myProjectManager.findProjectsByExternalIds(input.getProjectIds()).stream().map(p -> p.getProjectId()).collect(Collectors.toSet());
+    Set<String> projectIds = myProjectManager.findProjectsByExternalIds(input.getProjectRawIds()).stream().map(p -> p.getProjectId()).collect(Collectors.toSet());
 
     try {
-      myAgentPoolManager.associateProjectsWithPool(input.getAgentPoolId(), projectIds);
+      myAgentPoolManager.associateProjectsWithPool(input.getAgentPoolRawId(), projectIds);
     } catch (NoSuchAgentPoolException e) {
       return result.error(new EntityNotFoundGraphQLError("Agent pool with given id does not exist.")).build();
     }
 
     if(input.getExclusively()) {
-      myAgentPoolManager.dissociateProjectsFromOtherPools(input.getAgentPoolId(), projectIds);
+      myAgentPoolManager.dissociateProjectsFromOtherPools(input.getAgentPoolRawId(), projectIds);
     }
 
-    AgentPool agentPool = myAgentPoolManager.findAgentPoolById(input.getAgentPoolId());
+    AgentPool agentPool = myAgentPoolManager.findAgentPoolById(input.getAgentPoolRawId());
     if(agentPool == null) {
-      LOG.warn(String.format("Agent pool with id=%d is missing after bulk association request", input.getAgentPoolId()));
+      LOG.warn(String.format("Agent pool with id=%d is missing after bulk association request", input.getAgentPoolRawId()));
       return result.error(new UnexpectedServerGraphQLError("Agent pool with given id could not be found after operation.")).build();
     }
 
@@ -355,7 +355,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   public DataFetcherResult<BulkMoveAgentToAgentsPoolPayload> bulkMoveAgentsToAgentPool(@NotNull BulkMoveAgentsToAgentPoolInput input) {
     DataFetcherResult.Builder<BulkMoveAgentToAgentsPoolPayload> result = DataFetcherResult.newResult();
 
-    AgentPool targetPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolId());
+    AgentPool targetPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolRawId());
     if(targetPool == null) {
       return result.error(new EntityNotFoundGraphQLError("Target pool is not found.")).build();
     }
@@ -364,13 +364,13 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
       return result.error(new OperationFailedGraphQLError("Can't move agents to target pool.")).build();
     }
 
-    if(!myAgentPoolActionsAccessChecker.canManageAgentsInPool(input.getTargetAgentPoolId())) {
+    if(!myAgentPoolActionsAccessChecker.canManageAgentsInPool(input.getTargetAgentPoolRawId())) {
       return result.error(new OperationFailedGraphQLError("Can't move agents to target pool.")).build();
     }
 
     Set<String> projectsToCheck = new HashSet<>();
     Set<Integer> agentTypes = new HashSet<>();
-    for(Integer agentId : input.getAgentIds()) {
+    for(Integer agentId : input.getAgentRawIds()) {
       SBuildAgent agent = myBuildAgentManager.findAgentById(agentId, true);
       if(agent == null) {
         return result.error(new OperationFailedGraphQLError("One of the agents with given ids is not found.")).build();
@@ -386,7 +386,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     }
 
     try {
-      myAgentPoolManager.moveAgentTypesToPool(input.getTargetAgentPoolId(), agentTypes);
+      myAgentPoolManager.moveAgentTypesToPool(input.getTargetAgentPoolRawId(), agentTypes);
     } catch (NoSuchAgentPoolException e) {
       return result.error(new EntityNotFoundGraphQLError("Target pool does not exist.")).build();
     } catch (PoolQuotaExceededException e) {
@@ -398,7 +398,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     }
 
     List<Agent> agents = new ArrayList<>();
-    for(Integer agentId : input.getAgentIds()) {
+    for(Integer agentId : input.getAgentRawIds()) {
       SBuildAgent agent = myBuildAgentManager.findAgentById(agentId, true);
       if(agent == null) {
         continue;
@@ -407,7 +407,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
       agents.add(new Agent(agent));
     }
 
-    AgentPool updatedTargetPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolId()); // should not be null at this stage
+    AgentPool updatedTargetPool = myAgentPoolManager.findAgentPoolById(input.getTargetAgentPoolRawId()); // should not be null at this stage
     BulkMoveAgentToAgentsPoolPayload payload = new BulkMoveAgentToAgentsPoolPayload(agents, new jetbrains.buildServer.server.graphql.model.agentPool.AgentPool(updatedTargetPool));
     return result.data(payload).build();
   }
@@ -416,14 +416,14 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<BulkMoveCloudImagesToAgentPoolPayload> bulkMoveCloudImagesToAgentPool(@NotNull BulkMoveCloudImagesToAgentPoolInput input) {
     DataFetcherResult.Builder<BulkMoveCloudImagesToAgentPoolPayload> result = DataFetcherResult.newResult();
-    final int targetPoolId = input.getTargetAgentPoolId();
+    final int targetPoolId = input.getTargetAgentPoolRawId();
     AgentPool targetPool = myAgentPoolManager.findAgentPoolById(targetPoolId);
     if(targetPool == null) {
       return result.error(new EntityNotFoundGraphQLError("Target agent pool is not found.")).build();
     }
 
     Map<Integer, Pair<CloudClientEx, AgentTypeKey>> cloudClientsAndTypeKeys = new HashMap<>(); // agentTypeId -> CloudClient, AgentTypeKey
-    input.getAgentTypeIds().forEach(agentTypeId -> {
+    input.getAgentTypeRawIds().forEach(agentTypeId -> {
       SAgentType agentType = myAgentTypeFinder.findAgentType(agentTypeId);
 
       if (agentType == null) {

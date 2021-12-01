@@ -20,22 +20,22 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
 public class BulkMoveAgentsToAgentPoolInput {
-  private List<Integer> myAgentIds;
-  private int myTargetAgentPoolId;
+  private List<Integer> myAgentRawIds;
+  private int myTargetAgentPoolRawId;
 
-  public List<Integer> getAgentIds() {
-    return myAgentIds;
+  public List<Integer> getAgentRawIds() {
+    return myAgentRawIds;
   }
 
-  public void setAgentIds(@NotNull List<Integer> agentIds) {
-    myAgentIds = agentIds;
+  public void setAgentRawIds(@NotNull List<Integer> agentRawIds) {
+    myAgentRawIds = agentRawIds;
   }
 
-  public int getTargetAgentPoolId() {
-    return myTargetAgentPoolId;
+  public int getTargetAgentPoolRawId() {
+    return myTargetAgentPoolRawId;
   }
 
-  public void setTargetAgentPoolId(int targetAgentPoolId) {
-    myTargetAgentPoolId = targetAgentPoolId;
+  public void setTargetAgentPoolRawId(int targetAgentPoolRawId) {
+    myTargetAgentPoolRawId = targetAgentPoolRawId;
   }
 }

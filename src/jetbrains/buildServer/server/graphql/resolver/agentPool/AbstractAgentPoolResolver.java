@@ -70,7 +70,7 @@ public class AbstractAgentPoolResolver {
 
   @NotNull
   public AgentPoolAgentsConnection agents(@NotNull AbstractAgentPool pool, @NotNull DataFetchingEnvironment env) {
-    List<SBuildAgent> agents = myAgentTypeFinder.getAgentTypesByPool(pool.getId()).stream()
+    List<SBuildAgent> agents = myAgentTypeFinder.getAgentTypesByPool(pool.getRealPool().getAgentPoolId()).stream()
                                                 .filter(agentType -> !agentType.isCloud())
                                                 .map(SAgentType::getRealAgent)
                                                 .collect(Collectors.toList());
@@ -80,7 +80,7 @@ public class AbstractAgentPoolResolver {
 
   @NotNull
   public AgentPoolProjectsConnection projects(@NotNull AbstractAgentPool pool, @NotNull ProjectsFilter filter, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = getRealPoolSafe(pool, env);
+    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = pool.getRealPool();
 
     Collection<String> projectIds = realPool.getProjectIds();
     Stream<SProject> projects = myProjectManager.findProjects(projectIds).stream();
@@ -99,7 +99,7 @@ public class AbstractAgentPoolResolver {
 
   @NotNull
   public AgentPoolPermissions permissions(@NotNull AbstractAgentPool pool, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = getRealPoolSafe(pool, env);
+    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = pool.getRealPool();
     int poolId = realPool.getAgentPoolId();
     AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
 
@@ -114,7 +114,7 @@ public class AbstractAgentPoolResolver {
 
   @NotNull
   public AgentPoolCloudImagesConnection cloudImages(@NotNull AbstractAgentPool pool, @NotNull DataFetchingEnvironment env) {
-    List<Pair<CloudProfile, CloudImage>> images = myAgentTypeFinder.getAgentTypesByPool(pool.getId()).stream()
+    List<Pair<CloudProfile, CloudImage>> images = myAgentTypeFinder.getAgentTypesByPool(pool.getRealPool().getAgentPoolId()).stream()
                                                                    .filter(agentType -> agentType.isCloud())
                                                                    .map(cloudAgentType -> myCloudManager.findProfileGloballyById(cloudAgentType.getAgentTypeKey().getProfileId()))
                                                                    .filter(Objects::nonNull)
@@ -125,15 +125,5 @@ public class AbstractAgentPoolResolver {
                                                                    .collect(Collectors.toList());
 
     return new AgentPoolCloudImagesConnection(images, PaginationArguments.everything());
-  }
-
-  public jetbrains.buildServer.serverSide.agentPools.AgentPool getRealPoolSafe(@NotNull AbstractAgentPool pool, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = env.getLocalContext();
-
-    if(realPool != null) {
-      return realPool;
-    }
-
-    return myAgentPoolManager.findAgentPoolById(pool.getId());
   }
 }

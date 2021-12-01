@@ -1,11 +1,24 @@
+# Object Identification spec compliance interface.
+interface Node {
+  id: ID!
+}
+
+# Any type implementing this interface exposes a rawId which corresponds to some unqiue identificator in its domain.
+# Typically, most types implementing Node will implement this interface too.
+interface RawId {
+  # Identificator, unique inside it's type domain. Does not guarantee uniquness across different domains.
+  rawId: ID!
+}
+
 enum BuildTypeType {
   REGULAR
   COMPOSITE
   DEPLOYMENT
 }
 
-type BuildType {
+type BuildType implements RawId & Node {
   id: ID!
+  rawId: ID!
   name: String
   type: BuildTypeType
   ancestorProjects: ProjectsConnection
@@ -44,10 +57,11 @@ type CloudImageInstancesConnection {
   edges: [AgentEdge!]!
 }
 
-type CloudImage {
+type CloudImage implements RawId & Node {
   id: ID!
+  rawId: ID!
   name: String
-  agentTypeId: ID
+  agentTypeRawId: ID
   environment: AgentEnvironment
   instances: CloudImageInstancesConnection
   project: Project
@@ -102,8 +116,9 @@ type ProjectAgentPoolActions {
   moveCloudImages: AgentPoolActionStatus
 }
 
-interface AbstractAgentPool {
+interface AbstractAgentPool implements RawId & Node {
   id: ID!
+  rawId: ID!
   name: String
   projects(filter: ProjectsFilter = {archived: false}): AgentPoolProjectsConnection
   cloudImages: AgentPoolCloudImagesConnection
@@ -113,8 +128,9 @@ interface AbstractAgentPool {
   permissions: AgentPoolPermissions @deprecated
 }
 
-type AgentPool implements AbstractAgentPool {
+type AgentPool implements AbstractAgentPool & RawId & Node {
   id: ID!
+  rawId: ID!
   name: String
   projects(filter: ProjectsFilter = {archived: false}): AgentPoolProjectsConnection
   cloudImages: AgentPoolCloudImagesConnection
@@ -128,8 +144,9 @@ type AgentPool implements AbstractAgentPool {
   permissions: AgentPoolPermissions @deprecated
 }
 
-type ProjectAgentPool implements AbstractAgentPool {
+type ProjectAgentPool implements AbstractAgentPool & RawId & Node {
   id: ID!
+  rawId: ID!
   name: String
   projects(filter: ProjectsFilter = {archived: false}): AgentPoolProjectsConnection
   cloudImages: AgentPoolCloudImagesConnection
@@ -221,8 +238,9 @@ type AgentEnvironment {
   os: OS
 }
 
-type Agent {
+type Agent implements RawId & Node {
   id: ID!
+  rawId: ID!
   name: String
   agentPool: AbstractAgentPool
   associatedBuildTypes(filter: AgentBuildTypesFilter): AssociatedAgentBuildTypesConnection
@@ -265,8 +283,9 @@ type ProjectPermissions {
   manageAgentPoolsForProject: Boolean
 }
 
-type Project {
+type Project implements RawId & Node {
   id: ID!
+  rawId: ID!
   name: String
   ancestorProjects: ProjectsConnection
   buildTypes(first: Int, after: String): BuildTypesConnection
@@ -307,6 +326,8 @@ type Query {
   agentPools: AgentPoolsConnection
   projects(filter: ProjectsFilter = {archived: false}, first: Int, after: String): ProjectsConnection
   globalPermissions: GlobalPermissions
+
+  node(id: ID!): Node
 }
 
 input CreateAgentPoolInput {
@@ -319,7 +340,7 @@ type CreateAgentPoolPayload {
 }
 
 input UpdateAgentPoolInput {
-  id: ID!
+  rawId: ID!
   name: String
   maxAgentsNumber: Int
 }
@@ -329,12 +350,12 @@ type UpdateAgentPoolPayload {
 }
 
 input RemoveAgentPoolInput {
-  agentPoolId: ID!
+  agentPoolRawId: ID!
 }
 
 type ShallowAgentPool {
-  id: ID!,
-  name: String,
+  rawId: ID!
+  name: String
 }
 
 type RemoveAgentPoolPayload {
@@ -342,7 +363,7 @@ type RemoveAgentPoolPayload {
 }
 
 input SetAgentRunPolicyInput {
-  agentId: ID!
+  agentRawId: ID!
   agentRunPolicy: AgentRunPolicy
 }
 
@@ -351,8 +372,8 @@ type SetAgentRunPolicyPayload {
 }
 
 input AssignProjectWithAgentPoolInput {
-  projectId: ID!,
-  agentPoolId: ID!
+  projectRawId: ID!,
+  agentPoolRawId: ID!
   exclusively: Boolean = false
 }
 
@@ -362,8 +383,8 @@ type AssignProjectWithAgentPoolPayload {
 }
 
 input UnassignProjectFromAgentPoolInput {
-  projectId: ID!
-  agentPoolId: ID!
+  projectRawId: ID!
+  agentPoolRawId: ID!
   recursive: Boolean! = false
 }
 
@@ -373,8 +394,8 @@ type UnassignProjectFromAgentPoolPayload {
 }
 
 input BulkAssignProjectWithAgentPoolInput {
-  agentPoolId: ID!
-  projectIds: [ID!]!
+  agentPoolRawId: ID!
+  projectRawIds: [ID!]!
   exclusively: Boolean! = false
 }
 
@@ -383,8 +404,8 @@ type BulkAssignProjectWithAgentPoolPayload {
 }
 
 input AssignBuildTypeWithAgentInput {
-  agentId: ID!,
-  buildTypeId: ID!
+  agentRawId: ID!,
+  buildTypeRawId: ID!
 }
 
 type AssignBuildTypeWithAgentPayload {
@@ -393,8 +414,8 @@ type AssignBuildTypeWithAgentPayload {
 }
 
 input UnassignBuildTypeFromAgentInput {
-  agentId: ID!,
-  buildTypeId: ID!
+  agentRawId: ID!,
+  buildTypeRawId: ID!
 }
 
 type UnassignBuildTypeFromAgentPayload {
@@ -403,8 +424,8 @@ type UnassignBuildTypeFromAgentPayload {
 }
 
 input AssignProjectBuildTypesWithAgentInput {
-  agentId: ID!,
-  projectId: ID!
+  agentRawId: ID!,
+  projectRawId: ID!
 }
 
 type AssignProjectBuildTypesWithAgentPayload {
@@ -413,8 +434,8 @@ type AssignProjectBuildTypesWithAgentPayload {
 }
 
 input UnassignProjectBuildTypesFromAgentInput {
-  agentId: ID!,
-  projectId: ID!
+  agentRawId: ID!,
+  projectRawId: ID!
 }
 
 type UnassignProjectBuildTypesFromAgentPayload {
@@ -423,7 +444,7 @@ type UnassignProjectBuildTypesFromAgentPayload {
 }
 
 input UnassignAllAgentBuildTypesInput {
-  agentId: ID!
+  agentRawId: ID!
 }
 
 type UnassignAllAgentBuildTypesPayload {
@@ -431,8 +452,8 @@ type UnassignAllAgentBuildTypesPayload {
 }
 
 input MoveAgentToAgentPoolInput {
-  agentId: ID!,
-  targetAgentPoolId: ID!
+  agentRawId: ID!,
+  targetAgentPoolRawId: ID!
 }
 
 type MoveAgentToAgentPoolPayload {
@@ -441,9 +462,9 @@ type MoveAgentToAgentPoolPayload {
   targetAgentPool: AgentPool
 }
 
-input BulkMoveAgentToAgentsPoolInput {
-  agentIds: [ID!]!,
-  targetAgentPoolId: ID!
+input BulkMoveAgentsToAgentPoolInput {
+  agentRawIds: [ID!]!,
+  targetAgentPoolRawId: ID!
 }
 
 type BulkMoveAgentsToAgentPoolPayload {
@@ -452,8 +473,8 @@ type BulkMoveAgentsToAgentPoolPayload {
 }
 
 input MoveCloudImageToAgentPoolInput {
-  agentTypeId: ID!,
-  targetAgentPoolId: ID!
+  agentTypeRawId: ID!,
+  targetAgentPoolRawId: ID!
 }
 
 type MoveCloudImageToAgentPoolPayload {
@@ -463,8 +484,8 @@ type MoveCloudImageToAgentPoolPayload {
 }
 
 input BulkMoveCloudImagesToAgentPoolInput {
-  agentTypeIds: [ID!]!,
-  targetAgentPoolId: ID!
+  agentTypeRawIds: [ID!]!,
+  targetAgentPoolRawId: ID!
 }
 
 type BulkMoveCloudImagesToAgentPoolPayload {
@@ -473,9 +494,9 @@ type BulkMoveCloudImagesToAgentPoolPayload {
 }
 
 input AuthorizeAgentInput {
-  agentId: ID!
+  agentRawId: ID!
   reason: String
-  targetAgentPoolId: ID
+  targetAgentPoolRawId: ID
 }
 
 type AuthorizeAgentPayload {
@@ -484,7 +505,7 @@ type AuthorizeAgentPayload {
 }
 
 input UnauthorizeAgentInput {
-  agentId: ID!
+  agentRawId: ID!
   reason: String
 }
 
@@ -493,9 +514,9 @@ type UnauthorizeAgentPayload {
 }
 
 input BulkAuthorizeAgentsInput {
-  agentIds: [ID!]!
+  agentRawIds: [ID!]!
   reason: String
-  targetAgentPoolId: ID
+  targetAgentPoolRawId: ID
 }
 
 type BulkAuthorizeAgentsPayload {
@@ -517,7 +538,7 @@ type Mutation {
   moveAgentToAgentPool(input: MoveAgentToAgentPoolInput): MoveAgentToAgentPoolPayload
   moveCloudImageToAgentPool(input: MoveCloudImageToAgentPoolInput): MoveCloudImageToAgentPoolPayload
 
-  bulkMoveAgentsToAgentPool(input: BulkMoveAgentToAgentsPoolInput): BulkMoveAgentsToAgentPoolPayload
+  bulkMoveAgentsToAgentPool(input: BulkMoveAgentsToAgentPoolInput): BulkMoveAgentsToAgentPoolPayload
   bulkMoveCloudImagesToAgentPool(input: BulkMoveCloudImagesToAgentPoolInput): BulkMoveCloudImagesToAgentPoolPayload
 
   assignProjectWithAgentPool(input: AssignProjectWithAgentPoolInput): AssignProjectWithAgentPoolPayload

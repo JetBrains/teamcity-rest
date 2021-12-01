@@ -43,7 +43,7 @@ public class AgentBuildTypeEdgeResolver implements GraphQLResolver<AgentBuildTyp
   @NotNull
   public Boolean getAssigned(@NotNull AgentBuildTypeEdge edge, @NotNull DataFetchingEnvironment env) {
     SBuildAgent realAgent = env.getLocalContext();
-    SBuildType bt = myBuildTypeFinder.getItem("id:" + edge.getNode().getId()).getBuildType();
+    SBuildType bt = myBuildTypeFinder.getItem("id:" + edge.getNode().getRawId()).getBuildType();
 
     return AgentFinder.getAssignedBuildTypes(realAgent).contains(bt.getInternalId());
   }
@@ -51,7 +51,7 @@ public class AgentBuildTypeEdgeResolver implements GraphQLResolver<AgentBuildTyp
   @NotNull
   public Boolean getCompatible(@NotNull AgentBuildTypeEdge agentBuildTypeEdge, @NotNull DataFetchingEnvironment env) {
     SBuildAgent realAgent = env.getLocalContext();
-    String btId = agentBuildTypeEdge.getNode().getId();
+    String btId = agentBuildTypeEdge.getNode().getRawId();
     return myAgentManager.getAgentCompatibilities(realAgent).stream()
                          .filter(compatibility -> compatibility.getBuildType().getExternalId().equals(btId))
                          .allMatch(AgentCompatibility::isCompatible);
@@ -60,7 +60,7 @@ public class AgentBuildTypeEdgeResolver implements GraphQLResolver<AgentBuildTyp
   @Nullable
   public List<AgentBuildTypeIncompatibility> getIncompatibilities(@NotNull AgentBuildTypeEdge agentBuildTypeEdge, @NotNull DataFetchingEnvironment env) {
     SBuildAgent realAgent = env.getLocalContext();
-    String btId = agentBuildTypeEdge.getNode().getId();
+    String btId = agentBuildTypeEdge.getNode().getRawId();
 
     List<AgentBuildTypeIncompatibility> result = new ArrayList<>();
     for (AgentCompatibility compatibility : myAgentManager.getAgentCompatibilities(realAgent)) {

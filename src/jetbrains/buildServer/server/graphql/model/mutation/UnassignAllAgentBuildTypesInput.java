@@ -17,13 +17,13 @@
 package jetbrains.buildServer.server.graphql.model.mutation;
 
 public class UnassignAllAgentBuildTypesInput {
-  private int myAgentId;
+  private int myAgentRawId;
 
-  public void setAgentId(int agentId) {
-    myAgentId = agentId;
+  public void setAgentRawId(int agentRawId) {
+    myAgentRawId = agentRawId;
   }
 
-  public int getAgentId() {
-    return myAgentId;
+  public int getAgentRawId() {
+    return myAgentRawId;
   }
 }

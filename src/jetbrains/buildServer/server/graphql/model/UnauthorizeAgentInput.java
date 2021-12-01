@@ -19,15 +19,15 @@ package jetbrains.buildServer.server.graphql.model;
 import org.jetbrains.annotations.Nullable;
 
 public class UnauthorizeAgentInput {
-  private int myAgentId;
+  private int myAgentRawId;
   private String myReason;
 
-  public int getAgentId() {
-    return myAgentId;
+  public int getAgentRawId() {
+    return myAgentRawId;
   }
 
-  public void setAgentId(int agentId) {
-    myAgentId = agentId;
+  public void setAgentRawId(int agentRawId) {
+    myAgentRawId = agentRawId;
   }
 
   @Nullable

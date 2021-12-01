@@ -16,10 +16,11 @@
 
 package jetbrains.buildServer.server.graphql.model;
 
+import jetbrains.buildServer.server.graphql.util.ObjectIdentificationNode;
 import jetbrains.buildServer.clouds.CloudProfile;
 import org.jetbrains.annotations.NotNull;
 
-public class CloudImage {
+public class CloudImage implements ObjectIdentificationNode {
   private final jetbrains.buildServer.clouds.CloudImage myRealImage;
   private final CloudProfile myRealProfile;
 
@@ -28,7 +29,7 @@ public class CloudImage {
     myRealProfile = profile;
   }
 
-  public String getId() {
+  public String getRawId() {
     return myRealImage.getId();
   }
 

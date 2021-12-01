@@ -18,22 +18,22 @@ package jetbrains.buildServer.server.graphql.model.mutation;
 
 
 public class MoveCloudImageToAgentPoolInput {
-  private int myAgentTypeId;
-  private int myTargetAgentPoolId;
+  private int myAgentTypeRawId;
+  private int myTargetAgentPoolRawId;
 
-  public void setAgentTypeId(int agentTypeId) {
-    myAgentTypeId = agentTypeId;
+  public void setAgentTypeRawId(int agentTypeRawId) {
+    myAgentTypeRawId = agentTypeRawId;
   }
 
-  public void setTargetAgentPoolId(int targetAgentPoolId) {
-    myTargetAgentPoolId = targetAgentPoolId;
+  public void setTargetAgentPoolRawId(int targetAgentPoolRawId) {
+    myTargetAgentPoolRawId = targetAgentPoolRawId;
   }
 
-  public int getAgentTypeId() {
-    return myAgentTypeId;
+  public int getAgentTypeRawId() {
+    return myAgentTypeRawId;
   }
 
-  public int getTargetAgentPoolId() {
-    return myTargetAgentPoolId;
+  public int getTargetAgentPoolRawId() {
+    return myTargetAgentPoolRawId;
   }
 }

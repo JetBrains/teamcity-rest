@@ -20,22 +20,22 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
 public class BulkMoveCloudImagesToAgentPoolInput {
-  private List<Integer> myAgentTypeIds;
-  private int myTargetAgentPoolId;
+  private List<Integer> myAgentTypeRawIds;
+  private int myTargetAgentPoolRawId;
 
-  public void setAgentTypeIds(@NotNull List<Integer> agentTypeIds) {
-    myAgentTypeIds = agentTypeIds;
+  public void setAgentTypeRawIds(@NotNull List<Integer> agentTypeRawIds) {
+    myAgentTypeRawIds = agentTypeRawIds;
   }
 
-  public void setTargetAgentPoolId(int targetAgentPoolId) {
-    myTargetAgentPoolId = targetAgentPoolId;
+  public void setTargetAgentPoolRawId(int targetAgentPoolRawId) {
+    myTargetAgentPoolRawId = targetAgentPoolRawId;
   }
 
-  public List<Integer> getAgentTypeIds() {
-    return myAgentTypeIds;
+  public List<Integer> getAgentTypeRawIds() {
+    return myAgentTypeRawIds;
   }
 
-  public int getTargetAgentPoolId() {
-    return myTargetAgentPoolId;
+  public int getTargetAgentPoolRawId() {
+    return myTargetAgentPoolRawId;
   }
 }

@@ -20,25 +20,25 @@ import org.jetbrains.annotations.NotNull;
 
 public class UnassignProjectFromAgentPoolInput {
   @NotNull
-  private String myProjectId;
-  private int myAgentPoolId;
+  private String myProjectRawId;
+  private int myAgentPoolRawId;
   private boolean myRecursive;
 
-  public void setProjectId(@NotNull String projectId) {
-    myProjectId = projectId;
+  public void setProjectRawId(@NotNull String projectRawId) {
+    myProjectRawId = projectRawId;
   }
 
-  public void setAgentPoolId(int agentPoolId) {
-    myAgentPoolId = agentPoolId;
+  public void setAgentPoolRawId(int agentPoolRawId) {
+    myAgentPoolRawId = agentPoolRawId;
   }
 
   @NotNull
-  public String getProjectId() {
-    return myProjectId;
+  public String getProjectRawId() {
+    return myProjectRawId;
   }
 
-  public int getAgentPoolId() {
-    return myAgentPoolId;
+  public int getAgentPoolRawId() {
+    return myAgentPoolRawId;
   }
 
   public boolean isRecursive() {
