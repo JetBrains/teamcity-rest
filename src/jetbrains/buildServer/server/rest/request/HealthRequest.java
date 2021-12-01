@@ -37,7 +37,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
 
 @Path(HealthRequest.API_SUB_URL)
-@Api(value = "health", hidden = true)
+@Api(value = "health")
 public class HealthRequest {
   @NotNull
   public static final String API_SUB_URL = Constants.API_URL + "/health";
