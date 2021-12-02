@@ -22,16 +22,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.log.Loggers;
-import jetbrains.buildServer.server.graphql.resolver.Mutation;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
-import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
-import jetbrains.buildServer.serverSide.agentPools.ProjectAgentPoolImpl;
 import jetbrains.buildServer.serverSide.agentTypes.AgentType;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
 import jetbrains.buildServer.serverSide.auth.*;
-import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -97,8 +93,10 @@ public class AgentPoolActionsAccessCheckerImpl implements AgentPoolActionsAccess
   }
 
   @Override
-  public boolean canManageAgentsInPool(int agentPoolId) {
-    return getRestrictingProjectsInPool(agentPoolId).isEmpty();
+  public boolean canManageAgentsInPool(@NotNull AgentPool targetPool) {
+    AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
+
+    return AuthUtil.hasGlobalOrPoolProjectsPermission(authHolder, targetPool, Permission.MANAGE_AGENT_POOLS, Permission.MANAGE_AGENT_POOLS_FOR_PROJECT);
   }
 
   @Override

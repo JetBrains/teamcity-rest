@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Set;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AgentPoolActionsAccessChecker;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.ManageAgentsInPoolUnmetRequirements;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,7 +57,7 @@ public class AgentPoolAccessCheckerForTests implements AgentPoolActionsAccessChe
   }
 
   @Override
-  public boolean canManageAgentsInPool(int agentPoolId) {
+  public boolean canManageAgentsInPool(@NotNull AgentPool agentPoolId) {
     return myCanManageAgentsInPool;
   }
 

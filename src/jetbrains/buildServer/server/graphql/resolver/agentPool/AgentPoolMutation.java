@@ -364,7 +364,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
       return result.error(new OperationFailedGraphQLError("Can't move agents to target pool.")).build();
     }
 
-    if(!myAgentPoolActionsAccessChecker.canManageAgentsInPool(input.getTargetAgentPoolRawId())) {
+    if(!myAgentPoolActionsAccessChecker.canManageAgentsInPool(targetPool)) {
       return result.error(new OperationFailedGraphQLError("Can't move agents to target pool.")).build();
     }
 

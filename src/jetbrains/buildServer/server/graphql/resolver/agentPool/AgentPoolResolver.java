@@ -92,6 +92,10 @@ public class AgentPoolResolver extends ModelResolver<AgentPool> {
 
   @NotNull
   public AgentPoolAgentsConnection assignableAgents(@NotNull AgentPool pool, @NotNull DataFetchingEnvironment env) {
+    if(!myPoolActionsAccessChecker.canManageAgentsInPool(pool.getRealPool())) {
+      return AgentPoolAgentsConnection.empty();
+    }
+
     jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = pool.getRealPool();
     boolean includeUnathorized = AuthUtil.hasPermissionToAuthorizeAgentsInPool(mySecurityContext.getAuthorityHolder(), realPool);
 
@@ -110,6 +114,10 @@ public class AgentPoolResolver extends ModelResolver<AgentPool> {
 
   @NotNull
   public AgentPoolCloudImagesConnection assignableCloudImages(@NotNull AgentPool pool, @NotNull DataFetchingEnvironment env) {
+    if(!myPoolActionsAccessChecker.canManageAgentsInPool(pool.getRealPool())) {
+      return AgentPoolCloudImagesConnection.empty();
+    }
+
     final Set<String> profileIdsInRootProject = myProjectManager.getRootProject()
                                                                 .getOwnFeaturesOfType(CloudConstants.CLOUD_PROFILE_FEATURE_TYPE).stream()
                                                                 .map(SProjectFeatureDescriptor::getId)

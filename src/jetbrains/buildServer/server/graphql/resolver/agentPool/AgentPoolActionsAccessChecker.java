@@ -17,7 +17,7 @@
 package jetbrains.buildServer.server.graphql.resolver.agentPool;
 
 import java.util.Set;
-import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,7 +51,7 @@ public interface AgentPoolActionsAccessChecker {
    * Check if current user has enough permissions to move some agent to the specified pool.
    * In order to fully check permissions for the move operation, current pool of the desired agent must be checked too.
    */
-  boolean canManageAgentsInPool(int agentPoolId);
+  boolean canManageAgentsInPool(@NotNull AgentPool targetPool) ;
 
   /**
    * Check if current user has enough permissions to move agent to the project pool of the specified project.
