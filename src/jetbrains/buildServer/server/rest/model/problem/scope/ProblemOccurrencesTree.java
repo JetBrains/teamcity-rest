@@ -102,6 +102,7 @@ public class ProblemOccurrencesTree extends AbstractScopeTree<BuildProblem, Prob
       super(node, fields);
     }
 
+    @XmlAttribute(name = "name")
     @Override
     public String getName() {
       return ValueWithDefault.decideDefault(
