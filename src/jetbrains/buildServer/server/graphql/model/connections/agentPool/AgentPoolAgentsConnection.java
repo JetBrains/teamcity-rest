@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.graphql.model.connections.agentPool;
 
 import graphql.execution.DataFetcherResult;
 import graphql.relay.PageInfo;
+import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.server.graphql.model.Agent;
 import jetbrains.buildServer.server.graphql.model.connections.ExtensibleConnection;
@@ -29,6 +30,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class AgentPoolAgentsConnection implements ExtensibleConnection<Agent, AgentPoolAgentsConnection.AgentPoolAgentsConnectionEdge> {
+  public static AgentPoolAgentsConnection empty() {
+    return new AgentPoolAgentsConnection(Collections.emptyList(), PaginationArguments.everything());
+  }
+
   @NotNull
   private final PaginatingConnection<SBuildAgent, Agent, AgentPoolAgentsConnectionEdge> myDelegate;
 
