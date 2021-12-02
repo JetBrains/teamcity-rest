@@ -62,11 +62,6 @@ public class AgentPoolAccessCheckerForTests implements AgentPoolActionsAccessChe
   }
 
   @Override
-  public boolean canManageAgentsInProjectPool(@NotNull String projectId) {
-    return myCanManageAgentsInProjectPool;
-  }
-
-  @Override
   public boolean canManageProjectsInPool(int agentPoolId) {
     return myCanManageProjectsInPool;
   }

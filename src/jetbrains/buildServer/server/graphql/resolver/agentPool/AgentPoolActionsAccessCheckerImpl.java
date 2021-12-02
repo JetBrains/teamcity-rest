@@ -99,11 +99,6 @@ public class AgentPoolActionsAccessCheckerImpl implements AgentPoolActionsAccess
     return AuthUtil.hasGlobalOrPoolProjectsPermission(authHolder, targetPool, Permission.MANAGE_AGENT_POOLS, Permission.MANAGE_AGENT_POOLS_FOR_PROJECT);
   }
 
-  @Override
-  public boolean canManageAgentsInProjectPool(@NotNull String projectId) {
-    return hasPermissionToManageAgentPoolsForProject(mySecurityContext.getAuthorityHolder(), projectId);
-  }
-
   @NotNull
   @Override
   public Set<String> getRestrictingProjectsInPool(int agentPoolId) {

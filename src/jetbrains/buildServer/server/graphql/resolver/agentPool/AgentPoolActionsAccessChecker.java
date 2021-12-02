@@ -51,13 +51,7 @@ public interface AgentPoolActionsAccessChecker {
    * Check if current user has enough permissions to move some agent to the specified pool.
    * In order to fully check permissions for the move operation, current pool of the desired agent must be checked too.
    */
-  boolean canManageAgentsInPool(@NotNull AgentPool targetPool) ;
-
-  /**
-   * Check if current user has enough permissions to move agent to the project pool of the specified project.
-   * In order to fully check permissions for the move operation, current pool of the desired agent must be checked too.
-   */
-  boolean canManageAgentsInProjectPool(@NotNull String projectId);
+  boolean canManageAgentsInPool(@NotNull AgentPool targetPool);
 
   /**
    * Check if current user has enough permissions to add/remove projects to the given pool.
