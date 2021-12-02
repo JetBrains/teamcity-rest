@@ -62,9 +62,13 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
   private BuildAgentManager myAgentManager;
 
   public void initForTests(@NotNull AgentPoolManager agentPoolManager,
-                           @NotNull ProjectManager projectManager) {
+                           @NotNull ProjectManager projectManager,
+                           @NotNull BuildAgentManager agentManager,
+                           @NotNull AgentTypeFinder agentTypeFinder) {
     myAgentPoolManager = agentPoolManager;
     myProjectManager = projectManager;
+    myAgentManager = agentManager;
+    myAgentTypeFinder = agentTypeFinder;
   }
 
   @NotNull
