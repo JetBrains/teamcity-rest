@@ -30,11 +30,14 @@ public class CloudImageInstancesConnection implements ExtensibleConnection<Agent
   public static final CloudImageInstancesConnection EMPTY = new CloudImageInstancesConnection(Collections.emptyList(), PaginationArguments.everything());
 
   @NotNull
-  private final PaginatingConnection<SBuildAgent, jetbrains.buildServer.server.graphql.model.Agent, AgentEdge>
-    myDelegate;
+  private final PaginatingConnection<SBuildAgent, jetbrains.buildServer.server.graphql.model.Agent, AgentEdge> myDelegate;
 
   public CloudImageInstancesConnection(@NotNull List<SBuildAgent> data, @NotNull PaginationArguments paginationArguments) {
     myDelegate = new PaginatingConnection<>(data, AgentEdge::new, paginationArguments);
+  }
+
+  public int getCount() {
+    return myDelegate.getData().size();
   }
 
   @NotNull

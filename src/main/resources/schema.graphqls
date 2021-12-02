@@ -55,6 +55,7 @@ type AgentPoolProjectsConnection {
 
 type CloudImageInstancesConnection {
   edges: [AgentEdge!]!
+  count: Int!
 }
 
 type CloudImage implements RawId & Node {
