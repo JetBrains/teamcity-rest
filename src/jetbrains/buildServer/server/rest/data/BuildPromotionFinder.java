@@ -1312,7 +1312,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    if (locator.isAnyPresent(TAG) && TeamCityProperties.getBoolean("rest.request.builds.prefilterByTag")) {
+    if (locator.isAnyPresent(TAG) && TeamCityProperties.getBooleanOrTrue("rest.request.builds.prefilterByTag")) {
       Locator stateLocator = getStateLocator(new Locator(locator)); //using locator copy so that no dimensions are marked as used
       if (isStateIncluded(stateLocator, STATE_FINISHED)) {//no sense in going further here if no finished builds are requested
         final List<String> tagLocators = locator.lookupDimensionValue(TAG); //not marking as used to enforce filter processing later
