@@ -299,7 +299,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     }
     locator.checkLocatorFullyProcessed();
     final FinderDataBinding.ItemHolder<ITEM> finalUnfilteredItems = unfilteredItems;
-    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Retrieving and filtering items", () -> getItems(pagingFilter, finalUnfilteredItems, locator, startTime));
+    return getItems(pagingFilter, finalUnfilteredItems, locator, startTime);
   }
 
   @NotNull
