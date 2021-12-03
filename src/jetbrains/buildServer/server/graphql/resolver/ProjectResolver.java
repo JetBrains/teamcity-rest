@@ -32,6 +32,7 @@ import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.Permissions;
 import jetbrains.buildServer.users.SUser;
@@ -80,9 +81,8 @@ public class ProjectResolver extends ModelResolver<Project> {
     }
 
     SProject self = source.getRealProject();
-    Permissions permissions = user.getPermissionsGrantedForProject(self.getProjectId());
 
-    return new ProjectPermissions(permissions.contains(Permission.MANAGE_AGENT_POOLS_FOR_PROJECT));
+    return new ProjectPermissions(AuthUtil.hasPermissionToManageAgentPoolsWithProject(user, self.getProjectId()));
   }
 
   @NotNull
