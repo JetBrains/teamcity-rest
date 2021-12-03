@@ -96,20 +96,6 @@ public class TestScopesRequest {
   }
 
   // Very highly experimental
-  // to be removed after frontend fixed
-  @GET
-  @Path("/subtree")
-  @Produces({"application/xml", "application/json"})
-  @ApiOperation(hidden = true, value = "highly experimental")
-  public jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree serveScopesSubTree(@QueryParam("locator") String locatorText,
-                                                                                                @QueryParam("fields") String fields,
-                                                                                                @Context HttpServletRequest request) {
-    List<ScopeTree.Node<STestRun, TestCountersData>> treeNodes = myTestScopeTreeCollector.getSlicedTree(Locator.locator(locatorText), request);
-
-    return new jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree(treeNodes, new Fields(fields), myBeanContext);
-  }
-
-  // Very highly experimental
   @GET
   @Path("/treeTopSlice")
   @Produces({"application/xml", "application/json"})

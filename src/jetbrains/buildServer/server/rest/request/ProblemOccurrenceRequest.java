@@ -121,20 +121,6 @@ public class ProblemOccurrenceRequest {
     return new jetbrains.buildServer.server.rest.model.problem.scope.ProblemOccurrencesTree(tree, new Fields(fields), myBeanContext);
   }
 
-  /** Experimental **/
-  @GET
-  @Path("/subtree")
-  @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get subtree of build problem occurrences.", nickname="getProblemsSubTree", hidden = true)
-  public ProblemOccurrencesTree getProblemsSubTree(@QueryParam("locator") String locatorText,
-                                                   @QueryParam("fields") String fields,
-                                                   @Context UriInfo uriInfo,
-                                                   @Context HttpServletRequest request) {
-    List<ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters>> tree = myProblemOccurrencesTreeCollector.getTree(new Locator(locatorText));
-
-    return new jetbrains.buildServer.server.rest.model.problem.scope.ProblemOccurrencesTree(tree, new Fields(fields), myBeanContext);
-  }
-
   @GET
   @Path("/{problemLocator}")
   @Produces({"application/xml", "application/json"})
