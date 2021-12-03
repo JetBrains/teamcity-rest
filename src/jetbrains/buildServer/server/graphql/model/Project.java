@@ -22,29 +22,29 @@ import org.jetbrains.annotations.NotNull;
 
 public class Project implements ObjectIdentificationNode {
   @NotNull
-  private final String myId;
-  @NotNull
-  private final String myName;
-  private final boolean myArchived;
+  private final SProject myRealProject;
 
   public Project(@NotNull SProject project) {
-    myId = project.getExternalId();
-    myName = project.getName();
-    myArchived = project.isArchived();
+    myRealProject = project;
   }
 
   @NotNull
   public String getRawId() {
-    return myId;
+    return myRealProject.getExternalId();
   }
 
   @NotNull
   public String getName() {
-    return myName;
+    return myRealProject.getName();
   }
 
   public boolean isArchived() {
-    return myArchived;
+    return myRealProject.isArchived();
+  }
+
+  @NotNull
+  public SProject getRealProject() {
+    return myRealProject;
   }
 
   @Override
@@ -52,16 +52,11 @@ public class Project implements ObjectIdentificationNode {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
 
-    Project project = (Project)o;
-
-    if (!myId.equals(project.myId)) return false;
-    return myName.equals(project.myName);
+    return myRealProject.equals(((Project)o).myRealProject);
   }
 
   @Override
   public int hashCode() {
-    int result = myId.hashCode();
-    result = 31 * result + myName.hashCode();
-    return result;
+    return myRealProject.hashCode();
   }
 }

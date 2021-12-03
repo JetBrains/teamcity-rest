@@ -39,7 +39,7 @@ public class ProjectResolverTest extends BaseResolverTest {
   public void setUp() throws Exception {
     super.setUp();
 
-    myResolver = new ProjectResolver(myFixture.getProjectManager(), myFixture.getAgentPoolManager(), new PaginationArgumentsProviderImpl(), new AbstractAgentPoolFactory());
+    myResolver = new ProjectResolver(myFixture.getAgentPoolManager(), new PaginationArgumentsProviderImpl(), new AbstractAgentPoolFactory());
     mySubProject = myProject.createProject(myProject.getExternalId() + "_subproject", "subproject");
     mySubSubProject = mySubProject.createProject(mySubProject.getExternalId() + "_subproject", "subsubproject");
 

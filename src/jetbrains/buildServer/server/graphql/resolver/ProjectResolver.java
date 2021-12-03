@@ -42,19 +42,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProjectResolver extends ModelResolver<Project> {
   @NotNull
-  private final ProjectManager myProjectManager;
-  @NotNull
   private final AgentPoolManager myAgentPoolManager;
   @NotNull
   private final PaginationArgumentsProvider myPaginationArgumentsProvider;
   @NotNull
   private final AbstractAgentPoolFactory myPoolFactory;
 
-  public ProjectResolver(@NotNull ProjectManager projectManager,
-                         @NotNull AgentPoolManager agentPoolManager,
+  public ProjectResolver(@NotNull AgentPoolManager agentPoolManager,
                          @NotNull PaginationArgumentsProvider paginationArgumentsProvider,
                          @NotNull AbstractAgentPoolFactory abstractAgentPoolFactory) {
-    myProjectManager = projectManager;
     myAgentPoolManager = agentPoolManager;
     myPaginationArgumentsProvider = paginationArgumentsProvider;
     myPoolFactory = abstractAgentPoolFactory;
@@ -62,14 +58,14 @@ public class ProjectResolver extends ModelResolver<Project> {
 
   @NotNull
   public BuildTypesConnection buildTypes(@NotNull Project source, @Nullable Integer first, @Nullable String after, @NotNull DataFetchingEnvironment env) {
-    SProject self = getSelfFromContextSafe(source, env);
+    SProject self = source.getRealProject();
 
     return new BuildTypesConnection(self.getBuildTypes(), myPaginationArgumentsProvider.get(first, after, PaginationArgumentsProvider.FallbackBehaviour.RETURN_EVERYTHING));
   }
 
   @NotNull
   public ProjectsConnection ancestorProjects(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
-    SProject self = getSelfFromContextSafe(source, env);
+    SProject self = source.getRealProject();
 
     return new ProjectsConnection(ParentsFetcher.getAncestors(self), PaginationArguments.everything());
   }
@@ -83,7 +79,7 @@ public class ProjectResolver extends ModelResolver<Project> {
       return new ProjectPermissions(false);
     }
 
-    SProject self = getSelfFromContextSafe(source, env);
+    SProject self = source.getRealProject();
     Permissions permissions = user.getPermissionsGrantedForProject(self.getProjectId());
 
     return new ProjectPermissions(permissions.contains(Permission.MANAGE_AGENT_POOLS_FOR_PROJECT));
@@ -91,7 +87,7 @@ public class ProjectResolver extends ModelResolver<Project> {
 
   @NotNull
   public ProjectAgentPoolsConnection agentPools(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
-    SProject self = getSelfFromContextSafe(source, env);
+    SProject self = source.getRealProject();
 
     List<jetbrains.buildServer.serverSide.agentPools.AgentPool> pools = myAgentPoolManager.getAgentPoolsWithProject(self.getProjectId()).stream()
                                               .map(myAgentPoolManager::findAgentPoolById)
@@ -102,7 +98,7 @@ public class ProjectResolver extends ModelResolver<Project> {
 
   @Nullable
   public ProjectAgentPool projectAgentPool(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
-    SProject self = getSelfFromContextSafe(source, env);
+    SProject self = source.getRealProject();
 
     AgentPool pool = myAgentPoolManager.findProjectPoolByProjectId(self.getProjectId());
     if(pool == null) return null;
@@ -118,20 +114,5 @@ public class ProjectResolver extends ModelResolver<Project> {
   @Override
   public Project findById(String id) {
     return null;
-  }
-
-  @NotNull
-  private SProject getSelfFromContextSafe(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
-    SProject self = env.getLocalContext();
-    if(self != null) {
-      return self;
-    }
-
-    self = myProjectManager.findProjectByExternalId(source.getRawId());
-    if(self == null) {
-      throw new BadRequestException("Malformed source project id");
-    }
-
-    return self;
   }
 }
