@@ -590,7 +590,7 @@ public class APIController extends BaseController implements ServletContextAware
 
   private void patchThread(@NotNull final Supplier<String> requestDump, @NotNull final String requestType,
                            @NotNull final FuncThrow<Void, Throwable> action) throws Throwable {
-    if (TeamCityProperties.getBooleanOrTrue("rest.debug.APIController.patchThread")) {
+    if (TeamCityProperties.getBoolean("rest.debug.APIController.patchThread")) {
       StringBuilder activityName = new StringBuilder();
       activityName.append("Processing REST");
       if (!requestType.isEmpty()) {
