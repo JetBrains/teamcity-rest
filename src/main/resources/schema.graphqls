@@ -248,6 +248,8 @@ type Agent implements RawId & Node {
   dissociatedBuildTypes(filter: AgentBuildTypesFilter): DiassociatedAgentBuildTypesConnection
   environment: AgentEnvironment
   authorized: Boolean
+  enabled: Boolean
+  connected: Boolean
 }
 
 type ProjectEdge {

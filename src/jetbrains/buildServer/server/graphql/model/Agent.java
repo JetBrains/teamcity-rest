@@ -21,27 +21,37 @@ import jetbrains.buildServer.serverSide.SBuildAgent;
 import org.jetbrains.annotations.NotNull;
 
 public class Agent implements ObjectIdentificationNode {
-  private final String myId;
   @NotNull
-  private final String myName;
-  private final boolean myAuthorized;
+  private final SBuildAgent myRealAgent;
 
   public Agent(@NotNull SBuildAgent realAgent) {
-    myId = Integer.toString(realAgent.getId());
-    myName = realAgent.getName();
-    myAuthorized = realAgent.isAuthorized();
+    myRealAgent = realAgent;
   }
 
+  @NotNull
   public String getRawId() {
-    return myId;
+    return Integer.toString(myRealAgent.getId());
   }
 
   @NotNull
   public String getName() {
-    return myName;
+    return myRealAgent.getName();
   }
 
   public boolean isAuthorized() {
-    return myAuthorized;
+    return myRealAgent.isAuthorized();
+  }
+
+  public boolean isEnabled() {
+    return myRealAgent.isEnabled();
+  }
+
+  public boolean isConnected() {
+    return myRealAgent.isRegistered();
+  }
+
+  @NotNull
+  public SBuildAgent getRealAgent() {
+    return myRealAgent;
   }
 }

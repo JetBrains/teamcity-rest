@@ -64,14 +64,12 @@ public class AgentResolver extends ModelResolver<Agent> {
 
   @NotNull
   public AbstractAgentPool agentPool(@NotNull Agent agent, @NotNull DataFetchingEnvironment env) {
-    SBuildAgent realAgent = getRealAgent(agent, env);
-
-    return myPoolFactory.produce(realAgent.getAgentPool());
+    return myPoolFactory.produce(agent.getRealAgent().getAgentPool());
   }
 
   @NotNull
   public AgentEnvironment environment(@NotNull Agent agent, @NotNull DataFetchingEnvironment env) {
-    SBuildAgent realAgent = getRealAgent(agent, env);
+    SBuildAgent realAgent = agent.getRealAgent();
 
     return new AgentEnvironment(new OS(realAgent.getOperatingSystemName(), OSType.guessByName(realAgent.getOperatingSystemName())));
   }
@@ -79,7 +77,7 @@ public class AgentResolver extends ModelResolver<Agent> {
   @NotNull
   public AssociatedAgentBuildTypesConnection associatedBuildTypes(@NotNull Agent agent, @Nullable AgentBuildTypesFilter filter, @NotNull DataFetchingEnvironment env) {
     return buildTypes(
-      getRealAgent(agent, env),
+      agent.getRealAgent(),
       filter == null ? null : filter.getCompatible(),
       filter == null ? null : filter.getAssigned(),
       true,
@@ -90,22 +88,12 @@ public class AgentResolver extends ModelResolver<Agent> {
   @NotNull
   public DiassociatedAgentBuildTypesConnection dissociatedBuildTypes(@NotNull Agent agent, @Nullable AgentBuildTypesFilter filter, @NotNull DataFetchingEnvironment env) {
     return buildTypes(
-      getRealAgent(agent, env),
+      agent.getRealAgent(),
       filter == null ? null : filter.getCompatible(),
       filter == null ? null : filter.getAssigned(),
       true,
       env
     );
-  }
-
-  private SBuildAgent getRealAgent(@NotNull Agent agent, @NotNull DataFetchingEnvironment env) {
-    SBuildAgent realAgent = env.getLocalContext();
-
-    if(realAgent != null) {
-      return realAgent;
-    }
-
-    return myAgentManager.findAgentById(Integer.parseInt(agent.getRawId()), true);
   }
 
   @NotNull
