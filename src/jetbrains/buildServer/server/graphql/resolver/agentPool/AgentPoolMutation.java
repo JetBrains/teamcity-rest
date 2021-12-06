@@ -284,13 +284,31 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<UnassignProjectFromAgentPoolPayload> unassignProjectFromAgentPool(@NotNull UnassignProjectFromAgentPoolInput input) {
     DataFetcherResult.Builder<UnassignProjectFromAgentPoolPayload> result = DataFetcherResult.newResult();
-    if(!myAgentPoolActionsAccessChecker.canManageProjectsInPool(input.getAgentPoolRawId())) {
-      return result.error(new OperationFailedGraphQLError("Can't assign project.")).build();
-    }
 
     SProject project = myProjectManager.findProjectByExternalId(input.getProjectRawId());
     if(project == null) {
       return result.error(new EntityNotFoundGraphQLError("Project with given id does not exist.")).build();
+    }
+
+    AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
+    boolean canRemoveThisProject = AuthUtil.hasPermissionToManageAgentPoolsWithProject(authorityHolder, project.getProjectId());
+    boolean thereAreOtherAssociatedPools = false;
+
+    if(canRemoveThisProject) {
+      // let's count other pools iff we are sure that we can potentially remove given project.
+      thereAreOtherAssociatedPools = myAgentPoolManager.getAgentPoolsWithProject(project.getProjectId()).stream()
+                                                       .map(poolId -> myAgentPoolManager.findAgentPoolById(poolId))
+                                                       .filter(Objects::nonNull)
+                                                       .filter(pool -> !pool.isProjectPool())
+                                                       .count() > 1;
+    }
+
+    if(!canRemoveThisProject || !thereAreOtherAssociatedPools) {
+      if(!canRemoveThisProject) {
+        return result.error(new OperationFailedGraphQLError("Can't unassign project, not enough permissions.")).build();
+      }
+
+      return result.error(new OperationFailedGraphQLError("Can't unassign project, there are no other pools associated with this project.")).build();
     }
 
     Set<String> projectsToDisassociate;
@@ -326,7 +344,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
     DataFetcherResult.Builder<BulkAssignProjectWithAgentPoolPayload> result = DataFetcherResult.newResult();
 
     if(!myAgentPoolActionsAccessChecker.canManageProjectsInPool(input.getAgentPoolRawId())) {
-      return result.error(new OperationFailedGraphQLError("Can't assign projects.")).build();
+      return result.error(new OperationFailedGraphQLError("Can't assign projects, not enough permissions to manage projects in target pool.")).build();
     }
 
     Set<String> projectIds = myProjectManager.findProjectsByExternalIds(input.getProjectRawIds()).stream().map(p -> p.getProjectId()).collect(Collectors.toSet());
