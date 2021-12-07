@@ -118,7 +118,7 @@ public class Server {
     if (!currentNode.isMainNode()) {
       return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("role"), serverRole(currentNode));
     }
-    return ValueWithDefault.decide(myFields.isIncluded("role"), serverRole(currentNode), null, false);
+    return ValueWithDefault.decideDefault(myFields.isIncluded("role"), serverRole(currentNode));
   }
 
   @NotNull
