@@ -66,8 +66,9 @@ public class NamedDatas implements DefaultValueAware{
       @Override
       public List<NamedData> get() {
         ArrayList<NamedData> result = new ArrayList<>(properties.size());
+        Fields dataFields = fields.getNestedField("data");
         for (java.util.Map.Entry<String, Map<String, String>> prop : properties.entrySet()) {
-          result.add(new NamedData(prop.getKey(), prop.getValue(), fields.getNestedField("data")));
+          result.add(new NamedData(prop.getKey(), prop.getValue(), dataFields));
         }
         return result;
       }

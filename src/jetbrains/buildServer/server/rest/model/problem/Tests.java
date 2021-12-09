@@ -57,8 +57,12 @@ public class Tests implements DefaultValueAware {
 
   public Tests(@Nullable final Collection<STest> itemsP, @Nullable final PagerData pagerData, @NotNull final BeanContext beanContext, @NotNull final Fields fields) {
     if (itemsP != null) {
-      items = ValueWithDefault
-        .decideDefault(fields.isIncluded("test", false), () -> CollectionsUtil.convertCollection(itemsP, source -> new Test(source, beanContext, fields.getNestedField("test"))));
+      items = ValueWithDefault.decideDefault(
+        fields.isIncluded("test", false),
+        () -> {
+          Fields testFields = fields.getNestedField("test");
+          return CollectionsUtil.convertCollection(itemsP, source -> new Test(source, beanContext, testFields));
+        });
       this.count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), itemsP.size());
     }
 

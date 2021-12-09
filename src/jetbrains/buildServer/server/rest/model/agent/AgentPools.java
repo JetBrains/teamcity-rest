@@ -68,8 +68,9 @@ public class AgentPools {
   public AgentPools(Collection<jetbrains.buildServer.serverSide.agentPools.AgentPool> items, final PagerData pagerData, final Fields fields, final BeanContext beanContext) {
     if (items != null && fields.isIncluded("agentPool", false, true)) {
       ArrayList<AgentPool> list = new ArrayList<AgentPool>(items.size());
+      Fields poolFields = fields.getNestedField("agentPool");
       for (jetbrains.buildServer.serverSide.agentPools.AgentPool item : items) {
-        list.add(new AgentPool(item, fields.getNestedField("agentPool"), beanContext));
+        list.add(new AgentPool(item, poolFields, beanContext));
       }
       this.items = ValueWithDefault.decideDefault(fields.isIncluded("agentPool"), list);
     } else {

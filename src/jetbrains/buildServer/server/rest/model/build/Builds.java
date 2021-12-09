@@ -77,9 +77,13 @@ public class Builds implements DefaultValueAware {
                 @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     ItemsProviders.ItemsRetriever<BuildPromotion> data = buildsData.get(fields.getLocator());
 
-    builds = ValueWithDefault.decideDefault(fields.isIncluded("build", false, true),
-                                            () -> Util.resolveNull(data.getItems(), (items) -> items.stream().map(
-                                              b -> new Build(b, fields.getNestedField("build"), beanContext)).collect(Collectors.toList())));
+    builds = ValueWithDefault.decideDefault(
+      fields.isIncluded("build", false, true),
+      () -> {
+        Fields buildFields = fields.getNestedField("build");
+        return Util.resolveNull(data.getItems(), (items) -> items.stream().map(b -> new Build(b, buildFields, beanContext)).collect(Collectors.toList()));
+      }
+    );
 
     PagerData pagerData = data.getPagerData();
     if (pagerData != null) {

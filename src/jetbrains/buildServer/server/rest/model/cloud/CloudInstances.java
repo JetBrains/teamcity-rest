@@ -51,8 +51,13 @@ public class CloudInstances {
   public CloudInstances() {}
 
   public CloudInstances(@NotNull final CachingValue<List<CloudInstanceData>> items, final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext context) {
-    cloudInstances = ValueWithDefault.decideDefault(fields.isIncluded("cloudInstance", false, true),
-                                                 () -> items.get().stream().map(i -> new CloudInstance(i, fields.getNestedField("cloudInstance"), context)).collect(Collectors.toList()));
+    cloudInstances = ValueWithDefault.decideDefault(
+      fields.isIncluded("cloudInstance", false, true),
+      () -> {
+        Fields nestedFeilds = fields.getNestedField("cloudInstance");
+        return items.get().stream().map(i -> new CloudInstance(i, nestedFeilds, context)).collect(Collectors.toList());
+      }
+    );
 
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), () -> items.get().size());
 

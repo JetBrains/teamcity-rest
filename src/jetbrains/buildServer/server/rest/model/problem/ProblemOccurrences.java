@@ -77,8 +77,9 @@ public class ProblemOccurrences extends OccurrencesSummary {
         @Nullable
         public List<ProblemOccurrence> get() {
           final ArrayList<ProblemOccurrence> result = new ArrayList<ProblemOccurrence>(itemsP.size());
+          Fields occurrenceFields = fields.getNestedField("problemOccurrence");
           for (BuildProblem item : itemsP) {
-            result.add(new ProblemOccurrence(item, beanContext, fields.getNestedField("problemOccurrence")));
+            result.add(new ProblemOccurrence(item, beanContext, occurrenceFields));
           }
           return result;
         }

@@ -55,9 +55,10 @@ public class Compatibilities {
       compatibilitiesP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("compatibility", true, true), new ValueWithDefault.Value<List<Compatibility>>() {
         @Nullable
         public List<Compatibility> get() {
+          Fields nestedFields = fields.getNestedField("compatibility");
           return CollectionsUtil.convertCollection(compatibilitiesP, new Converter<Compatibility, Compatibility.AgentCompatibilityData>() {
             public Compatibility createFrom(@NotNull final Compatibility.AgentCompatibilityData source) {
-              return new Compatibility(source, contextAgent, contextBuildType, fields.getNestedField("compatibility"), beanContext);
+              return new Compatibility(source, contextAgent, contextBuildType, nestedFields, beanContext);
             }
           });
         }

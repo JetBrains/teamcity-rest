@@ -54,8 +54,13 @@ public class Branches {
 
   public Branches(@Nullable final List<BranchData> branchesP, @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     if (branchesP != null) {
-      branches = ValueWithDefault.decideDefault(fields.isIncluded("branch"),
-                                                () -> branchesP.stream().map(b -> new Branch(b, fields.getNestedField("branch"), beanContext)).collect(Collectors.toList()));
+      branches = ValueWithDefault.decideDefault(
+        fields.isIncluded("branch"),
+        () -> {
+          Fields branchFields = fields.getNestedField("branch");
+          return branchesP.stream().map(b -> new Branch(b, branchFields, beanContext)).collect(Collectors.toList());
+        }
+      );
       count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), branchesP.size());
     }
     href = pagerData == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));

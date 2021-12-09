@@ -49,8 +49,13 @@ public class CloudProfiles {
   public CloudProfiles() {}
 
   public CloudProfiles(final @NotNull List<jetbrains.buildServer.clouds.CloudProfile> items, final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext context) {
-    cloudProfiles = ValueWithDefault.decideDefault(fields.isIncluded("cloudProfile", false, true),
-                                                 () -> items.stream().map(i -> new CloudProfile(i, fields.getNestedField("cloudProfile"), context)).collect(Collectors.toList()));
+    cloudProfiles = ValueWithDefault.decideDefault(
+      fields.isIncluded("cloudProfile", false, true),
+      () -> {
+        Fields nestedFields = fields.getNestedField("cloudProfile");
+        return items.stream().map(i -> new CloudProfile(i, nestedFields, context)).collect(Collectors.toList());
+      }
+    );
 
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), items::size);
 

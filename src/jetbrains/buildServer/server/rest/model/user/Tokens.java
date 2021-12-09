@@ -52,7 +52,8 @@ public class Tokens {
 
   public Tokens(@NotNull final List<AuthenticationToken> tokenNames, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     if (fields.isIncluded(Token.TYPE, false, true)) {
-      tokens = tokenNames.stream().map(token -> new Token(token, fields.getNestedField(Token.TYPE), beanContext)).collect(Collectors.toList());
+      Fields tokenFields = fields.getNestedField(Token.TYPE);
+      tokens = tokenNames.stream().map(token -> new Token(token, tokenFields, beanContext)).collect(Collectors.toList());
     }
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), tokenNames.size());
   }

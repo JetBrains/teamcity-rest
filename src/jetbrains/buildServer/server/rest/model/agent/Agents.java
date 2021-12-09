@@ -81,8 +81,9 @@ public class Agents {
         @Nullable
         public List<Agent> get() {
           final ArrayList<Agent> items = new ArrayList<Agent>(agentObjects.size());
+          Fields agentFields = fields.getNestedField(AGENT);
           for (SBuildAgent item : agentObjects) {
-            items.add(new Agent(item, fields.getNestedField(AGENT), beanContext));
+            items.add(new Agent(item, agentFields, beanContext));
           }
           return items;
         }

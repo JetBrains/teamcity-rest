@@ -90,8 +90,9 @@ public class TestOccurrences {
           sortedItems.sort(STestRun.NEW_FIRST_NAME_COMPARATOR); //if we are to support customizable order, this should be done in the TestOccurrenceFinder
         }
         final ArrayList<TestOccurrence> result = new ArrayList<>(sortedItems.size());
+        Fields occurrenceFields = fields.getNestedField("testOccurrence");
         for (STestRun item : sortedItems) {
-          result.add(new TestOccurrence(item, beanContext, fields.getNestedField("testOccurrence")));
+          result.add(new TestOccurrence(item, beanContext, occurrenceFields));
         }
         return result;
       });

@@ -67,10 +67,12 @@ public class PermissionRestrictions {
         } else {
           project = projectManager.findProjectById(roleScope.getProjectId());
         }
+
+        Fields permissionRestrictionFields = fields.getNestedField("permissionRestriction");
         return roleScopePermissionsEntry.getValue()
                                         .toList()
                                         .stream()
-                                        .map(permission -> new PermissionRestriction(project, permission, fields.getNestedField("permissionRestriction"), beanContext));
+                                        .map(permission -> new PermissionRestriction(project, permission, permissionRestrictionFields, beanContext));
       }).collect(Collectors.toList());
     });
   }

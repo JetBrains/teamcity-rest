@@ -76,8 +76,9 @@ public class VcsRoots {
       @Nullable
       public List<VcsRoot> get() {
         final ArrayList<VcsRoot> items = new ArrayList<VcsRoot>(serverVcsRoots.size());
+        Fields nestedFields = fields.getNestedField("vcs-root");
         for (jetbrains.buildServer.vcs.SVcsRoot root : serverVcsRoots) {
-          items .add(new VcsRoot(root, fields.getNestedField("vcs-root"), beanContext));
+          items.add(new VcsRoot(root, nestedFields, beanContext));
         }
         return items;
       }

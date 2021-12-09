@@ -61,10 +61,19 @@ public class PermissionAssignments {
     String locatorFromFields = fields.getLocator();
     String finalLocator = locatorFromFields != null ? locatorFromFields : locator;
 
-    myPermissionAssignments = ValueWithDefault.decideDefault(fields.isIncluded("permissionAssignment"), () -> permissionAssignmentFinder.getItems(finalLocator).myEntries.stream().map(
-      p -> new PermissionAssignment(p, fields.getNestedField("permissionAssignment"), beanContext)).collect(Collectors.toList()));
+    myPermissionAssignments = ValueWithDefault.decideDefault(
+      fields.isIncluded("permissionAssignment"),
+      () -> {
+        Fields assignmentFields = fields.getNestedField("permissionAssignment");
+        return permissionAssignmentFinder.getItems(finalLocator).myEntries.stream()
+                                                                          .map(p -> new PermissionAssignment(p, assignmentFields, beanContext))
+                                                                          .collect(Collectors.toList());
+      }
+    );
 
-    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"),
-                                                    () -> myPermissionAssignments != null ? myPermissionAssignments.size() : permissionAssignmentFinder.getItems(finalLocator).myEntries.size());
+    count = ValueWithDefault.decideIncludeByDefault(
+      fields.isIncluded("count"),
+      () -> myPermissionAssignments != null ? myPermissionAssignments.size() : permissionAssignmentFinder.getItems(finalLocator).myEntries.size()
+    );
   }
 }
