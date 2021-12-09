@@ -305,7 +305,7 @@ public class Change {
       ChangeStatusProvider statusProvider = myBeanContext.getSingletonService(ChangeStatusProvider.class);
       jetbrains.buildServer.vcs.ChangeStatus mergedStatus = statusProvider.getMergedChangeStatus(myModification);
 
-      return new ChangeStatus(mergedStatus, myFields.getNestedField("status"));
+      return new ChangeStatus(mergedStatus, myFields.getNestedField("status"), myBeanContext);
     });
   }
 

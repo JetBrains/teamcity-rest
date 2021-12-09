@@ -17,9 +17,14 @@
 package jetbrains.buildServer.server.rest.model.change;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 
 @XmlType(name = "changeStatus")
@@ -30,9 +35,14 @@ public class ChangeStatus {
   private final int myFinished;
   private final int mySuccessful;
   private final int myFailed;
+  private final jetbrains.buildServer.vcs.ChangeStatus myChangeStatus;
+  private final BeanContext myBeanContext;
 
-  public ChangeStatus(@NotNull jetbrains.buildServer.vcs.ChangeStatus mergedStatus, @NotNull Fields fields) {
+  public ChangeStatus(@NotNull jetbrains.buildServer.vcs.ChangeStatus mergedStatus, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     myFields = fields;
+    myChangeStatus = mergedStatus;
+    myBeanContext = beanContext;
+
     myFinished = mergedStatus.getFinishedBuildsNumber();
     myRunning = mergedStatus.getRunningBuildsNumber();
     myPendingBuildTypes = mergedStatus.getPendingBuildsTypesNumber();
@@ -63,5 +73,21 @@ public class ChangeStatus {
   @XmlAttribute(name = "failedBuilds")
   public Integer getFailed() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("failedBuilds", true, true), myFailed);
+  }
+
+  @XmlElement(name = "extendedStatus")
+  public ChangeExtendedStatus getExtendedStatus() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("extendedStatus", false, false),
+      () -> {
+        SUser self = null;
+        AuthorityHolder authorityHolder = myBeanContext.getSingletonService(SecurityContext.class).getAuthorityHolder();
+        if(authorityHolder instanceof SUser) {
+          self = (SUser) authorityHolder;
+        }
+
+        return new ChangeExtendedStatus(myChangeStatus, myFields.getNestedField("extendedStatus"), self);
+      }
+    );
   }
 }
