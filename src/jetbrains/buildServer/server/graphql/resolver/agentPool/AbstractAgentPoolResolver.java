@@ -36,6 +36,7 @@ import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoo
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
@@ -103,7 +104,10 @@ public class AbstractAgentPoolResolver {
     int poolId = realPool.getAgentPoolId();
     AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
 
-    boolean canManagePool = authHolder.isPermissionGrantedGlobally(Permission.MANAGE_AGENT_POOLS);
+    boolean canManagePool = !realPool.isProjectPool() &&
+                            realPool.getAgentPoolId() != AgentPool.DEFAULT_POOL_ID &&
+                            authHolder.isPermissionGrantedGlobally(Permission.MANAGE_AGENT_POOLS);
+
     BooleanSupplier canAuthorizeUnauthorizeAgent     = () -> AuthUtil.hasPermissionToAuthorizeAgentsInPool(authHolder, realPool);
     BooleanSupplier canEnableDisableAgent            = () -> AuthUtil.hasPermissionToEnableAgentsInPool(authHolder, realPool);
     BooleanSupplier canManageProjectPoolAssociations = () -> myPoolActionsAccessChecker.canManageProjectsInPool(poolId);
