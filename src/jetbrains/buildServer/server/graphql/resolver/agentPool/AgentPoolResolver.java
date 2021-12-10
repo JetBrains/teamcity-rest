@@ -40,7 +40,9 @@ import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoo
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import org.jetbrains.annotations.NotNull;
@@ -55,19 +57,22 @@ public class AgentPoolResolver extends ModelResolver<AgentPool> {
   private final BuildAgentManagerEx myAgentManager;
   private final CloudManagerBase myCloudManager;
   private final SecurityContext mySecurityContext;
+  private final AgentPoolManager myPoolManager;
 
   public AgentPoolResolver(@NotNull AbstractAgentPoolResolver delegate,
                            @NotNull AgentPoolActionsAccessChecker agentPoolActionsAccessChecker,
                            @NotNull BuildAgentManagerEx agentManager,
                            @NotNull CloudManagerBase cloudManager,
                            @NotNull SecurityContext securityContext,
-                           @NotNull ProjectManager projectManager) {
+                           @NotNull ProjectManager projectManager,
+                           @NotNull AgentPoolManager poolManager) {
     myDelegate = delegate;
     myPoolActionsAccessChecker = agentPoolActionsAccessChecker;
     myProjectManager = projectManager;
     myAgentManager = agentManager;
     myCloudManager = cloudManager;
     mySecurityContext = securityContext;
+    myPoolManager = poolManager;
   }
 
   @NotNull
@@ -114,6 +119,12 @@ public class AgentPoolResolver extends ModelResolver<AgentPool> {
 
   @NotNull
   public AgentPoolCloudImagesConnection assignableCloudImages(@NotNull AgentPool pool, @NotNull DataFetchingEnvironment env) {
+    AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
+
+    jetbrains.buildServer.serverSide.agentPools.AgentPool defaultPool = myPoolManager.findAgentPoolById(jetbrains.buildServer.serverSide.agentPools.AgentPool.DEFAULT_POOL_ID);
+    if(!AuthUtil.hasGlobalOrPoolProjectsPermission(authHolder, defaultPool, Permission.MANAGE_AGENT_POOLS, Permission.MANAGE_AGENT_POOLS_FOR_PROJECT)) {
+      return AgentPoolCloudImagesConnection.empty();
+    }
     if(!myPoolActionsAccessChecker.canManageAgentsInPool(pool.getRealPool())) {
       return AgentPoolCloudImagesConnection.empty();
     }
