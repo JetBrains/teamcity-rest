@@ -147,7 +147,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
   public DataFetcherResult<RemoveAgentPoolPayload> removeAgentPool(@NotNull RemoveAgentPoolInput input) {
     DataFetcherResult.Builder<RemoveAgentPoolPayload> result = DataFetcherResult.newResult();
 
-    int poolId = input.getAgentPoolId();
+    int poolId = input.getAgentPoolRawId();
 
     try {
       AgentPool removedPool = myAgentPoolManager.deleteAgentPool(poolId);
