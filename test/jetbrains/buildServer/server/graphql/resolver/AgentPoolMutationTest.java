@@ -97,7 +97,7 @@ public class AgentPoolMutationTest extends BaseResolverTest {
     AgentPool poolToDelete = myFixture.getAgentPoolManager().createNewAgentPool(name);
 
     RemoveAgentPoolInput input = new RemoveAgentPoolInput();
-    input.setAgentPoolId(poolToDelete.getAgentPoolId());
+    input.setAgentPoolRawId(poolToDelete.getAgentPoolId());
 
     DataFetcherResult<RemoveAgentPoolPayload> result = myMutation.removeAgentPool(input);
 

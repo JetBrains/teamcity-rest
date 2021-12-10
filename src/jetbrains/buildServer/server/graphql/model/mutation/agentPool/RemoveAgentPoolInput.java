@@ -18,13 +18,13 @@ package jetbrains.buildServer.server.graphql.model.mutation.agentPool;
 
 
 public class RemoveAgentPoolInput {
-  private int myAgentPoolId;
+  private int myAgentPoolRawId;
 
-  public void setAgentPoolId(int agentPoolId) {
-    myAgentPoolId = agentPoolId;
+  public void setAgentPoolRawId(int agentPoolRawId) {
+    myAgentPoolRawId = agentPoolRawId;
   }
 
-  public int getAgentPoolId() {
-    return myAgentPoolId;
+  public int getAgentPoolRawId() {
+    return myAgentPoolRawId;
   }
 }
