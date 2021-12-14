@@ -21,6 +21,7 @@ import graphql.schema.DataFetchingEnvironment;
 import java.util.*;
 import java.util.stream.Stream;
 import jetbrains.buildServer.clouds.CloudInstance;
+import jetbrains.buildServer.clouds.server.CloudManagerBase;
 import jetbrains.buildServer.server.graphql.model.*;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.ProjectAgentPool;
@@ -60,6 +61,10 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
   @Autowired
   @NotNull
   private BuildAgentManager myAgentManager;
+
+  @Autowired
+  @NotNull
+  private CloudManagerBase myCloudManager;
 
   public void initForTests(@NotNull AgentPoolManager agentPoolManager,
                            @NotNull ProjectManager projectManager,
@@ -177,10 +182,20 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
     jetbrains.buildServer.clouds.CloudImage realImage = image.getRealImage();
     DataFetcherResult.Builder<AbstractAgentPool> result = new DataFetcherResult.Builder<>();
 
-    AgentPool pool = realImage.getAgentPoolId() != null ? myAgentPoolManager.findAgentPoolById(realImage.getAgentPoolId()) : null;
+    Integer poolId = realImage.getAgentPoolId();
+    if(poolId == null) {
+      // let's try harder (and slower) way.
+      SAgentType agentType = findAgentType(image);
+      poolId = agentType != null ? agentType.getAgentPoolId() : null;
+    }
 
-    if(realImage.getAgentPoolId() == null || pool == null) {
-      result.error(new EntityNotFoundGraphQLError(String.format("Could not find agent pool for instance id=%s", image.getRawId())));
+    AgentPool pool = poolId != null ? myAgentPoolManager.findAgentPoolById(poolId) : null;
+
+    if(poolId == null || pool == null) {
+      result.error(new EntityNotFoundGraphQLError(String.format(
+        "Could not find agent pool for image id=%s in profile id=%s",
+        image.getRawId(), image.getProfileId()
+      )));
       return result.build();
     }
 
