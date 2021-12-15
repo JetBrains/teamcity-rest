@@ -19,9 +19,7 @@ package jetbrains.buildServer.server.graphql.resolver;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.*;
-import java.util.stream.Stream;
 import jetbrains.buildServer.clouds.CloudInstance;
-import jetbrains.buildServer.clouds.server.CloudManagerBase;
 import jetbrains.buildServer.server.graphql.model.*;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.ProjectAgentPool;
@@ -36,9 +34,9 @@ import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
-import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
+import jetbrains.buildServer.serverSide.agentTypes.AgentType;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeKey;
-import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +50,7 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
 
   @Autowired
   @NotNull
-  private AgentTypeFinder myAgentTypeFinder;
+  private AgentTypeManager myAgentTypeManager;
 
   @Autowired
   @NotNull
@@ -62,25 +60,22 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
   @NotNull
   private BuildAgentManager myAgentManager;
 
-  @Autowired
-  @NotNull
-  private CloudManagerBase myCloudManager;
 
   public void initForTests(@NotNull AgentPoolManager agentPoolManager,
                            @NotNull ProjectManager projectManager,
                            @NotNull BuildAgentManager agentManager,
-                           @NotNull AgentTypeFinder agentTypeFinder) {
+                           @NotNull AgentTypeManager agentTypeManager) {
     myAgentPoolManager = agentPoolManager;
     myProjectManager = projectManager;
     myAgentManager = agentManager;
-    myAgentTypeFinder = agentTypeFinder;
+    myAgentTypeManager = agentTypeManager;
   }
 
   @NotNull
   public DataFetcherResult<Integer> agentTypeRawId(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
     DataFetcherResult.Builder<Integer> result = DataFetcherResult.newResult();
 
-    SAgentType agentType = findAgentType(image);
+    AgentType agentType = findAgentType(image);
     if(agentType == null) {
       return result.error(new EntityNotFoundGraphQLError(String.format("Agent type for image id=%s is no found.", image.getRawId()))).build();
     }
@@ -90,7 +85,7 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
 
   @NotNull
   public AgentEnvironment environment(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
-    SAgentType agentType = findAgentType(image);
+    AgentType agentType = findAgentType(image);
     if(agentType == null) {
       return AgentEnvironment.UNKNOWN;
     }
@@ -99,26 +94,9 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
   }
 
   @Nullable
-  private SAgentType findAgentType(@NotNull CloudImage image) {
-    Stream<SAgentType> agentTypeStream;
-    if(image.getRealImage().getAgentPoolId() != null) {
-      agentTypeStream = myAgentTypeFinder.getAgentTypesByPool(image.getRealImage().getAgentPoolId()).stream();
-    } else {
-      agentTypeStream = myAgentTypeFinder.getActiveCloudAgentTypes().stream();
-    }
-
-    Optional<SAgentType> typeOptional = agentTypeStream.filter(agentType -> agentType.isCloud())
-                                                       .filter(agentType -> {
-                                                         AgentTypeKey agentTypeKey = agentType.getAgentTypeKey();
-                                                         return agentTypeKey.getProfileId().equals(image.getProfileId()) && agentTypeKey.getTypeId().equals(image.getRawId());
-                                                       })
-                                                       .findFirst();
-
-    if(!typeOptional.isPresent()) {
-      return null;
-    }
-
-    return typeOptional.get();
+  private AgentType findAgentType(@NotNull CloudImage image) {
+    AgentTypeKey agentTypeKey = new AgentTypeKey(image.getRealProfile().getCloudCode(), image.getProfileId(), image.getRawId());
+    return myAgentTypeManager.findAgentTypeByKey(agentTypeKey);
   }
 
   @NotNull
@@ -179,19 +157,12 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
 
   @NotNull
   public DataFetcherResult<AbstractAgentPool> agentPool(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.clouds.CloudImage realImage = image.getRealImage();
     DataFetcherResult.Builder<AbstractAgentPool> result = new DataFetcherResult.Builder<>();
 
-    Integer poolId = realImage.getAgentPoolId();
-    if(poolId == null) {
-      // let's try harder (and slower) way.
-      SAgentType agentType = findAgentType(image);
-      poolId = agentType != null ? agentType.getAgentPoolId() : null;
-    }
+    AgentType agentType = findAgentType(image);
+    AgentPool pool = agentType != null ? myAgentPoolManager.findAgentPoolById(agentType.getAgentPoolId()) : null;
 
-    AgentPool pool = poolId != null ? myAgentPoolManager.findAgentPoolById(poolId) : null;
-
-    if(poolId == null || pool == null) {
+    if(agentType == null || pool == null) {
       result.error(new EntityNotFoundGraphQLError(String.format(
         "Could not find agent pool for image id=%s in profile id=%s",
         image.getRawId(), image.getProfileId()

@@ -47,8 +47,7 @@ public class AbstractAgentPoolResolverTest extends BaseResolverTest {
     myResolver = new AbstractAgentPoolResolver(
       projectManager,
       myActionChecker,
-      myFixture.getAgentPoolManager(),
-      myFixture.getCloudManagerBase(),
+      null, // not actually used in tests
       myFixture.getAgentTypeFinder(),
       myServer.getSecurityContext()
     );
