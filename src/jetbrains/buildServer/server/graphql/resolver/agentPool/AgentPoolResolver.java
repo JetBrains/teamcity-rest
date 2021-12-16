@@ -151,7 +151,7 @@ public class AgentPoolResolver extends ModelResolver<AgentPool> {
               AgentTypeKey key = new AgentTypeKey(profile.getCloudCode(), profileId, image.getId());
               AgentType type = myAgentTypeManager.findAgentTypeByKey(key);
 
-              return type != null && pool.getRealPool().getAgentPoolId() == type.getAgentPoolId();
+              return type != null && pool.getRealPool().getAgentPoolId() != type.getAgentPoolId();
             })
             .forEach(image -> {
               images.add(new Pair<>(profile, image));
