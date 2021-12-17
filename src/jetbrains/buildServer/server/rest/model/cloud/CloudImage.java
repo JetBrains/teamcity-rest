@@ -38,6 +38,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
+import jetbrains.buildServer.util.impl.Lazy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,18 +63,31 @@ public class CloudImage {
   @NotNull private final jetbrains.buildServer.clouds.CloudImage myCloudImage;
   @NotNull private final Fields myFields;
   @NotNull private final BeanContext myBeanContext;
+  @NotNull private final Lazy<Optional<SAgentType>> myAgentType;
 
   @SuppressWarnings("ConstantConditions")
   public CloudImage() {
     myCloudImage = null;
     myFields = null;
     myBeanContext = null;
+    myAgentType = null;
   }
 
-  public CloudImage(@NotNull final jetbrains.buildServer.clouds.CloudImage cloudImage, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+  public CloudImage(@NotNull jetbrains.buildServer.clouds.CloudImage cloudImage, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     myCloudImage = cloudImage;
     myFields = fields;
     myBeanContext = beanContext;
+    myAgentType = new Lazy<Optional<SAgentType>>() {
+      @NotNull
+      @Override
+      protected Optional<SAgentType> createValue() {
+        jetbrains.buildServer.clouds.CloudProfile profile = myBeanContext.getSingletonService(CloudUtil.class).getProfile(myCloudImage);
+        if(profile == null) {
+          return Optional.empty();
+        }
+        return Optional.ofNullable(myBeanContext.getSingletonService(CloudManager.class).getDescriptionFor(profile, myCloudImage.getId()));
+      }
+    };
   }
 
   @XmlAttribute
@@ -112,14 +126,17 @@ public class CloudImage {
   public Integer getAgentTypeId() {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("agentTypeId", false, false),
-      () -> getAgentType().map(SAgentType::getAgentTypeId).orElse(null)
+      () -> myAgentType.get().map(SAgentType::getAgentTypeId).orElse(null)
     );
   }
 
   @Nullable
   @XmlElement(name = "agentPoolId")
   public Integer getAgentPoolId() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("agentPoolId", false, false), () -> myCloudImage.getAgentPoolId());
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("agentPoolId", false, false),
+      () -> myAgentType.get().map(SAgentType::getAgentPoolId).orElse(null)
+    );
   }
 
   @Nullable
@@ -127,17 +144,8 @@ public class CloudImage {
   public String getOperatingSystemName() {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("operatingSystemName", false, false),
-      () -> getAgentType().map(SAgentType::getOperatingSystemName).orElse(null)
+      () -> myAgentType.get().map(SAgentType::getOperatingSystemName).orElse(null)
     );
-  }
-
-  @NotNull
-  private Optional<SAgentType> getAgentType() {
-    final jetbrains.buildServer.clouds.CloudProfile profile = myBeanContext.getSingletonService(CloudUtil.class).getProfile(myCloudImage);
-    if (profile == null) {
-      return Optional.empty();
-    }
-    return Optional.ofNullable(myBeanContext.getSingletonService(CloudManager.class).getDescriptionFor(profile, myCloudImage.getId()));
   }
 
   @XmlElement(name = "errorMessage")
