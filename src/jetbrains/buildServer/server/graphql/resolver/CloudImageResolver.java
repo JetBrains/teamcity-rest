@@ -16,10 +16,12 @@
 
 package jetbrains.buildServer.server.graphql.resolver;
 
+import com.intellij.openapi.diagnostic.Logger;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.*;
 import jetbrains.buildServer.clouds.CloudInstance;
+import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.graphql.model.*;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.ProjectAgentPool;
@@ -28,7 +30,6 @@ import jetbrains.buildServer.server.graphql.model.connections.agent.CloudImageIn
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolsConnection;
 import jetbrains.buildServer.server.graphql.util.EntityNotFoundGraphQLError;
 import jetbrains.buildServer.server.graphql.util.ModelResolver;
-import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
@@ -44,6 +45,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class CloudImageResolver extends ModelResolver<CloudImage> {
+  private static final Logger LOG = Logger.getInstance(CloudImageResolver.class.getName());
+
   @Autowired
   @NotNull
   private AgentPoolManager myAgentPoolManager;
@@ -57,17 +60,14 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
   private ProjectManager myProjectManager;
 
   @Autowired
-  @NotNull
-  private BuildAgentManager myAgentManager;
+  private CloudManager myCloudManager;
 
 
   public void initForTests(@NotNull AgentPoolManager agentPoolManager,
                            @NotNull ProjectManager projectManager,
-                           @NotNull BuildAgentManager agentManager,
                            @NotNull AgentTypeManager agentTypeManager) {
     myAgentPoolManager = agentPoolManager;
     myProjectManager = projectManager;
-    myAgentManager = agentManager;
     myAgentTypeManager = agentTypeManager;
   }
 
@@ -103,32 +103,21 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
   public CloudImageInstancesConnection instances(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
     jetbrains.buildServer.clouds.CloudImage realImage = image.getRealImage();
 
-    List<CloudInstance> instancesToCheck = new ArrayList<>(realImage.getInstances());
-    boolean[] instanceAgentIsFound = new boolean[instancesToCheck.size()]; Arrays.fill(instanceAgentIsFound, false);
-    int agentsFound = 0;
+    Collection<? extends CloudInstance> instances = realImage.getInstances();
+    List<SBuildAgent> resultingAgents = new ArrayList<>(instances.size());
+    instances.forEach(instance -> {
+      Collection<SBuildAgent> agent = myCloudManager.findAgentByInstance(image.getProfileId(), instance.getInstanceId());
 
-    List<SBuildAgent> resultingAgents = new ArrayList<>(instancesToCheck.size());
-    for(SBuildAgent agent : myAgentManager.getRegisteredAgents()) {
-      if(!agent.isCloudAgent()) {
-        continue;
+      if(agent.size() == 0) return;
+      if(agent.size() > 1) {
+        LOG.info(String.format(
+          "Found more then one agent for instance (id:%s, image:%s, profile:%s), proceeding with a first one.",
+          instance.getInstanceId(), realImage.getId(), image.getProfileId()
+        ));
       }
 
-      for(int i = 0; i < instanceAgentIsFound.length; i++) {
-        if(instanceAgentIsFound[i]) {
-          continue;
-        }
-
-        if(instancesToCheck.get(i).containsAgent(agent)) {
-          agentsFound++;
-          instanceAgentIsFound[i] = true;
-          resultingAgents.add(agent);
-        }
-      }
-
-      if(agentsFound == instanceAgentIsFound.length) {
-        break;
-      }
-    }
+      resultingAgents.add(agent.iterator().next());
+    });
 
     return new CloudImageInstancesConnection(resultingAgents, PaginationArguments.everything());
   }
