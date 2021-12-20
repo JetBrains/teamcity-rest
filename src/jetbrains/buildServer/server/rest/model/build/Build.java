@@ -142,7 +142,8 @@ import org.jetbrains.annotations.Nullable;
     "finishOnAgentDate",
     "customized", /* Probably to be removed, replace with customization */
     "customization",
-    "changesCollectingInProgress" /*experimental*/
+    "changesCollectingInProgress" /*experimental*/,
+    "queuedWaitReasons", /*q experimental */
   })
 @ModelDescription("Represents a build instance.")
 public class Build {
@@ -1154,12 +1155,16 @@ public class Build {
   }
 
 
-  @XmlElement
+  @XmlElement(name = "waitReason")
   public String getWaitReason() {
-    final Boolean include = myFields.isIncluded("waitReason", false);
-    if (myQueuedBuild == null || (include != null && !include)) return null;
+    return ValueWithDefault.decideDefault(myFields.isIncluded("waitReason", false), () -> {
+      if(myQueuedBuild == null) return null;
 
-    return ValueWithDefault.decideDefault(include, () -> {
+      if(myQueuedBuild instanceof QueuedBuildEx) {
+        return ((QueuedBuildEx) myQueuedBuild).getLatestWaitReason();
+      }
+
+      // Fallback to old way of doing things.
       final BuildEstimates buildEstimates = myQueuedBuild.getBuildEstimates();
       if (buildEstimates == null) return null;
 
@@ -1167,6 +1172,22 @@ public class Build {
       if (waitReason == null) return null;
       return waitReason.getDescription();
     });
+  }
+
+  @XmlElement(name = "queuedWaitReasons")
+  public Properties getQueuedWaitReasons() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("queuedWaitReasons", false, false),
+      () -> {
+        if(myQueuedBuild == null) return null;
+        if(!(myQueuedBuild instanceof QueuedBuildEx)) return null;
+
+        Map<String, String> reasons = ((QueuedBuildEx) myQueuedBuild).getWaitReasons().entrySet().stream()
+                                                                     .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()));
+
+        return new Properties(reasons, null, myFields.getNestedField("queuedWaitReasons"), myBeanContext);
+      }
+    );
   }
 
   @XmlElement(name = "delayedByBuild")
