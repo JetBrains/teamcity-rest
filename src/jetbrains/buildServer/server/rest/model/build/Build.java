@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -154,6 +155,7 @@ public class Build {
   public static final String CANCELED_INFO = "canceledInfo";
   public static final String PROMOTION_ID = "taskId";
   public static final String REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES = "rest.beans.build.includeAllAttributes";
+  public static final String QUEUE_WAIT_REASON_STAT_PREFIX = "queueWaitReason:";
 
   @NotNull final protected BuildPromotion myBuildPromotion;
   @Nullable final protected SBuild myBuild;
@@ -1179,15 +1181,50 @@ public class Build {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("queuedWaitReasons", false, false),
       () -> {
-        if(myQueuedBuild == null) return null;
-        if(!(myQueuedBuild instanceof QueuedBuildEx)) return null;
+        if(myQueuedBuild != null) {
+          return getQueuedWaitReasonsForQueuedBuild();
+        }
 
-        Map<String, String> reasons = ((QueuedBuildEx) myQueuedBuild).getWaitReasons().entrySet().stream()
-                                                                     .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()));
-
-        return new Properties(reasons, null, myFields.getNestedField("queuedWaitReasons"), myBeanContext);
+        return getQueuedWaitReasonsForRunningOrFinishedBuild();
       }
     );
+  }
+
+  @Nullable
+  private Properties getQueuedWaitReasonsForQueuedBuild() {
+    if(!(myQueuedBuild instanceof QueuedBuildEx)) return null;
+
+    Map<String, String> reasons = ((QueuedBuildEx) myQueuedBuild).getWaitReasons().entrySet().stream()
+                                                                 .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()));
+
+    return new Properties(reasons, null, myFields.getNestedField("queuedWaitReasons"), myBeanContext);
+  }
+
+  @Nullable
+  private Properties getQueuedWaitReasonsForRunningOrFinishedBuild() {
+    if(myBuild == null) return null;
+
+    final Fields nestedField = myFields.getNestedField("queuedWaitReasons");
+    if(!nestedField.isMoreThenShort()) {
+      return null;
+    }
+
+    Function<Map.Entry<String, String>, String> getPrettyReasonName = entry -> {
+      String rawReason = entry.getKey();
+      StringBuilder resultBuilder = new StringBuilder(rawReason.length() - QUEUE_WAIT_REASON_STAT_PREFIX.length());
+      rawReason.codePoints()
+               .skip(QUEUE_WAIT_REASON_STAT_PREFIX.length()) // Prefix is not needed in UI
+               .map(cp -> cp == '_' ? ' ' : cp)              // Replace _ with ' ', so we can display text in UI in user-friendly way, not snake case.
+               .forEach(resultBuilder::appendCodePoint);
+
+      return resultBuilder.toString();
+    };
+
+    Map<String, String> reasons = getBuildStatisticsValues(myBuild).entrySet().stream()
+      .filter(e -> e.getKey().startsWith(QUEUE_WAIT_REASON_STAT_PREFIX))
+      .collect(Collectors.toMap(getPrettyReasonName, e -> e.getValue()));
+
+    return new Properties(reasons, null, nestedField, myBeanContext);
   }
 
   @XmlElement(name = "delayedByBuild")
