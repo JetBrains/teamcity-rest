@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.model.metrics;
 
+import java.util.ArrayList;
+import java.util.Map;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
@@ -40,10 +42,19 @@ public class MetricTags implements DefaultValueAware {
   public MetricTags() {
   }
 
-  public MetricTags(@NotNull List<MetricTag> tags, final @NotNull Fields fields) {
+  public MetricTags(@NotNull Map<String, String> tagsMap, final @NotNull Fields fields) {
+    tags = ValueWithDefault.decideDefault(
+      fields.isIncluded("tag", true),
+      () -> {
+        final List<MetricTag> result = new ArrayList<>();
+        for (String name : tagsMap.keySet()) {
+          result.add(new MetricTag(name, tagsMap.get(name)));
+        }
 
-    this.tags = ValueWithDefault.decideDefault(fields.isIncluded("tag", true), () -> tags);
-    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), tags.size());
+        return result;
+      }
+    );
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), tagsMap.size());
   }
 
   public boolean isDefault() {

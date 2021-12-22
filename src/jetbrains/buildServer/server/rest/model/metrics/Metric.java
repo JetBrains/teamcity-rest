@@ -16,9 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.metrics;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -72,25 +69,13 @@ public class Metric {
 
   @XmlElement
   public MetricTags getMetricTags() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("metricTags"), () -> {
-      final Map<String, String> tags = metricId().getTags();
-      final List<MetricTag> result = new ArrayList<>();
-      for (String name : tags.keySet()) {
-        result.add(new MetricTag(name, tags.get(name)));
-      }
-      return new MetricTags(result, myFields);
-    });
+    return ValueWithDefault.decideDefault(myFields.isIncluded("metricTags"), () -> new MetricTags(metricId().getTags(), myFields));
   }
 
   @XmlElement
   public MetricValues getMetricValues() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("metricValues"), () -> {
-      final List<jetbrains.buildServer.server.rest.model.metrics.MetricValue>result = new ArrayList<>();
-      final Map<String, Double> values = myMetricValue.getValues();
-      for (String key : values.keySet()) {
-        result.add(new jetbrains.buildServer.server.rest.model.metrics.MetricValue(key, values.get(key)));
-      }
-      return new MetricValues(result, myFields);
+      return new MetricValues(myMetricValue.getValues(), myFields);
     });
   }
 

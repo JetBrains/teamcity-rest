@@ -18,39 +18,68 @@ package jetbrains.buildServer.server.rest.model.metrics;
 
 import java.util.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
+import jetbrains.buildServer.metrics.MetricValueName;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 
 @XmlRootElement(name = "metricValue")
-@XmlType(name = "metricValue", propOrder = {"name", "value"})
+@XmlType(name = "metricValue", propOrder = {"name", "value", "tags"})
 @ModelDescription(
     value = "Represents a metric value.",
     externalArticleLink = "https://www.jetbrains.com/help/teamcity/teamcity-monitoring-and-diagnostics.html#Metrics",
     externalArticleName = "Metrics"
 )
 public class MetricValue {
-  @XmlAttribute
-  public String name;
-  @XmlAttribute
-  public Double value;
+  private Fields myFields;
+  private double myValue;
+  private MetricValueName myName;
 
   public MetricValue() {
   }
 
-  public MetricValue(@NotNull String name, @NotNull Double value) {
-    this.name = name;
-    this.value = value;
+  public MetricValue(@NotNull MetricValueName name, double value, @NotNull Fields fields) {
+    myName = name;
+    myValue = value;
+    myFields = fields;
+  }
+
+  @XmlAttribute(name = "name")
+  public String getName() {
+    return myName.getName();
+  }
+
+  @XmlAttribute(name = "value")
+  public Double getValue() {
+    return myValue;
+  }
+
+  @XmlElement(name = "tags")
+  public MetricTags getTags() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("tags", false),
+      () -> new MetricTags(myName.getAdditionalTags(), myFields.getNestedField("tags"))
+    );
   }
 
   @Override
   public String toString() {
-    return "MetricValue{" +
-           "name='" + name + '\'' +
-           ", value='" + value + '\'' +
-           '}';
+    StringBuilder builder = new StringBuilder();
+    builder.append("MetricValue{")
+           .append("name='").append(myName).append("', ")
+           .append("value='").append(myValue).append("', ")
+           .append("tags=(");
+
+    myName.getAdditionalTags().entrySet().forEach(e -> {
+      builder.append(String.format("'%s'='%s',", e.getKey(), e.getValue()));
+    });
+
+    return builder.append(") }").toString();
   }
 
   @Override
@@ -58,13 +87,13 @@ public class MetricValue {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     final MetricValue tag = (MetricValue)o;
-    return Objects.equals(name, tag.name) &&
-           Objects.equals(value, tag.value);
+    return Objects.equals(myName, tag.myName) &&
+           Objects.equals(myValue, tag.myValue);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, value);
+    return Objects.hash(myName, myValue);
   }
 }
 
