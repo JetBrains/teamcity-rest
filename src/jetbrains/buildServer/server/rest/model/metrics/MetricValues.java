@@ -18,7 +18,7 @@ package jetbrains.buildServer.server.rest.model.metrics;
 
 import java.util.ArrayList;
 import java.util.Map;
-import jetbrains.buildServer.metrics.MetricValueName;
+import jetbrains.buildServer.metrics.MetricValueKey;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
@@ -43,13 +43,13 @@ public class MetricValues implements DefaultValueAware {
   public MetricValues() {
   }
 
-  public MetricValues(@NotNull Map<MetricValueName, Double> valuesMap, final @NotNull Fields fields) {
+  public MetricValues(@NotNull Map<MetricValueKey, Double> valuesMap, final @NotNull Fields fields) {
     values = ValueWithDefault.decideDefault(
       fields.isIncluded("metricValues", true),
       () -> {
         Fields nestedFields = fields.getNestedField("metricValues");
         final List<jetbrains.buildServer.server.rest.model.metrics.MetricValue> result = new ArrayList<>();
-        for (MetricValueName key : valuesMap.keySet()) {
+        for (MetricValueKey key : valuesMap.keySet()) {
           result.add(new jetbrains.buildServer.server.rest.model.metrics.MetricValue(key, valuesMap.get(key), nestedFields));
         }
         return result;

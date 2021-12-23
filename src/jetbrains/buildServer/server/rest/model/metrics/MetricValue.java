@@ -22,7 +22,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import jetbrains.buildServer.metrics.MetricValueName;
+import jetbrains.buildServer.metrics.MetricValueKey;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -38,12 +38,12 @@ import org.jetbrains.annotations.NotNull;
 public class MetricValue {
   private Fields myFields;
   private double myValue;
-  private MetricValueName myName;
+  private MetricValueKey myName;
 
   public MetricValue() {
   }
 
-  public MetricValue(@NotNull MetricValueName name, double value, @NotNull Fields fields) {
+  public MetricValue(@NotNull MetricValueKey name, double value, @NotNull Fields fields) {
     myName = name;
     myValue = value;
     myFields = fields;
