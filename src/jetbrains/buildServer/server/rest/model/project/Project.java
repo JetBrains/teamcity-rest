@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.project;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -47,6 +48,7 @@ import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,7 +58,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "project")
 @XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "description", "href", "webUrl",
-  "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects", "cloudProfiles"})
+  "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects", "cloudProfiles", "ancestorProjects"})
 @SuppressWarnings("PublicField")
 @ModelDescription(
     value = "Represents a project.",
@@ -149,16 +151,25 @@ public class Project {
    */
   @XmlAttribute public String locator;
 
+  private Fields myFields;
+  private SProject myProject;
+  private BeanContext myBeanContext;
+
   public Project() {
   }
 
   public Project(@Nullable final String externalId, @Nullable final String internalId, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    myFields = fields;
     //todo: check usages: externalId should actually be NotNull and internal id should never be necessary
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), externalId);
     this.internalId = ValueWithDefault.decideDefault(fields.isIncluded("internalId"), internalId);
   }
 
   public Project(@NotNull final SProject project, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    myFields = fields;
+    myProject = project;
+    myBeanContext = beanContext;
+
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), project::getExternalId);
     final boolean includeInternal = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
     internalId = ValueWithDefault.decideDefault(fields.isIncluded("internalId", includeInternal, includeInternal), project::getProjectId);
@@ -245,13 +256,10 @@ public class Project {
     parentProject = ValueWithDefault.decideDefault(fields.isIncluded("parentProject", false),
                                                    () -> Util.resolveNull(actualParentProject.get(), (v) -> new Project(v, fields.getNestedField("parentProject"), beanContext)));
 
-    parentProjectId = ValueWithDefault.decideDefault(fields.isIncluded("parentProjectId"),
-                                                     () -> Util.resolveNull(actualParentProject.get(), new Function<SProject, String>() {
-                                                       @Override
-                                                       public String apply(final SProject v) {
-                                                         return v.getExternalId();
-                                                       }
-                                                     }));
+    parentProjectId = ValueWithDefault.decideDefault(
+      fields.isIncluded("parentProjectId"),
+      () -> Util.resolveNull(actualParentProject.get(), parent -> parent.getExternalId())
+    );
 
     final boolean forceParentAttributes = TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes");
     parentProjectName = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectName", false, false),
@@ -268,6 +276,31 @@ public class Project {
                                                                  return v.getProjectId();
                                                                }
                                                              }));
+  }
+
+  @XmlElement(name = "ancestorProjects")
+  public Projects getAncestors() {
+    if(myProject == null || myBeanContext == null) {
+      return null;
+    }
+
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("ancestorProjects", false, false),
+      () -> {
+        if(myProject.isRootProject()) {
+          return new Projects(Collections.emptyList(), null, myFields.getNestedField("ancestorProjects"), myBeanContext);
+        }
+
+        List<SProject> projectPath = myProject.getProjectPath();
+
+        return new Projects(
+          projectPath.subList(0, projectPath.size() - 1),
+          null,
+          myFields.getNestedField("ancestorProjects"),
+          myBeanContext
+        );
+      }
+    );
   }
 
   @Nullable
