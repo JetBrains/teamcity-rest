@@ -206,7 +206,13 @@ public class BuildType {
   @XmlAttribute (name = "type")
   @ApiModelProperty(allowableValues = "regular, composite, deployment")
   public String getType() {
-    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("type",false, false), () -> Util.resolveNull(myBuildType.getSettingsEx(), (e) -> e.getOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE).toLowerCase()), s -> BuildTypeOptions.BuildConfigurationType.REGULAR.name().equalsIgnoreCase(s));
+    if(myBuildType == null) {
+      return null;
+    }
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("type",false, false),
+      () -> Util.resolveNull(myBuildType.getSettingsEx(), (e) -> e.getOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE).toLowerCase()), s -> BuildTypeOptions.BuildConfigurationType.REGULAR.name().equalsIgnoreCase(s)
+    );
   }
 
   @XmlAttribute
