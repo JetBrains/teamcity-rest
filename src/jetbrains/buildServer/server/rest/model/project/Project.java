@@ -73,9 +73,6 @@ public class Project {
   public String internalId;
 
   @XmlAttribute
-  public String uuid;
-
-  @XmlAttribute
   public String name;
 
   @XmlAttribute
@@ -173,8 +170,6 @@ public class Project {
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), project::getExternalId);
     final boolean includeInternal = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
     internalId = ValueWithDefault.decideDefault(fields.isIncluded("internalId", includeInternal, includeInternal), project::getProjectId);
-    uuid = ValueWithDefault.decideDefault(fields.isIncluded("uuid", false, false), () ->
-      beanContext.getSingletonService(PermissionChecker.class).isPermissionGranted(Permission.EDIT_PROJECT, project.getProjectId()) ? ((ProjectEx)project).getId().getConfigId() : null);
     name = ValueWithDefault.decideDefault(fields.isIncluded("name"), project::getName);
 
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), () -> beanContext.getApiUrlBuilder().getHref(project));
@@ -278,8 +273,22 @@ public class Project {
                                                              }));
   }
 
+  @XmlAttribute(name = "uuid")
+  public String getUuid() {
+    if(myProject == null || myBeanContext == null) {
+      return null;
+    }
+
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("uuid", false, false), () -> {
+        return myBeanContext.getSingletonService(PermissionChecker.class)
+                            .isPermissionGranted(Permission.EDIT_PROJECT, myProject.getProjectId()) ? ((ProjectEx)myProject).getId().getConfigId() : null;
+      }
+    );
+  }
+
   @XmlElement(name = "ancestorProjects")
-  public Projects getAncestors() {
+  public Projects getAncestorProjects() {
     if(myProject == null || myBeanContext == null) {
       return null;
     }
