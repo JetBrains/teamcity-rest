@@ -60,6 +60,7 @@ import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.impl.Lazy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -598,17 +599,19 @@ public class BuildType {
   /**
    * This is used only when posting a link to the build
    */
-  private String submittedId;
-  private String submittedInternalId;
-  private String submittedLocator;
-  private Boolean submittedInherited;
+  private final Lazy<SubmitedParameters> mySubmitted = new Lazy<SubmitedParameters>() {
+    @Override
+    protected SubmitedParameters createValue() {
+      return new SubmitedParameters();
+    }
+  };
 
   public void setId(String id) {
-    submittedId = id;
+    mySubmitted.get().id = id;
   }
 
   public void setInternalId(String id) {
-    submittedInternalId = id;
+    mySubmitted.get().internalId = id;
   }
 
   @XmlAttribute
@@ -617,31 +620,32 @@ public class BuildType {
   }
 
   public void setLocator(final String locator) {
-    submittedLocator = locator;
+    mySubmitted.get().locator = locator;
   }
 
   public void setInherited(final Boolean inherited) {
-    submittedInherited = inherited;
+    mySubmitted.get().inherited = inherited;
   }
 
   @Nullable
   public String getExternalIdFromPosted(@NotNull final ServiceLocator serviceLocator) {
-    if (submittedId != null) {
-      if (submittedInternalId == null) {
-        return submittedId;
+    SubmitedParameters submittedParams = mySubmitted.get();
+    if (submittedParams.id != null) {
+      if (submittedParams.internalId == null) {
+        return submittedParams.id;
       }
-      String externalByInternal = serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).internalToExternal(submittedInternalId);
-      if (externalByInternal == null || submittedId.equals(externalByInternal)) {
-        return submittedId;
+      String externalByInternal = serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).internalToExternal(submittedParams.internalId);
+      if (externalByInternal == null || submittedParams.id.equals(externalByInternal)) {
+        return submittedParams.id;
       }
       throw new BadRequestException(
-        "Both external id '" + submittedId + "' and internal id '" + submittedInternalId + "' attributes are present and they reference different build types.");
+        "Both external id '" + submittedParams.id + "' and internal id '" + submittedParams.internalId + "' attributes are present and they reference different build types.");
     }
-    if (submittedInternalId != null) {
-      return serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).internalToExternal(submittedInternalId);
+    if (submittedParams.internalId != null) {
+      return serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).internalToExternal(submittedParams.internalId);
     }
-    if (submittedLocator != null) {
-      return serviceLocator.getSingletonService(BuildTypeFinder.class).getBuildType(null, submittedLocator, false).getExternalId();
+    if (submittedParams.locator != null) {
+      return serviceLocator.getSingletonService(BuildTypeFinder.class).getBuildType(null, submittedParams.locator, false).getExternalId();
     }
     throw new BadRequestException("Could not find build type by the data. Either 'id' or 'internalId' or 'locator' attributes should be specified.");
   }
@@ -649,21 +653,22 @@ public class BuildType {
   @NotNull
   public String getLocatorFromPosted() {
     String locatorText;
-    if (submittedLocator != null) {
-      if (submittedId != null) {
+    SubmitedParameters submittedParams = mySubmitted.get();
+    if (submittedParams.locator != null) {
+      if (submittedParams.id != null) {
         throw new BadRequestException("Both 'locator' and '" + "id" + "' attributes are specified. Only one should be present.");
       }
-      if (submittedInternalId != null) {
+      if (submittedParams.internalId != null) {
         throw new BadRequestException("Both 'locator' and '" + "internalId" + "' attributes are specified. Only one should be present.");
       }
-      locatorText = submittedLocator;
+      locatorText = submittedParams.locator;
     } else {
       final Locator locator = Locator.createEmptyLocator();
-      if (submittedId != null) {
-        locator.setDimension("id", submittedId);
+      if (submittedParams.id != null) {
+        locator.setDimension("id", mySubmitted.get().id);
       }
-      if (submittedInternalId != null) {
-          locator.setDimension("internalId", submittedInternalId);
+      if (submittedParams.internalId != null) {
+          locator.setDimension("internalId", submittedParams.internalId);
       }
       if (locator.isEmpty()) {
         throw new BadRequestException("No build specified. Either '" + "id" + "' or 'locator' attributes should be present.");
@@ -686,12 +691,13 @@ public class BuildType {
       throw new BadRequestException("Cannot change build type template, only build types are supported");
     }
 
-    if (submittedTemplateFlag != null && submittedTemplateFlag) {
+    SubmitedParameters submittedParams = mySubmitted.get();
+    if (submittedParams.templateFlag != null && submittedParams.templateFlag) {
       throw new BadRequestException("Cannot change build type to template, only build types are supported");
     }
 
-    if (submittedName != null && !submittedName.equals(buildType.getName())) {
-      throw new BadRequestException("Cannot change build type name from '" + buildType.getName() + "' to '" + submittedName + "'. Remove the name from submitted build type.");
+    if (submittedParams.name != null && !submittedParams.name.equals(buildType.getName())) {
+      throw new BadRequestException("Cannot change build type name from '" + buildType.getName() + "' to '" + submittedParams.name + "'. Remove the name from submitted build type.");
     }
 
     // consider checking other unsupported options here, see https://confluence.jetbrains.com/display/TCINT/Versioned+Settings+Freeze
@@ -732,15 +738,16 @@ public class BuildType {
   @NotNull
   public BuildTypeOrTemplate getBuildTypeFromPosted(@NotNull final BuildTypeFinder buildTypeFinder) {
     String locatorText = "";
-    if (submittedInternalId != null) {
-      locatorText = "internalId:" + submittedInternalId;
+    SubmitedParameters submittedParams = mySubmitted.get();
+    if (submittedParams.internalId != null) {
+      locatorText = "internalId:" + submittedParams.internalId;
     } else {
-      if (submittedId != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + submittedId;
+      if (submittedParams.id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + "id:" + submittedParams.id;
     }
     if (locatorText.isEmpty()) {
-      locatorText = submittedLocator;
+      locatorText = submittedParams.locator;
     } else {
-      if (submittedLocator != null) {
+      if (submittedParams.locator != null) {
         throw new BadRequestException("Both 'locator' and 'id' or 'internalId' attributes are specified. Only one should be present.");
       }
     }
@@ -748,101 +755,82 @@ public class BuildType {
       throw new BadRequestException("No build type specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
     }
     BuildTypeOrTemplate result = buildTypeFinder.getBuildTypeOrTemplate(null, locatorText, false);
-    if (submittedInherited != null) {
-      result.markInherited(submittedInherited);
+    if (submittedParams.inherited != null) {
+      result.markInherited(submittedParams.inherited);
     }
     return result;
   }
 
-  @Nullable private  String submittedProjectId;
-  @Nullable private  Project submittedProject;
-  @Nullable private  String submittedName;
-  @Nullable private  String submittedDescription;
-  @Nullable private  Boolean submittedTemplateFlag;
-  @Nullable private  String submittedType;
-  @Nullable private  Boolean submittedPaused;
-  @Nullable private  BuildType submittedTemplate;
-  @Nullable private  BuildTypes submittedTemplates;
-  @Nullable private  VcsRootEntries submittedVcsRootEntries;
-  @Nullable private  Properties submittedParameters;
-  @Nullable private  PropEntitiesStep submittedSteps;
-  @Nullable private  PropEntitiesFeature submittedFeatures;
-  @Nullable private  PropEntitiesTrigger submittedTriggers;
-  @Nullable private  PropEntitiesSnapshotDep submittedSnapshotDependencies;
-  @Nullable private  PropEntitiesArtifactDep submittedArtifactDependencies;
-  @Nullable private  PropEntitiesAgentRequirement submittedAgentRequirements;
-  @Nullable private  Properties submittedSettings;
-
   public void setProjectId(@Nullable final String submittedProjectId) {
-    this.submittedProjectId = submittedProjectId;
+    mySubmitted.get().projectId = submittedProjectId;
   }
 
   public void setProject(@Nullable final Project submittedProject) {
-    this.submittedProject = submittedProject;
+    mySubmitted.get().project = submittedProject;
   }
 
   public void setName(@Nullable final String submittedName) {
-    this.submittedName = submittedName;
+    mySubmitted.get().name = submittedName;
   }
 
   public void setDescription(@Nullable final String submittedDescription) {
-    this.submittedDescription = submittedDescription;
+    mySubmitted.get().description = submittedDescription;
   }
 
   public void setTemplateFlag(@Nullable final Boolean submittedTemplateFlag) {
-    this.submittedTemplateFlag = submittedTemplateFlag;
+    mySubmitted.get().templateFlag = submittedTemplateFlag;
   }
 
   public void setType(@Nullable final String submittedType) {
-    this.submittedType = submittedType;
+    mySubmitted.get().type = submittedType;
   }
 
   public void setPaused(@Nullable final Boolean submittedPaused) {
-    this.submittedPaused = submittedPaused;
+    mySubmitted.get().paused = submittedPaused;
   }
 
   public void setTemplate(@Nullable final BuildType submittedTemplate) {
-    this.submittedTemplate = submittedTemplate;
+    mySubmitted.get().template = submittedTemplate;
   }
 
   public void setTemplates(@Nullable final BuildTypes submittedTemplates) {
-    this.submittedTemplates = submittedTemplates;
+    mySubmitted.get().templates = submittedTemplates;
   }
 
   public void setVcsRootEntries(@Nullable final VcsRootEntries submittedVcsRootEntries) {
-    this.submittedVcsRootEntries = submittedVcsRootEntries;
+    mySubmitted.get().vcsRootEntries = submittedVcsRootEntries;
   }
 
   public void setParameters(@Nullable final Properties submittedParameters) {
-    this.submittedParameters = submittedParameters;
+    mySubmitted.get().parameters = submittedParameters;
   }
 
   public void setSteps(@Nullable final PropEntitiesStep submittedSteps) {
-    this.submittedSteps = submittedSteps;
+    mySubmitted.get().steps = submittedSteps;
   }
 
   public void setFeatures(@Nullable final PropEntitiesFeature submittedFeatures) {
-    this.submittedFeatures = submittedFeatures;
+    mySubmitted.get().features = submittedFeatures;
   }
 
   public void setTriggers(@Nullable final PropEntitiesTrigger submittedTriggers) {
-    this.submittedTriggers = submittedTriggers;
+    mySubmitted.get().triggers = submittedTriggers;
   }
 
   public void setSnapshotDependencies(@Nullable final PropEntitiesSnapshotDep submittedSnapshotDependencies) {
-    this.submittedSnapshotDependencies = submittedSnapshotDependencies;
+    mySubmitted.get().snapshotDependencies = submittedSnapshotDependencies;
   }
 
   public void setArtifactDependencies(@Nullable final PropEntitiesArtifactDep submittedArtifactDependencies) {
-    this.submittedArtifactDependencies = submittedArtifactDependencies;
+    mySubmitted.get().artifactDependencies = submittedArtifactDependencies;
   }
 
   public void setAgentRequirements(@Nullable final PropEntitiesAgentRequirement submittedAgentRequirements) {
-    this.submittedAgentRequirements = submittedAgentRequirements;
+    mySubmitted.get().agentRequirements = submittedAgentRequirements;
   }
 
   public void setSettings(@Nullable final Properties submittedSettings) {
-    this.submittedSettings = submittedSettings;
+    mySubmitted.get().settings = submittedSettings;
   }
 
   //used in tests
@@ -897,25 +885,26 @@ public class BuildType {
   @NotNull
   public BuildTypeOrTemplate createNewBuildTypeFromPosted(@NotNull final ServiceLocator serviceLocator) {
     SProject project;
-    if (submittedProject == null) {
-      if (submittedProjectId == null) {
+    SubmitedParameters submittedParams = mySubmitted.get();
+    if (submittedParams.project == null) {
+      if (submittedParams.projectId == null) {
         throw new BadRequestException("Build type creation request should contain project node.");
       }
       //noinspection ConstantConditions
-      project = serviceLocator.findSingletonService(ProjectManager.class).findProjectByExternalId(submittedProjectId);
+      project = serviceLocator.findSingletonService(ProjectManager.class).findProjectByExternalId(submittedParams.projectId);
       if (project == null) {
-        throw new BadRequestException("Cannot find project with id '" + submittedProjectId + "'.");
+        throw new BadRequestException("Cannot find project with id '" + submittedParams.projectId + "'.");
       }
     } else {
       //noinspection ConstantConditions
-      project = submittedProject.getProjectFromPosted(serviceLocator.findSingletonService(ProjectFinder.class));
+      project = submittedParams.project.getProjectFromPosted(serviceLocator.findSingletonService(ProjectFinder.class));
     }
 
-    if (StringUtil.isEmpty(submittedName)) {
+    if (StringUtil.isEmpty(submittedParams.name)) {
       throw new BadRequestException("When creating a build type, non empty name should be provided.");
     }
 
-    final BuildTypeOrTemplate resultingBuildType = createEmptyBuildTypeOrTemplate(serviceLocator, project, submittedName);
+    final BuildTypeOrTemplate resultingBuildType = createEmptyBuildTypeOrTemplate(serviceLocator, project, submittedParams.name);
 
     try {
       fillBuildTypeOrTemplate(new BuildTypeOrTemplatePatcher() {
@@ -936,7 +925,8 @@ public class BuildType {
 
   @NotNull
   private BuildTypeOrTemplate createEmptyBuildTypeOrTemplate(final @NotNull ServiceLocator serviceLocator, final @NotNull SProject project, final @NotNull String name) {
-    if (submittedTemplateFlag == null || !submittedTemplateFlag) {
+    SubmitedParameters submittedParams = mySubmitted.get();
+    if (submittedParams.templateFlag == null || !submittedParams.templateFlag) {
       return new BuildTypeOrTemplate(project.createBuildType(getIdForBuildType(serviceLocator, project, name), name));
     } else {
       return new BuildTypeOrTemplate(project.createBuildTypeTemplate(getIdForBuildType(serviceLocator, project, name), name));
@@ -944,8 +934,9 @@ public class BuildType {
   }
 
   public boolean isSimilar(@Nullable final BuildType sourceBuildType) {
+    SubmitedParameters submittedParams = mySubmitted.get();
     return sourceBuildType != null &&
-           (Objects.equals(submittedId, sourceBuildType.submittedId) || Objects.equals(submittedInternalId, sourceBuildType.submittedInternalId));
+           (Objects.equals(submittedParams.id, sourceBuildType.mySubmitted.get().id) || Objects.equals(submittedParams.internalId, sourceBuildType.mySubmitted.get().internalId));
   }
 
   private interface BuildTypeOrTemplatePatcher {
@@ -959,41 +950,42 @@ public class BuildType {
    */
   private boolean fillBuildTypeOrTemplate(final @NotNull BuildTypeOrTemplatePatcher buildTypeOrTemplatePatcher, final @NotNull ServiceLocator serviceLocator) {
     boolean result = false;
-    if (submittedDescription != null) {
+    SubmitedParameters submittedParams = mySubmitted.get();
+    if (submittedParams.description != null) {
       result = true;
-      buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().setDescription(submittedDescription);
+      buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().setDescription(submittedParams.description);
     }
-    if (submittedPaused != null) {
+    if (submittedParams.paused != null) {
       if (buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType() == null) {
         throw new BadRequestException("Cannot set paused state for a template");
       }
 //check if it is already paused      if (Boolean.valueOf(submittedPaused) ^ buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType().isPaused())
       result = true;
-      buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType().setPaused(Boolean.valueOf(submittedPaused),
+      buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType().setPaused(Boolean.valueOf(submittedParams.paused),
                                                                                    serviceLocator.getSingletonService(UserFinder.class).getCurrentUser(),
                                                                                    TeamCityProperties.getProperty("rest.defaultActionComment"));
     }
 
-    if (submittedTemplates != null) {
+    if (submittedParams.templates != null) {
       if (buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType() == null) {
         throw new BadRequestException("Cannot set templates for a template");
       }
       try {
         //noinspection ConstantConditions
-        List<BuildTypeOrTemplate> templates = submittedTemplates.getFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
+        List<BuildTypeOrTemplate> templates = submittedParams.templates.getFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
         BuildTypeOrTemplate.setTemplates(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType(), templates, false);
       } catch (BadRequestException e) {
         throw new BadRequestException("Error retrieving submitted templates: " + e.getMessage(), e);
       }
       result = true;
-    } else if (submittedTemplate != null) {
+    } else if (submittedParams.template != null) {
       if (buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType() == null) {
         throw new BadRequestException("Cannot set template for a template");
       }
       final BuildTypeOrTemplate templateFromPosted;
       try {
         //noinspection ConstantConditions
-        templateFromPosted = submittedTemplate.getBuildTypeFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
+        templateFromPosted = submittedParams.template.getBuildTypeFromPosted(serviceLocator.findSingletonService(BuildTypeFinder.class));
       } catch (BadRequestException e) {
         throw new BadRequestException("Error retrieving submitted template: " + e.getMessage(), e);
       }
@@ -1005,41 +997,41 @@ public class BuildType {
     }
 
     BuildTypeSettingsEx buildTypeSettings = buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getSettingsEx();
-    if (submittedVcsRootEntries != null) {
-      boolean updated = submittedVcsRootEntries.setToBuildType(buildTypeSettings, serviceLocator);
+    if (submittedParams.vcsRootEntries != null) {
+      boolean updated = submittedParams.vcsRootEntries.setToBuildType(buildTypeSettings, serviceLocator);
       result = result || updated;
     }
-    if (submittedParameters != null) {
-      boolean updated = submittedParameters.setTo(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), serviceLocator);
+    if (submittedParams.parameters != null) {
+      boolean updated = submittedParams.parameters.setTo(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), serviceLocator);
       result = result || updated;
     }
-    if (submittedSteps != null) {
-      boolean updated = submittedSteps.setToBuildType(buildTypeSettings, serviceLocator);
+    if (submittedParams.steps != null) {
+      boolean updated = submittedParams.steps.setToBuildType(buildTypeSettings, serviceLocator);
       result = result || updated;
     }
-    if (submittedFeatures != null) {
-      boolean updated = submittedFeatures.setToBuildType(buildTypeSettings, serviceLocator);
+    if (submittedParams.features != null) {
+      boolean updated = submittedParams.features.setToBuildType(buildTypeSettings, serviceLocator);
       result = result || updated;
     }
-    if (submittedTriggers != null) {
-      boolean updated = submittedTriggers.setToBuildType(buildTypeSettings, serviceLocator);
+    if (submittedParams.triggers != null) {
+      boolean updated = submittedParams.triggers.setToBuildType(buildTypeSettings, serviceLocator);
       result = result || updated;
     }
-    if (submittedSnapshotDependencies != null) {
-      boolean updated = submittedSnapshotDependencies.setToBuildType(buildTypeSettings, serviceLocator);
+    if (submittedParams.snapshotDependencies != null) {
+      boolean updated = submittedParams.snapshotDependencies.setToBuildType(buildTypeSettings, serviceLocator);
       result = result || updated;
     }
-    if (submittedArtifactDependencies != null) {
-      boolean updated = submittedArtifactDependencies.setToBuildType(buildTypeSettings, serviceLocator);
+    if (submittedParams.artifactDependencies != null) {
+      boolean updated = submittedParams.artifactDependencies.setToBuildType(buildTypeSettings, serviceLocator);
       result = result || updated;
     }
-    if (submittedAgentRequirements != null) {
-      boolean updated = submittedAgentRequirements.setToBuildType(buildTypeSettings, serviceLocator);
+    if (submittedParams.agentRequirements != null) {
+      boolean updated = submittedParams.agentRequirements.setToBuildType(buildTypeSettings, serviceLocator);
       result = result || updated;
     }
-    if (submittedSettings != null && submittedSettings.properties != null) {
+    if (submittedParams.settings != null && submittedParams.settings.properties != null) {
       //need to remove all settings if submittedSettings.properties == null???
-      for (Property property : submittedSettings.properties) {
+      for (Property property : submittedParams.settings.properties) {
         try {
           property.addTo(new BuildTypeRequest.BuildTypeSettingsEntityWithParams(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate()), serviceLocator);
           result = true;
@@ -1048,19 +1040,19 @@ public class BuildType {
         }
       }
     }
-    if (submittedType != null) {
+    if (submittedParams.type != null) {
       //this overrides setting submitted via "settings"
       String previousValue = buildTypeSettings.getOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE);
 
       boolean modified;
       try {
-        String newValue = TypedFinderBuilder.getEnumValue(submittedType, BuildTypeOptions.BuildConfigurationType.class).name();
+        String newValue = TypedFinderBuilder.getEnumValue(submittedParams.type, BuildTypeOptions.BuildConfigurationType.class).name();
         modified = !previousValue.equalsIgnoreCase(newValue);
         if (modified) {
           buildTypeSettings.setOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE, newValue);
         }
       } catch (IllegalArgumentException e) {
-        throw new BadRequestException("Could not set type to value '" + submittedType + "'. Error: " + e.getMessage());
+        throw new BadRequestException("Could not set type to value '" + submittedParams.type + "'. Error: " + e.getMessage());
       }
       result = result || modified;
     }
@@ -1069,8 +1061,8 @@ public class BuildType {
 
   @NotNull
   public String getIdForBuildType(@NotNull final ServiceLocator serviceLocator, @NotNull SProject project, @NotNull final String name) {
-    if (submittedId != null) {
-      return submittedId;
+    if (mySubmitted.get().id != null) {
+      return mySubmitted.get().id;
     }
     return serviceLocator.getSingletonService(BuildTypeIdentifiersManager.class).generateNewExternalId(project.getExternalId(), name, null);
   }
@@ -1117,5 +1109,48 @@ public class BuildType {
       // might need to add check for read-only parameter here...
       return false;
     }
+  }
+
+  private class SubmitedParameters {
+    private String id;
+    private String internalId;
+    private String locator;
+    private Boolean inherited;
+    @Nullable
+    private String projectId;
+    @Nullable
+    private Project project;
+    @Nullable
+    private String name;
+    @Nullable
+    private String description;
+    @Nullable
+    private Boolean templateFlag;
+    @Nullable
+    private String type;
+    @Nullable
+    private Boolean paused;
+    @Nullable
+    private BuildType template;
+    @Nullable
+    private BuildTypes templates;
+    @Nullable
+    private VcsRootEntries vcsRootEntries;
+    @Nullable
+    private Properties parameters;
+    @Nullable
+    private PropEntitiesStep steps;
+    @Nullable
+    private PropEntitiesFeature features;
+    @Nullable
+    private PropEntitiesTrigger triggers;
+    @Nullable 
+    private PropEntitiesSnapshotDep snapshotDependencies;
+    @Nullable
+    private PropEntitiesArtifactDep artifactDependencies;
+    @Nullable
+    private PropEntitiesAgentRequirement agentRequirements;
+    @Nullable
+    private Properties settings;
   }
 }
