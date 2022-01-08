@@ -1025,7 +1025,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    final Boolean pinned = locator.getSingleDimensionValueAsBoolean(PINNED); //todo: add to build options when prefiltering
+    final Boolean pinned = locator.getSingleDimensionValueAsBoolean(PINNED);
     if (pinned != null) {
       result.add(new FilterConditionChecker<SBuild>() {
         public boolean isIncluded(@NotNull final SBuild item) {
@@ -1496,6 +1496,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         options.setIncludeCanceled(false);
       }
 
+      final Boolean pinned = locator.getSingleDimensionValueAsBoolean(PINNED);
+      if (pinned != null) {
+        options.setPinStatus(pinned);
+      }
+
       TagFinder.FilterOptions tagFilterOptions = TagFinder.getFilterOptions(locator.lookupDimensionValue(TAG), myServiceLocator);
       if (tagFilterOptions != null) {
         options.setTagName(tagFilterOptions.getTagName(), tagFilterOptions.getTagOwner());
@@ -1529,6 +1534,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
       options.setIncludeRunning(false); //running builds are retrieved separately and appear before finished ones
       options.setOrderByChanges(false);
+
+      Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+      if (count != null) {
+        options.setPageSize(count.intValue());
+      }
 
       finishedBuilds = new ItemHolder<BuildPromotion>() {
         public void process(@NotNull final ItemProcessor<BuildPromotion> processor) {
