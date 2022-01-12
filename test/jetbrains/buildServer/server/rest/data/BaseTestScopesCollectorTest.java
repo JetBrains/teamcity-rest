@@ -23,7 +23,7 @@ import jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.CurrentProblemsManager;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.TestName2IndexImpl;
+import jetbrains.buildServer.serverSide.tests.TestName2IndexImpl;
 import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;

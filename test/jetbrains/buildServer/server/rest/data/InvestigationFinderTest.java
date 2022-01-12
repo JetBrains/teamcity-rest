@@ -30,7 +30,7 @@ import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.TestName2IndexImpl;
+import jetbrains.buildServer.serverSide.tests.TestName2IndexImpl;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemInfoImpl;
 import jetbrains.buildServer.tests.TestName;
