@@ -30,7 +30,7 @@ import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.tests.TestName2IndexImpl;
+import jetbrains.buildServer.serverSide.TestName2Index;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemInfoImpl;
 import jetbrains.buildServer.tests.TestName;
@@ -129,7 +129,7 @@ public class InvestigationFinderTest extends BaseFinderTest<InvestigationWrapper
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
-    final TestName2IndexImpl testName2Index = myFixture.getSingletonService(TestName2IndexImpl.class);
+    final TestName2Index testName2Index = myFixture.getSingletonService(TestName2Index.class);
     assertEquals("assignmentProject:(id:" + myProject.getExternalId() + "),test:(id:" + testName2Index.findTestNameId(testName) + ")", investigation.id);
     assertEquals("TAKEN", investigation.state);
     assertEquals((Long)myUser.getId(), investigation.assignee.getId());

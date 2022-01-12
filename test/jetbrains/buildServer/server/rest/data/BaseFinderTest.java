@@ -40,7 +40,7 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.ArtifactDependencyFactory;
 import jetbrains.buildServer.serverSide.CurrentProblemsManager;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.tests.TestName2IndexImpl;
+import jetbrains.buildServer.serverSide.TestName2Index;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.healthStatus.HealthStatusProvider;
 import jetbrains.buildServer.serverSide.healthStatus.HealthStatusReportLocator;
@@ -151,7 +151,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myBuildFinder = new BuildFinder(myServer, myBuildTypeFinder, myProjectFinder, myUserFinder, myBuildPromotionFinder, myAgentFinder);
     myFixture.addService(myBuildFinder);
 
-    final TestName2IndexImpl testName2Index = myFixture.getSingletonService(TestName2IndexImpl.class);
+    final TestName2Index testName2Index = myFixture.getSingletonService(TestName2Index.class);
     final ProblemMutingService problemMutingService = myFixture.getSingletonService(ProblemMutingService.class);
     myTestFinder = new TestFinder(myProjectFinder, myBuildTypeFinder, myBuildPromotionFinder,
                                   myFixture.getTestManager(), testName2Index, myFixture.getCurrentProblemsManager(), problemMutingService);

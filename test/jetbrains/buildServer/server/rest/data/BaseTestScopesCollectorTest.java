@@ -23,7 +23,7 @@ import jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.CurrentProblemsManager;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.tests.TestName2IndexImpl;
+import jetbrains.buildServer.serverSide.TestName2Index;
 import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
@@ -86,7 +86,7 @@ public class BaseTestScopesCollectorTest extends BaseServerTestCase {
     myBuildFinder = new BuildFinder(myFixture, myBuildTypeFinder, myProjectFinder, myUserFinder, myBuildPromotionFinder, myAgentFinder);
 
 
-    final TestName2IndexImpl testName2Index = myFixture.getSingletonService(TestName2IndexImpl.class);
+    final TestName2Index testName2Index = myFixture.getSingletonService(TestName2Index.class);
     final ProblemMutingService problemMutingService = myFixture.getSingletonService(ProblemMutingService.class);
     myTestFinder = new TestFinder(myProjectFinder, myBuildTypeFinder, myBuildPromotionFinder,
                                   myFixture.getTestManager(), testName2Index, myFixture.getCurrentProblemsManager(), problemMutingService);
