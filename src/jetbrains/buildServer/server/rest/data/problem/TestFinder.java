@@ -23,7 +23,6 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
-import jetbrains.buildServer.serverSide.tests.TestName2IndexImpl;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -47,7 +46,7 @@ public class TestFinder extends AbstractFinder<STest> {
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final BuildPromotionFinder myBuildPromotionFinder;
   @NotNull private final STestManager myTestManager;
-  @NotNull private final TestName2IndexImpl myTestName2Index; //TeamCIty open API issue
+  @NotNull private final TestName2Index myTestName2Index;
   @NotNull private final CurrentProblemsManager myCurrentProblemsManager;
   @NotNull private final ProblemMutingService myProblemMutingService;
 
@@ -55,7 +54,7 @@ public class TestFinder extends AbstractFinder<STest> {
                     final @NotNull BuildTypeFinder buildTypeFinder,
                     final @NotNull BuildPromotionFinder buildPromotionFinder,
                     final @NotNull STestManager testManager,
-                    final @NotNull TestName2IndexImpl testName2Index,
+                    final @NotNull TestName2Index testName2Index,
                     final @NotNull CurrentProblemsManager currentProblemsManager,
                     final @NotNull ProblemMutingService problemMutingService) {
     super(DIMENSION_ID, NAME, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, CURRENTLY_MUTED, MUTE_AFFECTED,
