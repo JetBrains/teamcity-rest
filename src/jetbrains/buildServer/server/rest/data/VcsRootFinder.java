@@ -174,16 +174,6 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
       throw new NotFoundException("No VCS root can be found by uuid '" + uuid + "'.");
     }
 
-    String rootName = locator.getSingleDimensionValue(NAME);
-    if (rootName != null) {
-      SVcsRoot root = myVcsManager.findRootByName(rootName);
-      if (root == null) {
-        throw new NotFoundException("No VCS root can be found by name '" + rootName + "'.");
-      }
-      checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, root);
-      return root;
-    }
-
     return null;
   }
 
@@ -238,6 +228,11 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
           return parameterCondition.matches(new AbstractMapParametersProvider(item.getProperties()));
         }
       });
+    }
+
+    final String rootName = locator.getSingleDimensionValue(NAME);
+    if (rootName != null) {
+      result.add(vcsRoot -> vcsRoot.getName().equals(rootName));
     }
 
     return result;
