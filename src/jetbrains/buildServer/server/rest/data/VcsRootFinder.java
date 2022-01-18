@@ -65,9 +65,12 @@ import java.util.stream.Collectors;
 public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
   private static final Logger LOG = Logger.getInstance(VcsRootFinder.class.getName());
   public static final String REPOSITORY_ID_STRING = "repositoryIdString";
-  @LocatorDimension("internalId") protected static final String INTERNAL_ID = "internalId";
-  @LocatorDimension("uuid") protected static final String UUID = "uuid";
-  @LocatorDimension("name") protected static final String NAME = "name";
+  @LocatorDimension("internalId")
+  protected static final String INTERNAL_ID = "internalId";
+  @LocatorDimension("uuid")
+  protected static final String UUID = "uuid";
+  @LocatorDimension("name")
+  protected static final String NAME = "name";
   @LocatorDimension(value = "type", notes = "Type of VCS (e.g. jetbrains.git).")
   protected static final String TYPE = "type";
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project (direct parent) locator.")
@@ -144,7 +147,6 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
       return root;
     }
 
-
     Long internalId = locator.getSingleDimensionValueAsLong(INTERNAL_ID);
     if (internalId != null) {
       SVcsRoot root = myVcsManager.findRootById(internalId);
@@ -180,27 +182,20 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
   @NotNull
   @Override
   public ItemFilter<SVcsRoot> getFilter(@NotNull final Locator locator) {
-
     final MultiCheckerFilter<SVcsRoot> result = new MultiCheckerFilter<SVcsRoot>();
 
-    result.add(new FilterConditionChecker<SVcsRoot>() {
-      public boolean isIncluded(@NotNull final SVcsRoot item) {
-        try {
-          checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, item);
-          return true;
-        } catch (AuthorizationFailedException e) {
-          return false;
-        }
+    result.add(vcsRoot -> {
+      try {
+        checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, vcsRoot);
+        return true;
+      } catch (AuthorizationFailedException e) {
+        return false;
       }
     });
 
     final String type = locator.getSingleDimensionValue(TYPE);
     if (type != null) {
-      result.add(new FilterConditionChecker<SVcsRoot>() {
-        public boolean isIncluded(@NotNull final SVcsRoot item) {
-          return type.equals(item.getVcsName());
-        }
-      });
+      result.add(vcsRoot -> type.equals(vcsRoot.getVcsName()));
     }
 
     if (locator.isUnused(PROJECT)) {
@@ -213,21 +208,13 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
 
     final String repositoryIdString = locator.getSingleDimensionValue(REPOSITORY_ID_STRING);
     if (repositoryIdString != null) {
-      result.add(new FilterConditionChecker<SVcsRoot>() {
-        public boolean isIncluded(@NotNull final SVcsRoot item) {
-          return repositoryIdStringMatches(item, repositoryIdString, myVcsManager);
-        }
-      });
+      result.add(vcsRoot -> repositoryIdStringMatches(vcsRoot, repositoryIdString, myVcsManager));
     }
 
     final List<String> properties = locator.getDimensionValue(PROPERTY);
     if (!properties.isEmpty()) {
       final Matcher<ParametersProvider> parameterCondition = ParameterCondition.create(properties);
-      result.add(new FilterConditionChecker<SVcsRoot>() {
-        public boolean isIncluded(@NotNull final SVcsRoot item) {
-          return parameterCondition.matches(new AbstractMapParametersProvider(item.getProperties()));
-        }
-      });
+      result.add(vcsRoot -> parameterCondition.matches(new AbstractMapParametersProvider(vcsRoot.getProperties())));
     }
 
     final String rootName = locator.getSingleDimensionValue(NAME);
@@ -323,13 +310,13 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
   private SVcsRoot getVcsRootByExternalOrInternalId(final String id) {
     assert id != null;
     SVcsRoot vcsRoot = myProjectManager.findVcsRootByExternalId(id);
-    if (vcsRoot != null){
+    if (vcsRoot != null) {
       checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, vcsRoot);
       return vcsRoot;
     }
     try {
       vcsRoot = myProjectManager.findVcsRootById(Long.parseLong(id));
-      if (vcsRoot != null){
+      if (vcsRoot != null) {
         checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, vcsRoot);
         return vcsRoot;
       }
@@ -343,7 +330,7 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
     //todo: check and use AuthUtil.hasReadAccessTo
     //see also jetbrains.buildServer.server.rest.model.change.VcsRoot.shouldRestrictSettingsViewing
     final SProject project = VcsRoot.getProjectByRoot(root);
-    if (project == null){
+    if (project == null) {
       myPermissionChecker.checkGlobalPermission(permission);
     } else {
       myPermissionChecker.checkProjectPermission(permission, project.getProjectId(), " where VCS root with internal id '" + root.getId() + "' is defined");
