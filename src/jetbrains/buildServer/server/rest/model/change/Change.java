@@ -61,14 +61,14 @@ import org.jetbrains.annotations.Nullable;
   "id",
   "version",
   "internalVersion",
-  "username",
+  "username", // deprecated
   "date",
   "registrationDate",
   "personal",
   "href",
   "webUrl",
   "comment",
-  "user",
+  "user",     // deprecated
   "type",
   "snapshotDependencyLink",
   "fileChanges",
@@ -77,7 +77,8 @@ import org.jetbrains.annotations.Nullable;
   "parentRevisions",
   "attributes",
   "storesProjectSettings",
-  "status"
+  "status",
+  "commiter"
 })
 @ModelDescription(
     value = "Represents a VCS change (commit).",
@@ -192,6 +193,9 @@ public class Change {
     return ValueWithDefault.decideDefault(myFields.isIncluded("webUrl"), myWebLinks.getChangeUrl(myModification.getId(), myModification.isPersonal()));
   }
 
+  /**
+   * @deprecated use commiter.vcsUsername instead
+   */
   @XmlAttribute
   public String getUsername() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("username"), myModification.getUserName());
@@ -251,6 +255,9 @@ public class Change {
     return StringUtil.replaceInvalidXmlChars(str);
   }
 
+  /**
+   * @deprecated use commiter.users instead
+   */
   @XmlElement(name = "user")
   public User getUser() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("user", false), () -> {
@@ -259,6 +266,14 @@ public class Change {
         return null;
       }
       return new User(users.iterator().next(), myFields.getNestedField("user"), myBeanContext);
+    });
+  }
+
+  @XmlElement(name = "commiter")
+  public Commiter getCommiter() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("commiter", false), () -> {
+      final Collection<SUser> users = myModification.getCommitters();
+      return new Commiter(myFields.getNestedField("commiter"), myModification.getUserName(), users, myBeanContext);
     });
   }
 
@@ -349,5 +364,4 @@ public class Change {
 
     return changeFinder.getItem(locatorText).getSVcsModification();
   }
-
 }
