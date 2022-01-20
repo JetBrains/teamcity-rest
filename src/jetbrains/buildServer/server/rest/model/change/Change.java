@@ -37,6 +37,7 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelExperimental;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.ChangeDescriptor;
@@ -315,6 +316,7 @@ public class Change {
   }
 
   @XmlElement(name = "status")
+  @ModelExperimental
   public ChangeStatus getStatus() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("status", false, false), () -> {
       ChangeStatusProvider statusProvider = myBeanContext.getSingletonService(ChangeStatusProvider.class);

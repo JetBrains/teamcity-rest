@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.swagger;
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.introspect.Annotated;
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.ExtensionProperty;
 import io.swagger.converter.ModelConverter;
@@ -29,8 +30,12 @@ import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.AbstractProperty;
 import io.swagger.models.properties.ArrayProperty;
 import io.swagger.models.properties.Property;
+import java.util.Set;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelExperimental;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import org.apache.commons.lang3.StringUtils;
@@ -47,6 +52,15 @@ public class ExtensionModelResolver extends ModelResolver {
   }
 
   private static final Logger LOGGER = Logger.getInstance(ExtensionModelResolver.class.getName());
+
+  @Override
+  protected boolean ignore(Annotated member, XmlAccessorType xmlAccessorTypeAnnotation, String propName, Set<String> propertiesToIgnore) {
+    if(super.ignore(member, xmlAccessorTypeAnnotation, propName, propertiesToIgnore)) {
+      return true;
+    }
+
+    return member.hasAnnotation(ModelExperimental.class);
+  }
 
   @Override
   public Model resolve(JavaType type, ModelConverterContext context, Iterator<ModelConverter> next) {
