@@ -73,10 +73,15 @@ public class Builds implements DefaultValueAware {
   public Builds() {
   }
 
-  public Builds(final @NotNull ItemsProviders.LocatorAware<ItemsProviders.ItemsRetriever<BuildPromotion>> buildsData,
-                @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    ItemsProviders.ItemsRetriever<BuildPromotion> data = buildsData.get(fields.getLocator());
+  public Builds(@NotNull final ItemsProviders.LocatorAware<ItemsProviders.ItemsRetriever<BuildPromotion>> buildsData,
+                @NotNull final Fields fields,
+                @NotNull final BeanContext beanContext) {
+    this(buildsData.get(fields.getLocator()), fields, beanContext);
+  }
 
+  public Builds(final @NotNull ItemsProviders.ItemsRetriever<BuildPromotion> data,
+                final @NotNull Fields fields,
+                final @NotNull BeanContext beanContext) {
     builds = ValueWithDefault.decideDefault(
       fields.isIncluded("build", false, true),
       () -> {
