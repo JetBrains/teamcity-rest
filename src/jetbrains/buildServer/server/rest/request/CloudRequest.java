@@ -17,12 +17,11 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
-
-import io.swagger.annotations.ApiOperation;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.clouds.server.TerminateInstanceReason;
@@ -145,11 +144,11 @@ public class CloudRequest {
     jetbrains.buildServer.clouds.CloudInstance instance = myCloudInstanceFinder.getItem(instanceLocator).getInstance();
     final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     CloudUtil cloudUtil = myBeanContext.getSingletonService(CloudUtil.class);
-    jetbrains.buildServer.clouds.CloudProfile profile = cloudUtil.getProfile(instance.getImage());
-    if (profile == null) {
+    String profileId = cloudUtil.getProfileId(instance.getImage());
+    if (profileId == null) {
       throw new InvalidStateException("Cannot find profile for the cloud image");
     }
-    myBeanContext.getSingletonService(CloudManager.class).terminateInstance(profile.getProfileId(), instance.getImageId(), instance.getInstanceId(), TerminateInstanceReason.userAction(user));
+    myBeanContext.getSingletonService(CloudManager.class).terminateInstance(profileId, instance.getImageId(), instance.getInstanceId(), TerminateInstanceReason.userAction(user));
   }
 
   /**

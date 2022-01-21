@@ -83,7 +83,19 @@ public class CloudUtil {
 
   @Nullable
   public CloudProfile getProfile(@NotNull final CloudImage image) {
+    String profileId = image.getProfileId();
+    if (profileId != null) return myCloudManager.findProfileGloballyById(profileId);
+
     return myCloudManager.findProfileByImageId(image.getId());
+  }
+
+  @Nullable
+  public String getProfileId(@NotNull final CloudImage image) {
+    String profileId = image.getProfileId();
+    if (profileId != null) return profileId;
+
+    CloudProfile profile = myCloudManager.findProfileByImageId(image.getId());
+    return profile == null ? null : profile.getProfileId();
   }
 
   @Nullable
@@ -127,15 +139,15 @@ public class CloudUtil {
 
   @NotNull
   public String getId(@NotNull final CloudInstance instance) {
-    CloudProfile profile = getProfile(instance.getImage());
-    String profileId = profile != null ? profile.getProfileId() : "<missing>";
+    String profileId = getProfileId(instance.getImage());
+    if (profileId == null) profileId = "<missing>";
     return Locator.getStringLocator("profileId", profileId, "imageId", instance.getImageId(), "id", instance.getInstanceId());
   }
 
   @NotNull
   public String getId(@NotNull final CloudImage image) {
-    CloudProfile profile = getProfile(image);
-    String profileId = profile != null ? profile.getProfileId() : "<missing>";
+    String profileId = getProfileId(image);
+    if (profileId == null) profileId = "<missing>";
     return Locator.getStringLocator("profileId", profileId, "id", image.getId());
   }
 

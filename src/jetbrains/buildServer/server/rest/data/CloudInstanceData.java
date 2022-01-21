@@ -20,8 +20,8 @@ import java.util.Collection;
 import java.util.Date;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.CloudErrorInfo;
+import jetbrains.buildServer.clouds.CloudImage;
 import jetbrains.buildServer.clouds.CloudInstance;
-import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.SBuildAgent;
@@ -62,10 +62,10 @@ public class CloudInstanceData {
 
   @Nullable
   public SBuildAgent getAgent() {
-    CloudProfile profile = myServiceLocator.getSingletonService(CloudInstanceFinder.class).myCloudUtil
-      .getProfile(myInstance.getImage());
-    if (profile == null) return null;
-    Collection<SBuildAgent> agents = myServiceLocator.getSingletonService(CloudManager.class).findAgentByInstance(profile.getProfileId(), myInstance.getInstanceId());
+    CloudImage image = myInstance.getImage();
+    String profileId = myServiceLocator.getSingletonService(CloudInstanceFinder.class).myCloudUtil.getProfileId(image);
+    if (profileId == null) return null;
+    Collection<SBuildAgent> agents = myServiceLocator.getSingletonService(CloudManager.class).findAgentByInstance(profileId, myInstance.getInstanceId());
     return agents.size() > 0 ? agents.iterator().next() : null;
   }
 

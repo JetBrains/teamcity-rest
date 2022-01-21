@@ -20,9 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.clouds.server.StartInstanceReason;
 import jetbrains.buildServer.server.rest.data.CloudInstanceData;
@@ -139,12 +137,12 @@ public class CloudInstance {
     }
     CloudUtil util = serviceLocator.getSingletonService(CloudUtil.class);
     jetbrains.buildServer.clouds.CloudImage image = submittedImage.getFromPosted(serviceLocator);
-    CloudProfile profile = util.getProfile(image);
-    if (profile == null) {
+    String profileId = util.getProfileId(image);
+    if (profileId == null) {
       throw new InvalidStateException("Cannot find profile for the cloud image");
     }
     CloudManager cloudManager = serviceLocator.getSingletonService(CloudManager.class);
-    cloudManager.startInstance(profile.getProfileId(), image.getId(), StartInstanceReason.userAction(user));
+    cloudManager.startInstance(profileId, image.getId(), StartInstanceReason.userAction(user));
     return null;
   }
 }
