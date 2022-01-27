@@ -742,6 +742,7 @@ public class Locator {
    * "defaultValue" if such dimension is not present
    */
   @Nullable
+  @Contract("_,!null -> !null")
   public Boolean getSingleDimensionValueAsBoolean(@NotNull final String dimensionName, @Nullable Boolean defaultValue) {
     final String value = getSingleDimensionValue(dimensionName);
     if (value == null) {
@@ -935,6 +936,10 @@ public class Locator {
 
   public void markUsed(@NotNull Collection<String> dimensionNames) {
     myUsedDimensions.addAll(dimensionNames);
+  }
+
+  public void markUsed(@NotNull String dimensionName) {
+    myUsedDimensions.add(dimensionName);
   }
 
   /**

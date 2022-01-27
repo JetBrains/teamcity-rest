@@ -80,7 +80,8 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   protected static final String STATUS = "status";
   protected static final String FINISH_VCS_CHECKING_FOR_CHANGES = "checkingForChangesFinishDate";  // experimental
   protected static final String REPOSITORY_STATE = "repositoryState";  // experimental
-  @LocatorDimension(value = "versionedSettings", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is used for versioned settings.") protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //whether to include usages in project's versioned settings or not. By default "false" if "buildType" dimension is present and "any" otherwise
+  @LocatorDimension(value = "versionedSettings", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is used for versioned settings.")
+  protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //whether to include usages in project's versioned settings or not. By default "false" if "buildType" dimension is present and "any" otherwise
   protected static final String COMMIT_HOOK_MODE = "commitHookMode"; // experimental
   protected static final Comparator<VcsRootInstance> VCS_ROOT_INSTANCE_COMPARATOR = new Comparator<VcsRootInstance>() {
     public int compare(final VcsRootInstance o1, final VcsRootInstance o2) {
