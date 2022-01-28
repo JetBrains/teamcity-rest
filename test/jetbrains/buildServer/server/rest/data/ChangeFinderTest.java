@@ -764,6 +764,31 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     assertEquals(version1, result.get(0).getSVcsModification().getVersion());
   }
 
+  @Test
+  public void testDuplicate() {
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf1);
+    SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", buildConf2);
+    VcsRootInstance root1 = buildConf1.getVcsRootInstanceForParent(parentRoot1);
+    VcsRootInstance root2 = buildConf2.getVcsRootInstanceForParent(parentRoot2);
+    assert root1 != null && root2 != null;
+
+    final String version = "12345";
+
+    myFixture.addModification(modification().in(root1).by("user1").version(version));
+    myFixture.addModification(modification().in(root2).by("user1").version(version));
+
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("deduplicate:true").myEntries;
+    assertEquals(1, result.size());
+
+    List<SVcsModificationOrChangeDescriptor> resultWithDuplicate = myChangeFinder.getItems("count:10").myEntries;
+    assertEquals("Dimension deduplicate should be false by default", 2, resultWithDuplicate.size());
+  }
+
   @NotNull
   private VcsRootInstance buildVcsRootInstance() {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
