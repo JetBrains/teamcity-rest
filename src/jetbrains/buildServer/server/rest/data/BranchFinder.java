@@ -364,42 +364,13 @@ public class BranchFinder extends AbstractFinder<BranchData> {
                                                     .setComputeTimestamps(false)
                                                     .setIncludeBranchesFromDependencies(branchSearchOptions.isIncludeBranchesFromDependencies());
 
-    final BranchEx defaultBranch = buildTypeImpl.getBranches(calculationOptions).stream()
-                                                .filter(b -> b.isDefaultBranch())
-                                                .findFirst().orElse(null);
-    if(defaultBranch == null) {
-      return null;
+    for(BranchEx branch : buildTypeImpl.getBranches(calculationOptions)) {
+      if(!branch.isDefaultBranch()) continue;
+
+      return BranchData.fromBranchEx(branch, myServiceLocator, true, false);
     }
 
-    boolean disableActive = TeamCityProperties.getBoolean("rest.beans.branch.disableActive");
-    boolean computeActive = TeamCityProperties.getBooleanOrTrue("rest.beans.branch.computeActive");
-
-    if(!computeActive) {
-      return BranchData.fromBranchEx(defaultBranch, myServiceLocator, null, disableActive);
-    }
-
-    BranchesPolicy activeBranchesPolicy;
-    switch (branchSearchOptions.getBranchesPolicy()) {
-      case ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES:
-      case ACTIVE_VCS_BRANCHES:
-      case ACTIVE_HISTORY_BRANCHES:
-        // It's definitely active, according to branch calculation options
-        return BranchData.fromBranchEx(defaultBranch, myServiceLocator, true, disableActive);
-      case HISTORY_BRANCHES:
-        activeBranchesPolicy = BranchesPolicy.ACTIVE_HISTORY_BRANCHES;
-        break;
-      case VCS_BRANCHES:
-        activeBranchesPolicy = BranchesPolicy.ACTIVE_VCS_BRANCHES;
-        break;
-      case ALL_BRANCHES:
-      default:
-        activeBranchesPolicy = BranchesPolicy.ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES;
-    }
-
-    Set<String> activeBranches = buildTypeImpl.getBranches(activeBranchesPolicy, branchSearchOptions.isIncludeBranchesFromDependencies(), false)
-                                                              .stream().map(b -> b.getName()).collect(Collectors.toSet());
-
-    return BranchData.fromBranchEx(defaultBranch, myServiceLocator, activeBranches.contains(defaultBranch.getName()), disableActive);
+    return null;
   }
 
   @NotNull
