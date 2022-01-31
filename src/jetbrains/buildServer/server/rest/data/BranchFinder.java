@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.data;
 import com.google.common.collect.ComparisonChain;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -31,7 +30,6 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
-import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -273,29 +271,14 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     }
 
     BranchSearchOptions searchOptions = getBranchSearchOptions(locator);
-    boolean locatorComputeTimestamps = locator.getSingleDimensionValueAsBoolean(COMPUTE_TIMESTAMPS, TeamCityProperties.getBoolean("rest.beans.branch.defaultComputeTimestamp"));
-    boolean lookingForDefaultBranch = BooleanUtils.isTrue(locator.lookupSingleDimensionValueAsBoolean(DEFAULT));
-    // When locatorComputeTimestamps==true we must check *all* branch occurrences in order to have accurate timestamp, so shortcut isn't possible in that case
-    if(lookingForDefaultBranch && !locatorComputeTimestamps) {
-      locator.markUsed(DEFAULT);
 
-      for (SBuildType buildType : buildTypes) {
-        final BranchData branch = findDefaultBranch(buildType, searchOptions);
-
-        // As soon as default branch is found, create a simple processor and don't look into other buildTypes.
-        if(branch != null) {
-          result.add(processor -> processor.processItem(branch));
-          break;
-        }
-      }
-
-    } else {
-      Accumulator resultAccumulator = new Accumulator();
-      for (SBuildType buildType : buildTypes) {
-        resultAccumulator.addAll(getBranches(buildType, searchOptions, locatorComputeTimestamps));
-      }
-      result.add(getItemHolder(resultAccumulator.get()));
+    Accumulator resultAccumulator = new Accumulator();
+    for (SBuildType buildType : buildTypes) {
+      Boolean locatorComputeTimestamps = locator.getSingleDimensionValueAsBoolean(COMPUTE_TIMESTAMPS);
+      resultAccumulator.addAll(getBranches(buildType, searchOptions, locatorComputeTimestamps != null ? locatorComputeTimestamps : TeamCityProperties.getBoolean("rest.beans.branch.defaultComputeTimestamp")));
     }
+
+    result.add(getItemHolder(resultAccumulator.get()));
     return result;
   }
 
@@ -355,28 +338,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     return new BranchSearchOptions(branchesPolicy, changesFromDependencies);
   }
 
-  @Nullable
-  private BranchData findDefaultBranch(final @NotNull SBuildType buildType,
-                                       final @NotNull BranchSearchOptions branchSearchOptions) {
-    final BuildTypeEx buildTypeImpl = (BuildTypeEx)buildType; //TeamCity openAPI issue: cast
-    BranchCalculationOptions calculationOptions = new BranchCalculationOptions()
-                                                    .setBranchesPolicy(branchSearchOptions.getBranchesPolicy())
-                                                    .setComputeTimestamps(false)
-                                                    .setIncludeBranchesFromDependencies(branchSearchOptions.isIncludeBranchesFromDependencies());
-
-    for(BranchEx branch : buildTypeImpl.getBranches(calculationOptions)) {
-      if(!branch.isDefaultBranch()) continue;
-
-      return BranchData.fromBranchEx(branch, myServiceLocator, true, false);
-    }
-
-    return null;
-  }
-
-  @NotNull
-  private List<BranchData> getBranches(final @NotNull SBuildType buildType,
-                                       final @NotNull BranchSearchOptions branchSearchOptions,
-                                       final boolean computeTimestamps) {
+  private List<BranchData> getBranches(final @NotNull SBuildType buildType, @NotNull final BranchSearchOptions branchSearchOptions, final boolean computeTimestamps) {
     final BuildTypeEx buildTypeImpl = (BuildTypeEx)buildType; //TeamCity openAPI issue: cast
     BranchesPolicy mainPolicy = branchSearchOptions.getBranchesPolicy();
     List<BranchEx> branches = buildTypeImpl.getBranches(mainPolicy, branchSearchOptions.isIncludeBranchesFromDependencies(), computeTimestamps);
@@ -457,23 +419,17 @@ public class BranchFinder extends AbstractFinder<BranchData> {
   static private class Accumulator {
     //de-duplicate by name, ordering is not important here
     private final Map<String, BranchData> myMap = new HashMap<String, BranchData>();
-    private boolean myContainsDefaultBranch = false;
-
-    void add(@NotNull BranchData branch) {
-      myContainsDefaultBranch = true;
-      //assuming that branch.isDefaultBranch() means Branch.DEFAULT_BRANCH_NAME.equals(name)
-
-      BranchData previousData = myMap.get(branch.getName());
-      if (previousData == null) {
-        myMap.put(branch.getName(), branch);
-      } else {
-        myMap.put(branch.getName(), BranchData.mergeSameNamed(branch, previousData));
-      }
-    }
 
     void addAll(@NotNull final List<BranchData> buildTypeBranches) {
       for (BranchData branch : buildTypeBranches) {
-        add(branch);
+        //assuming that branch.isDefaultBranch() means Branch.DEFAULT_BRANCH_NAME.equals(name)
+
+        BranchData previousData = myMap.get(branch.getName());
+        if (previousData == null) {
+          myMap.put(branch.getName(), branch);
+        } else {
+          myMap.put(branch.getName(), BranchData.mergeSameNamed(branch, previousData));
+        }
       }
     }
 
@@ -488,10 +444,6 @@ public class BranchFinder extends AbstractFinder<BranchData> {
                                   .result();
           });
       return result;
-    }
-
-    public boolean containsDefaultBranch() {
-      return myContainsDefaultBranch;
     }
   }
 

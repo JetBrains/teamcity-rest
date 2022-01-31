@@ -25,7 +25,6 @@ import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.util.Util;
 import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -93,47 +92,12 @@ public class BranchFinderTest extends BaseFinderTest<BranchData> {
     checkExceptionOnItemsSearch(LocatorProcessException.class, "buildType:(id:" + bt20.getExternalId() + "),changesFromDependencies:any");
   }
 
-  @Test
-  public void testDefaultBranchLookup() {
-    final BuildTypeEx bt = registerBuildType("bt", "Project");
-
-    MockVcsSupport vcs = new MockVcsSupport("vcs"); vcs.setDAGBased(true);
-    myFixture.getVcsManager().registerVcsSupport(vcs);
-
-    SVcsRootEx parentRoot = myFixture.addVcsRoot(vcs.getName(), "", bt);
-    VcsRootInstance root = bt.getVcsRootInstanceForParent(parentRoot);
-    assert root != null;
-
-    setBranchSpec(root, "+:*");
-
-    final BuildFinderTestBase.MockCollectRepositoryChangesPolicy changesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
-    vcs.setCollectChangesPolicy(changesPolicy);
-
-    myFixture.addModification(modification().in(root).version("10").parentVersions("1"));
-    myFixture.addModification(modification().in(root).version("20").parentVersions("1"));
-    myFixture.addModification(modification().in(root).version("30").parentVersions("1"));
-
-    changesPolicy.setCurrentState(root, RepositoryStateData.createVersionState("master", Util.map("master", "10", "branch1", "20", "branch2", "30")));
-    myFixture.getVcsModificationChecker().checkForModifications(bt.getVcsRootInstances(), OperationRequestor.UNKNOWN);
-
-    check("buildType:(id:" + bt.getExternalId() + ")", "<default>", "branch1", "branch2");
-    check("buildType:(id:" + bt.getExternalId() + "),default:true", "<default>");
-    check("buildType:(id:" + bt.getExternalId() + "),default:false", (String) null, "branch1", "branch2");
-  }
-
-  private void check(@NotNull final String locator, @Nullable final String defaultBranchName, final String... expectedBranchNames) {
-    if(defaultBranchName != null) {
-      check(
-        locator,
-        (expectedName, actualBranchData) -> expectedName.equals(actualBranchData.getName()) && (!expectedName.equals(defaultBranchName) || actualBranchData.isDefaultBranch()),
-        Stream.concat(Stream.of(defaultBranchName), Arrays.stream(expectedBranchNames)).toArray(String[]::new)
-      );
-    } else {
-      check(
-        locator,
-        (expectedName, actualBranchData) -> expectedName.equals(actualBranchData.getName()),
-        expectedBranchNames
-      );
-    }
+  private void check(final String locator, final String defaultBranchName, final String... branchNames) {
+    check(locator, new Matcher<String, BranchData>() {
+      @Override
+      public boolean matches(@NotNull final String s, @NotNull final BranchData branchData) {
+        return s.equals(branchData.getName()) && (!s.equals(defaultBranchName) || branchData.isDefaultBranch());
+      }
+    }, Stream.concat(Stream.of(defaultBranchName), Arrays.stream(branchNames)).toArray(String[]::new));
   }
 }
