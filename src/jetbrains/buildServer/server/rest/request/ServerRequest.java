@@ -16,10 +16,18 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import java.util.*;
+import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.log.Loggers;
@@ -28,7 +36,6 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
-import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -43,13 +50,11 @@ import jetbrains.buildServer.server.rest.model.server.Server;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.maintenance.BackupConfig;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcess;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcessManager;
 import jetbrains.buildServer.serverSide.maintenance.MaintenanceProcessAlreadyRunningException;
-import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.Element;
@@ -57,29 +62,17 @@ import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-/*
- * User: Yegor Yarko
- * Date: 11.04.2009
- */
 @Path(ServerRequest.API_SERVER_URL)
 @Api("Server")
 public class ServerRequest {
-  private static final Logger LOG = Logger.getInstance(ServerRequest.class.getName());
 
   public static final String SERVER_VERSION_RQUEST_PATH = "version";
   public static final String SERVER_REQUEST_PATH = "/server";
   public static final String API_SERVER_URL = Constants.API_URL + SERVER_REQUEST_PATH;
+
   protected static final String LICENSING_DATA = "/licensingData";
   protected static final String LICENSING_KEYS = LICENSING_DATA + "/licenseKeys";
+
   @Context
   private DataProvider myDataProvider;
   @Context
@@ -89,9 +82,11 @@ public class ServerRequest {
   @Context
   private BeanFactory myFactory;
 
-  @SuppressWarnings("NullableProblems") @Context @NotNull private BeanContext myBeanContext;
+  @SuppressWarnings("NullableProblems") @Context @NotNull
+  private BeanContext myBeanContext;
 
-  @SuppressWarnings("NullableProblems") @Context @NotNull private PermissionChecker myPermissionChecker;
+  @SuppressWarnings("NullableProblems") @Context @NotNull
+  private PermissionChecker myPermissionChecker;
 
   public void initForTests(
     @NotNull ServiceLocator serviceLocator,
@@ -112,7 +107,7 @@ public class ServerRequest {
 
   @GET
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get the server info.",nickname="getServerInfo")
+  @ApiOperation(value = "Get the server info.", nickname = "getServerInfo")
   public Server serveServerInfo(@QueryParam("fields") String fields) {
     return new Server(new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
@@ -120,7 +115,7 @@ public class ServerRequest {
   @GET
   @Path("/{field}")
   @Produces({"text/plain"})
-  @ApiOperation(value="Get a field of the server info.",nickname="getServerField")
+  @ApiOperation(value = "Get a field of the server info.", nickname = "getServerField")
   public String serveServerVersion(@PathParam("field") String fieldName) {
     return Server.getFieldValue(fieldName, myServiceLocator);
   }
@@ -128,7 +123,7 @@ public class ServerRequest {
   @GET
   @Path("/plugins")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get all plugins.",nickname="getAllPlugins")
+  @ApiOperation(value = "Get all plugins.", nickname = "getAllPlugins")
   public PluginInfos servePlugins(@QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     return new PluginInfos(myDataProvider.getPlugins(), new Fields(fields), myBeanContext);
@@ -137,7 +132,7 @@ public class ServerRequest {
   @GET
   @Path("/metrics")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get metrics.",nickname="getAllMetrics")
+  @ApiOperation(value = "Get metrics.", nickname = "getAllMetrics")
   public Metrics serveMetrics(@QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.VIEW_USAGE_STATISTICS);
 
@@ -145,21 +140,20 @@ public class ServerRequest {
   }
 
   /**
-   *
-   * @param fileName relative file name to save backup to (will be saved into
-   *                 the default backup directory (<tt>.BuildServer/backup</tt>
-   *                 if not overriden in main-config.xml)
-   * @param addTimestamp whether to add timestamp to the file or not
-   * @param includeConfigs whether to include configs into the backup or not
-   * @param includeDatabase whether to include database into the backup or not
-   * @param includeBuildLogs whether to include build logs into the backup or not
+   * @param fileName               relative file name to save backup to (will be saved into
+   *                               the default backup directory (<tt>.BuildServer/backup</tt>
+   *                               if not overriden in main-config.xml)
+   * @param addTimestamp           whether to add timestamp to the file or not
+   * @param includeConfigs         whether to include configs into the backup or not
+   * @param includeDatabase        whether to include database into the backup or not
+   * @param includeBuildLogs       whether to include build logs into the backup or not
    * @param includePersonalChanges whether to include personal changes into the backup or not
    * @return the resulting file name that the backup will be saved to
    */
   @POST
   @Path("/backup")
   @Produces({"text/plain"})
-  @ApiOperation(value="Start a new backup.",nickname="startBackup")
+  @ApiOperation(value = "Start a new backup.", nickname = "startBackup")
   public String startBackup(@QueryParam("fileName") String fileName,
                             @QueryParam("addTimestamp") Boolean addTimestamp,
                             @QueryParam("includeConfigs") Boolean includeConfigs,
@@ -188,7 +182,7 @@ public class ServerRequest {
       } else {
         backupConfig.setFileName(fileName);
       }
-    }else{
+    } else {
       throw new BadRequestException("No target file name specified.", null);
     }
 
@@ -213,7 +207,7 @@ public class ServerRequest {
   @GET
   @Path("/backup")
   @Produces({"text/plain"})
-  @ApiOperation(value="Get the latest backup status.",nickname="getBackupStatus")
+  @ApiOperation(value = "Get the latest backup status.", nickname = "getBackupStatus")
   public String getBackupStatus() {
     BackupProcessManager backupManager = myServiceLocator.getSingletonService(BackupProcessManager.class);
     final BackupProcess backupProcess = backupManager.getCurrentBackupProcess();
@@ -229,44 +223,16 @@ public class ServerRequest {
   @GET
   @Path(LICENSING_DATA)
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get the licensing data.",nickname="getLicensingData")
+  @ApiOperation(value = "Get the licensing data.", nickname = "getLicensingData")
   public LicensingData getLicensingData(@QueryParam("fields") String fieldsText) {
     Fields fields = new Fields(fieldsText);
-
-    /*
-    Collection<String> fieldsDimensions = fields.getAllCustomDimensions();
-    if(fieldsDimensions.size() == 1 && fieldsDimensions.contains("agentsLeft")) {
-      myPermissionChecker.checkGlobalPermission(Permission.VIEW_AGENT_DETAILS);
-
-      try {
-        SecurityContextEx context = myBeanContext.getSingletonService(SecurityContextEx.class);
-        LicenseKeysManager manager = context.runAsSystem(() -> {
-          return myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager();
-        });
-
-        LicensingData result = new LicensingData();
-        result.setAgentsLeft(manager.getLicensingPolicy().getAgentsLicensesLeft());
-        return result;
-      } catch (AccessDeniedException ade) {
-        throw ade;
-      } catch (Throwable t) {
-        String message = "Unable to retrieve licensing data.";
-        LOG.infoAndDebugDetails(message, t);
-
-        throw new BadRequestException(message);
-      }
-    } else {
-      myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
-    }*/
-
-
     return new LicensingData(myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager(), fields, myBeanContext);
   }
 
   @GET
   @Path(LICENSING_KEYS)
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get all license keys.",nickname="getLicenseKeys")
+  @ApiOperation(value = "Get all license keys.", nickname = "getLicenseKeys")
   public LicenseKeyEntities getLicenseKeys(@QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     LicenseList licenseList = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager().getLicenseList();
@@ -282,11 +248,11 @@ public class ServerRequest {
   @Path(LICENSING_KEYS)
   @Consumes({"text/plain"})
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Add license keys.",nickname="addLicenseKeys")
+  @ApiOperation(value = "Add license keys.", nickname = "addLicenseKeys")
   public LicenseKeyEntities addLicenseKeys(final String licenseKeyCodes, @QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     LicenseKeysManager licenseKeysManager = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager();
-    List<String> keysToAdd = Stream.of(DELIMITERS.split(licenseKeyCodes)).map(s -> s.trim()).filter(s -> !StringUtil.isEmpty(s)).collect(Collectors.toList());
+    List<String> keysToAdd = Stream.of(DELIMITERS.split(licenseKeyCodes)).map(String::trim).filter(s -> !StringUtil.isEmpty(s)).collect(Collectors.toList());
     List<LicenseKey> validatedKeys = licenseKeysManager.validateKeys(keysToAdd); //TeamCity API issue: why return good keys?
     if (!validatedKeys.isEmpty()) {
       // is there a way to return entity with not 200 result code???
@@ -308,7 +274,7 @@ public class ServerRequest {
   @GET
   @Path(LICENSING_KEYS + "/{licenseKey}")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get a license key.",nickname="getLicenseKey")
+  @ApiOperation(value = "Get a license key.", nickname = "getLicenseKey")
   public LicenseKeyEntity getLicenseKey(@PathParam("licenseKey") final String licenseKey, @QueryParam("fields") String fields) {
     myDataProvider.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
     LicenseKeysManager licenseKeysManager = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager();
@@ -318,7 +284,7 @@ public class ServerRequest {
 
   @DELETE
   @Path(LICENSING_KEYS + "/{licenseKey}")
-  @ApiOperation(value="Delete a license key.",nickname="deleteLicenseKey")
+  @ApiOperation(value = "Delete a license key.", nickname = "deleteLicenseKey")
   public void deleteLicenseKey(@PathParam("licenseKey") final String licenseKey) {
     myDataProvider.checkGlobalPermission(Permission.CHANGE_SERVER_SETTINGS);
     LicenseKeysManager licenseKeysManager = myBeanContext.getSingletonService(BuildServerEx.class).getLicenseKeysManager();
@@ -405,4 +371,5 @@ public class ServerRequest {
   private Permission getAreaPermission(final @PathParam("areaId") String areaId) {
     return "logs".equals(areaId) ? Permission.MANAGE_SERVER_INSTALLATION : Permission.VIEW_SERVER_SETTINGS;
   }
+
 }

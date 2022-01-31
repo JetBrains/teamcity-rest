@@ -20,6 +20,17 @@ import com.google.common.base.Stopwatch;
 import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.ParseException;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import jetbrains.buildServer.controllers.HttpDownloadProcessor;
 import jetbrains.buildServer.server.rest.data.ArchiveElement;
 import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
@@ -44,24 +55,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.text.ParseException;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-
-/**
- * @author Yegor.Yarko
- *         Date: 04/07/2015
- */
 @Api
 public class FilesSubResource {
+
   private static Logger LOG = Logger.getInstance(FilesSubResource.class.getName());
 
   public static final String METADATA = "/metadata";
@@ -70,7 +66,8 @@ public class FilesSubResource {
 
   private final Provider myProvider;
   private final String myUrlPrefix;
-  @NotNull private final BeanContext myBeanContext;
+  @NotNull
+  private final BeanContext myBeanContext;
   private final boolean myArchiveBrowsingSupported;
 
   public FilesSubResource(@NotNull final Provider provider, @NotNull final String urlPrefix, @NotNull final BeanContext beanContext, final boolean archiveBrowsingSupported) {
@@ -85,7 +82,7 @@ public class FilesSubResource {
    */
   @GET
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  @ApiOperation(value="List all files.",nickname="getFilesList")
+  @ApiOperation(value = "List all files.", nickname = "getFilesList")
   public Files getRoot(@QueryParam("basePath") final String basePath,
                        @QueryParam("locator") final String locator,
                        @QueryParam("fields") String fields) {
@@ -98,7 +95,7 @@ public class FilesSubResource {
   @GET
   @Path("{path:(.*)?}") //for some reason, leading slash is not passed here
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  @ApiOperation(value="List files under this path.",nickname="getFilesListForSubpath")
+  @ApiOperation(value = "List files under this path.", nickname = "getFilesListForSubpath")
   public Files getChildrenAlias(@PathParam("path") @DefaultValue("") final String path,
                                 @QueryParam("basePath") final String basePath,
                                 @QueryParam("locator") final String locator,
@@ -109,20 +106,21 @@ public class FilesSubResource {
   @GET
   @Path(FilesSubResource.CHILDREN + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  @ApiOperation(value="getChildren", hidden=true)
+  @ApiOperation(value = "getChildren", hidden = true)
   public Files getChildren(@PathParam("path") @DefaultValue("") final String path,
                            @QueryParam("basePath") final String basePath,
                            @QueryParam("locator") final String locator,
                            @QueryParam("fields") String fields) {
-    if (!myArchiveBrowsingSupported && locator != null){
+    if (!myArchiveBrowsingSupported && locator != null) {
       final Boolean browseArchives = new Locator(locator).getSingleDimensionValueAsBoolean(BuildArtifactsFinder.ARCHIVES_DIMENSION_NAME);
-      if (browseArchives != null && browseArchives){
+      if (browseArchives != null && browseArchives) {
         throw new BadRequestException("Archive browsing is not supported for this request, remove '" + BuildArtifactsFinder.ARCHIVES_DIMENSION_NAME + "' dimension");
       }
     }
     final FileApiUrlBuilder builder = fileApiUrlBuilder(locator, myUrlPrefix);
     final Element rootElement = myProvider.getElement(myProvider.preprocess(StringUtil.removeLeadingSlash(path)));
     return new Files(null, new Files.DefaultFilesProvider(builder, myBeanContext) {
+      @Override
       @NotNull
       public List<? extends Element> getItems() {
         return BuildArtifactsFinder.getItems(rootElement, myProvider.preprocess(basePath), locator, builder, myBeanContext.getServiceLocator());
@@ -149,7 +147,7 @@ public class FilesSubResource {
   @GET
   @Path("files" + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
-  @ApiOperation(value="Download specific file.",nickname="downloadFile")
+  @ApiOperation(value = "Download specific file.", nickname = "downloadFile")
   public Response getContentAlias(@PathParam("path") @DefaultValue("") final String path, @Context HttpServletRequest request, @Context HttpServletResponse response) {
     return getContent(path, null, request, response);
   }
@@ -157,7 +155,7 @@ public class FilesSubResource {
   @GET
   @Path(FilesSubResource.CONTENT + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
-  @ApiOperation(value="getContent", hidden=true)
+  @ApiOperation(value = "getContent", hidden = true)
   public Response getContent(@PathParam("path") final String path,
                              @QueryParam("responseBuilder") final String responseBuilder,
                              @Context HttpServletRequest request,
@@ -168,7 +166,8 @@ public class FilesSubResource {
       throw new NotFoundException("Cannot provide content for '" + initialElement.getFullName() + "'. To get children use '" +
                                   fileApiUrlBuilder(null, myUrlPrefix).getChildrenHref(initialElement) + "'.");
     }
-    String contentResponseBuilder = getSetting("rest.files.contentResponseBuilder", "coreWithDownloadProcessor", "responseBuilder", responseBuilder, true, "rest", "core", "coreWithDownloadProcessor");
+    String contentResponseBuilder = getSetting(
+      "rest.files.contentResponseBuilder", "coreWithDownloadProcessor", "responseBuilder", responseBuilder, true, "rest", "core", "coreWithDownloadProcessor");
     if ("rest".equals(contentResponseBuilder)) {
       //pre-2017.1 way of downloading files
       final Response.ResponseBuilder builder = getContent(initialElement, request);
@@ -182,11 +181,12 @@ public class FilesSubResource {
         processCoreDownload(initialElement, request, response);
       }
     } else {
-      throw new BadRequestException("Unknown responseBuilder: '" + contentResponseBuilder + "'. Supported values are: '" + "rest" + "', '" + "core" + "', '" + "coreWithDownloadProcessor" + "'");
+      throw new BadRequestException(
+        "Unknown responseBuilder: '" + contentResponseBuilder + "'. Supported values are: '" + "rest" + "', '" + "core" + "', '" + "coreWithDownloadProcessor" + "'");
     }
     //todo: register only if no errors occurred?
     myProvider.fileContentServed(preprocessedPath, request);
-    
+
     if (!response.isCommitted()) {
       //let Jersey know what the response should be, otherwise 304 responses can turn to 204
       return Response.status(response.getStatus()).build();
@@ -220,19 +220,23 @@ public class FilesSubResource {
     boolean setContentDisposition = getSetContentDisposition(element, request, response);
     try {
       myBeanContext.getSingletonService(HttpDownloadProcessor.class).processDownload(new HttpDownloadProcessor.FileInfo() {
+        @Override
         public long getLastModified() {
           return FilesSubResource.getLastModified(element);
         }
 
+        @Override
         public long getFileSize() {
           return element.getSize();
         }
 
+        @Override
         @NotNull
         public String getFileName() {
           return element.getName();
         }
 
+        @Override
         @NotNull
         public String getFileDigest() {
           //including full "resolved" path into the tag to make sure same-name, same-size files available under the same URL produce different tags
@@ -240,6 +244,7 @@ public class FilesSubResource {
           return getETag(element, myUrlPrefix);
         }
 
+        @Override
         @NotNull
         public InputStream getInputStream() throws IOException {
           //todo: see this method in HttpDownloadProcessor
@@ -254,8 +259,8 @@ public class FilesSubResource {
 
   static boolean getSetContentDisposition(final @NotNull Element element, final @NotNull HttpServletRequest request, final @NotNull HttpServletResponse response) {
     String contentDisposition = getSetting("rest.files.contentResponseBuilder.contentDisposition", "attachment", "contentDisposition", request.getParameter("contentDisposition"),
-                                           false,
-                                           "core", "no", "attachment");
+      false,
+      "core", "no", "attachment");
 
     switch (contentDisposition) {
       case "core":
@@ -291,7 +296,8 @@ public class FilesSubResource {
   }
 
   static String getETag(final @NotNull Element element, @NotNull final String uniqueElementBrowserId) {
-    String fullNamePart = Util.concatenatePath(uniqueElementBrowserId, CONTENT, element.getFullName()); //this should not change between the releases to make the client caching work
+    //this should not change between the releases to make the client caching work
+    String fullNamePart = Util.concatenatePath(uniqueElementBrowserId, CONTENT, element.getFullName());
     return EncryptUtil.md5(fullNamePart + "_" + element.getSize() + "_" + getLastModified(element));
   }
 
@@ -307,7 +313,7 @@ public class FilesSubResource {
   @GET
   @Path(FilesSubResource.METADATA + "{path:(/.*)?}")
   @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-  @ApiOperation(value="Get metadata of specific file.",nickname="getFileMetadata")
+  @ApiOperation(value = "Get metadata of specific file.", nickname = "getFileMetadata")
   public jetbrains.buildServer.server.rest.model.files.File getMetadata(@PathParam("path") final String path,
                                                                         @QueryParam("fields") String fields,
                                                                         @Context HttpServletRequest request) {
@@ -318,12 +324,11 @@ public class FilesSubResource {
   @GET
   @Path("/archived" + "{path:(/.*)?}")
   @Produces({MediaType.WILDCARD})
-  @ApiOperation(value="Get specific file zipped.",nickname="getZippedFile")
+  @ApiOperation(value = "Get specific file zipped.", nickname = "getZippedFile")
   public Response getZipped(@PathParam("path") final String path,
                             @QueryParam("basePath") final String basePath,
                             @QueryParam("locator") final String locator,
                             @QueryParam("name") final String name,
-//                            @QueryParam("ignoreErrors") final String ignoreErrors, //todo: implement
                             @Context HttpServletRequest request) {
     final String processedPath = myProvider.preprocess(StringUtil.removeLeadingSlash(path));
     String actualBasePath = basePath != null ? myProvider.preprocess(basePath) : processedPath;
@@ -337,14 +342,16 @@ public class FilesSubResource {
 
     final FileApiUrlBuilder urlBuilder = fileApiUrlBuilder(locator, myUrlPrefix);
     final List<ArtifactTreeElement> elements = BuildArtifactsFinder.getItems(myProvider.getElement(processedPath), actualBasePath, actualLocator, urlBuilder,
-                                                                             myBeanContext.getServiceLocator());
+      myBeanContext.getServiceLocator());
 
     final ArchiveElement archiveElement = new ArchiveElement(elements, finalName);
     final Response.ResponseBuilder builder = getContentByStream(archiveElement, request, new StreamingOutputProvider() {
+      @Override
       public boolean isRangeSupported() {
         return false;
       }
 
+      @Override
       public StreamingOutput getStreamingOutput(@Nullable final Long startOffset, @Nullable final Long length) {
         return archiveElement.getStreamingOutput(startOffset, length, () -> "request " + WebUtil.getRequestDump(request));
       }
@@ -364,21 +371,26 @@ public class FilesSubResource {
 
   public static FileApiUrlBuilder fileApiUrlBuilder(@Nullable final String locator, @NotNull final String urlPathPrefix) {
     return new FileApiUrlBuilder() {
+      @Override
       @NotNull
       public String getMetadataHref(@Nullable Element e) {
         return Util.concatenatePath(urlPathPrefix, METADATA, e == null ? "" : encodeFullFileName(e.getFullName()));
       }
+
+      @Override
       @NotNull
       public String getChildrenHref(@Nullable Element e) {
-        return Util.concatenatePath(urlPathPrefix, CHILDREN, e == null ? "" : encodeFullFileName(e.getFullName())) + (locator == null ? "" : "?" + "locator" + "=" +
-                                                                                                                                             Util.encodeUrlParamValue(locator));
+        return Util.concatenatePath(urlPathPrefix, CHILDREN, e == null ? "" : encodeFullFileName(e.getFullName())) +
+               (locator == null ? "" : "?" + "locator" + "=" + Util.encodeUrlParamValue(locator));
       }
 
+      @Override
       @NotNull
       public String getContentHref(@Nullable Element e) {
         return Util.concatenatePath(urlPathPrefix, CONTENT, e == null ? "" : encodeFullFileName(e.getFullName()));
       }
 
+      @Override
       @NotNull
       public String getUrlPathPrefix() {
         return urlPathPrefix;
@@ -393,10 +405,12 @@ public class FilesSubResource {
 
   public static Response.ResponseBuilder getContent(@NotNull final Element element, @NotNull final HttpServletRequest request) {
     return getContentByStream(element, request, new StreamingOutputProvider() {
+      @Override
       public boolean isRangeSupported() {
         return true;
       }
 
+      @Override
       public StreamingOutput getStreamingOutput(@Nullable final Long startOffset, @Nullable final Long length) {
         return FilesSubResource.getStreamingOutput(element, startOffset, length);
       }
@@ -490,6 +504,7 @@ public class FilesSubResource {
 
   private static StreamingOutput getStreamingOutput(@NotNull final Element element, @Nullable final Long startOffset, @Nullable final Long length) {
     return new StreamingOutput() {
+      @Override
       public void write(final OutputStream output) throws WebApplicationException {
         InputStream inputStream = null;
         Stopwatch action = new Stopwatch().start();
@@ -546,8 +561,8 @@ public class FilesSubResource {
   interface DownloadProcessor {
     /**
      * @param response true if the request is processed and response is complete. false if the response is not written into and the processing should be continued
-     * @return
      */
     public boolean processDownload(@NotNull Element element, @NotNull HttpServletRequest request, @NotNull HttpServletResponse response);
   }
+
 }
