@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.util.CollectionItemHolder;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.StreamUtil;
 import jetbrains.buildServer.serverSide.SProject;
@@ -89,7 +90,7 @@ public class HealthItemFinder extends DelegatingFinder<jetbrains.buildServer.ser
 
       singleDimension(dimension -> getAllMatching(category -> dimension.equalsIgnoreCase(category.getId())));
 
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> new FinderDataBinding.CollectionItemHolder<>(getAllMatching(myEmptyPredicate)));
+      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> new CollectionItemHolder<>(getAllMatching(myEmptyPredicate)));
     }
 
     @NotNull
@@ -143,7 +144,7 @@ public class HealthItemFinder extends DelegatingFinder<jetbrains.buildServer.ser
         } else {
           profile = null;
         }
-        return new FinderDataBinding.CollectionItemHolder<>(myHealthStatusProvider.collectItemsSynchronously(scopeBuilder.build(), profile));
+        return new CollectionItemHolder<>(myHealthStatusProvider.collectItemsSynchronously(scopeBuilder.build(), profile));
       });
     }
   }

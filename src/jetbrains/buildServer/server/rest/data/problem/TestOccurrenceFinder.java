@@ -26,6 +26,7 @@ import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilter;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer;
+import jetbrains.buildServer.server.rest.data.util.AggregatingItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;

@@ -20,6 +20,7 @@ import java.util.function.Function;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
+import jetbrains.buildServer.server.rest.data.util.WrappingItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -790,19 +791,19 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   }
 
   private ItemHolder<SVcsModificationOrChangeDescriptor> wrapModifications(@NotNull ItemHolder<SVcsModification> toWrap) {
-    return new FinderDataBinding.WrappingItemHolder<>(toWrap, SVcsModificationOrChangeDescriptor::new);
+    return new WrappingItemHolder<>(toWrap, SVcsModificationOrChangeDescriptor::new);
   }
 
   private ItemHolder<SVcsModificationOrChangeDescriptor> wrapModifications(@NotNull Stream<SVcsModification> toWrap) {
-    return new FinderDataBinding.WrappingItemHolder<>(toWrap, SVcsModificationOrChangeDescriptor::new);
+    return new WrappingItemHolder<>(toWrap, SVcsModificationOrChangeDescriptor::new);
   }
 
   private ItemHolder<SVcsModificationOrChangeDescriptor> wrapModifications(@NotNull List<SVcsModification> toWrap) {
-    return new FinderDataBinding.WrappingItemHolder<>(toWrap, SVcsModificationOrChangeDescriptor::new);
+    return new WrappingItemHolder<>(toWrap, SVcsModificationOrChangeDescriptor::new);
   }
 
   private ItemHolder<SVcsModificationOrChangeDescriptor> wrapDescriptors(@NotNull Stream<ChangeDescriptor> toWrap) {
-    return new FinderDataBinding.WrappingItemHolder<>(toWrap, SVcsModificationOrChangeDescriptor::new);
+    return new WrappingItemHolder<>(toWrap, SVcsModificationOrChangeDescriptor::new);
   }
 
   private class ChangesGraphTraverser implements GraphFinder.Traverser<SVcsModification> {

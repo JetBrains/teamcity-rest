@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import jetbrains.buildServer.server.rest.data.util.DeduplicatingItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -285,7 +286,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         //get the dimension only for supporting finders so that unused dimension is reported otherwise
         boolean deduplicate = locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_UNIQUE, locator.isAnyPresent(DIMENSION_ITEM));
         if (deduplicate) {
-          unfilteredItems = new FinderDataBinding.DeduplicatingItemHolder<>(unfilteredItems, containerSet);
+          unfilteredItems = new DeduplicatingItemHolder<>(unfilteredItems, containerSet);
         }
       }
 

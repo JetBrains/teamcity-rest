@@ -16,11 +16,10 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import jetbrains.buildServer.server.rest.data.util.CollectionItemHolder;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
@@ -80,6 +79,10 @@ public interface FinderDataBinding<ITEM> {
   @Nullable
   Set<ITEM> createContainerSet();
 
+  /**
+   * Abstraction allowing for possibly lazy item processing. In essence, it supplies given ItemProcessor with items until processor.processItem returns false. <br/>
+   * Supports calling process(..) only once, can't be reused.
+   */
   interface ItemHolder<P> {
     void process(@NotNull final ItemProcessor<P> processor);
   }
@@ -96,86 +99,5 @@ public interface FinderDataBinding<ITEM> {
   @NotNull
   static <P> ItemHolder<P> getItemHolder(@NotNull Iterable<? extends P> items) {
     return new CollectionItemHolder<P>(items);
-  }
-
-  static class WrappingItemHolder<UNWRAPPED, WRAPPED> implements ItemHolder<WRAPPED> {
-    private final Function<UNWRAPPED, WRAPPED> myWrapper;
-    private final ItemHolder<? extends UNWRAPPED> myDelegate;
-
-    public WrappingItemHolder(@NotNull final ItemHolder<? extends UNWRAPPED> delegate, @NotNull Function<UNWRAPPED, WRAPPED> wrapper) {
-      myWrapper = wrapper;
-      myDelegate = delegate;
-    }
-
-    public WrappingItemHolder(@NotNull final Iterable<? extends UNWRAPPED> items, @NotNull Function<UNWRAPPED, WRAPPED> wrapper) {
-      myWrapper = wrapper;
-      myDelegate = new CollectionItemHolder<>(items);
-    }
-
-    public WrappingItemHolder(@NotNull final Stream<? extends UNWRAPPED> items, @NotNull Function<UNWRAPPED, WRAPPED> wrapper) {
-      myWrapper = wrapper;
-      myDelegate = getItemHolder(items);
-    }
-
-    @Override
-    public void process(@NotNull ItemProcessor<WRAPPED> processor) {
-      myDelegate.process(item -> processor.processItem(myWrapper.apply(item)));
-    }
-  }
-
-  static class CollectionItemHolder<P> implements ItemHolder<P> {
-    @NotNull final private Iterable<? extends P> myEntries;
-
-    public CollectionItemHolder(@NotNull final Iterable<? extends P> entries) {
-      myEntries = entries;
-    }
-
-    public void process(@NotNull final ItemProcessor<P> processor) {
-      for (P entry : myEntries) {
-        if (!processor.processItem(entry)) return;
-      }
-    }
-  }
-
-  static class AggregatingItemHolder<P> implements ItemHolder<P> {
-    @NotNull final private List<ItemHolder<P>> myItemHolders = new ArrayList<>();
-
-    public void add(ItemHolder<P> holder) {
-      myItemHolders.add(holder);
-    }
-
-    public void process(@NotNull final ItemProcessor<P> processor) {
-      boolean[] processingContinues = new boolean[1];
-      processingContinues[0] = true;
-      for (ItemHolder<P> itemHolder : myItemHolders) {
-        itemHolder.process((item) -> processingContinues[0] = processor.processItem(item));
-        if (!processingContinues[0]) return;
-      }
-    }
-  }
-
-  /**
-   * Works only for P with due hash/equals
-   *
-   * @param <P>
-   */
-  static class DeduplicatingItemHolder<P> implements ItemHolder<P> {
-    @NotNull private final ItemHolder<P> myItemHolder;
-    private @NotNull Set<P> myProcessed;
-
-    public DeduplicatingItemHolder(@NotNull final ItemHolder<P> itemHolder, @NotNull final Set<P> processed) {
-      myItemHolder = itemHolder;
-      myProcessed = processed;
-    }
-
-    public void process(@NotNull final ItemProcessor<P> processor) {
-      myItemHolder.process(new ItemProcessor<P>() {
-        @Override
-        public boolean processItem(final P item) {
-          if (myProcessed.add(item)) return processor.processItem(item);
-          return true;
-        }
-      });
-    }
   }
 }

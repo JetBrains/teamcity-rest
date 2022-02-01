@@ -20,6 +20,7 @@ import com.google.common.collect.ComparisonChain;
 import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.util.AggregatingItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
