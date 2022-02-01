@@ -55,7 +55,9 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   protected static final String CONTEXT_ITEM_DIMENSION_NAME = "$contextItem";
 
   public static final Long NO_COUNT = -1L;
-  @Nullable protected String myName;
+
+  @Nullable
+  protected String myName;
 
   //todo: add set-filtering (filter by collection of items in prefiltering and in filter), e.g. see handling of ProjectFinder.DIMENSION_PROJECT
   private FinderDataBinding<ITEM> myDataBinding;
@@ -73,7 +75,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     myDataBinding = dataBinding;
   }
 
-  public void setName(@NotNull String finderName) {
+  public void setName(@NotNull final String finderName) {
     myName = finderName;
   }
 
@@ -259,7 +261,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         } catch (Exception e) {
           throw new BadRequestException("Invalid filter for found single item, try omitting extra dimensions: " + e.toString(), e);
         }
-        locator.getSingleDimensionValue(DIMENSION_UNIQUE); //mark as used as it has no influence on single item
+        locator.markUsed(DIMENSION_UNIQUE); //mark as used as it has no influence on single item
         locator.checkLocatorFullyProcessed(); //checking before invoking filter to report any unused dimensions before possible error reporting in filter
         if (!filter.isIncluded(singleItem)) {
           final String message = "Found single item by " + StringUtil.pluralize("dimension", singleItemUsedDimensions.size()) + " " + singleItemUsedDimensions +
@@ -299,15 +301,14 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
                                     "\nLocator details: " + locator.getLocatorDescription(locator.helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)), e);
     }
     locator.checkLocatorFullyProcessed();
-    final FinderDataBinding.ItemHolder<ITEM> finalUnfilteredItems = unfilteredItems;
-    return getItems(pagingFilter, finalUnfilteredItems, locator, startTime);
+    return getItems(pagingFilter, unfilteredItems, locator, startTime);
   }
 
   @NotNull
-  public PagingItemFilter<ITEM> getPagingFilter(@NotNull Locator locator, @NotNull ItemFilter<ITEM> filter) {
+  public PagingItemFilter<ITEM> getPagingFilter(@NotNull final Locator locator, @NotNull final ItemFilter<ITEM> filter) {
     final Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
     final Long count = getCountNotMarkingAsUsed(locator);
-    locator.markUsed(Collections.singleton(PagerData.COUNT));
+    locator.markUsed(PagerData.COUNT);
     final Long lookupLimit = getLookupLimit(locator);
 
     return new PagingItemFilter<>(filter, start, count == null ? null : count.intValue(), lookupLimit);
@@ -339,27 +340,28 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   @Nullable
-  Long getCountNotMarkingAsUsed(final @NotNull Locator locator) {
+  Long getCountNotMarkingAsUsed(@NotNull final Locator locator) {
     Long result = locator.lookupSingleDimensionValueAsLong(PagerData.COUNT, myDataBinding.getDefaultPageItemsCount());
     if (NO_COUNT.equals(result)) return null;
     return result;
   }
 
-  private static boolean isReportErrorOnNothingFound(final @NotNull Locator locator) {
+  private static boolean isReportErrorOnNothingFound(@NotNull final Locator locator) {
     return locator.getSingleDimensionValueAsStrictBoolean(OPTIONS_REPORT_ERROR_ON_NOTHING_FOUND, false) || locator.isHelpRequested();
   }
 
   @NotNull
-  private PagedSearchResult<ITEM> getItems(final @NotNull PagingItemFilter<ITEM> filter,
-                                           final @NotNull FinderDataBinding.ItemHolder<ITEM> unfilteredItems,
+  private PagedSearchResult<ITEM> getItems(@NotNull final PagingItemFilter<ITEM> filter,
+                                           @NotNull final FinderDataBinding.ItemHolder<ITEM> unfilteredItems,
                                            @NotNull final Locator locator, final long startTime) {
     final long filteringStartTime = System.nanoTime();
     final FilterItemProcessor<ITEM> filterItemProcessor = new FilterItemProcessor<>(filter);
     unfilteredItems.process(filterItemProcessor);
     final ArrayList<ITEM> result = filterItemProcessor.getResult();
     final long finishTime = System.nanoTime();
-    final long totalItemsProcessed = filterItemProcessor.getTotalItemsProcessed();
     final long processingTimeMs = TimeUnit.MILLISECONDS.convert(finishTime - startTime, TimeUnit.NANOSECONDS);
+    final long totalItemsProcessed = filterItemProcessor.getTotalItemsProcessed();
+
     if (totalItemsProcessed >= TeamCityProperties.getLong("rest.finder.processedItemsLogLimit", 1)) {
       final String lookupLimitMessage =
         filter.isLookupLimitReached() ? " (lookupLimit of " + filter.getLookupLimit() + " reached). Last processed item: " + LogUtil.describe(filter.getLastProcessedItem()) : "";
@@ -369,10 +371,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
                   TimeUnit.MILLISECONDS.convert(finishTime - filteringStartTime, TimeUnit.NANOSECONDS) + " ms)");
       }
     }
-    if (processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000)
-        || (processingTimeMs > TeamCityProperties.getLong("rest.finder.minimumTimeWarnLimit", 1000)
-            && ((totalItemsProcessed - result.size()) > TeamCityProperties.getLong("rest.finder.processedAndFilteredItemsWarnLimit", 10000)
-                || totalItemsProcessed > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 100000)))) {
+    if (isHeavyRequest(processingTimeMs, totalItemsProcessed, result.size())) {
       LOG.info("Server performance can be affected by REST request and finder " + getName() + " with locator '" + locator + "': " +
                totalItemsProcessed + " items were processed and " + result.size() + " items were returned, took " + TimePrinter
                  .createMillisecondsFormatter().formatTime(processingTimeMs));
@@ -382,6 +381,17 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     }
     return new PagedSearchResult<>(result, filter.getStart(), filter.getCount(), totalItemsProcessed,
                                    filter.getLookupLimit(), filter.isLookupLimitReached(), filter.getLastProcessedItem());
+  }
+
+  private boolean isHeavyRequest(long processingTimeMs, long totalItemsProcessed, int resultSize) {
+    if(processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000))
+      return true;
+
+    if(processingTimeMs < TeamCityProperties.getLong("rest.finder.minimumTimeWarnLimit", 1000))
+      return false;
+
+    return (totalItemsProcessed - resultSize) > TeamCityProperties.getLong("rest.finder.processedAndFilteredItemsWarnLimit", 10000)
+           || totalItemsProcessed > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 100000);
   }
 
   @NotNull
@@ -453,7 +463,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   @NotNull
-  private String getLocatorDetailsForMessage(@NotNull Locator locator) {
+  private String getLocatorDetailsForMessage(@NotNull final Locator locator) {
     StringBuilder result = new StringBuilder();
     result.append("locator '").append(locator.getStringRepresentation()).append("'");
     List<String> contextVars = getContextVars(locator);
