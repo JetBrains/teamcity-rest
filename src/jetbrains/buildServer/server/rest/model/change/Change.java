@@ -316,7 +316,6 @@ public class Change {
   }
 
   @XmlElement(name = "status")
-  @ModelExperimental
   public ChangeStatus getStatus() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("status", false, false), () -> {
       ChangeStatusProvider statusProvider = myBeanContext.getSingletonService(ChangeStatusProvider.class);

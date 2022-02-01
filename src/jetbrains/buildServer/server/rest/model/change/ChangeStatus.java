@@ -30,7 +30,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.ItemsProviders;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Builds;
-import jetbrains.buildServer.server.rest.swagger.annotations.ModelExperimental;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
@@ -43,7 +43,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @XmlType(name = "changeStatus")
-@ModelExperimental
+@ModelDescription(
+  value = "Aggregated statuses of the first builds with this change. Fairly expensive to compute."
+)
 public class ChangeStatus {
   private static final String CRITICAL_BUILDS_FIELD          = "criticalBuilds";
   private static final String COMPILATION_ERROR_BUILDS_FIELD = "compilationErrorBuilds";
