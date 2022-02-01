@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data;
+package jetbrains.buildServer.server.rest.data.util;
 
+import jetbrains.buildServer.server.rest.data.ItemFilter;
 import jetbrains.buildServer.vcs.Function;
 import org.jetbrains.annotations.NotNull;
 

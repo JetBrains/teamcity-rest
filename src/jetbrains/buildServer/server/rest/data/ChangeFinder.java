@@ -20,6 +20,7 @@ import java.util.function.Function;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
+import jetbrains.buildServer.server.rest.data.util.UnwrappingFilter;
 import jetbrains.buildServer.server.rest.data.util.WrappingItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -84,10 +85,14 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   public static final String USERNAME = "username";
   @LocatorDimension(value = "user", format = LocatorName.USER, notes = "User locator.")
   public static final String USER = "user";
-  @LocatorDimension("version") public static final String VERSION = "version";
-  @LocatorDimension("internalVersion") public static final String INTERNAL_VERSION = "internalVersion";
-  @LocatorDimension("comment") public static final String COMMENT = "comment";
-  @LocatorDimension("file") public static final String FILE = "file";
+  @LocatorDimension("version")
+  public static final String VERSION = "version";
+  @LocatorDimension("internalVersion")
+  public static final String INTERNAL_VERSION = "internalVersion";
+  @LocatorDimension("comment")
+  public static final String COMMENT = "comment";
+  @LocatorDimension("file")
+  public static final String FILE = "file";
   @LocatorDimension(value = "sinceChange", notes = "Commit SHA since which the changes should be returned.")
   public static final String SINCE_CHANGE = "sinceChange";
   @LocatorDimension(value = "pending", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is pending.")
@@ -710,7 +715,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     return ((BuildPromotionEx)buildPromotion).hasComputedChanges(getBuildChangesPolicy(locator, SelectPrevBuildPolicy.SINCE_LAST_BUILD), getBuildChangesProcessor(getBuildChangesLimit(locator)));
   }
 
-  private static VcsModificationProcessor getBuildChangesProcessor(final @Nullable Long limit) {
+  private static VcsModificationProcessor getBuildChangesProcessor(@Nullable final Long limit) {
     return limit == null ? VcsModificationProcessor.ACCEPT_ALL : new LimitingVcsModificationProcessor(limit.intValue());
   }
 
@@ -744,7 +749,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   }
 
   @Nullable
-  private Long getBuildChangesLimit(final @Nullable Locator locator) {
+  private Long getBuildChangesLimit(@Nullable final Locator locator) {
     if (locator == null) return null;
     Long count = null;
     if (locator.getDefinedDimensions().size() <=3) {
