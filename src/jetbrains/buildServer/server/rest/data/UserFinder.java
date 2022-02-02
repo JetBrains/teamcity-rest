@@ -24,6 +24,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
+import jetbrains.buildServer.server.rest.data.util.SetDuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -538,7 +539,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
       });
 
       locatorProvider(user -> getLocator(user));
-      containerSetProvider(() -> new HashSet<SUser>());
+      duplicateCheckerSupplier(SetDuplicateChecker::new);
     }
   }
 

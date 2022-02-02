@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.server.rest.data.util.DeduplicatingItemHolder;
+import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -283,12 +284,12 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     try {
       FinderDataBinding.LocatorDataBinding<ITEM> locatorDataBinding = getDataBindingWithLogicOpsSupport(locator, myDataBinding);
       unfilteredItems = locatorDataBinding.getPrefilteredItems();
-      Set<ITEM> containerSet = myDataBinding.createContainerSet();
-      if (containerSet != null) {
+      DuplicateChecker<ITEM> duplicateChecker = myDataBinding.createDuplicateChecker();
+      if (duplicateChecker != null) {
         //get the dimension only for supporting finders so that unused dimension is reported otherwise
         boolean deduplicate = locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_UNIQUE, locator.isAnyPresent(DIMENSION_ITEM));
         if (deduplicate) {
-          unfilteredItems = new DeduplicatingItemHolder<>(unfilteredItems, containerSet);
+          unfilteredItems = new DeduplicatingItemHolder<>(unfilteredItems, duplicateChecker);
         }
       }
 

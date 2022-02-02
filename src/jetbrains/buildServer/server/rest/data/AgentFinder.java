@@ -22,6 +22,8 @@ import jetbrains.buildServer.AgentRestrictor;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.CloudInstance;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
+import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -322,7 +324,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     BuildPromotionFinder finder = myServiceLocator.getSingletonService(BuildPromotionFinder.class);
     List<BuildPromotion> builds = finder.getItems(buildDimension).myEntries;
     //agents with the same id can be returned (not existing agents)
-    TreeSet<SBuildAgent> result = createContainerSet();
+    TreeSet<SBuildAgent> result = new TreeSet<>(AGENT_COMPARATOR);
     for (BuildPromotion build : builds) {
       SQueuedBuild queuedBuild = build.getQueuedBuild();
       if (queuedBuild != null && !build.isCompositeBuild()) { //isAgentLessBuild should be used here, but queued build does not have that so far
@@ -349,8 +351,8 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   };
 
   @NotNull
-  public TreeSet<SBuildAgent> createContainerSet() {
-    return new TreeSet<>(AGENT_COMPARATOR);
+  public DuplicateChecker<SBuildAgent> createDuplicateChecker() {
+    return new ComparatorDuplicateChecker<>(AGENT_COMPARATOR);
   }
 
   @NotNull
@@ -496,7 +498,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   }
 
   private Iterable<SBuildAgent> calculateCanActuallyRunAgents(@NotNull final List<BuildPromotion> builds, final @NotNull ServiceLocator serviceLocator) {
-    TreeSet<SBuildAgent> result = createContainerSet();
+    TreeSet<SBuildAgent> result = new TreeSet<>(AGENT_COMPARATOR);
     for (BuildPromotion build : builds) {
       SQueuedBuild queuedBuild = build.getQueuedBuild();
       if (queuedBuild != null) {
@@ -581,7 +583,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     final Boolean authorizedDimension = locator.getSingleDimensionValueAsBoolean(AUTHORIZED);
     final boolean includeUnauthorized = authorizedDimension == null || !authorizedDimension;
 
-    TreeSet<SBuildAgent> result = createContainerSet();
+    TreeSet<SBuildAgent> result = new TreeSet<>(AGENT_COMPARATOR);
 
     final Boolean connectedDimension = locator.getSingleDimensionValueAsBoolean(CONNECTED);
     if (connectedDimension == null || connectedDimension) {

@@ -18,7 +18,12 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.SetDuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.KeyDuplicateChecker;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -39,7 +44,7 @@ public class FinderImplTest extends BaseFinderTest<String> {
   // TW-46697
   @Test
   public void testOrWithCount() {
-    setFinder(new TestItemFinder(2L, "a1", "a2", "a3", "b1", "b2", "b3", "c1", "c2", "c3"));
+    setFinder(new TestItemFinder(2, "a1", "a2", "a3", "b1", "b2", "b3", "c1", "c2", "c3"));
     check("firstChar:a,count:10", "a1", "a2", "a3");
     check("firstChar:a", "a1", "a2");
     check("firstChar:b", "b1", "b2");
@@ -50,11 +55,81 @@ public class FinderImplTest extends BaseFinderTest<String> {
     check("prefixed:(or:(firstChar:a,firstChar:b),count:4),count:10", "_a1", "_a2", "_a3", "_b1");
   }
 
+  @Test
+  public void testHashSetDeduplication() {
+    String[] items = new String[] {
+      "a1", "a2", "a3",   "a1",
+      "b1", "b2", "b3",   "b2", "b3",
+      "c1", "c2", "c3",   "c3", "c3", "c1"
+    };
+
+    TestItemFinder finder = new TestItemFinder(items.length, items);
+    finder.setDuplicateChecker(SetDuplicateChecker::new);
+    setFinder(finder);
+
+    check("count:30", items);
+    check("count:30,unique:true", "a1", "a2", "a3", "b1", "b2", "b3", "c1", "c2", "c3");
+    check("count:30,unique:false", items);
+  }
+
+  @Test
+  public void testKeyDeduplication() {
+    String[] items = new String[] {
+      "a1", "a2", "a3",   "a1",
+      "b1", "b2", "b3",   "b2", "b3",
+      "c1", "c2", "c3",   "c3", "c3", "c1",
+      "z11"
+    };
+
+    TestItemFinder finder = new TestItemFinder(items.length, items);
+    finder.setDuplicateChecker(() -> new KeyDuplicateChecker<>(str -> str.length()));
+    setFinder(finder);
+
+    check("count:30", items);
+    check("count:30,unique:true", "a1", "z11");
+    check("count:30,unique:false", items);
+  }
+
+  @Test
+  public void testKeyDeduplication2() {
+    String[] items = new String[] {
+      "a1", "a2", "a3",   "a1",
+      "b1", "b2", "b3",   "b2", "b3",
+      "c1", "c2", "c3",   "c3", "c3", "c1"
+    };
+
+    TestItemFinder finder = new TestItemFinder(items.length, items);
+    finder.setDuplicateChecker(() -> new KeyDuplicateChecker<>(str -> str.charAt(0)));
+    setFinder(finder);
+
+    check("count:30", items);
+    check("count:30,unique:true", "a1", "b1", "c1");
+    check("count:30,unique:false", items);
+  }
+
+  @Test
+  public void testComparatorDeduplication() {
+    String[] items = new String[] {
+      "a1", "a2", "a3",   "a1",
+      "b1", "b2", "b3",   "b2", "b3",
+      "c1", "c2", "c3",   "c3", "c3", "c1"
+    };
+
+    TestItemFinder finder = new TestItemFinder(items.length, items);
+    finder.setDuplicateChecker(() -> new ComparatorDuplicateChecker<>(String::compareTo));
+    setFinder(finder);
+
+    check("count:30", items);
+    check("count:30,unique:true", "a1", "a2", "a3", "b1", "b2", "b3", "c1", "c2", "c3");
+    check("count:30,unique:false", items);
+  }
+
   private static class TestItemFinder extends AbstractFinder<String> {
     private final List<String> testItems;
-    private final Long myDefaultCount;
+    private final int myDefaultCount;
+    private Supplier<DuplicateChecker<String>> myDuplicateChecker;
 
-    TestItemFinder(@Nullable final Long defaultCount, String... items) {
+    TestItemFinder(int defaultCount, String... items) {
       super("text", "start", "end", "firstChar", "secondChar", "prefixed");
       myDefaultCount = defaultCount;
       testItems = Arrays.asList(items);
@@ -63,7 +138,7 @@ public class FinderImplTest extends BaseFinderTest<String> {
     @Nullable
     @Override
     public Long getDefaultPageItemsCount() {
-      return myDefaultCount;
+      return (long) myDefaultCount;
     }
 
     @NotNull
@@ -105,6 +180,19 @@ public class FinderImplTest extends BaseFinderTest<String> {
     @Override
     public String getItemLocator(@NotNull final String s) {
       return Locator.getStringLocator("text", s);
+    }
+
+    public void setDuplicateChecker(@NotNull final Supplier<DuplicateChecker<String>> duplicateCheckerSupplier) {
+      myDuplicateChecker = duplicateCheckerSupplier;
+    }
+
+    @Nullable
+    @Override
+    public DuplicateChecker<String> createDuplicateChecker() {
+      if(myDuplicateChecker != null) {
+        return myDuplicateChecker.get();
+      }
+      return super.createDuplicateChecker();
     }
   }
 }

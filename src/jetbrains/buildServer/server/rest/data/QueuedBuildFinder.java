@@ -16,7 +16,8 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import com.google.common.collect.ComparisonChain;
+import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.KeyDuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -30,9 +31,6 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Comparator;
-import java.util.TreeSet;
 
 /**
  * @author Yegor.Yarko
@@ -101,15 +99,8 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   }
 
   @NotNull
-  public TreeSet<SQueuedBuild> createContainerSet() {
-    return new TreeSet<>(new Comparator<SQueuedBuild>() {
-      @Override
-      public int compare(final SQueuedBuild o1, final SQueuedBuild o2) {
-        return ComparisonChain.start()
-                              .compare(o1.getItemId(), o2.getItemId())
-                              .result();
-      }
-    });
+  public DuplicateChecker<SQueuedBuild> createDuplicateChecker() {
+    return new KeyDuplicateChecker<SQueuedBuild, String>(SQueuedBuild::getItemId);
   }
 
   @NotNull

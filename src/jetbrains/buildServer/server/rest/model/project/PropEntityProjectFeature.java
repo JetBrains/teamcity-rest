@@ -19,12 +19,12 @@ package jetbrains.buildServer.server.rest.model.project;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.util.SetDuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -163,7 +163,7 @@ public class PropEntityProjectFeature extends PropEntity {
       builder.multipleConvertToItems(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> new ArrayList<>(project.getOwnFeatures()));
 
       builder.locatorProvider(projectFeatureDescriptor -> getLocator(projectFeatureDescriptor));
-      builder.containerSetProvider(() -> new HashSet<SProjectFeatureDescriptor>());
+      builder.duplicateCheckerSupplier(SetDuplicateChecker::new);
 
       setDelegate(builder.build());
     }

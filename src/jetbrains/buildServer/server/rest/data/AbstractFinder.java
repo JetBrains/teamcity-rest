@@ -17,8 +17,8 @@
 package jetbrains.buildServer.server.rest.data;
 
 
-import java.util.HashSet;
-import java.util.Set;
+import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.SetDuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
@@ -111,8 +111,8 @@ public abstract class AbstractFinder<ITEM> extends FinderImpl<ITEM> implements F
 
   @Nullable
   @Override
-  public Set<ITEM> createContainerSet() {
-    return new HashSet<>();
+  public DuplicateChecker<ITEM> createDuplicateChecker() {
+    return new SetDuplicateChecker<>();
   }
 
   @NotNull

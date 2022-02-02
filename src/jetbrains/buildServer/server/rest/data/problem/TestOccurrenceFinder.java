@@ -27,6 +27,8 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilter;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer;
 import jetbrains.buildServer.server.rest.data.util.AggregatingItemHolder;
+import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -303,12 +305,14 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     }
   }
 
+  @Override
   @NotNull
-  public TreeSet<STestRun> createContainerSet() {
-    return new TreeSet<>((o1, o2) -> ComparisonChain.start()
-        .compare(o1.getBuildId(), o2.getBuildId())
-        .compare(o1.getTestRunId(), o2.getTestRunId())
-        .result());
+  public DuplicateChecker<STestRun> createDuplicateChecker() {
+    return new ComparatorDuplicateChecker<>((testRun1, testRun2) -> ComparisonChain.start()
+      .compare(testRun1.getBuildId(), testRun2.getBuildId())
+      .compare(testRun1.getTestRunId(), testRun2.getTestRunId())
+      .result()
+    );
   }
 
   /**
@@ -874,8 +878,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     @Nullable
     @Override
-    public Set<T> createContainerSet() {
-      return myDelegate.createContainerSet();
+    public DuplicateChecker<T> createDuplicateChecker() {
+      return myDelegate.createDuplicateChecker();
     }
   }
 

@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import com.google.common.collect.ComparisonChain;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -30,8 +29,7 @@ import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
-import jetbrains.buildServer.server.rest.data.util.AggregatingItemHolder;
-import jetbrains.buildServer.server.rest.data.util.CollectionItemHolder;
+import jetbrains.buildServer.server.rest.data.util.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -279,15 +277,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @NotNull
   @Override
-  public TreeSet<BuildPromotion> createContainerSet() {
-    return new TreeSet<>(new Comparator<BuildPromotion>() {
-      @Override
-      public int compare(final BuildPromotion o1, final BuildPromotion o2) {
-        return ComparisonChain.start()
-                              .compare(o1.getId(), o2.getId())
-                              .result();
-      }
-    });
+  public DuplicateChecker<BuildPromotion> createDuplicateChecker() {
+    return new KeyDuplicateChecker<BuildPromotion, Long>(BuildPromotion::getId);
   }
 
   @Nullable

@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data.util;
 
-import java.util.Set;
 import jetbrains.buildServer.server.rest.data.FinderDataBinding;
 import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
@@ -29,22 +28,21 @@ public class DeduplicatingItemHolder<P> implements FinderDataBinding.ItemHolder<
   @NotNull
   private final FinderDataBinding.ItemHolder<P> myItemHolder;
   @NotNull
-  private final Set<P> myProcessed;
+  private final DuplicateChecker<P> myDuplicateChecker;
 
-  public DeduplicatingItemHolder(@NotNull final FinderDataBinding.ItemHolder<P> itemHolder, @NotNull final Set<P> processed) {
+  public DeduplicatingItemHolder(@NotNull final FinderDataBinding.ItemHolder<P> itemHolder, @NotNull final DuplicateChecker<P> duplicateChecker) {
     myItemHolder = itemHolder;
-    myProcessed = processed;
+    myDuplicateChecker = duplicateChecker;
   }
 
   public void process(@NotNull final ItemProcessor<P> processor) {
-    myItemHolder.process(new ItemProcessor<P>() {
-      @Override
-      public boolean processItem(final P item) {
-        if (myProcessed.add(item)) return processor.processItem(item);
-
+    myItemHolder.process(item -> {
+      if (myDuplicateChecker.checkDuplicateAndRemember(item)) {
         // In a case when given item was already seen signal to continue without passing the item to the real processor.
         return true;
       }
+
+      return processor.processItem(item);
     });
   }
 }

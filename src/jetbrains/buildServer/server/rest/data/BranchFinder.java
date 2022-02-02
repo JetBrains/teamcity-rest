@@ -21,6 +21,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.util.AggregatingItemHolder;
+import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
@@ -403,17 +405,14 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     return getItems(locator.getStringRepresentation());
   }
 
+  @Override
   @NotNull
-  public TreeSet<BranchData> createContainerSet() {
-    return new TreeSet<>(new Comparator<BranchData>() {
-      @Override
-      public int compare(final BranchData o1, final BranchData o2) {
-        //this is used for de-duplication
-        return ComparisonChain.start()
-                              .compareTrueFirst(o1.isDefaultBranch(), o2.isDefaultBranch())
-                              .compare(o1.getName(), o2.getName())
-                              .result();
-      }
+  public DuplicateChecker<BranchData> createDuplicateChecker() {
+    return new ComparatorDuplicateChecker<>((branchData1, branchData2) -> {
+      return ComparisonChain.start()
+                            .compareTrueFirst(branchData1.isDefaultBranch(), branchData2.isDefaultBranch())
+                            .compare(branchData1.getName(), branchData2.getName())
+                            .result();
     });
   }
 

@@ -16,10 +16,9 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Stream;
 import jetbrains.buildServer.server.rest.data.util.CollectionItemHolder;
+import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
@@ -72,12 +71,11 @@ public interface FinderDataBinding<ITEM> {
   String getItemLocator(@NotNull final ITEM item);
 
   /**
-   * Returns new empty set which ensures proper items matching
-   * Is used for "unique" dimension processing
-   * @return null if "unique" dimension is not supported
+   * Returns new duplicate checker. Is used for "unique" dimension processing.
+   * @return null if "unique" dimension is not supported.
    */
   @Nullable
-  Set<ITEM> createContainerSet();
+  DuplicateChecker<ITEM> createDuplicateChecker();
 
   /**
    * Abstraction allowing for possibly lazy item processing. In essence, it supplies given ItemProcessor with items until processor.processItem returns false. <br/>

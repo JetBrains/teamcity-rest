@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildAgent;
 import jetbrains.buildServer.ServiceLocator;
@@ -25,6 +26,7 @@ import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
+import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
@@ -58,7 +60,7 @@ public class TypedFinderBuilder<ITEM> {
   private final LinkedHashMap<DimensionCondition, ItemFilterFromDimensions<ITEM>> myFiltersConditions = new LinkedHashMap<>();
   private ItemsFromDimension<ITEM, String> mySingleDimensionHandler;
   private LocatorProvider<ITEM> myLocatorProvider;
-  private ContainerSetProvider<ITEM> myContainerSetProvider;
+  private Supplier<DuplicateChecker<ITEM>> myDuplicateCheckerSupplier;
   private String myFinderName;
 
   public interface TypedFinderDimension<ITEM, TYPE> {
@@ -523,8 +525,8 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   @NotNull
-  public TypedFinderBuilder<ITEM> containerSetProvider(@NotNull ContainerSetProvider<ITEM> containerSetProvider) {
-    myContainerSetProvider = containerSetProvider;
+  public TypedFinderBuilder<ITEM> duplicateCheckerSupplier(@NotNull Supplier<DuplicateChecker<ITEM>> duplicateCheckerSupplier) {
+    myDuplicateCheckerSupplier = duplicateCheckerSupplier;
     return this;
   }
 
@@ -807,11 +809,6 @@ public class TypedFinderBuilder<ITEM> {
     S get();
   }
 
-  public interface ContainerSetProvider<ITEM> {
-    @NotNull
-    Set<ITEM> createContainerSet();
-  }
-
   interface Converter<TO, FROM> {
     @NotNull
     TO convert(@NotNull FROM item);
@@ -1070,8 +1067,8 @@ public class TypedFinderBuilder<ITEM> {
 
     @Nullable
     @Override
-    public Set<ITEM> createContainerSet() {
-      return myContainerSetProvider == null ? null : myContainerSetProvider.createContainerSet();
+    public DuplicateChecker<ITEM> createDuplicateChecker() {
+      return myDuplicateCheckerSupplier == null ? null : myDuplicateCheckerSupplier.get();
     }
 
     private class DimensionObjectsWrapper implements DimensionObjects {
