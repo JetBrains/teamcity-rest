@@ -59,4 +59,9 @@ public class Project implements ObjectIdentificationNode {
   public int hashCode() {
     return myRealProject.hashCode();
   }
+
+  @Override
+  public String toString() {
+    return "GQL Project: " + getRawId();
+  }
 }

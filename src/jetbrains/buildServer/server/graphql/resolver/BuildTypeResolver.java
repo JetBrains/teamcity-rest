@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.schema.DataFetchingEnvironment;
+import jetbrains.buildServer.Used;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
 import jetbrains.buildServer.server.graphql.util.ModelResolver;
@@ -33,6 +34,11 @@ public class BuildTypeResolver extends ModelResolver<BuildType> {
   @Autowired
   @NotNull
   private BuildTypeFinder myBuildTypeFinder;
+
+  @Used("Tests")
+  void setBuildTypeFinder(@NotNull BuildTypeFinder buildTypeFinder) {
+    myBuildTypeFinder = buildTypeFinder;
+  }
 
   @NotNull
   public ProjectsConnection ancestorProjects(@NotNull BuildType source, @NotNull DataFetchingEnvironment env) throws Exception {
