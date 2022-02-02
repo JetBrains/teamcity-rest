@@ -106,8 +106,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   public static final String PREV_BUILD_POLICY = "policy";
   public static final String CHANGES_FROM_DEPS = "changesFromDependencies";
   public static final String SETTINGS_CHANGES = "versionedSettings"; //experimental
-  @LocatorDimension(value = "deduplicate", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Ensure response does not contain duplicate changes (e.g. same change, coming from different VCSRoots).")
-  public static final String DEDUPLICATE = "deduplicate";
 
   @NotNull private final PermissionChecker myPermissionChecker;
   @NotNull private final ProjectFinder myProjectFinder;
@@ -290,11 +288,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
         final SUser user = myUserFinder.getItem(userLocator);
         result.add(item -> item.getCommitters().contains(user));
       }
-    }
-
-    final boolean deduplicate = locator.getSingleDimensionValueAsBoolean(DEDUPLICATE, false);
-    if(deduplicate) {
-      result.add(new DeduplicatingByVersionFilter());
     }
 
     //TeamCity API: exclude "fake" personal changes created by TeamCity for personal builds without personal changes
@@ -835,29 +828,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     @Override
     public GraphFinder.LinkRetriever<SVcsModification> getParents() {
       return item -> getModificationsByIds(((VcsRootInstanceEx)item.getVcsRoot()).getDag().getChildren(item.getId()), myVcsManager);
-    }
-  }
-
-  private class DeduplicatingByVersionFilter implements ItemFilter<SVcsModification> {
-    private final Set<String> myDuplicates = new HashSet<>();
-
-    @Override
-    public boolean isIncluded(@NotNull SVcsModification item) {
-      if(myDuplicates.contains(item.getVersion())) {
-        return false;
-      }
-
-      // See Collection<SVcsModification> getDuplicates(@NotNull final SVcsModification modification, final boolean byDisplayVersion);
-      //
-      // There is an option to just use item.getDuplicates(), but all it does is retrieves all modifications with the same version.
-      // In reality, we don't need duplicates themselves, but need to know if given change is a duplicate of some change we've seen before.
-      myDuplicates.add(item.getVersion());
-      return true;
-    }
-
-    @Override
-    public boolean shouldStop(@NotNull SVcsModification item) {
-      return false;
     }
   }
 }

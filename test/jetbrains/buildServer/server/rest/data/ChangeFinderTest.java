@@ -782,11 +782,11 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root1).by("user1").version(version));
     myFixture.addModification(modification().in(root2).by("user1").version(version));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("deduplicate:true").myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("unique:true").myEntries;
     assertEquals(1, result.size());
 
     List<SVcsModificationOrChangeDescriptor> resultWithDuplicate = myChangeFinder.getItems("count:10").myEntries;
-    assertEquals("Dimension deduplicate should be false by default", 2, resultWithDuplicate.size());
+    assertEquals( 2, resultWithDuplicate.size());
   }
 
   @NotNull
