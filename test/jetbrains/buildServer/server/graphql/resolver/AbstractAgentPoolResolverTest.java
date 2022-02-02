@@ -20,18 +20,22 @@ import graphql.schema.DataFetchingFieldSelectionSet;
 import java.util.*;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
+import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolAgentsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolResolver;
+import jetbrains.buildServer.serverSide.agentPools.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.Permissions;
 import jetbrains.buildServer.serverSide.impl.MockAuthorityHolder;
+import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.auth.SecuredProjectManager;
 import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+@Test
 public class AbstractAgentPoolResolverTest extends BaseResolverTest {
   private AbstractAgentPoolResolver myResolver;
   private AgentPoolAccessCheckerForTests myActionChecker;
@@ -55,8 +59,7 @@ public class AbstractAgentPoolResolverTest extends BaseResolverTest {
     );
   }
 
-  @Test
-  public void projectsConnection() throws Throwable {
+  public void basicProjectsConnection() throws Throwable {
     jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = myFixture.getAgentPoolManager().createNewAgentPool("testAgentPool");
 
     Set<String> allProjectIds = new HashSet<>();
@@ -98,5 +101,34 @@ public class AbstractAgentPoolResolverTest extends BaseResolverTest {
 
     assertEquals(visibleProjectNames.size(), connection.getCount());
     assertEquals(new Integer(invisibleProjects.size()), connection.getExcludedCount());
+  }
+
+  public void basicAgentsConnection() throws AgentPoolCannotBeRenamedException, NoSuchAgentPoolException, AgentTypeCannotBeMovedException, PoolQuotaExceededException {
+    AgentPoolManager manager = myFixture.getAgentPoolManager();
+    jetbrains.buildServer.serverSide.agentPools.AgentPool evenAgents = manager.createNewAgentPool("evenAgents");
+    jetbrains.buildServer.serverSide.agentPools.AgentPool oddAgents  = manager.createNewAgentPool("oddAgents");
+
+    final int num = 5;
+    for(int i = 0; i < num * 2; i++) {
+      MockBuildAgent agent = myFixture.createEnabledAgent("agent_" + i);
+      registerAndEnableAgent(agent);
+
+      manager.moveAgentToPool(
+        (i % 2 == 0) ? evenAgents.getAgentPoolId() : oddAgents.getAgentPoolId(),
+        agent
+      );
+    }
+
+    AgentPoolAgentsConnection evenConnection = myResolver.agents(new AgentPool(evenAgents), myDataFetchingEnvironment);
+    assertEquals(num, evenConnection.getCount());
+    for(AgentPoolAgentsConnection.AgentPoolAgentsConnectionEdge edge : evenConnection.getEdges().getData()) {
+      assertEquals(evenAgents.getAgentPoolId(), edge.getNode().getData().getRealAgent().getAgentPoolId());
+    }
+
+    AgentPoolAgentsConnection oddConnection = myResolver.agents(new AgentPool(oddAgents), myDataFetchingEnvironment);
+    assertEquals(num, oddConnection.getCount());
+    for(AgentPoolAgentsConnection.AgentPoolAgentsConnectionEdge edge : oddConnection.getEdges().getData()) {
+      assertEquals(oddAgents.getAgentPoolId(), edge.getNode().getData().getRealAgent().getAgentPoolId());
+    }
   }
 }
