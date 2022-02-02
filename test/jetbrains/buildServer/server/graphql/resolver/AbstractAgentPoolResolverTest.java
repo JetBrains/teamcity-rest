@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.schema.DataFetchingFieldSelectionSet;
 import java.util.*;
+import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
@@ -43,11 +44,12 @@ public class AbstractAgentPoolResolverTest extends BaseResolverTest {
     myActionChecker = new AgentPoolAccessCheckerForTests();
     SecuredProjectManager projectManager = new SecuredProjectManager(myFixture.getSecurityContext());
     projectManager.setDelegate(myProjectManager);
+    Mock cloudManagerMock = mock(CloudManager.class);
 
     myResolver = new AbstractAgentPoolResolver(
       projectManager,
       myActionChecker,
-      null, // not actually used in tests
+      (CloudManager) cloudManagerMock.proxy(), // not actually used in tests
       myFixture.getAgentTypeFinder(),
       myServer.getSecurityContext()
     );

@@ -56,7 +56,7 @@ public class AbstractAgentPoolResolver {
 
   public AbstractAgentPoolResolver(@NotNull ProjectManager projectManager,
                                    @NotNull AgentPoolActionsAccessChecker poolActionsAccessChecker,
-                                   /*@NotNull*/ CloudManager cloudManager,
+                                   @NotNull CloudManager cloudManager,
                                    @NotNull AgentTypeFinder agentTypeFinder,
                                    @NotNull final SecurityContextEx securityContext) {
     myProjectManager = projectManager;
