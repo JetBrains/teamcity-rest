@@ -20,6 +20,8 @@ import java.util.function.Function;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
+import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.KeyDuplicateChecker;
 import jetbrains.buildServer.server.rest.data.util.UnwrappingFilter;
 import jetbrains.buildServer.server.rest.data.util.WrappingItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -582,6 +584,17 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     }
 
     return wrapModifications(((VcsModificationHistoryEx)myVcsModificationHistory)::processModifications);  // ItemHolder
+  }
+
+  @Nullable
+  @Override
+  public DuplicateChecker<SVcsModificationOrChangeDescriptor> createDuplicateChecker() {
+    // See Collection<SVcsModification> getDuplicates(@NotNull final SVcsModification modification, final boolean byDisplayVersion);
+    //
+    // There is an option to just use item.getDuplicates(), but all it does is retrieves all modifications with the same version.
+    // In reality, we don't need duplicates themselves, but need to know if given change is a duplicate of some change we've seen before.
+
+    return new KeyDuplicateChecker<SVcsModificationOrChangeDescriptor, String>(modificationOrDescriptor -> modificationOrDescriptor.getSVcsModification().getVersion());
   }
 
   @NotNull
