@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -29,6 +28,7 @@ import java.util.stream.IntStream;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
+import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -49,10 +49,10 @@ import jetbrains.buildServer.vcs.OperationRequestor;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.SVcsRootEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.spi.LoggingEvent;
-import org.apache.log4j.varia.NullAppender;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.jetbrains.annotations.NotNull;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -2098,12 +2098,13 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
     final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
 
-    final TestingLogAppender testAppender = new TestingLogAppender();
+    final TestingLogAppender testAppender = new TestingLogAppender("testAppender");
 
-    Logger restLogger = Logger.getLogger("jetbrains.buildServer.server.rest");
-
-    restLogger.setLevel(Level.INFO);
-    restLogger.addAppender(testAppender);
+    LogInitializer.reconfigureLog4j((loggerContext, configuration) -> {
+      LoggerConfig loggerConfig = configuration.getLoggerConfig("jetbrains.buildServer.server.rest");
+      loggerConfig.setLevel(Level.INFO);
+      loggerConfig.addAppender(testAppender, Level.INFO, null);
+    });
 
     check(null, build10);
     assertEmpty(testAppender.getLoggedMessages());
@@ -2126,8 +2127,11 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
 
     //cleanup logging settings
-    restLogger.setLevel(null);
-    restLogger.removeAllAppenders();
+    LogInitializer.reconfigureLog4j((loggerContext, configuration) -> {
+      LoggerConfig loggerConfig = configuration.getLoggerConfig("jetbrains.buildServer.server.rest");
+      loggerConfig.setLevel(null);
+      loggerConfig.removeAppender(testAppender.getName());
+    });
   }
 
   @Test
@@ -2362,16 +2366,16 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     return buildPromotions;
   }
 
-  private static class TestingLogAppender extends NullAppender {
+  private static class TestingLogAppender extends AbstractAppender {
     private final List<String> myLoggedMessages = new ArrayList<>();
-    @Override
-    public void doAppend(final LoggingEvent event) {
-      append(event);
+
+    public TestingLogAppender(String name) {
+      super(name, null, null);
     }
 
     @Override
-    protected void append(final LoggingEvent event) {
-      myLoggedMessages.add(event.getRenderedMessage());
+    public void append(LogEvent event) {
+      myLoggedMessages.add(event.getMessage().getFormattedMessage());
     }
 
     public List<String> getLoggedMessages() {
