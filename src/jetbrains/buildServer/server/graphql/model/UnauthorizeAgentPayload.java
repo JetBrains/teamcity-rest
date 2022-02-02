@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.resolver;
+package jetbrains.buildServer.server.graphql.model;
 
-import jetbrains.buildServer.server.graphql.model.Agent;
 import org.jetbrains.annotations.NotNull;
 
 public class UnauthorizeAgentPayload {
