@@ -108,7 +108,7 @@ public class AbstractAgentPoolResolverTest extends BaseResolverTest {
     jetbrains.buildServer.serverSide.agentPools.AgentPool evenAgents = manager.createNewAgentPool("evenAgents");
     jetbrains.buildServer.serverSide.agentPools.AgentPool oddAgents  = manager.createNewAgentPool("oddAgents");
 
-    final int num = 5;
+    final int num = 2;
     for(int i = 0; i < num * 2; i++) {
       MockBuildAgent agent = myFixture.createEnabledAgent("agent_" + i);
       registerAndEnableAgent(agent);
