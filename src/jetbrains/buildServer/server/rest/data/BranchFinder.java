@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -275,14 +276,30 @@ public class BranchFinder extends AbstractFinder<BranchData> {
 
     BranchSearchOptions searchOptions = getBranchSearchOptions(locator);
 
+    Filter<SBuildType> dependenciesFilter = getBranchDependenciesFilter(buildTypes);
+
     Accumulator resultAccumulator = new Accumulator();
     for (SBuildType buildType : buildTypes) {
       Boolean locatorComputeTimestamps = locator.getSingleDimensionValueAsBoolean(COMPUTE_TIMESTAMPS);
-      resultAccumulator.addAll(getBranches(buildType, searchOptions, locatorComputeTimestamps != null ? locatorComputeTimestamps : TeamCityProperties.getBoolean("rest.beans.branch.defaultComputeTimestamp")));
+      resultAccumulator.addAll(getBranches(buildType, searchOptions, locatorComputeTimestamps != null ? locatorComputeTimestamps : TeamCityProperties.getBoolean("rest.beans.branch.defaultComputeTimestamp"), dependenciesFilter));
     }
 
     result.add(getItemHolder(resultAccumulator.get()));
     return result;
+  }
+
+  @NotNull
+  private Filter<SBuildType> getBranchDependenciesFilter(@NotNull List<SBuildType> buildTypes) {
+    // this filter disables fetching of branches from dependencies if they present in the buildTypes list
+    // since we're going to traverse all build types form the buildTypes it makes sense to fetch branches from them once,
+    // without this filter we'd traverse branches of a single build type 1 + as many times as it is accessible via snapshot dependencies
+    return new Filter<SBuildType>() {
+      private final Set<SBuildType> myFilteredBuildTypes = new HashSet<>(buildTypes);
+      @Override
+      public boolean accept(@NotNull SBuildType data) {
+        return !myFilteredBuildTypes.contains(data);
+      }
+    };
   }
 
   @NotNull
@@ -341,10 +358,16 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     return new BranchSearchOptions(branchesPolicy, changesFromDependencies);
   }
 
-  private List<BranchData> getBranches(final @NotNull SBuildType buildType, @NotNull final BranchSearchOptions branchSearchOptions, final boolean computeTimestamps) {
+  @NotNull
+  private List<BranchData> getBranches(final @NotNull SBuildType buildType, @NotNull final BranchSearchOptions branchSearchOptions, final boolean computeTimestamps, @NotNull Filter<SBuildType> dependenciesFilter) {
     final BuildTypeEx buildTypeImpl = (BuildTypeEx)buildType; //TeamCity openAPI issue: cast
     BranchesPolicy mainPolicy = branchSearchOptions.getBranchesPolicy();
-    List<BranchEx> branches = buildTypeImpl.getBranches(mainPolicy, branchSearchOptions.isIncludeBranchesFromDependencies(), computeTimestamps);
+    BranchCalculationOptions branchCalculationOptions = new BranchCalculationOptions()
+      .setBranchesPolicy(mainPolicy)
+      .setComputeTimestamps(computeTimestamps)
+      .setIncludeBranchesFromDependencies(branchSearchOptions.includeBranchesFromDependencies)
+      .setDependenciesFilter(dependenciesFilter);
+    List<BranchEx> branches = buildTypeImpl.getBranches(branchCalculationOptions);
     // return branches.stream().map(b -> BranchData.fromBranchEx(b, myServiceLocator)).collect(Collectors.toList());
     // workaround for the TeamCity core performance issue of getting activity status per branch: it's ineffective, see implementation of BuildTypeBranchImpl.isActive()
     boolean disableActive = TeamCityProperties.getBoolean("rest.beans.branch.disableActive");
