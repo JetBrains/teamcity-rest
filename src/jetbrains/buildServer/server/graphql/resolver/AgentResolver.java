@@ -36,6 +36,7 @@ import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
+import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
@@ -128,7 +129,7 @@ public class AgentResolver extends ModelResolver<Agent> {
       .filter(BuildTypeOrTemplate::isBuildType)
       .map(BuildTypeOrTemplate::getBuildType)
       .filter(Objects::nonNull)
-      .filter(it -> !it.isCompositeBuildType());
+      .filter(it -> !((BuildTypeEx)it).isAgentLessBuildType());
 
     if(compatible == null) {
       return allBuildTypes;
