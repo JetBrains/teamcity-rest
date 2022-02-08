@@ -366,7 +366,8 @@ public class BranchFinder extends AbstractFinder<BranchData> {
       .setBranchesPolicy(mainPolicy)
       .setComputeTimestamps(computeTimestamps)
       .setIncludeBranchesFromDependencies(branchSearchOptions.includeBranchesFromDependencies)
-      .setDependenciesFilter(dependenciesFilter);
+      .setDependenciesFilter(dependenciesFilter)
+      .setSortBranches(false);
     List<BranchEx> branches = buildTypeImpl.getBranches(branchCalculationOptions);
     // return branches.stream().map(b -> BranchData.fromBranchEx(b, myServiceLocator)).collect(Collectors.toList());
     // workaround for the TeamCity core performance issue of getting activity status per branch: it's ineffective, see implementation of BuildTypeBranchImpl.isActive()
