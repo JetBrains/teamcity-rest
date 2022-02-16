@@ -75,7 +75,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static final String BUILD = "build";
   @LocatorDimension(value = "test", format = LocatorName.TEST, notes = "Test locator.")
   private static final String TEST = "test";
-  @LocatorDimension("name") private static final String NAME = "name"; //value condition for the test's name
+  @LocatorDimension("name")
+  private static final String NAME = "name"; //value condition for the test's name
   @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
   private static final String BUILD_TYPE = "buildType";
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
@@ -91,9 +92,12 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   @LocatorDimension(value = "muted", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is muted.")
   public static final String MUTED = "muted";
-  @LocatorDimension("newFailure") public static final String NEW_FAILURE = "newFailure";
+  @LocatorDimension("newFailure")
+  public static final String NEW_FAILURE = "newFailure";
   @LocatorDimension(value = "includePersonal", dataType = LocatorDimensionDataType.BOOLEAN)
   public static final String INCLUDE_PERSONAL = "includePersonal";
+  @LocatorDimension("currentlyMuted")
+  private static final String CURRENTLY_MUTED = "currentlyMuted";
 
   /** Experimental dimension, allowed values = "active,fixed,givenUp,none"
    * Potential replacement for "currentlyInvestigated" dimension.
@@ -120,24 +124,33 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   // Data for requests with these TestOccurrence fields can be retrieved from ShortStatistics.
   private static final Set<String> FASTPATH_ALLOWED_FIELDS = new HashSet<String>(Arrays.asList("id", "href", "name", "status", "duration", "runOrder", "build", "test"));
 
-  @NotNull private final TestFinder myTestFinder;
-  @NotNull private final BuildFinder myBuildFinder;
-  @NotNull private final BuildTypeFinder myBuildTypeFinder;
-  @NotNull private final ProjectFinder myProjectFinder;
+  @NotNull
+  private final TestFinder myTestFinder;
+  @NotNull
+  private final BuildFinder myBuildFinder;
+  @NotNull
+  private final BuildTypeFinder myBuildTypeFinder;
+  @NotNull
+  private final ProjectFinder myProjectFinder;
 
-  @NotNull private final TestHistory myTestHistory;
-  @NotNull private final CurrentProblemsManager myCurrentProblemsManager;
-  @NotNull private final BranchFinder myBranchFinder;
-  @NotNull private final TestScopeFilterProducer myTestScopeFilterProducer;
+  @NotNull
+  private final TestHistory myTestHistory;
+  @NotNull
+  private final CurrentProblemsManager myCurrentProblemsManager;
+  @NotNull
+  private final BranchFinder myBranchFinder;
+  @NotNull
+  private final TestScopeFilterProducer myTestScopeFilterProducer;
 
-  public TestOccurrenceFinder(final @NotNull TestFinder testFinder,
-                              final @NotNull BuildFinder buildFinder,
-                              final @NotNull BuildTypeFinder buildTypeFinder,
-                              final @NotNull ProjectFinder projectFinder,
-                              final @NotNull TestHistory testHistory,
-                              final @NotNull CurrentProblemsManager currentProblemsManager,
-                              final @NotNull BranchFinder branchFinder,
-                              final @NotNull TestScopeFilterProducer testScopeFilterProducer) {
+  public TestOccurrenceFinder(
+    @NotNull final TestFinder testFinder,
+    @NotNull final BuildFinder buildFinder,
+    @NotNull final BuildTypeFinder buildTypeFinder,
+    @NotNull final ProjectFinder projectFinder,
+    @NotNull final TestHistory testHistory,
+    @NotNull final CurrentProblemsManager currentProblemsManager,
+    @NotNull final BranchFinder branchFinder,
+    @NotNull final TestScopeFilterProducer testScopeFilterProducer) {
     super(DIMENSION_ID, TEST, NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, NEW_FAILURE, INCLUDE_PERSONAL, INCLUDE_ALL_PERSONAL);
     setHiddenDimensions(EXPAND_INVOCATIONS, INVOCATIONS);
     setHiddenDimensions(ORDER); //highly experiemntal
@@ -164,14 +177,14 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return TestOccurrenceFinder.getTestRunLocator(sTestRun);
   }
 
-  public static String getTestRunLocator(final @NotNull STestRun testRun) {
+  public static String getTestRunLocator(@NotNull final STestRun testRun) {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(testRun.getTestRunId())).
       setDimension(BUILD, BuildRequest.getBuildLocator(testRun.getBuild())).getStringRepresentation();
   }
 
   /** Ensures we don't include personal builds by default (except when build locator is provided) and sets an internal dimension with user id. */
   @Contract("!null, _ -> !null; _, !null -> !null")
-  public static String patchLocatorForPersonalBuilds(@Nullable String locator, @Nullable HttpServletRequest request) {
+  public static String patchLocatorForPersonalBuilds(@Nullable final String locator, @Nullable final HttpServletRequest request) {
     if(locator == null || request == null) {
       return locator;
     }
@@ -192,7 +205,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return patchedLocator.getStringRepresentation();
   }
 
-  public PagingItemFilter<STestRun> getPagingInvocationsFilter(@NotNull Fields invocationField) {
+  public PagingItemFilter<STestRun> getPagingInvocationsFilter(@NotNull final Fields invocationField) {
     Locator allowingAllPersonal = Locator.createEmptyLocator().setDimension(TestOccurrenceFinder.INCLUDE_ALL_PERSONAL, Locator.BOOLEAN_TRUE);
     String completeLocator = Locator.merge(allowingAllPersonal.getStringRepresentation(), invocationField.getLocator());
 
@@ -201,15 +214,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return getPagingFilter(new Locator(completeLocator), filter);
   }
 
-  public static String getTestRunLocator(final @NotNull STest test) {
+  public static String getTestRunLocator(@NotNull final STest test) {
     return Locator.createEmptyLocator().setDimension(TEST, TestFinder.getTestLocator(test)).getStringRepresentation();
   }
 
-  public static String getTestRunLocator(final @NotNull SBuild build) {
+  public static String getTestRunLocator(@NotNull final SBuild build) {
     return Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(build)).getStringRepresentation();
   }
-
-  @LocatorDimension("currentlyMuted") private static final String CURRENTLY_MUTED = "currentlyMuted";
 
   @Override
   @Nullable
@@ -489,13 +500,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  private List<STestRun> getTestHistory(final STest test, final SProject affectedProject, @NotNull final Locator locator) {
+  private List<STestRun> getTestHistory(@NotNull final STest test, @NotNull final SProject affectedProject, @NotNull final Locator locator) {
     return MultiTestRun.mergeByTestName(myTestHistory.getTestHistory(test.getTestNameId(), affectedProject, getBranchFilter(locator.getSingleDimensionValue(BRANCH))));
     //consider reporting not found if no tests found and the branch does not exist
   }
 
   @NotNull
-  private List<STestRun> getTestHistory(final STest test, final SBuildType buildType, @NotNull final Locator locator) {
+  private List<STestRun> getTestHistory(@NotNull final STest test, @NotNull final SBuildType buildType, @NotNull final Locator locator) {
     return MultiTestRun.mergeByTestName(myTestHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), getBranchFilter(locator.getSingleDimensionValue(BRANCH))));
     //consider reporting not found if no tests found and the branch does not exist
   }
@@ -773,7 +784,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  private FilterConditionChecker<STestRun> hasInvestigationStateFilter(@NotNull String investigationState) {
+  private FilterConditionChecker<STestRun> hasInvestigationStateFilter(@NotNull final String investigationState) {
     switch (investigationState) {
       case "active":
         return item -> hasInvestigationState(item, ResponsibilityEntry.State.TAKEN);
@@ -787,7 +798,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     throw new LocatorProcessException("Invalid value of dimension " + INVESTIGATION_STATE + ".");
   }
 
-  private boolean hasInvestigationState(@NotNull final STestRun item, @NotNull ResponsibilityEntry.State state) {
+  private boolean hasInvestigationState(@NotNull final STestRun item, @NotNull final ResponsibilityEntry.State state) {
     //todo: TeamCity API (MP): is there an API way to figure out there is an investigation for a STestRun ?
     final List<TestNameResponsibilityEntry> testResponsibilities = item.getTest().getAllResponsibilities();
 
@@ -830,7 +841,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   private static class DelegatingAbstractFinder<T> extends AbstractFinder<T> {
     private final AbstractFinder<T> myDelegate;
 
-    public DelegatingAbstractFinder(final AbstractFinder<T> delegate) {
+    public DelegatingAbstractFinder(@NotNull final AbstractFinder<T> delegate) {
       myDelegate = delegate;
     }
 
