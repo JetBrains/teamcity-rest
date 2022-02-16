@@ -611,6 +611,14 @@ public class BuildRequest {
   }
 
   @GET
+  @Path("/{buildLocator}/status")
+  @Produces("text/plain")
+  @ApiOperation(value="Get status of the matching build.",nickname="getBuildStatus")
+  public String serveBuildStatus(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator) {
+    return Build.getFieldValue(myBuildFinder.getBuildPromotion(null, buildLocator), "status", myBeanContext);
+  }
+
+  @GET
   @Path("/{buildLocator}" + STATISTICS + "/")
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value="Get all statistical values of the matching build.",nickname="getBuildStatisticValues")
