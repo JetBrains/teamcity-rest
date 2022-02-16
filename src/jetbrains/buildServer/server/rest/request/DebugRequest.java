@@ -79,6 +79,7 @@ import jetbrains.buildServer.serverSide.impl.BuildPromotionManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BuildPromotionReplacementLog;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.dependency.GraphOptimizer;
+import jetbrains.buildServer.serverSide.impl.dependency.OptimizationListener;
 import jetbrains.buildServer.serverSide.impl.history.DBBuildHistory;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingServiceImpl;
 import jetbrains.buildServer.users.User;
@@ -547,8 +548,8 @@ public class DebugRequest {
     StringBuffer log = new StringBuffer();
     log.append("Optimization log for ").append(LogUtil.describe(build)).append('\n');
 
-    GraphOptimizer optimizer = new GraphOptimizer((BuildPromotionEx)build, myServiceLocator.getSingletonService(BuildPromotionReplacementLog.class), null);
-    optimizer.dryRunOptimization(new GraphOptimizer.OptimizationListener() {
+    GraphOptimizer optimizer = new GraphOptimizer((BuildPromotionEx)build, myServiceLocator.getSingletonService(BuildPromotionReplacementLog.class), Collections.emptySet());
+    optimizer.dryRunOptimization(new OptimizationListener() {
       @Override
       public void equivalentBuildPromotionIgnored(@NotNull final BuildPromotionEx promotion, @NotNull final String reason) {
         log.append("equivalent build promotion ignored ").append(LogUtil.describe(promotion)).append(", reason: ").append(reason).append('\n');
