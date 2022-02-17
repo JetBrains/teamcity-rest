@@ -28,6 +28,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Objects;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -456,7 +457,7 @@ public class APIController extends BaseController implements ServletContextAware
       return null;
     }
 
-    final Stopwatch requestStart = new Stopwatch().start();
+    final Stopwatch requestStart = Stopwatch.createStarted();
     boolean shouldLogToDebug = shouldLogToDebug(request);
 
     String requestType = getRequestType(request);
@@ -544,7 +545,7 @@ public class APIController extends BaseController implements ServletContextAware
     } finally {
       if (shouldLogToDebug && LOG.isDebugEnabled()) {
         LOG.debug(() -> "REST API " + requestType + " request processing finished in " +
-                        TimePrinter.createMillisecondsFormatter().formatTime(requestStart.elapsedMillis()) +
+                        TimePrinter.createMillisecondsFormatter().formatTime(requestStart.elapsed(TimeUnit.MILLISECONDS)) +
                         (errorEncountered.get() ? " with errors, original " : ", ") + "status code: " + getStatus(response) + ", request: " + WebUtil.getRequestDump(request));
       }
     }

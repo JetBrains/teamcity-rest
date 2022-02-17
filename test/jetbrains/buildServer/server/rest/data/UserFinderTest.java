@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.base.Stopwatch;
+import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
@@ -395,17 +396,17 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
 
     long delay = 500;
     setInternalProperty("rest.request.users.passwordCheckDelay.ms", String.valueOf(delay)); //disable delay in tests
-    final Stopwatch start = new Stopwatch().start();
+    final Stopwatch start = Stopwatch.createStarted();
     check("password:pwd", user20);
-    System.out.println("Elapsed ms: " + start.elapsedMillis());
-    assertTrue(start.elapsedMillis() > 2 * delay - 100);  //check the elapsed time is at least twice the period (once for multiple items search, once - for single items search)
-    assertTrue(start.elapsedMillis() < 3 * delay);  //check the elapsed time is not more then twice the time wait
+    System.out.println("Elapsed ms: " + start.elapsed(TimeUnit.MILLISECONDS));
+    assertTrue(start.elapsed(TimeUnit.MILLISECONDS) > 2 * delay - 100);  //check the elapsed time is at least twice the period (once for multiple items search, once - for single items search)
+    assertTrue(start.elapsed(TimeUnit.MILLISECONDS) < 3 * delay);  //check the elapsed time is not more then twice the time wait
     setInternalProperty("rest.request.users.passwordCheckDelay.ms", "0"); //disable delay in tests
 
-    final Stopwatch start2 = new Stopwatch().start();
+    final Stopwatch start2 = Stopwatch.createStarted();
     check("password:pwd", user20);
-    System.out.println("Elapsed ms: " + start2.elapsedMillis());
-    assertTrue(start2.elapsedMillis() < delay - 1);  //check the elapsed time without wait is small
+    System.out.println("Elapsed ms: " + start2.elapsed(TimeUnit.MILLISECONDS));
+    assertTrue(start2.elapsed(TimeUnit.MILLISECONDS) < delay - 1);  //check the elapsed time without wait is small
 
     check("password:()", user30);
   }

@@ -84,14 +84,13 @@ public class TestOccurrenceRequest {
                                             @QueryParam("fields") String fields,
                                             @Context UriInfo uriInfo,
                                             @Context HttpServletRequest request) {
-    String locator = TestOccurrenceFinder.patchLocatorForPersonalBuilds(locatorText, request);
-    TestOccurrencesCachedInfo info = myTestOccurrenceFinder.tryGetCachedInfo(locator, fields);
+    TestOccurrencesCachedInfo info = myTestOccurrenceFinder.tryGetCachedInfo(locatorText, fields);
     if(info.getShortStatistics() != null) {
       // Short href and pager data are meaningless in a case when we need only some counters.
 
       if(info.filteringRequired()) {
         // We need a locator as getLocator(String) calls locator.isFullyProcessed() which breaks everything
-        Locator locator1 = Locator.createPotentiallyEmptyLocator(locator);
+        Locator locator1 = Locator.createPotentiallyEmptyLocator(locatorText);
 
         // Due to reasons, in composite builds MultiTestRun.getBuild() will return different build than specified in the locator.
         // At the time of writing this, the returned build will be one of the non-composite snapshot dependencies.
@@ -117,7 +116,7 @@ public class TestOccurrenceRequest {
       return new TestOccurrences(null, info.getShortStatistics(), null, null, new Fields(fields), myBeanContext);
     }
 
-    final PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locator);
+    final PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locatorText);
 
     return new TestOccurrences(result.myEntries,
                                null,
@@ -132,12 +131,8 @@ public class TestOccurrenceRequest {
   @Path("/{testLocator}")
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value="Get a matching test occurrence.",nickname="getTestOccurrence")
-  public TestOccurrence serveInstance(@ApiParam(format = LocatorName.TEST_OCCURRENCE) @PathParam("testLocator") String locatorText,
-                                      @QueryParam("fields") String fields,
-                                      @Context HttpServletRequest request) {
-    String locator = TestOccurrenceFinder.patchLocatorForPersonalBuilds(locatorText, request);
-
-    return new TestOccurrence(myTestOccurrenceFinder.getItem(locator), myBeanContext, new Fields(fields));
+  public TestOccurrence serveInstance(@ApiParam(format = LocatorName.TEST_OCCURRENCE) @PathParam("testLocator") String locatorText, @QueryParam("fields") String fields) {
+    return new TestOccurrence(myTestOccurrenceFinder.getItem(locatorText), myBeanContext, new Fields(fields));
   }
 
   void initForTests(

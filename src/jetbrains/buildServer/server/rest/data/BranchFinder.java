@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,7 +51,8 @@ import org.jetbrains.annotations.Nullable;
     }
 )
 public class BranchFinder extends AbstractFinder<BranchData> {
-  @LocatorDimension("name") protected static final String NAME = "name";
+  @LocatorDimension("name")
+  protected static final String NAME = "name";
   @LocatorDimension(value = "default", format = LocatorDimensionDataType.BOOLEAN, notes = "Is default branch.")
   protected static final String DEFAULT = "default";
   protected static final String UNSPECIFIED = "unspecified";
@@ -91,10 +93,9 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     return Locator.getStringLocator(DEFAULT, "true");
   }
 
-
   @Nullable
   @Contract("_, !null -> !null; !null,_ -> !null")
-  public static String patchLocatorWithBuildType(final @Nullable String branchLocator, final @Nullable String buildTypeLocator) {
+  public static String patchLocatorWithBuildType(@Nullable final String branchLocator, @Nullable final String buildTypeLocator) {
     return Locator.setDimensionIfNotPresent(branchLocator, BUILD_TYPE, buildTypeLocator);
   }
 
@@ -104,7 +105,6 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     return getBranchFilterDetails(locator).filter;
   }
 
-  @SuppressWarnings("UnnecessaryLocalVariable")
   @NotNull
   public BranchFilterDetails getBranchFilterDetailsWithoutLocatorCheck(@NotNull final String branchLocator) {
     return getBranchFilterDetails(createLocator(branchLocator, null));
@@ -275,14 +275,30 @@ public class BranchFinder extends AbstractFinder<BranchData> {
 
     BranchSearchOptions searchOptions = getBranchSearchOptions(locator);
 
+    Filter<SBuildType> dependenciesFilter = getBranchDependenciesFilter(buildTypes);
+
     Accumulator resultAccumulator = new Accumulator();
     for (SBuildType buildType : buildTypes) {
       Boolean locatorComputeTimestamps = locator.getSingleDimensionValueAsBoolean(COMPUTE_TIMESTAMPS);
-      resultAccumulator.addAll(getBranches(buildType, searchOptions, locatorComputeTimestamps != null ? locatorComputeTimestamps : TeamCityProperties.getBoolean("rest.beans.branch.defaultComputeTimestamp")));
+      resultAccumulator.addAll(getBranches(buildType, searchOptions, locatorComputeTimestamps != null ? locatorComputeTimestamps : TeamCityProperties.getBoolean("rest.beans.branch.defaultComputeTimestamp"), dependenciesFilter));
     }
 
     result.add(getItemHolder(resultAccumulator.get()));
     return result;
+  }
+
+  @NotNull
+  private Filter<SBuildType> getBranchDependenciesFilter(@NotNull final List<SBuildType> buildTypes) {
+    // this filter disables fetching of branches from dependencies if they present in the buildTypes list
+    // since we're going to traverse all build types form the buildTypes it makes sense to fetch branches from them once,
+    // without this filter we'd traverse branches of a single build type 1 + as many times as it is accessible via snapshot dependencies
+    return new Filter<SBuildType>() {
+      private final Set<SBuildType> myFilteredBuildTypes = new HashSet<>(buildTypes);
+      @Override
+      public boolean accept(@NotNull SBuildType data) {
+        return !myFilteredBuildTypes.contains(data);
+      }
+    };
   }
 
   @NotNull
@@ -301,27 +317,8 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     return user;
   }
 
-  private class BranchSearchOptions {
-    @NotNull private final BranchesPolicy branchesPolicy;
-    @Nullable private final Boolean includeBranchesFromDependencies;
-
-    public BranchSearchOptions(@NotNull final BranchesPolicy branchesPolicy, @Nullable final Boolean includeBranchesFromDependencies) {
-      this.branchesPolicy = branchesPolicy;
-      this.includeBranchesFromDependencies = includeBranchesFromDependencies;
-    }
-
-    @NotNull
-    public BranchesPolicy getBranchesPolicy() {
-      return branchesPolicy;
-    }
-
-    public Boolean isIncludeBranchesFromDependencies() {
-      return includeBranchesFromDependencies;
-    }
-  }
-
   @NotNull
-  private BranchSearchOptions getBranchSearchOptions(final @NotNull Locator locator) {
+  private BranchSearchOptions getBranchSearchOptions(@NotNull final Locator locator) {
     BranchesPolicy branchesPolicy = BranchesPolicy.ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES;
     final String policyDimension = locator.getSingleDimensionValue(POLICY);
     if (policyDimension != null) {
@@ -341,10 +338,20 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     return new BranchSearchOptions(branchesPolicy, changesFromDependencies);
   }
 
-  private List<BranchData> getBranches(final @NotNull SBuildType buildType, @NotNull final BranchSearchOptions branchSearchOptions, final boolean computeTimestamps) {
+  @NotNull
+  private List<BranchData> getBranches(@NotNull final SBuildType buildType,
+                                       @NotNull final BranchSearchOptions branchSearchOptions,
+                                       final boolean computeTimestamps,
+                                       @NotNull final Filter<SBuildType> dependenciesFilter) {
     final BuildTypeEx buildTypeImpl = (BuildTypeEx)buildType; //TeamCity openAPI issue: cast
     BranchesPolicy mainPolicy = branchSearchOptions.getBranchesPolicy();
-    List<BranchEx> branches = buildTypeImpl.getBranches(mainPolicy, branchSearchOptions.isIncludeBranchesFromDependencies(), computeTimestamps);
+    BranchCalculationOptions branchCalculationOptions = new BranchCalculationOptions()
+      .setBranchesPolicy(mainPolicy)
+      .setComputeTimestamps(computeTimestamps)
+      .setIncludeBranchesFromDependencies(branchSearchOptions.includeBranchesFromDependencies)
+      .setDependenciesFilter(dependenciesFilter)
+      .setSortBranches(false);
+    List<BranchEx> branches = buildTypeImpl.getBranches(branchCalculationOptions);
     // return branches.stream().map(b -> BranchData.fromBranchEx(b, myServiceLocator)).collect(Collectors.toList());
     // workaround for the TeamCity core performance issue of getting activity status per branch: it's ineffective, see implementation of BuildTypeBranchImpl.isActive()
     boolean disableActive = TeamCityProperties.getBoolean("rest.beans.branch.disableActive");
@@ -374,7 +381,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
   }
 
   @NotNull
-  public PagedSearchResult<BranchData> getItems(@NotNull SBuildType buildType, @Nullable final String locatorText) {
+  public PagedSearchResult<BranchData> getItems(@NotNull final SBuildType buildType, @Nullable final String locatorText) {
     String baseLocator = locatorText;
     if (locatorText != null) {
       Locator locator = new Locator(locatorText);
@@ -390,7 +397,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
   }
 
   @NotNull
-  public PagedSearchResult<BranchData> getItemsIfValidBranchListLocator(@Nullable String buildTypesLocator, @Nullable final String locatorText) {
+  public PagedSearchResult<BranchData> getItemsIfValidBranchListLocator(@Nullable final String buildTypesLocator, @Nullable final String locatorText) {
     final Locator locator = createLocator(locatorText, null); //using createLocator here to make sure due error on wrong locator will be generated
     if (buildTypesLocator != null &&
         !locator.isSingleValue() &&
@@ -416,7 +423,26 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     });
   }
 
-  static private class Accumulator {
+  private class BranchSearchOptions {
+    @NotNull private final BranchesPolicy branchesPolicy;
+    @Nullable private final Boolean includeBranchesFromDependencies;
+
+    public BranchSearchOptions(@NotNull final BranchesPolicy branchesPolicy, @Nullable final Boolean includeBranchesFromDependencies) {
+      this.branchesPolicy = branchesPolicy;
+      this.includeBranchesFromDependencies = includeBranchesFromDependencies;
+    }
+
+    @NotNull
+    public BranchesPolicy getBranchesPolicy() {
+      return branchesPolicy;
+    }
+
+    public Boolean isIncludeBranchesFromDependencies() {
+      return includeBranchesFromDependencies;
+    }
+  }
+
+  private static class Accumulator {
     //de-duplicate by name, ordering is not important here
     private final Map<String, BranchData> myMap = new HashMap<String, BranchData>();
 

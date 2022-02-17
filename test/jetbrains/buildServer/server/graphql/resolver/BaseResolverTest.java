@@ -52,7 +52,11 @@ public class BaseResolverTest extends BaseServerTestCase {
 
     Set<String> cursorSet = new HashSet<>();
     for(int i = 0; i < items.length; i++) {
-      assertEquals(items[i], edges.get(i).getNode());
+      assertEquals(
+        String.format("Edge in position %d is not was expected: ", i),
+        items[i],
+        edges.get(i).getNode()
+      );
       cursorSet.add(edges.get(i).getCursor().getValue());
     }
 
@@ -62,8 +66,17 @@ public class BaseResolverTest extends BaseServerTestCase {
   protected <T> void assertExtensibleEdges(@NotNull List<? extends ExtensibleConnection.Edge<T>> edges, T... items) {
     assertEquals(items.length, edges.size());
 
+    Set<String> cursorSet = new HashSet<>();
     for(int i = 0; i < items.length; i++) {
-      assertEquals(items[i], edges.get(i).getNode().getData());
+      assertEquals(
+        String.format("Edge in position %d is not was expected: ", i),
+        items[i],
+        edges.get(i).getNode().getData()
+      );
+
+      cursorSet.add(edges.get(i).getCursor());
     }
+
+    assertEquals("Cursors must be unique", items.length, cursorSet.size());
   }
 }

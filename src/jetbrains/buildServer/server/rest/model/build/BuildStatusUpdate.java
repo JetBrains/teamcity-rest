@@ -14,20 +14,15 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.resolver;
+package jetbrains.buildServer.server.rest.model.build;
 
-import jetbrains.buildServer.server.graphql.model.Agent;
-import org.jetbrains.annotations.NotNull;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlRootElement;
 
-public class UnauthorizeAgentPayload {
-  private final Agent myAgent;
-
-  public UnauthorizeAgentPayload(@NotNull Agent agent) {
-    myAgent = agent;
-  }
-
-  @NotNull
-  public Agent getAgent() {
-    return myAgent;
-  }
+@XmlRootElement
+public class BuildStatusUpdate {
+  @XmlAttribute
+  public String status;
+  @XmlAttribute
+  public String comment;
 }

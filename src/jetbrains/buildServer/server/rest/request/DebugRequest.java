@@ -79,6 +79,7 @@ import jetbrains.buildServer.serverSide.impl.BuildPromotionManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BuildPromotionReplacementLog;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.dependency.GraphOptimizer;
+import jetbrains.buildServer.serverSide.impl.dependency.OptimizationListener;
 import jetbrains.buildServer.serverSide.impl.history.DBBuildHistory;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingServiceImpl;
 import jetbrains.buildServer.users.User;
@@ -547,8 +548,8 @@ public class DebugRequest {
     StringBuffer log = new StringBuffer();
     log.append("Optimization log for ").append(LogUtil.describe(build)).append('\n');
 
-    GraphOptimizer optimizer = new GraphOptimizer((BuildPromotionEx)build, myServiceLocator.getSingletonService(BuildPromotionReplacementLog.class), null);
-    optimizer.dryRunOptimization(new GraphOptimizer.OptimizationListener() {
+    GraphOptimizer optimizer = new GraphOptimizer((BuildPromotionEx)build, myServiceLocator.getSingletonService(BuildPromotionReplacementLog.class), Collections.emptySet());
+    optimizer.dryRunOptimization(new OptimizationListener() {
       @Override
       public void equivalentBuildPromotionIgnored(@NotNull final BuildPromotionEx promotion, @NotNull final String reason) {
         log.append("equivalent build promotion ignored ").append(LogUtil.describe(promotion)).append(", reason: ").append(reason).append('\n');
@@ -703,17 +704,17 @@ public class DebugRequest {
     cmd.setExePath(exePath);
     cmd.addParameters(params);
     Loggers.ACTIVITIES.info("External process is launched by user " + myPermissionChecker.getCurrentUserDescription() + ". Command line: " + cmd.getCommandLineString());
-    Stopwatch action = new Stopwatch().start();
+    Stopwatch action = Stopwatch.createStarted();
     final ExecResult execResult = SimpleCommandLineProcessRunner.runCommand(cmd, input.getBytes(Charset.forName(charset != null ? charset : "UTF-8")), new SimpleCommandLineProcessRunner.RunCommandEventsAdapter() {
       @Override public Integer getOutputIdleSecondsTimeout() {return idleTimeSeconds;}
-      @Override public Integer getMaxAcceptedOutputSize() {return maxOutputBytes != null && maxOutputBytes != null && maxOutputBytes > 0 ? maxOutputBytes : 1024*1024;}
+      @Override public Integer getMaxAcceptedOutputSize() {return maxOutputBytes != null && maxOutputBytes > 0 ? maxOutputBytes : 1024*1024;}
     });
     action.stop();
     StringBuffer result = new StringBuffer();
     result.append("StdOut:").append(execResult.getStdout()).append("\n");
     result.append("StdErr: ").append(execResult.getStderr()).append("\n");
     result.append("Exit code: ").append(execResult.getExitCode()).append("\n");
-    result.append("Time: ").append(TimePrinter.createMillisecondsFormatter().formatTime(action.elapsedMillis()));
+    result.append("Time: ").append(TimePrinter.createMillisecondsFormatter().formatTime(action.elapsed(TimeUnit.MILLISECONDS)));
     return result.toString();
   }
 

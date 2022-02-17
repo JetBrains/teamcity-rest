@@ -17,7 +17,10 @@
 package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.schema.DataFetchingEnvironment;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,7 +34,9 @@ import jetbrains.buildServer.server.graphql.model.filter.AgentBuildTypesFilter;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
 import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
+import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
@@ -121,8 +126,10 @@ public class AgentResolver extends ModelResolver<Agent> {
   private Stream<SBuildType> getByCompatible(@Nullable Boolean compatible, @NotNull SBuildAgent agent) {
     Stream<SBuildType> allBuildTypes = myBuildTypeFinder.getItems(null).myEntries
       .stream()
-      .filter(btt -> btt.isBuildType())
-      .map(btt -> btt.getBuildType());
+      .filter(BuildTypeOrTemplate::isBuildType)
+      .map(BuildTypeOrTemplate::getBuildType)
+      .filter(Objects::nonNull)
+      .filter(it -> !((BuildTypeEx)it).isAgentLessBuildType());
 
     if(compatible == null) {
       return allBuildTypes;

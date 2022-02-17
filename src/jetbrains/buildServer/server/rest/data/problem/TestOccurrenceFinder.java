@@ -44,15 +44,16 @@ import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataT
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldInclusionChecker;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.tests.TestHistory;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.StandardProperties;
 import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.NamedThreadFactory;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
-import jetbrains.buildServer.web.util.SessionUser;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -75,7 +76,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static final String BUILD = "build";
   @LocatorDimension(value = "test", format = LocatorName.TEST, notes = "Test locator.")
   private static final String TEST = "test";
-  @LocatorDimension("name") private static final String NAME = "name"; //value condition for the test's name
+  @LocatorDimension("name")
+  private static final String NAME = "name"; //value condition for the test's name
   @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
   private static final String BUILD_TYPE = "buildType";
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
@@ -91,9 +93,12 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public static final String CURRENTLY_INVESTIGATED = "currentlyInvestigated";
   @LocatorDimension(value = "muted", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is muted.")
   public static final String MUTED = "muted";
-  @LocatorDimension("newFailure") public static final String NEW_FAILURE = "newFailure";
+  @LocatorDimension("newFailure")
+  public static final String NEW_FAILURE = "newFailure";
   @LocatorDimension(value = "includePersonal", dataType = LocatorDimensionDataType.BOOLEAN)
   public static final String INCLUDE_PERSONAL = "includePersonal";
+  @LocatorDimension("currentlyMuted")
+  private static final String CURRENTLY_MUTED = "currentlyMuted";
 
   /** Experimental dimension, allowed values = "active,fixed,givenUp,none"
    * Potential replacement for "currentlyInvestigated" dimension.
@@ -120,29 +125,42 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   // Data for requests with these TestOccurrence fields can be retrieved from ShortStatistics.
   private static final Set<String> FASTPATH_ALLOWED_FIELDS = new HashSet<String>(Arrays.asList("id", "href", "name", "status", "duration", "runOrder", "build", "test"));
 
-  @NotNull private final TestFinder myTestFinder;
-  @NotNull private final BuildFinder myBuildFinder;
-  @NotNull private final BuildTypeFinder myBuildTypeFinder;
-  @NotNull private final ProjectFinder myProjectFinder;
+  @NotNull
+  private final TestFinder myTestFinder;
+  @NotNull
+  private final BuildFinder myBuildFinder;
+  @NotNull
+  private final BuildTypeFinder myBuildTypeFinder;
+  @NotNull
+  private final ProjectFinder myProjectFinder;
 
-  @NotNull private final TestHistory myTestHistory;
-  @NotNull private final CurrentProblemsManager myCurrentProblemsManager;
-  @NotNull private final BranchFinder myBranchFinder;
-  @NotNull private final TestScopeFilterProducer myTestScopeFilterProducer;
+  @NotNull
+  private final TestHistory myTestHistory;
+  @NotNull
+  private final CurrentProblemsManager myCurrentProblemsManager;
+  @NotNull
+  private final BranchFinder myBranchFinder;
+  @NotNull
+  private final TestScopeFilterProducer myTestScopeFilterProducer;
+  @NotNull
+  private final SecurityContext mySecurityContext;
 
-  public TestOccurrenceFinder(final @NotNull TestFinder testFinder,
-                              final @NotNull BuildFinder buildFinder,
-                              final @NotNull BuildTypeFinder buildTypeFinder,
-                              final @NotNull ProjectFinder projectFinder,
-                              final @NotNull TestHistory testHistory,
-                              final @NotNull CurrentProblemsManager currentProblemsManager,
-                              final @NotNull BranchFinder branchFinder,
-                              final @NotNull TestScopeFilterProducer testScopeFilterProducer) {
-    super(DIMENSION_ID, TEST, NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, NEW_FAILURE, INCLUDE_PERSONAL, INCLUDE_ALL_PERSONAL);
+  public TestOccurrenceFinder(
+    @NotNull final SecurityContext securityContext,
+    @NotNull final TestFinder testFinder,
+    @NotNull final BuildFinder buildFinder,
+    @NotNull final BuildTypeFinder buildTypeFinder,
+    @NotNull final ProjectFinder projectFinder,
+    @NotNull final TestHistory testHistory,
+    @NotNull final CurrentProblemsManager currentProblemsManager,
+    @NotNull final BranchFinder branchFinder,
+    @NotNull final TestScopeFilterProducer testScopeFilterProducer) {
+    super(DIMENSION_ID, TEST, NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, NEW_FAILURE, INCLUDE_PERSONAL);
     setHiddenDimensions(EXPAND_INVOCATIONS, INVOCATIONS);
     setHiddenDimensions(ORDER); //highly experiemntal
-    setHiddenDimensions(PERSONAL_FOR_USER);
     setHiddenDimensions(INVESTIGATION_STATE); // highly experimental
+    setHiddenDimensions(INCLUDE_ALL_PERSONAL);
+
     myTestFinder = testFinder;
     myBuildFinder = buildFinder;
     myBuildTypeFinder = buildTypeFinder;
@@ -151,6 +169,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     myCurrentProblemsManager = currentProblemsManager;
     myBranchFinder = branchFinder;
     myTestScopeFilterProducer = testScopeFilterProducer;
+    mySecurityContext = securityContext;
   }
 
   @Override
@@ -164,35 +183,12 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return TestOccurrenceFinder.getTestRunLocator(sTestRun);
   }
 
-  public static String getTestRunLocator(final @NotNull STestRun testRun) {
+  public static String getTestRunLocator(@NotNull final STestRun testRun) {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(testRun.getTestRunId())).
       setDimension(BUILD, BuildRequest.getBuildLocator(testRun.getBuild())).getStringRepresentation();
   }
 
-  /** Ensures we don't include personal builds by default (except when build locator is provided) and sets an internal dimension with user id. */
-  @Contract("!null, _ -> !null; _, !null -> !null")
-  public static String patchLocatorForPersonalBuilds(@Nullable String locator, @Nullable HttpServletRequest request) {
-    if(locator == null || request == null) {
-      return locator;
-    }
-
-    Locator patchedLocator = new Locator(locator);
-    if(patchedLocator.isAnyPresent(INCLUDE_ALL_PERSONAL)) {
-      // We do not want somebody to set this dimension explicitely.
-      throw new BadRequestException(String.format("%s dimension is not supported.", INCLUDE_ALL_PERSONAL));
-    }
-
-    patchedLocator.setDimensionIfNotPresent(INCLUDE_PERSONAL, Locator.BOOLEAN_FALSE);
-
-    SUser user = SessionUser.getUser(request);
-    if(user != null) {
-      patchedLocator.setDimension(PERSONAL_FOR_USER, Long.toString(user.getId()));
-    }
-
-    return patchedLocator.getStringRepresentation();
-  }
-
-  public PagingItemFilter<STestRun> getPagingInvocationsFilter(@NotNull Fields invocationField) {
+  public PagingItemFilter<STestRun> getPagingInvocationsFilter(@NotNull final Fields invocationField) {
     Locator allowingAllPersonal = Locator.createEmptyLocator().setDimension(TestOccurrenceFinder.INCLUDE_ALL_PERSONAL, Locator.BOOLEAN_TRUE);
     String completeLocator = Locator.merge(allowingAllPersonal.getStringRepresentation(), invocationField.getLocator());
 
@@ -201,15 +197,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     return getPagingFilter(new Locator(completeLocator), filter);
   }
 
-  public static String getTestRunLocator(final @NotNull STest test) {
+  public static String getTestRunLocator(@NotNull final STest test) {
     return Locator.createEmptyLocator().setDimension(TEST, TestFinder.getTestLocator(test)).getStringRepresentation();
   }
 
-  public static String getTestRunLocator(final @NotNull SBuild build) {
+  public static String getTestRunLocator(@NotNull final SBuild build) {
     return Locator.createEmptyLocator().setDimension(BUILD, BuildRequest.getBuildLocator(build)).getStringRepresentation();
   }
-
-  @LocatorDimension("currentlyMuted") private static final String CURRENTLY_MUTED = "currentlyMuted";
 
   @Override
   @Nullable
@@ -233,6 +227,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (idDimension != null) {
       // Always return a test run from a personal build when requested by id.
       if(!locator.isSingleValue()) {
+        locator.setDimensionIfNotPresent(INCLUDE_PERSONAL, Locator.BOOLEAN_TRUE);
         locator.setDimensionIfNotPresent(INCLUDE_ALL_PERSONAL, Locator.BOOLEAN_TRUE);
       }
 
@@ -316,29 +311,37 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   /**
-   * Filters out personal builds by default. Uses dimension {@link #PERSONAL_FOR_USER} to filter out personal builds of other users if needed.
+   * Filters out personal builds by default.
    */
   @NotNull
   private Filter<STestRun> getPersonalBuildsFilter(@NotNull final Locator locator) {
-    boolean includePersonal = locator.getSingleDimensionValueAsStrictBoolean(INCLUDE_PERSONAL, false);
-    boolean includeAllPersonal = locator.getSingleDimensionValueAsStrictBoolean(INCLUDE_ALL_PERSONAL, false);
+    final boolean includePersonal = locator.getSingleDimensionValueAsStrictBoolean(INCLUDE_PERSONAL, false);
+    if(!includePersonal) {
+      locator.markUsed(INCLUDE_ALL_PERSONAL);
+      return testRun -> !testRun.getBuild().isPersonal();
+    }
 
-    boolean keepMy = includePersonal || includeAllPersonal;
-    boolean keepAll = includeAllPersonal;
+    boolean includeAllPersonalPreference = false;
+    SUser currentUser = (SUser) mySecurityContext.getAuthorityHolder().getAssociatedUser();
+    if(currentUser != null) {
+      String showAllPersonalBuildsPreferense = currentUser.getPropertyValue(StandardProperties.SHOW_ALL_PERSONAL_BUILDS);
+      if(StringUtil.isTrue(showAllPersonalBuildsPreferense)) {
+        includeAllPersonalPreference = true;
+      }
+    }
 
-    String userIdStr = locator.getSingleDimensionValue(PERSONAL_FOR_USER);
-
-    if(keepAll) {
+    boolean includeAllPersonal = locator.getSingleDimensionValueAsStrictBoolean(INCLUDE_ALL_PERSONAL, includeAllPersonalPreference);
+    if(includeAllPersonal) {
       return testRun -> true;
     }
 
-    if (keepMy && userIdStr != null) {
-      Long user = Long.parseLong(userIdStr);
-      // Personal test run always has an owner
-      return testRun -> !testRun.getBuild().isPersonal() || user.equals(testRun.getBuild().getOwner().getId());
+    if(currentUser == null) {
+      return testRun -> !testRun.getBuild().isPersonal();
     }
 
-    return testRun -> !testRun.getBuild().isPersonal();
+    // Personal builds always have an owner.
+    //noinspection ConstantConditions
+    return testRun -> !testRun.getBuild().isPersonal() || currentUser.getId() == testRun.getBuild().getOwner().getId();
   }
 
   @NotNull
@@ -388,6 +391,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       // Always include test runs from personal builds when there is a build locator.
+      locator.setDimension(INCLUDE_PERSONAL, Locator.BOOLEAN_TRUE);
       locator.setDimension(INCLUDE_ALL_PERSONAL, Locator.BOOLEAN_TRUE);
 
       List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
@@ -420,12 +424,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         }
       }
       return getPossibleExpandedTestsHolder(result, expandInvocations);
-    }
-
-    // Do not return tets runs form all personal builds.
-    // Will still include test runs from personal for specific user if requested.
-    if(!locator.isSingleValue()) {
-      locator.setDimension(INCLUDE_ALL_PERSONAL, Locator.BOOLEAN_FALSE);
     }
 
     String testDimension = locator.getSingleDimensionValue(TEST);
@@ -489,13 +487,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  private List<STestRun> getTestHistory(final STest test, final SProject affectedProject, @NotNull final Locator locator) {
+  private List<STestRun> getTestHistory(@NotNull final STest test, @NotNull final SProject affectedProject, @NotNull final Locator locator) {
     return MultiTestRun.mergeByTestName(myTestHistory.getTestHistory(test.getTestNameId(), affectedProject, getBranchFilter(locator.getSingleDimensionValue(BRANCH))));
     //consider reporting not found if no tests found and the branch does not exist
   }
 
   @NotNull
-  private List<STestRun> getTestHistory(final STest test, final SBuildType buildType, @NotNull final Locator locator) {
+  private List<STestRun> getTestHistory(@NotNull final STest test, @NotNull final SBuildType buildType, @NotNull final Locator locator) {
     return MultiTestRun.mergeByTestName(myTestHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), getBranchFilter(locator.getSingleDimensionValue(BRANCH))));
     //consider reporting not found if no tests found and the branch does not exist
   }
@@ -773,7 +771,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  private FilterConditionChecker<STestRun> hasInvestigationStateFilter(@NotNull String investigationState) {
+  private FilterConditionChecker<STestRun> hasInvestigationStateFilter(@NotNull final String investigationState) {
     switch (investigationState) {
       case "active":
         return item -> hasInvestigationState(item, ResponsibilityEntry.State.TAKEN);
@@ -787,7 +785,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     throw new LocatorProcessException("Invalid value of dimension " + INVESTIGATION_STATE + ".");
   }
 
-  private boolean hasInvestigationState(@NotNull final STestRun item, @NotNull ResponsibilityEntry.State state) {
+  private boolean hasInvestigationState(@NotNull final STestRun item, @NotNull final ResponsibilityEntry.State state) {
     //todo: TeamCity API (MP): is there an API way to figure out there is an investigation for a STestRun ?
     final List<TestNameResponsibilityEntry> testResponsibilities = item.getTest().getAllResponsibilities();
 
@@ -830,7 +828,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   private static class DelegatingAbstractFinder<T> extends AbstractFinder<T> {
     private final AbstractFinder<T> myDelegate;
 
-    public DelegatingAbstractFinder(final AbstractFinder<T> delegate) {
+    public DelegatingAbstractFinder(@NotNull final AbstractFinder<T> delegate) {
       myDelegate = delegate;
     }
 

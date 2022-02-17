@@ -33,8 +33,10 @@ import javax.ws.rs.core.*;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.QueuedBuild;
 import jetbrains.buildServer.agent.ServerProvidedProperties;
+import jetbrains.buildServer.controllers.ActionErrors;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.controllers.HttpDownloadProcessor;
+import jetbrains.buildServer.controllers.actions.ChangeBuildStatusProcessor;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.messages.DefaultMessagesInfo;
 import jetbrains.buildServer.messages.Status;
@@ -61,6 +63,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.TriggeredBy;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.*;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import jetbrains.buildServer.serverSide.impl.BuildAgentMessagesQueue;
@@ -562,6 +565,57 @@ public class BuildRequest {
     Loggers.ACTIVITIES
       .info("Build status text is changed via REST request by user " + myPermissionChecker.getCurrentUserDescription() + ". Build: " + LogUtil.describe(runningBuild));
     return runningBuild.getStatusDescriptor().getText();
+  }
+
+  @POST
+  @Path("/{buildLocator}/status")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Change status of the build.", nickname="setBuildStatus")
+  public Response setBuildStatus(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                                 @QueryParam("fields") String fields,
+                                 BuildStatusUpdate statusUpdate,
+                                 @Context HttpServletRequest request) {
+    BuildPromotion build = myBuildPromotionFinder.getItem(buildLocator);
+    AuthorityHolder authorityHolder = myBeanContext.getSingletonService(SecurityContext.class).getAuthorityHolder();
+
+    ChangeBuildStatusProcessor processor = new ChangeBuildStatusProcessor(
+      build.getAssociatedBuild(),
+      (SUser) authorityHolder.getAssociatedUser(),
+      statusUpdate.status,
+      statusUpdate.comment
+    );
+
+    ActionErrors errors = processor.doChangeStatus();
+
+    if(errors.hasErrors()) {
+      List<String> errorStrings = new ArrayList<>();
+      for(ActionErrors.Error e : errors.getErrors()) {
+        errorStrings.add(e.getMessage());
+      }
+
+      return Response.status(Response.Status.BAD_REQUEST).entity(new BuildStatusUpdateResult(
+        build,
+        errorStrings,
+        new Fields(fields),
+        myBeanContext
+      )).build();
+    }
+
+    return Response.ok().entity(new BuildStatusUpdateResult(
+      build,
+      Collections.emptyList(),
+      new Fields(fields),
+      myBeanContext
+    )).build();
+  }
+
+  @GET
+  @Path("/{buildLocator}/status")
+  @Produces("text/plain")
+  @ApiOperation(value="Get status of the matching build.",nickname="getBuildStatus")
+  public String serveBuildStatus(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator) {
+    return Build.getFieldValue(myBuildFinder.getBuildPromotion(null, buildLocator), "status", myBeanContext);
   }
 
   @GET

@@ -248,7 +248,8 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
 
   private class TestOccurrenceFinderDenyingItemsFetch extends TestOccurrenceFinder {
     public TestOccurrenceFinderDenyingItemsFetch() {
-      super(myTestFinder,
+      super(myServer.getSecurityContext(),
+            myTestFinder,
             myBuildFinder,
             myBuildTypeFinder,
             myProjectFinder,
