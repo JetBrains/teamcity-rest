@@ -27,6 +27,7 @@ import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
@@ -507,7 +508,7 @@ public class FilesSubResource {
       @Override
       public void write(final OutputStream output) throws WebApplicationException {
         InputStream inputStream = null;
-        Stopwatch action = new Stopwatch().start();
+        Stopwatch action = Stopwatch.createStarted();
         try {
           inputStream = element.getInputStream();
           if (startOffset != null || length != null) {
@@ -523,7 +524,7 @@ public class FilesSubResource {
           FileUtil.close(inputStream);
           if (LOG.isDebugEnabled()) {
             LOG.debug("Finished processing download of file \"" + element.getFullName() + "\" (" + StringUtil.formatFileSize(element.getSize()) + ")" +
-                      " in " + TimePrinter.createMillisecondsFormatter().formatTime(action.elapsedMillis()) + " for a REST request");
+                      " in " + TimePrinter.createMillisecondsFormatter().formatTime(action.elapsed(TimeUnit.MILLISECONDS)) + " for a REST request");
           }
         }
       }

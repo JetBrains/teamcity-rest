@@ -704,17 +704,17 @@ public class DebugRequest {
     cmd.setExePath(exePath);
     cmd.addParameters(params);
     Loggers.ACTIVITIES.info("External process is launched by user " + myPermissionChecker.getCurrentUserDescription() + ". Command line: " + cmd.getCommandLineString());
-    Stopwatch action = new Stopwatch().start();
+    Stopwatch action = Stopwatch.createStarted();
     final ExecResult execResult = SimpleCommandLineProcessRunner.runCommand(cmd, input.getBytes(Charset.forName(charset != null ? charset : "UTF-8")), new SimpleCommandLineProcessRunner.RunCommandEventsAdapter() {
       @Override public Integer getOutputIdleSecondsTimeout() {return idleTimeSeconds;}
-      @Override public Integer getMaxAcceptedOutputSize() {return maxOutputBytes != null && maxOutputBytes != null && maxOutputBytes > 0 ? maxOutputBytes : 1024*1024;}
+      @Override public Integer getMaxAcceptedOutputSize() {return maxOutputBytes != null && maxOutputBytes > 0 ? maxOutputBytes : 1024*1024;}
     });
     action.stop();
     StringBuffer result = new StringBuffer();
     result.append("StdOut:").append(execResult.getStdout()).append("\n");
     result.append("StdErr: ").append(execResult.getStderr()).append("\n");
     result.append("Exit code: ").append(execResult.getExitCode()).append("\n");
-    result.append("Time: ").append(TimePrinter.createMillisecondsFormatter().formatTime(action.elapsedMillis()));
+    result.append("Time: ").append(TimePrinter.createMillisecondsFormatter().formatTime(action.elapsed(TimeUnit.MILLISECONDS)));
     return result.toString();
   }
 
