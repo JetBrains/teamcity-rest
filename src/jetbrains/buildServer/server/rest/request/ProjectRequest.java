@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import javax.ws.rs.core.Response;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -854,10 +855,26 @@ public class ProjectRequest {
   @ApiOperation(value="Get all branches of the matching project.",nickname="getAllBranches")
   public Branches getBranches(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
                               @QueryParam("locator") String branchesLocator,
-                              @QueryParam("fields") String fields) {
+                              @QueryParam("fields") String fieldsSpec) {
     final SProject project = myProjectFinder.getItem(projectLocator);
     String updatedBranchLocator = BranchFinder.patchLocatorWithBuildType(branchesLocator, BuildTypeFinder.patchLocator(null, project));
-    return new Branches(myBranchFinder.getItems(updatedBranchLocator).myEntries, null, new Fields(fields), myBeanContext);
+    Fields fields = new Fields(fieldsSpec);
+    return new Branches(myBranchFinder.getItems(updatedBranchLocator).myEntries, null, fields, myBeanContext);
+  }
+
+  /**
+   * Experimental support
+   */
+  @GET
+  @Path("/{projectLocator}/branches/{branchLocator}/exists")
+  @Produces("text/plain")
+  @ApiOperation(value="Check if exists branch satisfying given locator in the matching build configuration.", nickname="checkIfBranchExists", hidden = true)
+  public String checkIfBranchExists(@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+                                    @ApiParam(format = LocatorName.BRANCH) @PathParam("branchLocator") String branchLocator) {
+    final SProject project = myProjectFinder.getItem(projectLocator);
+    String updatedBranchLocator = BranchFinder.patchLocatorWithBuildType(branchLocator, BuildTypeFinder.patchLocator(null, project));
+
+    return Boolean.toString(myBranchFinder.itemsExist(new Locator(updatedBranchLocator)));
   }
 
   /**

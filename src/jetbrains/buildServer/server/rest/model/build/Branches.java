@@ -39,6 +39,8 @@ import java.util.stream.Collectors;
 @XmlRootElement(name = "branches")
 @ModelBaseType(ObjectType.LIST)
 public class Branches {
+  private Boolean myExists;
+
   @XmlAttribute
   public Integer count;
 

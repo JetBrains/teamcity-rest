@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
@@ -70,6 +71,8 @@ import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static jetbrains.buildServer.server.rest.data.ProjectFinder.BUILD_TYPE;
 
 /*
  * User: Yegor Yarko
@@ -1551,10 +1554,30 @@ public class BuildTypeRequest {
   @ApiOperation(value="Get all branches of the matching build configuration.",nickname="getAllBranches")
   public Branches serveBranches(@ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
                                 @QueryParam("locator") String branchesLocator,
-                                @QueryParam("fields") String fields) {
+                                @QueryParam("fields") String fieldsSpec) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
+    Fields fields = new Fields(fieldsSpec);
+
     return new Branches(myBranchFinder.getItems(buildType, branchesLocator).myEntries,
-                        new PagerData(BuildTypeRequest.getBranchesHref(buildType, branchesLocator)), new Fields(fields), myBeanContext);
+                        new PagerData(BuildTypeRequest.getBranchesHref(buildType, branchesLocator)), fields, myBeanContext);
+  }
+
+  /**
+   * Checks if there are any branches satisfying given locator.
+   * @param buildTypeLocator
+   * @param branchLocator
+   * @return
+   */
+  @GET
+  @Path("/{btLocator}/branches/{branchLocator}/exists")
+  @Produces("text/plain")
+  @ApiOperation(value="Check if exists branch satisfying given locator in the matching build configuration.", nickname="checkIfBranchExists", hidden = true)
+  public String checkIfBranchExists(@ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
+                                    @ApiParam(format = LocatorName.BRANCH) @PathParam("branchLocator") String branchLocator) {
+    SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
+    String fullLocator = Locator.setDimensionIfNotPresent(branchLocator, BUILD_TYPE, myBuildTypeFinder.getCanonicalLocator(new BuildTypeOrTemplate(buildType)));
+
+    return Boolean.toString(myBranchFinder.itemsExist(new Locator(fullLocator)));
   }
 
   /**
