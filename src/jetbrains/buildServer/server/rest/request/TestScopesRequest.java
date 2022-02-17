@@ -31,7 +31,6 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
-import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScope;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector;
@@ -71,8 +70,6 @@ public class TestScopesRequest {
 
     Locator patchedLocator = new Locator(locatorText);
 
-    String nonPatchedDimension = patchedLocator.getSingleDimensionValue(TestScopesCollector.TEST_OCCURRENCES);
-    patchedLocator.setDimension(TestScopesCollector.TEST_OCCURRENCES, TestOccurrenceFinder.patchLocatorForPersonalBuilds(nonPatchedDimension, request));
     patchedLocator.setDimension(TestScopesCollector.SCOPE_TYPE, scopeName);
 
     PagedSearchResult<TestScope> items = myTestScopesCollector.getPagedItems(patchedLocator);
@@ -88,9 +85,8 @@ public class TestScopesRequest {
   @Produces({"application/xml", "application/json"})
   @ApiOperation(hidden = true, value = "highly experimental")
   public jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree serveScopesTree(@QueryParam("locator") String locatorText,
-                                    @QueryParam("fields") String fields,
-                                    @Context HttpServletRequest request) {
-    List<ScopeTree.Node<STestRun, TestCountersData>> treeNodes = myTestScopeTreeCollector.getSlicedTree(Locator.locator(locatorText), request);
+                                    @QueryParam("fields") String fields) {
+    List<ScopeTree.Node<STestRun, TestCountersData>> treeNodes = myTestScopeTreeCollector.getSlicedTree(Locator.locator(locatorText));
 
     return new jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree(treeNodes, new Fields(fields), myBeanContext);
   }
@@ -104,9 +100,8 @@ public class TestScopesRequest {
    * Get horizontally sliced tree containing projects and build configurations which are relevant to test runs satisfying given locator
    */
   public jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree serveScopesTreeTopSlice(@QueryParam("locator") String locatorText,
-                                                                                                     @QueryParam("fields") String fields,
-                                                                                                     @Context HttpServletRequest request) {
-    List<ScopeTree.Node<STestRun, TestCountersData>> treeNodes = myTestScopeTreeCollector.getTopSlicedTree(Locator.locator(locatorText), request);
+                                                                                                     @QueryParam("fields") String fields) {
+    List<ScopeTree.Node<STestRun, TestCountersData>> treeNodes = myTestScopeTreeCollector.getTopSlicedTree(Locator.locator(locatorText));
 
     return new jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree(treeNodes, new Fields(fields), myBeanContext);
   }

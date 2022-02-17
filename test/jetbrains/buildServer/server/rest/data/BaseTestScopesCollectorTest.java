@@ -94,9 +94,17 @@ public class BaseTestScopesCollectorTest extends BaseServerTestCase {
 
     TestScopeFilterProducer testScopesFilterProducer = new TestScopeFilterProducer(myBuildTypeFinder);
     final CurrentProblemsManager currentProblemsManager = myServer.getSingletonService(CurrentProblemsManager.class);
-    myTestOccurrenceFinder =
-      new TestOccurrenceFinder(myTestFinder, myBuildFinder, myBuildTypeFinder, myProjectFinder, myFixture.getTestsHistory(), currentProblemsManager, myBranchFinder,
-                               testScopesFilterProducer);
+    myTestOccurrenceFinder = new TestOccurrenceFinder(
+      myServer.getSecurityContext(),
+      myTestFinder,
+      myBuildFinder,
+      myBuildTypeFinder,
+      myProjectFinder,
+      myFixture.getTestsHistory(),
+      currentProblemsManager,
+      myBranchFinder,
+      testScopesFilterProducer
+    );
     myFixture.addService(myTestOccurrenceFinder);
 
 

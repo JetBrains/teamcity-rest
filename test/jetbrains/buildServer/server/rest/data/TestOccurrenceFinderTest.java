@@ -36,10 +36,13 @@ import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TypedValue;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.serverSide.impl.auth.TestRoles;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.StandardProperties;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.TestFor;
 import org.jetbrains.annotations.NotNull;
@@ -558,10 +561,11 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
   }
 
   @Test
-  public void testTestRunFromPersonalBuild() {
+  public void testTestRunFromPersonalBuild() throws Throwable {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
 
     SUser user = myFixture.createUserAccount("andrey");
+    user.addRole(RoleScope.projectScope(buildType.getProjectId()), myFixture.getTestRoles().getProjectViewerRole());
 
     final SFinishedBuild personalBuild = build().in(buildType)
                                           .personalForUser(user.getUsername())
@@ -576,9 +580,39 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     TestRunDataWithBuild personalRun = t("aaa", Status.NORMAL, 1, personalBuild.getBuildId());
     TestRunDataWithBuild regularRun  = t("aaa", Status.NORMAL, 2, regularBuild.getBuildId());
 
-    check("test:(name:aaa)", TEST_MATCHER, regularRun);
-    check("test:(name:aaa),includePersonal:true,personalForUser:" + user.getId(), TEST_MATCHER, personalRun, regularRun);
-    check("test:(name:aaa),includePersonal:false", TEST_MATCHER, regularRun);
+    myServer.getSecurityContext().runAs(user, () -> {
+      check("test:(name:aaa)", TEST_MATCHER, regularRun);
+      check("test:(name:aaa),includePersonal:true", TEST_MATCHER, personalRun, regularRun);
+      check("test:(name:aaa),includePersonal:false", TEST_MATCHER, regularRun);
+    });
+  }
+
+  @Test
+  public void testTestRunFromOthersPersonalBuild() throws Throwable {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+
+    SUser user = myFixture.createUserAccount("andrey");
+    SUser requester = myFixture.createUserAccount("requester");
+    requester.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "true");
+    requester.addRole(RoleScope.projectScope(buildType.getProjectId()), getTestRoles().getProjectViewerRole());
+
+    final SFinishedBuild personalBuild = build().in(buildType)
+                                                .personalForUser(user.getUsername())
+                                                .withTest(BuildBuilder.TestData.test("aaa"))
+                                                .finish();
+
+    final SFinishedBuild regularBuild = build().in(buildType)
+                                               .withTest(BuildBuilder.TestData.test("aaa"))
+                                               .finish();
+
+
+    TestRunDataWithBuild personalRun = t("aaa", Status.NORMAL, 1, personalBuild.getBuildId());
+    TestRunDataWithBuild regularRun  = t("aaa", Status.NORMAL, 2, regularBuild.getBuildId());
+
+    myServer.getSecurityContext().runAs(requester, () -> {
+      check("test:(name:aaa)", TEST_MATCHER, regularRun);
+      check("test:(name:aaa),includePersonal:true", TEST_MATCHER, personalRun, regularRun);
+    });
   }
 
   @Test
@@ -598,9 +632,8 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
     TestRunDataWithBuild regularRun  = t("aaa", Status.NORMAL, 2, regularBuild.getBuildId());
 
-    int anotherUserId = 999;
     check("test:(name:aaa)", TEST_MATCHER, regularRun);
-    check("test:(name:aaa),includePersonal:true,personalForUser:" + anotherUserId, TEST_MATCHER, regularRun);
+    check("test:(name:aaa),includePersonal:true", TEST_MATCHER, regularRun);
     check("test:(name:aaa),includePersonal:false", TEST_MATCHER, regularRun);
   }
 
