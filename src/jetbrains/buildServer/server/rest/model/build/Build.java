@@ -52,6 +52,7 @@ import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
+import jetbrains.buildServer.server.rest.model.build.downloadedArtifacts.DownloadedArtifacts;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
 import jetbrains.buildServer.server.rest.model.change.BuildChanges;
@@ -100,6 +101,7 @@ import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.PasswordReplacer;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SelectPrevBuildPolicy;
@@ -145,6 +147,7 @@ import org.jetbrains.annotations.Nullable;
     "customization",
     "changesCollectingInProgress" /*experimental*/,
     "queuedWaitReasons", /*q experimental */
+    "downloadedArtifacts", /*rf experimental*/
   })
 @ModelDescription("Represents a build instance.")
 public class Build {
@@ -976,6 +979,21 @@ public class Build {
         }, nestedFields, myBeanContext);
       }
     });
+  }
+
+  @XmlElement(name = "downloadedArtifacts")
+  public DownloadedArtifacts getDownloadedArtifacts() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("downloadedArtifacts", false, false),
+      () -> {
+        if(myBuild == null) {
+          return null;
+        }
+
+        Fields nested = myFields.getNestedField("downloadedArtifacts");
+        return new DownloadedArtifacts(myBuild.getDownloadedArtifacts(), nested, myBeanContext);
+      }
+    );
   }
 
   @XmlElement(name = "testOccurrences")
