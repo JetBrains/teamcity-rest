@@ -903,6 +903,8 @@ public class BuildTest extends BaseFinderTest<SBuild> {
   @Test
   @TestFor(issues = "TW-21036")
   public void testDownloadedArtifactsPermission() throws Throwable {
+    myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
+
     DownloadedArtifactsLoggerImpl artifactsLogger = myFixture.getSingletonService(DownloadedArtifactsLoggerImpl.class);
     SBuildType bt0 = registerBuildType("bt0", "project0", "Ant");
     SBuild build0 = createBuild(bt0, Status.NORMAL);
