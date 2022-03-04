@@ -51,6 +51,7 @@
     <classes>
       <class name="jetbrains.buildServer.server.rest.model.fields.FieldInclusionCheckerTest" />
       <class name="jetbrains.buildServer.server.rest.model.fields.TestOccurrenceFieldsTest" />
+      <class name="jetbrains.buildServer.server.rest.model.ChangeStatusTest" />
     </classes>
   </test>
 

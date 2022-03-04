@@ -26,6 +26,7 @@ import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.controllers.changes.BuildStatusText;
 import jetbrains.buildServer.controllers.changes.FailedTestsBean;
 import jetbrains.buildServer.messages.ErrorData;
+import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.ItemsProviders;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -37,7 +38,9 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.StandardProperties;
 import jetbrains.buildServer.users.impl.UserEx;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.BuildTypeChangeStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -57,15 +60,19 @@ public class ChangeStatus {
   private final BeanContext myBeanContext;
 
   private int myCancelledCount;
-  private int myRunningSuccessfullyCount;
-  private int myTotalProblemCount;
+  private int myQueuedBuildsCount;
   private int myPendingCount;
+
   private int myFinishedBuildsCount;
-  private int myRunningBuildsCount;
   private int myFailedBuildsCount;
   private int mySuccessfulBuildsCount;
+
+  private int myRunningBuildsCount;
+  private int myRunningSuccessfullyCount;
+
   private int myNewFailedTests;
   private int myOtherFailedTests;
+  private int myTotalProblemCount;
 
   private BuildsCollector myCriticalCollector;
   private BuildsCollector myCompilationErrorCollector;
@@ -131,6 +138,11 @@ public class ChangeStatus {
     return myOtherFailedTests;
   }
 
+  @XmlElement(name = "queuedBuildsCount")
+  public Integer getQueuedBuildsCount() {
+    return myQueuedBuildsCount;
+  }
+
   @XmlElement(name = CRITICAL_BUILDS_FIELD)
   public Builds getCriticalBuilds() {
     return ValueWithDefault.decideDefault(
@@ -190,12 +202,23 @@ public class ChangeStatus {
     myNewTestsFailedCollector = new BuildsCollector(myFields.getNestedField("newTestsFailedBuilds"));
     myNotCriticalCollector = new BuildsCollector(myFields.getNestedField("notCriticalBuilds"));
 
+    final boolean includePersonalBuilds = self != null && StringUtil.isTrue(self.getPropertyValue(StandardProperties.SHOW_ALL_PERSONAL_BUILDS));
+
     for (BuildTypeChangeStatus status : myChangeStatus.getBuildTypesStatus().values()) {
       final SBuild firstBuild = status.getFirstBuild();
       if (firstBuild == null) {
-        if (status.getQueuedBuild() != null || !status.getBuildType().isPersonal()) {
+        SQueuedBuild queued = status.getQueuedBuild();
+        if(queued != null && (includePersonalBuilds || !queued.isPersonal())) {
+          myQueuedBuildsCount++;
+        }
+
+        if (status.getQueuedBuild() == null) {
           myPendingCount++;
         }
+        continue;
+      }
+
+      if(firstBuild.isPersonal() && !includePersonalBuilds) {
         continue;
       }
 
@@ -214,7 +237,8 @@ public class ChangeStatus {
       } else {
         myRunningBuildsCount++;
 
-        if(status.isSuccessful()) {
+        Status runningBuildStatus = firstBuild.getBuildStatus();
+        if(runningBuildStatus.isSuccessful()) {
           myRunningSuccessfullyCount++;
           continue; // no need to count problems, as our build is green
         }
