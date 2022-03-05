@@ -1158,14 +1158,14 @@ public class Build {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded(FINISH_ESTIMATE, false),
       () -> {
-        if(myQueuedBuild.getBuildEstimates() == null ||
-           myQueuedBuild.getBuildEstimates().getTimeInterval() == null ||
-           myQueuedBuild.getBuildEstimates().getTimeInterval().getEndPoint() == null) {
-          return null;
-        }
+        BuildEstimates estimates = myQueuedBuild.getBuildEstimates();
+        if(estimates == null) return null;
 
-        TimePoint endPoint = myQueuedBuild.getBuildEstimates().getTimeInterval().getEndPoint();
-        if(endPoint == TimePoint.NEVER) {
+        TimeInterval estimateInterval = estimates.getTimeInterval();
+        if(estimateInterval == null) return null;
+
+        TimePoint endPoint = estimateInterval.getEndPoint();
+        if(TimePoint.NEVER.equals(endPoint) || endPoint == null) {
           return null;
         }
 
