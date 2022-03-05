@@ -138,7 +138,7 @@ public class ChangeStatus {
     return myOtherFailedTests;
   }
 
-  @XmlElement(name = "queuedBuildsCount")
+  @XmlAttribute(name = "queuedBuildsCount")
   public Integer getQueuedBuildsCount() {
     return myQueuedBuildsCount;
   }
