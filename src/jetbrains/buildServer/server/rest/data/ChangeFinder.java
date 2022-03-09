@@ -56,6 +56,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static jetbrains.buildServer.serverSide.auth.AuthUtil.hasReadAccessTo;
+
 /**
  * @author Yegor.Yarko
  *         Date: 12.05.13
@@ -521,7 +523,10 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
 
     final String username = locator.getSingleDimensionValue(USERNAME);
     if (username != null) {
-      return wrapModifications(myServiceLocator.getSingletonService(VcsModificationsStorage.class).findModificationsByUsername(username));
+      Stream<SVcsModification> modifications = myServiceLocator.getSingletonService(VcsModificationsStorage.class)
+                                                               .findModificationsByUsername(username).stream()
+                                                               .filter(vcsModification -> myPermissionChecker.checkCanView(vcsModification));
+      return wrapModifications(modifications);
     }
 
     Long sinceChangeId = null;
