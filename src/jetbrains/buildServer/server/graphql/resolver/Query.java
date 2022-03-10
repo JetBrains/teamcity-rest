@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.graphql.resolver;
 import graphql.execution.DataFetcherResult;
 import graphql.kickstart.tools.GraphQLQueryResolver;
 import graphql.schema.DataFetchingEnvironment;
+import java.util.ArrayList;
 import java.util.List;
 import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.Agent;
@@ -36,8 +37,7 @@ import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
 import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.server.graphql.util.ObjectIdentificationNode;
-import jetbrains.buildServer.server.rest.data.AgentFinder;
-import jetbrains.buildServer.server.rest.data.AgentPoolFinder;
+import jetbrains.buildServer.server.rest.data.Finder;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
@@ -53,11 +53,7 @@ import org.springframework.stereotype.Component;
 public class Query implements GraphQLQueryResolver {
   @Autowired
   @NotNull
-  private AgentFinder myAgentFinder;
-
-  @Autowired
-  @NotNull
-  private AgentPoolFinder myAgentPoolFinder;
+  private Finder<SBuildAgent> myAgentFinder;
 
   @Autowired
   @NotNull
@@ -78,14 +74,12 @@ public class Query implements GraphQLQueryResolver {
   @Autowired
   private List<ModelResolver<?>> myModelResolvers;
 
-  void initForTests(@NotNull AgentFinder agentFinder,
-                    @NotNull AgentPoolFinder agentPoolFinder,
+  void initForTests(@NotNull Finder<SBuildAgent> agentFinder,
                     @NotNull ProjectManager projectManager,
                     @NotNull AgentPoolManager agentPoolManager,
                     @NotNull PaginationArgumentsProvider paginationArgumentsProvider,
                     @NotNull AbstractAgentPoolFactory poolFactory) {
     myAgentFinder = agentFinder;
-    myAgentPoolFinder = agentPoolFinder;
     myProjectManager = projectManager;
     myAgentPoolManager = agentPoolManager;
     myPaginationArgumentsProvider = paginationArgumentsProvider;
@@ -112,13 +106,17 @@ public class Query implements GraphQLQueryResolver {
   }
 
   @NotNull
-  public DataFetcherResult<AbstractAgentPool> agentPool(@NotNull String id, @NotNull DataFetchingEnvironment env) {
-    jetbrains.buildServer.serverSide.agentPools.AgentPool pool = myAgentPoolFinder.getAgentPoolById(Long.parseLong(id));
+  public DataFetcherResult<AbstractAgentPool> agentPool(@NotNull Integer id, @NotNull DataFetchingEnvironment env) {
+    DataFetcherResult.Builder<AbstractAgentPool> result = DataFetcherResult.newResult();
 
-    return DataFetcherResult.<AbstractAgentPool>newResult()
-      .data(pool.isProjectPool() ? new ProjectAgentPool(pool) : new AgentPool(pool))
-      .localContext(pool)
-      .build();
+    jetbrains.buildServer.serverSide.agentPools.AgentPool pool = myAgentPoolManager.findAgentPoolById(id);
+    if(pool == null) {
+      return result.build();
+    }
+
+    return result.data(pool.isProjectPool() ? new ProjectAgentPool(pool) : new AgentPool(pool))
+                 .localContext(pool)
+                 .build();
   }
 
   @NotNull
@@ -137,6 +135,18 @@ public class Query implements GraphQLQueryResolver {
       }
     } else {
       projects = myProjectManager.getProjects();
+    }
+
+    if(filter.getVirtual() != null) {
+      // need to create another list until Stream<ITEM> is not implemented in PagintatingConnection and ProjectConnection
+      List<SProject> filteredResult = new ArrayList<>();
+      for(SProject project : projects) {
+        if(filter.getVirtual().equals(project.isVirtual())) {
+          filteredResult.add(project);
+        }
+      }
+
+      return new ProjectsConnection(filteredResult, myPaginationArgumentsProvider.get(first, after, PaginationArgumentsProvider.FallbackBehaviour.RETURN_EVERYTHING));
     }
 
     return new ProjectsConnection(projects, myPaginationArgumentsProvider.get(first, after, PaginationArgumentsProvider.FallbackBehaviour.RETURN_EVERYTHING));

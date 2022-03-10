@@ -48,7 +48,6 @@ import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -57,7 +56,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "project")
-@XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "description", "href", "webUrl",
+@XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "virtual", "description", "href", "webUrl",
   "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects", "cloudProfiles", "ancestorProjects"})
 @SuppressWarnings("PublicField")
 @ModelDescription(
@@ -285,6 +284,15 @@ public class Project {
                             .isPermissionGranted(Permission.EDIT_PROJECT, myProject.getProjectId()) ? ((ProjectEx)myProject).getId().getConfigId() : null;
       }
     );
+  }
+
+  @XmlAttribute(name = "virtual")
+  public Boolean isVirtual() {
+    if(myProject == null || myBeanContext == null) {
+      return null;
+    }
+
+    return ValueWithDefault.decideDefault(myFields.isIncluded("virtual", false, true), myProject.isVirtual());
   }
 
   @XmlElement(name = "ancestorProjects")

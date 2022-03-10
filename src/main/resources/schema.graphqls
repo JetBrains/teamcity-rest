@@ -295,11 +295,13 @@ type Project implements RawId & Node {
   agentPools: ProjectAgentPoolsConnection
   projectAgentPool: ProjectAgentPool
   archived: Boolean
+  virtual: Boolean
   permissions: ProjectPermissions
 }
 
 input ProjectsFilter {
   archived: Boolean
+  virtual: Boolean
 }
 
 type GlobalPermissions {
@@ -327,7 +329,7 @@ type Query {
   agents(filter: AgentsFilter): AgentsConnection
   agentPool(id: ID!): AbstractAgentPool
   agentPools: AgentPoolsConnection
-  projects(filter: ProjectsFilter = {archived: false}, first: Int, after: String): ProjectsConnection
+  projects(filter: ProjectsFilter = {archived: false, virtual: false}, first: Int, after: String): ProjectsConnection
   globalPermissions: GlobalPermissions
 
   node(id: ID!): Node

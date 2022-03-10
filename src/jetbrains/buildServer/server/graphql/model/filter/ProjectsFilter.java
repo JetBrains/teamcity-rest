@@ -21,7 +21,10 @@ import org.jetbrains.annotations.Nullable;
 
 public class ProjectsFilter {
   @Nullable
-  private Boolean myArchived;
+  private Boolean myArchived = false;
+
+  @Nullable
+  private Boolean myVirtual = false;
 
   public ProjectsFilter() { }
 
@@ -36,5 +39,14 @@ public class ProjectsFilter {
 
   public void setArchived(@Nullable Boolean archived) {
     myArchived = archived;
+  }
+
+  @Nullable
+  public Boolean getVirtual() {
+    return myVirtual;
+  }
+
+  public void setVirtual(@Nullable Boolean virtual) {
+    myVirtual = virtual;
   }
 }
