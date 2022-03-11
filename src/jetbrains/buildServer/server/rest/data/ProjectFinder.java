@@ -216,6 +216,8 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   @NotNull
   @Override
   public ItemFilter<SProject> getFilter(@NotNull final Locator locator) {
+    // todo: Introduce filtering by SELECTED_BY_USER, otherwise this filter does not fully support all dimensions thus not adheres to contract.
+
     final MultiCheckerFilter<SProject> result = new MultiCheckerFilter<SProject>();
 
     final String id = locator.getSingleDimensionValue(DIMENSION_ID);
@@ -524,23 +526,6 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     String actualLocator = projectLocator;
     if (parentProject != null && (projectLocator == null || !(new Locator(projectLocator)).isSingleValue())) {
       actualLocator = Locator.setDimensionIfNotPresent(projectLocator, DIMENSION_PROJECT, ProjectFinder.getLocator(parentProject));
-    }
-
-    ItemFilter<SProject> filter;
-    if(projectLocator != null) {
-      filter = getFilter(projectLocator);
-    } else {
-      filter = new ItemFilter<SProject>() {
-        @Override
-        public boolean shouldStop(@NotNull SProject item) {
-          return false;
-        }
-
-        @Override
-        public boolean isIncluded(@NotNull SProject item) {
-          return true;
-        }
-      };
     }
 
     return getItems(actualLocator);
