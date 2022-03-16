@@ -51,6 +51,7 @@
     <classes>
       <class name="jetbrains.buildServer.server.rest.model.fields.FieldInclusionCheckerTest" />
       <class name="jetbrains.buildServer.server.rest.model.fields.TestOccurrenceFieldsTest" />
+      <class name="jetbrains.buildServer.server.rest.model.ChangeStatusTest" />
     </classes>
   </test>
 
@@ -60,6 +61,7 @@
       <class name="jetbrains.buildServer.server.graphql.model.connections.PaginatingConnectionTest" />
       <class name="jetbrains.buildServer.server.graphql.resolver.AgentPoolMutationTest" />
       <class name="jetbrains.buildServer.server.graphql.resolver.AbstractAgentPoolResolverTest" />
+      <class name="jetbrains.buildServer.server.graphql.resolver.QueryTest" />
     </classes>
   </test>
 </suite>

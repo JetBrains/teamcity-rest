@@ -43,6 +43,8 @@ import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.Builds;
+import jetbrains.buildServer.server.rest.model.build.downloadedArtifacts.ArtifactDownloadInfo;
+import jetbrains.buildServer.server.rest.model.build.downloadedArtifacts.BuildArtifactsDownloadInfo;
 import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.model.change.Changes;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -54,6 +56,7 @@ import jetbrains.buildServer.serverSide.agentPools.PoolQuotaExceededException;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeKey;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.serverSide.impl.timeEstimation.CachingBuildEstimator;
 import jetbrains.buildServer.users.SUser;
@@ -859,6 +862,79 @@ public class BuildTest extends BaseFinderTest<SBuild> {
                  new TestArtifactDep(buildType2.getBuildTypeId(), "path2_2=>a", false, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
                  new TestArtifactDep(buildType2.getBuildTypeId(), "path3=>x", true, RevisionRules.newBuildIdRule(build2_1.getBuildId(), build2_1.getBuildNumber())),
                  new TestArtifactDep(buildType3.getBuildTypeId(), "path3=>b", false, RevisionRules.newBuildIdRule(build3_1.getBuildId(), build3_1.getBuildNumber())));
+  }
+
+  @Test
+  @TestFor(issues = "TW-21036")
+  public void testDownloadedArtifacts() {
+    DownloadedArtifactsLoggerImpl artifactsLogger = myFixture.getSingletonService(DownloadedArtifactsLoggerImpl.class);
+    SBuildType bt1 = registerBuildType("bt1", "project1", "Ant");
+    SBuild build1 = createBuild(bt1, Status.NORMAL);
+
+    SBuildType bt2 = registerBuildType("bt2", "project2", "Ant");
+    SBuild build2 = createBuild(bt2, Status.NORMAL);
+
+    artifactsLogger.logArtifactDownload(build2.getBuildId(), build1.getBuildId(), "path1");
+
+    artifactsLogger.waitForQueuePersisting();
+
+    Build build2model = new Build(build2, Fields.ALL_NESTED, getBeanContext(myFixture));
+    jetbrains.buildServer.server.rest.model.build.downloadedArtifacts.DownloadedArtifacts build2Artifacts = build2model.getDownloadedArtifacts();
+    assertEquals("There is 1 build as a source of artifacts", 1, (int) build2Artifacts.getUnfilteredCount());
+    assertEquals("There is 1 build as a source of artifacts", 1, (int) build2Artifacts.getCount());
+    assertEquals("There is 1 build as a source of artifacts", 1, build2Artifacts.getDownloadInfo().size());
+
+    BuildArtifactsDownloadInfo build2downloadInfo = build2Artifacts.getDownloadInfo().get(0);
+    assertEquals("There is 1 downloaded artifact", 1, (int) build2downloadInfo.getCount());
+    assertEquals(
+      "Build(" + build2.getBuildId() + ") downloaded artifact from build(" + build1.getBuildId() + ")",
+      build1.getBuildId(), (long) build2downloadInfo.getBuild().getId()
+    );
+
+    DownloadedArtifacts realDownloaded = build2.getDownloadedArtifacts();
+    ArtifactDownloadInfo artifactInfo = build2downloadInfo.getArtifactInfo().get(0);
+    assertEquals("path1", artifactInfo.getArtifactPath());
+    assertEquals(
+      Util.formatTime(realDownloaded.getArtifacts().get(build1).get(0).getDownloadTimestamp()),
+      artifactInfo.getDownloadTimestamp()
+    );
+  }
+
+  @Test
+  @TestFor(issues = "TW-21036")
+  public void testDownloadedArtifactsPermission() throws Throwable {
+    myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
+
+    DownloadedArtifactsLoggerImpl artifactsLogger = myFixture.getSingletonService(DownloadedArtifactsLoggerImpl.class);
+    SBuildType bt0 = registerBuildType("bt0", "project0", "Ant");
+    SBuild build0 = createBuild(bt0, Status.NORMAL);
+
+    SBuildType bt1 = registerBuildType("bt1", "project1", "Ant");
+    SBuild build1 = createBuild(bt1, Status.NORMAL);
+
+    SBuildType bt2 = registerBuildType("bt2", "project2", "Ant");
+    SBuild build2 = createBuild(bt2, Status.NORMAL);
+
+    final SUser user = createUser("user1");
+    myFixture.getSecurityContext().runAsSystem(new SecurityContextEx.RunAsAction() {
+      @Override
+      public void run() throws Throwable {
+        user.addRole(RoleScope.projectScope(build1.getProjectId()), getTestRoles().getProjectViewerRole());
+      }
+    });
+
+    artifactsLogger.logArtifactDownload(build2.getBuildId(), build1.getBuildId(), "path1");
+    artifactsLogger.logArtifactDownload(build2.getBuildId(), build0.getBuildId(), "path0");
+    artifactsLogger.waitForQueuePersisting();
+
+    myFixture.getSecurityContext().setAuthorityHolder(user);
+
+    Build build2model = new Build(build2, Fields.ALL_NESTED, getBeanContext(myFixture));
+
+    jetbrains.buildServer.server.rest.model.build.downloadedArtifacts.DownloadedArtifacts build2Artifacts = build2model.getDownloadedArtifacts();
+    assertEquals("There are 2 builds as a source of artifacts", 2, (int) build2Artifacts.getUnfilteredCount());
+    assertEquals("There is only 1 visible build as a source of artifacts", 1, (int) build2Artifacts.getCount());
+    assertEquals("There is only 1 visible build as a source of artifacts", 1, build2Artifacts.getDownloadInfo().size());
   }
 
   @Test

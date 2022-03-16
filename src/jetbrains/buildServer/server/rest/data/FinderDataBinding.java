@@ -90,7 +90,6 @@ public interface FinderDataBinding<ITEM> {
    */
   @NotNull
   static <P> ItemHolder<P> getItemHolder(@NotNull Stream<? extends P> items) {
-    //noinspection ResultOfMethodCallIgnored
     return processor -> items.filter(item -> !processor.processItem(item)).findFirst();
   }
 

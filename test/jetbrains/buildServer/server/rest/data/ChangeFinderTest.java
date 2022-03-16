@@ -24,11 +24,13 @@ import jetbrains.buildServer.server.rest.model.change.Change;
 import jetbrains.buildServer.server.rest.model.change.FileChange;
 import jetbrains.buildServer.server.rest.model.change.FileChanges;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.MockVcsModification;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.versionedSettings.VersionedSettingsConfig;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.util.Util;
 import jetbrains.buildServer.vcs.*;
@@ -787,6 +789,37 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     List<SVcsModificationOrChangeDescriptor> resultWithDuplicate = myChangeFinder.getItems("count:10").myEntries;
     assertEquals( 2, resultWithDuplicate.size());
+  }
+
+  @Test
+  public void testPermissionsToViewCommit() throws Throwable {
+    myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
+
+    SUser user1 = createUser("user1");
+
+    ProjectEx project1 = createProject("project1");
+    ProjectEx project2 = createProject("project2");
+    BuildTypeEx bt1 = project1.createBuildType("bt1");
+    BuildTypeEx bt2 = project2.createBuildType("bt2");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", bt1);
+    SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", bt2);
+    VcsRootInstance root1 = bt1.getVcsRootInstanceForParent(parentRoot1);
+    VcsRootInstance root2 = bt2.getVcsRootInstanceForParent(parentRoot2);
+    assert root1 != null && root2 != null;
+
+    myFixture.addModification(modification().in(root1).by("user1").version("12345"));
+    myFixture.addModification(modification().in(root2).by("user1").version("12345"));
+
+    user1.addRole(RoleScope.projectScope(project2.getProjectId()), getTestRoles().getProjectDevRole());
+
+    List<SVcsModificationOrChangeDescriptor> result = myFixture.getSecurityContext().runAs(
+      user1,
+      () -> myChangeFinder.getItems("username:user1").myEntries
+    );
+    assertEquals("Only one change is visible to the user.",1, result.size());
   }
 
   @NotNull

@@ -18,7 +18,9 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.google.common.collect.ComparisonChain;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.util.AggregatingItemHolder;
 import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
@@ -32,8 +34,10 @@ import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
+import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,7 +54,7 @@ import org.jetbrains.annotations.Nullable;
         "`buildType:<buildTypeLocator>` — find branches of a build configuration found by `buildTypeLocator`."
     }
 )
-public class BranchFinder extends AbstractFinder<BranchData> {
+public class BranchFinder extends AbstractFinder<BranchData> implements ExistenceAwareFinder {
   @LocatorDimension("name")
   protected static final String NAME = "name";
   @LocatorDimension(value = "default", format = LocatorDimensionDataType.BOOLEAN, notes = "Is default branch.")
@@ -218,6 +222,11 @@ public class BranchFinder extends AbstractFinder<BranchData> {
   @NotNull
   @Override
   public ItemHolder<BranchData> getPrefilteredItems(@NotNull final Locator locator) {
+    return getPrefilteredItemsInternal(locator, false);
+  }
+
+  @NotNull
+  private ItemHolder<BranchData> getPrefilteredItemsInternal(@NotNull final Locator locator, boolean existenseCheck) {
     String buildLocator = locator.getSingleDimensionValue(BUILD);
     if (!StringUtil.isEmpty(buildLocator)) {
       BuildPromotion build = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItem(buildLocator);
@@ -274,16 +283,47 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     }
 
     BranchSearchOptions searchOptions = getBranchSearchOptions(locator);
+    boolean lookingForDefaultBranch = BooleanUtils.isTrue(locator.getSingleDimensionValueAsBoolean(DEFAULT));
+    // We must make sure that no unused dimensions are present as otherwise we may stop too early and then get filtered,
+    // i.e. loose relevant item.
+    if(lookingForDefaultBranch && existenseCheck && locator.getUnusedDimensions().isEmpty()) {
+      for (SBuildType buildType : buildTypes) {
+        final BranchData branch = detectDefaultBranch(buildType, searchOptions);
 
-    Filter<SBuildType> dependenciesFilter = getBranchDependenciesFilter(buildTypes);
+        // As soon as default branch is found, create a simple processor and don't look into other buildTypes.
+        if(branch != null) {
+          result.add(processor -> processor.processItem(branch));
+          break;
+        }
+      }
+    } else {
+      locator.markUnused(DEFAULT);
 
-    Accumulator resultAccumulator = new Accumulator();
-    for (SBuildType buildType : buildTypes) {
-      Boolean locatorComputeTimestamps = locator.getSingleDimensionValueAsBoolean(COMPUTE_TIMESTAMPS);
-      resultAccumulator.addAll(getBranches(buildType, searchOptions, locatorComputeTimestamps != null ? locatorComputeTimestamps : TeamCityProperties.getBoolean("rest.beans.branch.defaultComputeTimestamp"), dependenciesFilter));
+      Filter<SBuildType> dependenciesFilter = getBranchDependenciesFilter(buildTypes);
+
+      if(existenseCheck) {
+        // We don't use deduplication here as in this case we have a chance to stop earlier
+        // using lazy stream evaluation and avoid getting branches from all build types.
+        // We also skip computing timestamps as that is unnecessary for an existence check.
+        locator.markUsed(COMPUTE_TIMESTAMPS);
+
+        Stream<BranchData> branchStream = buildTypes.stream()
+                                                    .flatMap(buildType -> getBranches(buildType, searchOptions, false, dependenciesFilter));
+
+        result.add(FinderDataBinding.getItemHolder(branchStream));
+      } else {
+        DeduplicatingAccumulator resultAccumulator = new DeduplicatingAccumulator();
+        for (SBuildType buildType : buildTypes) {
+          Boolean locatorComputeTimestamps = locator.getSingleDimensionValueAsBoolean(COMPUTE_TIMESTAMPS);
+          boolean finalComputeTimestamps = locatorComputeTimestamps != null ? locatorComputeTimestamps : TeamCityProperties.getBoolean("rest.beans.branch.defaultComputeTimestamp");
+          Stream<BranchData> branchStream = getBranches(buildType, searchOptions, finalComputeTimestamps, dependenciesFilter);
+          resultAccumulator.addAll(branchStream.collect(Collectors.toList()));
+        }
+
+        result.add(FinderDataBinding.getItemHolder(resultAccumulator.get()));
+      }
     }
 
-    result.add(getItemHolder(resultAccumulator.get()));
     return result;
   }
 
@@ -338,11 +378,29 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     return new BranchSearchOptions(branchesPolicy, changesFromDependencies);
   }
 
+  @Nullable
+  private BranchData detectDefaultBranch(@NotNull final SBuildType buildType, @NotNull final BranchSearchOptions branchSearchOptions) {
+    final BuildTypeEx buildTypeImpl = (BuildTypeEx)buildType; //TeamCity openAPI issue: cast
+    BranchCalculationOptions calculationOptions = new BranchCalculationOptions()
+      .setBranchesPolicy(branchSearchOptions.getBranchesPolicy())
+      .setComputeTimestamps(false)
+      .setSortBranches(false)
+      .setIncludeBranchesFromDependencies(branchSearchOptions.isIncludeBranchesFromDependencies());
+
+    for(BranchEx branch : buildTypeImpl.getBranches(calculationOptions)) {
+      if(!branch.isDefaultBranch()) continue;
+
+      return BranchData.fromBranchEx(branch, myServiceLocator, true, false);
+    }
+
+    return null;
+  }
+
   @NotNull
-  private List<BranchData> getBranches(@NotNull final SBuildType buildType,
-                                       @NotNull final BranchSearchOptions branchSearchOptions,
-                                       final boolean computeTimestamps,
-                                       @NotNull final Filter<SBuildType> dependenciesFilter) {
+  protected Stream<BranchData> getBranches(@NotNull final SBuildType buildType,
+                                           @NotNull final BranchSearchOptions branchSearchOptions,
+                                           final boolean computeTimestamps,
+                                           @NotNull final Filter<SBuildType> dependenciesFilter) {
     final BuildTypeEx buildTypeImpl = (BuildTypeEx)buildType; //TeamCity openAPI issue: cast
     BranchesPolicy mainPolicy = branchSearchOptions.getBranchesPolicy();
     BranchCalculationOptions branchCalculationOptions = new BranchCalculationOptions()
@@ -362,7 +420,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
       case ACTIVE_VCS_BRANCHES:
       case ACTIVE_HISTORY_BRANCHES:
         //al branches are active
-        return branches.stream().map(b -> BranchData.fromBranchEx(b, myServiceLocator, computeActive ? true : null, disableActive)).collect(Collectors.toList());
+        return branches.stream().map(b -> BranchData.fromBranchEx(b, myServiceLocator, computeActive ? true : null, disableActive));
       case HISTORY_BRANCHES:
         activeBranchesPolicy = BranchesPolicy.ACTIVE_HISTORY_BRANCHES;
         break;
@@ -376,8 +434,7 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     Set<String> activeBranches = computeActive ? buildTypeImpl.getBranches(activeBranchesPolicy, branchSearchOptions.isIncludeBranchesFromDependencies(), false)
                                                               .stream().map(b -> b.getName()).collect(Collectors.toSet())
                                                : null;
-    return branches.stream().map(b -> BranchData.fromBranchEx(b, myServiceLocator, computeActive ? activeBranches.contains(b.getName()) : null, disableActive))
-                   .collect(Collectors.toList());
+    return branches.stream().map(b -> BranchData.fromBranchEx(b, myServiceLocator, computeActive ? activeBranches.contains(b.getName()) : null, disableActive));
   }
 
   @NotNull
@@ -423,7 +480,26 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     });
   }
 
-  private class BranchSearchOptions {
+  @Override
+  public boolean itemsExist(@NotNull Locator locator) {
+    ItemHolder<BranchData> prefilteredItems = getPrefilteredItemsInternal(locator, true);
+    ItemFilter<BranchData> filter = getFilter(locator);
+
+    AtomicBoolean result = new AtomicBoolean(false);
+    ItemProcessor<BranchData> existenceChecker = branchData -> {
+      if(!filter.isIncluded(branchData))
+        return true;
+
+      result.compareAndSet(false, true);
+      return false;
+    };
+
+    prefilteredItems.process(existenceChecker);
+
+    return result.get();
+  }
+
+  protected class BranchSearchOptions {
     @NotNull private final BranchesPolicy branchesPolicy;
     @Nullable private final Boolean includeBranchesFromDependencies;
 
@@ -442,7 +518,8 @@ public class BranchFinder extends AbstractFinder<BranchData> {
     }
   }
 
-  private static class Accumulator {
+  /** Deduplicates branches by name */
+  private static class DeduplicatingAccumulator {
     //de-duplicate by name, ordering is not important here
     private final Map<String, BranchData> myMap = new HashMap<String, BranchData>();
 

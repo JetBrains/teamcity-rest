@@ -86,13 +86,15 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   @LocatorDimension(value = "projectFeature", format = LocatorName.PROJECT_FEATURE, notes = "Project feature locator.")
   public static final String FEATURE = "projectFeature";
   public static final String USER_PERMISSION = "userPermission";
+  @LocatorDimension(value = "virtual", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is virtual (default=false).")
+  public static final String DIMENSION_VIRTUAL = "virtual";
 
   @NotNull private final ProjectManager myProjectManager;
   private final PermissionChecker myPermissionChecker;
   @NotNull private final ServiceLocator myServiceLocator;
 
   public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator){
-    super(DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED,
+    super(DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED, DIMENSION_VIRTUAL,
           BUILD, BUILD_TYPE, DEFAULT_TEMPLATE, VCS_ROOT, FEATURE, AGENT_POOL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     setHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_SELECTED, DIMENSION_READ_ONLY_UI, USER_PERMISSION,
                         DIMENSION_LOOKUP_LIMIT,
@@ -149,6 +151,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
           throw new NotFoundException("No project found by locator '" + locator.getStringRepresentation() + "'. Project cannot be found by external id '" + id + "'.");
         }
       }
+      locator.setDimensionIfNotPresent(DIMENSION_VIRTUAL, Locator.BOOLEAN_ANY);
       return project;
     }
 
@@ -158,6 +161,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       if (project == null) {
         throw new NotFoundException("No project found by locator '" + locator.getStringRepresentation() + "'. Project cannot be found by internal id '" + internalId + "'.");
       }
+      locator.setDimensionIfNotPresent(DIMENSION_VIRTUAL, Locator.BOOLEAN_ANY);
       return project;
     }
 
@@ -174,6 +178,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
         }
         throw new NotFoundException("No project found by locator '" + locator.getStringRepresentation() + "'. Project cannot be found by uuid '" + uuid + "'.");
       }
+      locator.setDimensionIfNotPresent(DIMENSION_VIRTUAL, Locator.BOOLEAN_ANY);
       return project;
     }
 
@@ -211,6 +216,8 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   @NotNull
   @Override
   public ItemFilter<SProject> getFilter(@NotNull final Locator locator) {
+    // todo: Introduce filtering by SELECTED_BY_USER, otherwise this filter does not fully support all dimensions thus not adheres to contract.
+
     final MultiCheckerFilter<SProject> result = new MultiCheckerFilter<SProject>();
 
     final String id = locator.getSingleDimensionValue(DIMENSION_ID);
@@ -239,6 +246,17 @@ public class ProjectFinder extends AbstractFinder<SProject> {
         }
       });
     }
+
+    // In a case of a single value locator (that's looking up by external id, name or id) virtual projects should not be filtered out
+    if(!locator.isSingleValue()) {
+      final Boolean virtual = locator.getSingleDimensionValueAsBoolean(DIMENSION_VIRTUAL);
+      if (virtual != null) {
+        result.add(project -> virtual.equals(project.isVirtual()));
+      } else if (!locator.isAnyPresent(DIMENSION_VIRTUAL)) {
+        result.add(project -> !project.isVirtual());
+      }
+    }
+
 
     final Boolean readOnlyUI = locator.getSingleDimensionValueAsBoolean(DIMENSION_READ_ONLY_UI);
     if (readOnlyUI != null) {

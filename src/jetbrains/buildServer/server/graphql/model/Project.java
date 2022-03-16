@@ -42,6 +42,8 @@ public class Project implements ObjectIdentificationNode {
     return myRealProject.isArchived();
   }
 
+  public boolean isVirtual() { return myRealProject.isVirtual(); }
+
   @NotNull
   public SProject getRealProject() {
     return myRealProject;

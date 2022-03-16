@@ -27,12 +27,14 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.PropEntityProjectFeature;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.Permissions;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.ProjectFeatureDescriptorFactory;
 import jetbrains.buildServer.serverSide.impl.auth.RoleImpl;
+import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -318,6 +320,33 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     check("pool:(id:" + poolId10 + "),pool:(id:" + poolId20 + ")");
     check("pool:(id:" + poolId0 + "),pool:(id:" + poolId10 + ")", project20);
     check("pool:(id:" + poolId0 + "),not(pool:(id:" + poolId10 + "))", myProjectManager.getRootProject(), project10);
+  }
+
+  @Test
+  public void testVirtualDimension() throws Exception {
+    SProject parent = createProject("parent");
+    SProject virtual = parent.createProject("parent_virtualProject", "virtualProject");
+    virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
+
+    SProject regular = parent.createProject("parent_regularProject", "regularProject");
+
+    check("project:(name:parent),virtual:false", regular);
+    check("project:(name:parent),virtual:true", virtual);
+
+    check("project:(name:parent)", regular); // check virtual=false by default
+
+    check("project:(name:parent),virtual:any", regular, virtual);
+  }
+
+  @Test
+  public void testVirtualSingleValue() throws Exception {
+    SProject parent = createProject("parent");
+    SProject virtual = parent.createProject("parent_virtualProject", "virtualProject");
+    virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
+
+    check("parent_virtualProject", virtual);
+    check("virtualProject", virtual);
+    check(virtual.getProjectId(), virtual);
   }
 
   @Test
