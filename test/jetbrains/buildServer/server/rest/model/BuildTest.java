@@ -74,7 +74,6 @@ import org.testng.annotations.Test;
 
 import static jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder.modification;
 import static jetbrains.buildServer.util.Util.map;
-import static org.assertj.core.api.BDDAssertions.then;
 
 /**
  * @author Yegor.Yarko
@@ -1582,20 +1581,20 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     final SUser user = getOrCreateUser("user");
     SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
     BuildPromotionEx bp = (BuildPromotionEx)result.getBuildPromotion();
-    then(bp.getBranch().getName()).isEqualTo("br1");
-    then(bp.isChangeCollectingNeeded()).isFalse();
-    then(bp.getRevisions()).hasSize(2);
+    assertEquals("br1", bp.getBranch().getName());
+    assertFalse(bp.isChangeCollectingNeeded());
+    assertEquals(2, bp.getRevisions().size());
 
-    then(bp.getRevisions().get(0).getRevision()).isEqualTo("r1_1`");
-    then(bp.getRevisions().get(0).getRepositoryVersion().getVcsBranch()).isEqualTo("br1");
-    then(bp.getRevisions().get(0).getRoot()).isEqualTo(rootInst1);
-    then(((BuildRevisionEx)bp.getRevisions().get(0)).getModificationId()).isPositive();
+    assertEquals("r1_1`", bp.getRevisions().get(0).getRevision());
+    assertEquals("br1", bp.getRevisions().get(0).getRepositoryVersion().getVcsBranch());
+    assertEquals(rootInst1, bp.getRevisions().get(0).getRoot());
+    assertTrue(((BuildRevisionEx)bp.getRevisions().get(0)).getModificationId() > 0);
 
-    then(bp.getRevisions().get(1).getRevision()).isEqualTo("r2_0");
-    then(bp.getRevisions().get(1).getRepositoryVersion().getVcsBranch()).isNull();
-    then(bp.getRevisions().get(1).getRoot()).isEqualTo(rootInst2);
-    then(bp.getRevisions().get(1).getCheckoutRules().getAsString()).contains("subdir");
-    then(((BuildRevisionEx)bp.getRevisions().get(1)).getModificationId()).isEqualTo(-1L);
+    assertEquals("r2_0", bp.getRevisions().get(1).getRevision());
+    assertNull(bp.getRevisions().get(1).getRepositoryVersion().getVcsBranch());
+    assertEquals(rootInst2, bp.getRevisions().get(1).getRoot());
+    assertTrue(bp.getRevisions().get(1).getCheckoutRules().getAsString().contains("subdir"));
+    assertEquals(-1L, ((BuildRevisionEx)bp.getRevisions().get(1)).getModificationId().longValue());
   }
 
   private void ensureChangesDetected() {
