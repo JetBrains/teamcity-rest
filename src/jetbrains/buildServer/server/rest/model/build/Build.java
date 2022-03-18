@@ -101,11 +101,8 @@ import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.PasswordReplacer;
-import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.Element;
-import jetbrains.buildServer.vcs.SVcsModification;
-import jetbrains.buildServer.vcs.SelectPrevBuildPolicy;
-import jetbrains.buildServer.vcs.VcsModificationHistory;
+import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.RevisionsNotFoundException;
 import org.apache.commons.codec.binary.Hex;
 import org.jetbrains.annotations.NotNull;
@@ -1540,6 +1537,7 @@ public class Build {
   private String submittedBranchName;
   private Boolean submittedPersonal;
   private Changes submittedLastChanges;
+  private Revisions submittedRevisions;
   private Builds submittedBuildDependencies;
   private Agent submittedAgent;
   //todo: add support for snapshot dependency options, probably with: private PropEntitiesSnapshotDep submittedCustomBuildSnapshotDependencies;
@@ -1589,6 +1587,10 @@ public class Build {
 
   public void setLastChanges(final Changes submittedLstChanges) {
     this.submittedLastChanges = submittedLstChanges;
+  }
+
+  public void setRevisions(Revisions submittedRevisions) {
+    this.submittedRevisions = submittedRevisions;
   }
 
   public void setBuildDependencies(final Builds submittedBuildDependencies) {
@@ -1648,10 +1650,13 @@ public class Build {
     }
 
     final SBuildType submittedBuildType = getSubmittedBuildType(serviceLocator, personalChangeToUse, user);
-    final BuildCustomizer customizer = serviceLocator.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(submittedBuildType, user);
+    final BuildCustomizerEx customizer = (BuildCustomizerEx)serviceLocator.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(submittedBuildType, user);
     if (changeToUse != null) {
       customizer.setChangesUpTo(changeToUse); //might need to rework after comparison to code in jetbrains.buildServer.controllers.RunBuildBean.setupBuildCustomizer: customizer.setNodeRevisions, etc.
+    } else if (submittedRevisions != null) {
+      setupRevisionsInCustomizer(customizer, submittedBuildType, submittedRevisions);
     }
+
     if (submittedComment != null) {
       if (submittedComment.text != null) {
         customizer.setBuildComment(submittedComment.text);
@@ -1681,19 +1686,19 @@ public class Build {
         customizer.setCleanSources(submittedTriggeringOptions.cleanSources);
       }
       if (submittedTriggeringOptions.cleanSourcesInAllDependencies != null) {
-        ((BuildCustomizerEx)customizer).setApplyCleanSourcesToDependencies(submittedTriggeringOptions.cleanSourcesInAllDependencies);
+        customizer.setApplyCleanSourcesToDependencies(submittedTriggeringOptions.cleanSourcesInAllDependencies);
       }
       if (submittedTriggeringOptions.freezeSettings != null) {
-        ((BuildCustomizerEx)customizer).setFreezeSettings(submittedTriggeringOptions.freezeSettings);
+        customizer.setFreezeSettings(submittedTriggeringOptions.freezeSettings);
       }
       if (submittedTriggeringOptions.tagDependencies != null) {
-        ((BuildCustomizerEx)customizer).setApplyTagsToDependencies(submittedTriggeringOptions.tagDependencies);
+        customizer.setApplyTagsToDependencies(submittedTriggeringOptions.tagDependencies);
       }
       if (submittedTriggeringOptions.rebuildAllDependencies != null) {
         customizer.setRebuildDependencies(submittedTriggeringOptions.rebuildAllDependencies);
       }
       if (submittedTriggeringOptions.rebuildFailedOrIncompleteDependencies != null && submittedTriggeringOptions.rebuildFailedOrIncompleteDependencies) {
-        ((BuildCustomizerEx)customizer).setRebuildDependencies(BuildCustomizerEx.RebuildDependenciesMode.FAILED_OR_INCOMPLETE);
+        customizer.setRebuildDependencies(BuildCustomizerEx.RebuildDependenciesMode.FAILED_OR_INCOMPLETE);
       }
       if (submittedTriggeringOptions.rebuildDependencies != null) {
         customizer.setRebuildDependencies(CollectionsUtil.convertCollection(
@@ -1709,7 +1714,7 @@ public class Build {
       }
     }
 
-    List<BuildPromotion> artifactDepsBuildsPosted = null;
+    List<BuildPromotion> artifactDepsBuildsPosted;
     try {
       artifactDepsBuildsPosted = submittedBuildArtifactDependencies == null ? null : submittedBuildArtifactDependencies.getFromPosted(serviceLocator, buildPromotionIdReplacements);
     } catch (NotFoundException e) {
@@ -1760,6 +1765,64 @@ public class Build {
       }
     }
     return result;
+  }
+
+  private void setupRevisionsInCustomizer(@NotNull BuildCustomizerEx customizer, @NotNull SBuildType buildType, @NotNull Revisions submittedRevisions) {
+    List<BuildRevisionEx> buildRevisions = transformToBuildRevisions(buildType, submittedRevisions);
+    long modId = -1;
+    for (BuildRevisionEx r: buildRevisions) {
+      final Long revModId = r.getModificationId();
+      modId = Math.max(modId, revModId == null ? -1 : revModId);
+    }
+    customizer.setNodeRevisions(buildType.getBuildTypeId(), modId, modId, buildRevisions);
+  }
+
+  @NotNull
+  private List<BuildRevisionEx> transformToBuildRevisions(@NotNull SBuildType buildType, @NotNull Revisions submittedRevisions) {
+    VcsRootInstanceEntry implicitSettingsRootEntry = null;
+    Map<Long, VcsRootInstanceEntry> vcsRootsMap = new HashMap<>();
+    Map<String, VcsRootInstanceEntry> vcsRootsExtIdsMap = new HashMap<>();
+    for (VcsRootInstanceEntry e: ((BuildTypeEx)buildType).getVcsRootInstanceEntries(true)) {
+      vcsRootsMap.put(e.getVcsRoot().getId(), e);
+      vcsRootsExtIdsMap.put(e.getVcsRoot().getParent().getExternalId(), e);
+
+      if (!buildType.containsVcsRoot(e.getVcsRoot().getParentId())) {
+        implicitSettingsRootEntry = e;
+      }
+    }
+
+    List<BuildRevisionEx> res = new ArrayList<>();
+    for (Revision r: submittedRevisions.revisions) {
+      VcsRootInstanceEntry rootEntry = null;
+      if (r.vcsRoot.id != null) {
+        long rootId;
+        try {
+          rootId = Long.parseLong(r.vcsRoot.id);
+        } catch (NumberFormatException e) {
+          continue;
+        }
+
+        rootEntry = vcsRootsMap.get(rootId);
+      } else if (r.vcsRoot.vcsRootId != null) { // external id of a parent VCS root
+        rootEntry = vcsRootsExtIdsMap.get(r.vcsRoot.vcsRootId);
+      }
+
+      if (rootEntry == null) continue;
+
+      long modId = -1L;
+      SVcsModification mod = ((VcsRootInstanceEx)rootEntry.getVcsRoot()).findModificationByVersion(r.displayRevision);
+      if (mod != null) {
+        modId = mod.getId();
+      }
+
+      BuildRevisionEx rev = new BuildRevisionEx(rootEntry, new RepositoryVersion(r.displayRevision, r.displayRevision, r.vcsBranchName), modId);
+      if (rootEntry == implicitSettingsRootEntry) {
+        rev.setCheckoutMode(BuildRevisionCheckoutMode.MANUAL);
+        rev.setType(BuildRevisionVcsRootType.PROJECT_SETTINGS);
+      }
+      res.add(rev);
+    }
+    return res;
   }
 
   @NotNull
