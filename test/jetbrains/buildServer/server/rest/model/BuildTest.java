@@ -47,6 +47,8 @@ import jetbrains.buildServer.server.rest.model.build.downloadedArtifacts.Artifac
 import jetbrains.buildServer.server.rest.model.build.downloadedArtifacts.BuildArtifactsDownloadInfo;
 import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.model.change.Changes;
+import jetbrains.buildServer.server.rest.model.change.Revision;
+import jetbrains.buildServer.server.rest.model.change.Revisions;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
@@ -71,6 +73,8 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import static jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder.modification;
+import static jetbrains.buildServer.util.Util.map;
+import static org.assertj.core.api.BDDAssertions.then;
 
 /**
  * @author Yegor.Yarko
@@ -109,7 +113,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
     {
       final BuildCustomizer customizer = myFixture.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(myBuildType, getOrCreateUser("user"));
-      customizer.setAttributes(jetbrains.buildServer.util.Util.map("a", "b"));
+      customizer.setAttributes(map("a", "b"));
       SQueuedBuild queuedBuild = myBuildType.addToQueue((BuildPromotionEx)customizer.createPromotion(), "");
       Build buildNode = new Build(queuedBuild.getBuildPromotion(), Fields.LONG, getBeanContext(myFixture));
       assertNull(buildNode.getAttributes());
@@ -118,7 +122,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
     {
       final BuildCustomizer customizer = myFixture.getSingletonService(BuildCustomizerFactory.class).createBuildCustomizer(myBuildType, getOrCreateUser("user"));
-      customizer.setAttributes(jetbrains.buildServer.util.Util.map("a", "b", "c", "d"));
+      customizer.setAttributes(map("a", "b", "c", "d"));
       SQueuedBuild queuedBuild = myBuildType.addToQueue((BuildPromotionEx)customizer.createPromotion(), "");
       Build buildNode = new Build(queuedBuild.getBuildPromotion(), new Fields("attributes($long,$locator(name:$any))"), getBeanContext(myFixture));
       assertNotNull(buildNode.getAttributes());
@@ -1523,6 +1527,75 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       Build build = new Build(build1, new Fields("changes($optional)"), getBeanContext(myFixture));  //$optional should not be included when not supported
       assertNull(build.getChanges());
     }
+  }
+
+  @Test
+  public void testTriggerBuildWithCustomRevisions() {
+    MockVcsSupport git = new MockVcsSupport("git");
+    MockCollectRepositoryChangesPolicy policy = new MockCollectRepositoryChangesPolicy();
+    git.setCollectChangesPolicy(policy);
+
+    myFixture.getVcsManager().registerVcsSupport(git);
+    SVcsRootEx root1 = myProject.createVcsRoot(git.getName(), null, Collections.singletonMap(VcsUtil.BRANCH_SPEC_PROP, "+:*"));
+    SVcsRootEx root2 = myProject.createVcsRoot(git.getName(), null, Collections.emptyMap());
+    myBuildType.addVcsRoot(root1);
+    myBuildType.addVcsRoot(root2);
+    myBuildType.setCheckoutRules(root2, new CheckoutRules(". => subdir"));
+    VcsRootInstance rootInst1 = myBuildType.getVcsRootInstanceForParent(root1);
+    VcsRootInstance rootInst2 = myBuildType.getVcsRootInstanceForParent(root2);
+
+    policy.setCurrentState(rootInst1, RepositoryStateData.createVersionState("master", map("master", "r1_0")));
+    policy.setCurrentState(rootInst2, RepositoryStateData.createVersionState("main", map("main", "r2_0")));
+    myServer.checkForModifications();
+
+    policy.setCurrentState(rootInst1, RepositoryStateData.createVersionState("master", map("master", "r1_2", "br1", "r1_2`")));
+    policy.setChanges(rootInst1, modification().by("user1").withChangedFile().version("r1_1").parentVersions("r1_0"),
+                      modification().by("user2").withChangedFile().version("r1_2").parentVersions("r1_1"),
+                      modification().by("user3").withChangedFile().version("r1_1`").parentVersions("r1_0"),
+                      modification().by("user4").withChangedFile().version("r1_2`").parentVersions("r1_1`"));
+
+    policy.setCurrentState(rootInst2, RepositoryStateData.createVersionState("main", map("main", "r2_1")));
+    policy.setChanges(rootInst2, modification().by("user1").withChangedFile().version("r2_1").parentVersions("r2_0"));
+    myServer.checkForModifications();
+
+    final Build build = new Build();
+    final BuildType buildTypeEntity = new BuildType();
+    buildTypeEntity.setId(myBuildType.getExternalId());
+    build.setBuildType(buildTypeEntity);
+    build.setBranchName("br1");
+
+    Revisions revisions = new Revisions();
+    Revision r1 = new Revision();
+    r1.vcsRoot = new jetbrains.buildServer.server.rest.model.change.VcsRootInstance();
+    r1.vcsRoot.vcsRootId = root1.getExternalId();
+    r1.displayRevision = "r1_1`";
+    r1.vcsBranchName = "br1";
+    Revision r2 = new Revision();
+    r2.vcsRoot = new jetbrains.buildServer.server.rest.model.change.VcsRootInstance();
+    r2.vcsRoot.id = String.valueOf(rootInst2.getId());
+    r2.displayRevision = "r2_0";
+    revisions.revisions = new ArrayList<>();
+    revisions.revisions.add(r1);
+    revisions.revisions.add(r2);
+    build.setRevisions(revisions);
+
+    final SUser user = getOrCreateUser("user");
+    SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+    BuildPromotionEx bp = (BuildPromotionEx)result.getBuildPromotion();
+    then(bp.getBranch().getName()).isEqualTo("br1");
+    then(bp.isChangeCollectingNeeded()).isFalse();
+    then(bp.getRevisions()).hasSize(2);
+
+    then(bp.getRevisions().get(0).getRevision()).isEqualTo("r1_1`");
+    then(bp.getRevisions().get(0).getRepositoryVersion().getVcsBranch()).isEqualTo("br1");
+    then(bp.getRevisions().get(0).getRoot()).isEqualTo(rootInst1);
+    then(((BuildRevisionEx)bp.getRevisions().get(0)).getModificationId()).isPositive();
+
+    then(bp.getRevisions().get(1).getRevision()).isEqualTo("r2_0");
+    then(bp.getRevisions().get(1).getRepositoryVersion().getVcsBranch()).isNull();
+    then(bp.getRevisions().get(1).getRoot()).isEqualTo(rootInst2);
+    then(bp.getRevisions().get(1).getCheckoutRules().getAsString()).contains("subdir");
+    then(((BuildRevisionEx)bp.getRevisions().get(1)).getModificationId()).isEqualTo(-1L);
   }
 
   private void ensureChangesDetected() {
