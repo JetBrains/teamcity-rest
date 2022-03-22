@@ -326,6 +326,7 @@ public class Change {
     });
   }
 
+  @ModelExperimental
   @XmlElement(name = "mergedInfo")
   public ChangeMergedInfo getMergedInfo() {
     return ValueWithDefault.decideDefault(

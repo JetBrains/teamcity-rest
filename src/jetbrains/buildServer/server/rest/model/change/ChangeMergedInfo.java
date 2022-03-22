@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelExperimental;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -38,6 +39,7 @@ import org.jetbrains.annotations.NotNull;
 @ModelDescription(
   value = "Merged information about change duplicates coming from different VCS roots."
 )
+@ModelExperimental
 public class ChangeMergedInfo {
   private jetbrains.buildServer.vcs.ChangeStatus myChangeStatus;
   private Fields myFields;
