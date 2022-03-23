@@ -16,8 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
-import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.xml.bind.annotation.XmlElement;
@@ -32,7 +30,6 @@ import jetbrains.buildServer.server.rest.swagger.annotations.ModelExperimental;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.SBuild;
 import org.jetbrains.annotations.NotNull;
 
 @XmlType(name = "changeMergedInfo")
@@ -65,15 +62,7 @@ public class ChangeMergedInfo {
   public Branches getBranches() {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("branches", false),
-      () -> {
-        List<BranchData> branches = myChangeStatus.getFirstBuilds().values().stream()
-                                                  .filter(Objects::nonNull)
-                                                  .map(SBuild::getBuildPromotion)
-                                                  .map(buildPromotion -> BranchData.fromBuild(buildPromotion))
-                                                  .collect(Collectors.toList());
-
-        return new Branches(branches, null, myFields.getNestedField("branches"), myBeanContext);
-      }
+      () -> new Branches(BranchData.distinctFromBuilds(myChangeStatus.getFirstBuilds().values()), null, myFields.getNestedField("branches"), myBeanContext)
     );
   }
 

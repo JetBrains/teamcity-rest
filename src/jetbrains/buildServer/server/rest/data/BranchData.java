@@ -16,8 +16,9 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -129,6 +130,25 @@ public abstract class BranchData implements Branch {
       return ((MergingBranchData)b2).add(b1);
     }
     return new MergingBranchData(b1, b2);
+  }
+
+  /**
+   * Collects branches from given sourceBuilds and produces a list of unique branch names (taking default status into account).
+   */
+  @NotNull
+  public static List<BranchData> distinctFromBuilds(@NotNull final Collection<SBuild> sourceBuilds) {
+    Stream<BranchData> unmergeBranches = sourceBuilds.stream()
+                                                     .filter(Objects::nonNull)
+                                                     .map(SBuild::getBuildPromotion)
+                                                     .map(buildPromotion -> BranchData.fromBuild(buildPromotion));
+
+    // Group branches collected from builds by pair (name, isDefault) and merge them.
+    // At this point we don't care that these branches may come from different repositories, as we only need this info to show branch labels in the UI.
+    Map<MergingBranchData.MergeKey, BranchData> mergedBranchData = unmergeBranches.collect(
+      Collectors.groupingBy(branchData -> new MergingBranchData.MergeKey(branchData), Collectors.reducing(null, (left, right) -> left == null ? right : left))
+    );
+
+    return new ArrayList<>(mergedBranchData.values());
   }
 
   public static BranchData fromBuild(@NotNull final BuildPromotion build) {
@@ -364,6 +384,34 @@ public abstract class BranchData implements Branch {
     @Override
     public PagedSearchResult<BuildPromotion> getBuilds(@Nullable final String locator) {
       return null;
+    }
+
+    private static class MergeKey {
+      private final boolean isDefault;
+      private final String name;
+
+      MergeKey(@NotNull BranchData branch) {
+        isDefault = branch.isDefaultBranch();
+        name = branch.getName();
+      }
+
+      @Override
+      public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        MergeKey that = (MergeKey)o;
+
+        if (isDefault != that.isDefault) return false;
+        return name.equals(that.name);
+      }
+
+      @Override
+      public int hashCode() {
+        int result = (isDefault ? 1 : 0);
+        result = 31 * result + name.hashCode();
+        return result;
+      }
     }
   }
 }
