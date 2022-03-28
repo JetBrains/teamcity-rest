@@ -643,7 +643,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   private Stream<SVcsModificationOrChangeDescriptor> getBranchChanges(@NotNull final SBuildType buildType,
                                                                       @NotNull final SelectPrevBuildPolicy defaultPolicy,
                                                                       @NotNull final Locator locator) {
-    // todo: Make this return Stream<SVcsModificationOrChangeDescriptor>
     final Boolean includeDependencyChanges = getIncludeDependencyChanges(locator);
     SelectPrevBuildPolicy policy = getBuildChangesPolicy(locator, defaultPolicy);
     List<BranchData> filterBranches = getFilterBranches(locator, buildType);

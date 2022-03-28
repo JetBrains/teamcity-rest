@@ -62,6 +62,7 @@
       <class name="jetbrains.buildServer.server.graphql.resolver.AgentPoolMutationTest" />
       <class name="jetbrains.buildServer.server.graphql.resolver.AbstractAgentPoolResolverTest" />
       <class name="jetbrains.buildServer.server.graphql.resolver.QueryTest" />
+      <class name="jetbrains.buildServer.server.graphql.resolver.agentPool.AgentPoolAccessCheckerImplTest" />
     </classes>
   </test>
 </suite>

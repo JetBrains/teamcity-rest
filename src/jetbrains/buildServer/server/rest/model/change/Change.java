@@ -79,6 +79,7 @@ import org.jetbrains.annotations.Nullable;
   "attributes",
   "storesProjectSettings",
   "status",
+  "mergedInfo",
   "commiter"
 })
 @ModelDescription(
@@ -323,6 +324,19 @@ public class Change {
 
       return new ChangeStatus(mergedStatus, myFields.getNestedField("status"), myBeanContext);
     });
+  }
+
+  @ModelExperimental
+  @XmlElement(name = "mergedInfo")
+  public ChangeMergedInfo getMergedInfo() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("mergedInfo", false, false), () -> {
+        ChangeStatusProvider statusProvider = myBeanContext.getSingletonService(ChangeStatusProvider.class);
+        jetbrains.buildServer.vcs.ChangeStatus mergedStatus = statusProvider.getMergedChangeStatus(myModification);
+
+        return new ChangeMergedInfo(mergedStatus, myFields.getNestedField("mergedInfo"), myBeanContext);
+      }
+    );
   }
 
   /**

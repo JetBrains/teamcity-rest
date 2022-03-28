@@ -25,6 +25,7 @@ import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
+import jetbrains.buildServer.serverSide.agentPools.ReadOnlyAgentPool;
 import jetbrains.buildServer.serverSide.agentTypes.AgentType;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
 import jetbrains.buildServer.serverSide.auth.*;
@@ -94,6 +95,10 @@ public class AgentPoolActionsAccessCheckerImpl implements AgentPoolActionsAccess
 
   @Override
   public boolean canManageAgentsInPool(@NotNull AgentPool targetPool) {
+    if(targetPool instanceof ReadOnlyAgentPool || targetPool.isProjectPool()) {
+      return false;
+    }
+
     AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();
     if(AuthUtil.hasGlobalPermission(authHolder, Permission.MANAGE_AGENT_POOLS)) {
       return true;
@@ -135,7 +140,7 @@ public class AgentPoolActionsAccessCheckerImpl implements AgentPoolActionsAccess
   @Override
   public boolean canManageProjectsInPool(int agentPoolId) {
     AgentPool pool = myAgentPoolManager.findAgentPoolById(agentPoolId);
-    if(pool == null || pool.isProjectPool()) {
+    if(pool == null || pool.isProjectPool() || pool instanceof ReadOnlyAgentPool) {
       return false;
     }
     AuthorityHolder authHolder = mySecurityContext.getAuthorityHolder();

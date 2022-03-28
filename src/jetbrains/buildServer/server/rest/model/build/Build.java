@@ -84,6 +84,7 @@ import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
+import jetbrains.buildServer.serverSide.impl.ApprovableBuildManager;
 import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import jetbrains.buildServer.serverSide.impl.DownloadedArtifactsLoggerImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -127,7 +128,7 @@ import org.jetbrains.annotations.Nullable;
     "statusText"/*rf*/,
     "buildType", "comment", "tags", "pinInfo"/*f*/, "personalBuildUser",
     "startEstimate"/*q*/, "waitReason"/*q*/, "finishEstimate"/*q*/, "delayedByBuild"/*q*/, "plannedAgent"/*q*/,
-    "runningBuildInfo"/*r*/, "canceledInfo"/*rf*/,
+    "approvalInfo"/*r*/, "runningBuildInfo"/*r*/, "canceledInfo"/*rf*/,
     "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
     "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision", "artifactDependencyChanges" /*experimental*/,
     "agent", "compatibleAgents"/*q*/,
@@ -693,6 +694,20 @@ public class Build {
       }
       SRunningBuild runningBuild = (SRunningBuild)myBuild;
       return runningBuild.getCompletedPercent();
+    });
+  }
+
+  @XmlElement(name = "approvalInfo")
+  public ApprovalInfo getApprovalInfo() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("approvalInfo", false), () -> {
+      ApprovableBuildManager approvableBuildManager = myBeanContext.getSingletonService(ApprovableBuildManager.class);
+      BuildPromotionEx buildPromotionEx = (BuildPromotionEx)myBuildPromotion;
+
+      if (approvableBuildManager.getApprovalFeature(buildPromotionEx).isPresent()) {
+        return new ApprovalInfo(buildPromotionEx, myFields.getNestedField("approvalInfo"), myBeanContext);
+      } else {
+        return null;
+      }
     });
   }
 

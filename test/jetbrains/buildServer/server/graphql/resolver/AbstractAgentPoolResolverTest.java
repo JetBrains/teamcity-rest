@@ -20,17 +20,21 @@ import graphql.schema.DataFetchingFieldSelectionSet;
 import java.util.*;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
+import jetbrains.buildServer.server.graphql.model.agentPool.AgentPoolPermissions;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolAgentsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolResolver;
 import jetbrains.buildServer.serverSide.agentPools.*;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.Permissions;
+import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.MockAuthorityHolder;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.auth.SecuredProjectManager;
+import jetbrains.buildServer.users.SUser;
 import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -57,6 +61,8 @@ public class AbstractAgentPoolResolverTest extends BaseResolverTest {
       myFixture.getAgentTypeFinder(),
       myServer.getSecurityContext()
     );
+
+    myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
   }
 
   public void basicProjectsConnection() throws Throwable {
@@ -130,5 +136,130 @@ public class AbstractAgentPoolResolverTest extends BaseResolverTest {
     for(AgentPoolAgentsConnection.AgentPoolAgentsConnectionEdge edge : oddConnection.getEdges().getData()) {
       assertEquals(oddAgents.getAgentPoolId(), edge.getNode().getData().getRealAgent().getAgentPoolId());
     }
+  }
+
+  public void agentPoolPermissionsAuthorizeAgents() throws Throwable {
+    AgentPoolManager poolManager = myFixture.getAgentPoolManager();
+    jetbrains.buildServer.serverSide.agentPools.AgentPool pool = poolManager.createNewAgentPool("testPool");
+    ProjectEx project = createProject("testPrj");
+    poolManager.associateProjectsWithPool(pool.getAgentPoolId(), Collections.singleton(project.getProjectId()));
+
+    SUser user = createUser("testUser");
+    assertFalse("Test precondition failed.", AuthUtil.hasPermissionToAuthorizeAgentsInPool(user, pool));
+
+    AgentPool poolModel = new AgentPool(pool);
+
+    myFixture.getSecurityContext().runAs(user, () -> {
+      AgentPoolPermissions permissions = myResolver.permissions(poolModel, myDataFetchingEnvironment);
+      assertFalse("User is not allowed to authorize agents in pool without explicit permission", permissions.isAuthorizeAgents());
+    });
+
+
+    user.addRole(RoleScope.globalScope(), getTestRoles().createRole(Permission.AUTHORIZE_AGENT));
+    myFixture.getSecurityContext().runAs(user, () -> {
+      AgentPoolPermissions permissions = myResolver.permissions(poolModel, myDataFetchingEnvironment);
+      assertTrue("User is allowed to authorize agents in pool with global permission", permissions.isAuthorizeAgents());
+    });
+
+    user.removeRoles(RoleScope.globalScope());
+    user.addRole(RoleScope.projectScope(project.getProjectId()), getTestRoles().createRole(Permission.AUTHORIZE_AGENT_FOR_PROJECT));
+    myFixture.getSecurityContext().runAs(user, () -> {
+      AgentPoolPermissions permissions = myResolver.permissions(poolModel, myDataFetchingEnvironment);
+      assertTrue("User is allowed to authorize agents in pool with permission for each project", permissions.isAuthorizeAgents());
+    });
+
+    ProjectEx project2 = createProject("testPrj2");
+    poolManager.associateProjectsWithPool(pool.getAgentPoolId(), Collections.singleton(project2.getProjectId()));
+    myFixture.getSecurityContext().runAs(user, () -> {
+      AgentPoolPermissions permissions = myResolver.permissions(poolModel, myDataFetchingEnvironment);
+      assertFalse("User is not allowed to authorize agents in pool without permission for each project", permissions.isAuthorizeAgents());
+    });
+  }
+
+  public void agentPoolPermissionsManagePoolSettings() throws Throwable {
+    AgentPoolManager poolManager = myFixture.getAgentPoolManager();
+    jetbrains.buildServer.serverSide.agentPools.AgentPool pool = poolManager.createNewAgentPool("testPool");
+
+    SUser user = createUser("testUser");
+    assertFalse("Test precondition failed.", AuthUtil.hasGlobalPermission(user, Permission.MANAGE_AGENT_POOLS));
+
+    AgentPool poolModel = new AgentPool(pool);
+
+    myFixture.getSecurityContext().runAs(user, () -> {
+      AgentPoolPermissions permissions = myResolver.permissions(poolModel, myDataFetchingEnvironment);
+      assertFalse("User is not allowed to manage pool settings without explicit permission", permissions.isManage());
+    });
+
+    user.addRole(RoleScope.globalScope(), getTestRoles().createRole(Permission.MANAGE_AGENT_POOLS));
+    myFixture.getSecurityContext().runAs(user, () -> {
+      AgentPoolPermissions permissions = myResolver.permissions(poolModel, myDataFetchingEnvironment);
+      assertTrue("User is allowed to manage pool with global permission", permissions.isManage());
+    });
+  }
+
+  public void agentPoolPermissionsEnableAgents() throws Throwable {
+    AgentPoolManager poolManager = myFixture.getAgentPoolManager();
+    jetbrains.buildServer.serverSide.agentPools.AgentPool pool = poolManager.createNewAgentPool("testPool");
+    ProjectEx project = createProject("testPrj");
+    poolManager.associateProjectsWithPool(pool.getAgentPoolId(), Collections.singleton(project.getProjectId()));
+
+    SUser user = createUser("testUser");
+    assertFalse("Test precondition failed.", AuthUtil.hasPermissionToEnableAgentsInPool(user, pool));
+
+    AgentPool poolModel = new AgentPool(pool);
+
+    myFixture.getSecurityContext().runAs(user, () -> {
+      AgentPoolPermissions permissions = myResolver.permissions(poolModel, myDataFetchingEnvironment);
+      assertFalse("User is not allowed to enable agents in pool without explicit permission", permissions.isEnableAgents());
+    });
+
+    user.addRole(RoleScope.globalScope(), getTestRoles().createRole(Permission.ENABLE_DISABLE_AGENT));
+    myFixture.getSecurityContext().runAs(user, () -> {
+      AgentPoolPermissions permissions = myResolver.permissions(poolModel, myDataFetchingEnvironment);
+      assertTrue("User is allowed to enable agents in pool with global permission", permissions.isEnableAgents());
+    });
+
+    user.removeRoles(RoleScope.globalScope());
+    user.addRole(RoleScope.projectScope(project.getProjectId()), getTestRoles().createRole(Permission.ENABLE_DISABLE_AGENT_FOR_PROJECT));
+    myFixture.getSecurityContext().runAs(user, () -> {
+      AgentPoolPermissions permissions = myResolver.permissions(poolModel, myDataFetchingEnvironment);
+      assertTrue("User is allowed to enable agents in pool with per-project permission", permissions.isEnableAgents());
+    });
+
+    ProjectEx project2 = createProject("testPrj2");
+    poolManager.associateProjectsWithPool(pool.getAgentPoolId(), Collections.singleton(project2.getProjectId()));
+    myFixture.getSecurityContext().runAs(user, () -> {
+      AgentPoolPermissions permissions = myResolver.permissions(poolModel, myDataFetchingEnvironment);
+      assertFalse("User is not allowed to enable agents in pool with permission for each project", permissions.isEnableAgents());
+    });
+  }
+
+  @Test(dataProvider="allBooleans")
+  public void agentPoolPermissionsManageProjectsUsesAgentPoolAccessChecker(boolean isAllowed) throws Throwable {
+    AgentPoolManager poolManager = myFixture.getAgentPoolManager();
+    jetbrains.buildServer.serverSide.agentPools.AgentPool pool = poolManager.createNewAgentPool("testPool");
+    AgentPool poolModel = new AgentPool(pool);
+
+    myActionChecker.setCanManageProjectsInPool(isAllowed);
+
+    AgentPoolPermissions permissions = myResolver.permissions(poolModel, myDataFetchingEnvironment);
+    assertEquals("Returned value does not correspond to action checker.", isAllowed, permissions.isManageProjects());
+  }
+
+  @Test(dataProvider="allBooleans")
+  public void agentPoolPermissionsManageAgentsUsesAgentPoolAccessChecker(boolean isAllowed) throws Throwable {
+    AgentPoolManager poolManager = myFixture.getAgentPoolManager();
+    jetbrains.buildServer.serverSide.agentPools.AgentPool pool = poolManager.createNewAgentPool("testPool");
+    AgentPool poolModel = new AgentPool(pool);
+
+    myActionChecker.setCanManageAgentsInPool(isAllowed);
+
+    AgentPoolPermissions permissions = myResolver.permissions(poolModel, myDataFetchingEnvironment);
+    assertEquals("Returned value does not correspond to action checker.", isAllowed, permissions.isManageAgents());
+  }
+
+  @org.testng.annotations.DataProvider(name = "allBooleans")
+  public static Object[] allBooleans() {
+    return new Object[] {true, false};
   }
 }
