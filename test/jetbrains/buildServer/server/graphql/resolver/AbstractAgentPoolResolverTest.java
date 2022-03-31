@@ -17,14 +17,18 @@
 package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.schema.DataFetchingFieldSelectionSet;
+import graphql.schema.DataFetchingFieldSelectionSetImpl;
 import java.util.*;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPoolPermissions;
+import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolAgentsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolResolver;
+import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.serverSide.agentPools.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -34,6 +38,7 @@ import jetbrains.buildServer.serverSide.impl.MockAuthorityHolder;
 import jetbrains.buildServer.serverSide.impl.MockBuildAgent;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.auth.SecuredProjectManager;
+import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
 import jetbrains.buildServer.users.SUser;
 import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
@@ -108,6 +113,30 @@ public class AbstractAgentPoolResolverTest extends BaseResolverTest {
     assertEquals(visibleProjectNames.size(), connection.getCount());
     assertEquals(new Integer(invisibleProjects.size()), connection.getExcludedCount());
   }
+
+  public void projectsConnectionDefaultsToNonVirtualProjectsOnly() throws Exception {
+    jetbrains.buildServer.serverSide.agentPools.AgentPool realPool = myFixture.getAgentPoolManager().createNewAgentPool("testAgentPool");
+
+    SProject virtual = createProject("virtualProject");
+    virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
+    SProject regular = createProject("regularProject");
+
+    MockDataFetchingEnvironment dfe = new MockDataFetchingEnvironment();
+    dfe.setSelectionSet((DataFetchingFieldSelectionSet)mock(DataFetchingFieldSelectionSet.class).proxy());
+
+    myFixture.getAgentPoolManager().associateProjectsWithPool(realPool.getAgentPoolId(), Collections.singleton(virtual.getProjectId()));
+    myFixture.getAgentPoolManager().associateProjectsWithPool(realPool.getAgentPoolId(), Collections.singleton(regular.getProjectId()));
+
+    Mock fieldSelectionSetMock = mock(DataFetchingFieldSelectionSet.class);
+    fieldSelectionSetMock.stubs().method("contains").with(eq("excludedCount")).will(returnValue(false));
+    myDataFetchingEnvironment.setSelectionSet((DataFetchingFieldSelectionSet) fieldSelectionSetMock.proxy());
+
+    AgentPoolProjectsConnection connection = myResolver.projects(new AgentPool(realPool), new ProjectsFilter(), myDataFetchingEnvironment);
+
+    assertEquals(1, connection.getEdges().getData().size());
+    assertEquals(regular.getExternalId(), connection.getEdges().getData().get(0).getNode().getData().getRawId());
+  }
+
 
   public void basicAgentsConnection() throws AgentPoolCannotBeRenamedException, NoSuchAgentPoolException, AgentTypeCannotBeMovedException, PoolQuotaExceededException {
     AgentPoolManager manager = myFixture.getAgentPoolManager();
