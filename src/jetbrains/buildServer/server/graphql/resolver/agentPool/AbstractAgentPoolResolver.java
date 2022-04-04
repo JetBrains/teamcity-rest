@@ -85,6 +85,9 @@ public class AbstractAgentPoolResolver {
     if(filter.getArchived() != null) {
       projects = projects.filter(p -> p.isArchived() == filter.getArchived());
     }
+    if(filter.getVirtual() != null) {
+      projects = projects.filter(p -> p.isVirtual() == filter.getVirtual());
+    }
 
     Integer excludedProjectsCount = null;
     if(env.getSelectionSet().contains("excludedCount")) {

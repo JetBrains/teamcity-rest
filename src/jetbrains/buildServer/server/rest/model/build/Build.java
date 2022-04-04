@@ -1265,21 +1265,12 @@ public class Build {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("delayedByBuild", false, false),
       () -> {
-        if(myQueuedBuild == null || myQueuedBuild.getBuildPromotion().isCompositeBuild()) {
+        SBuildAgent agent = getEstimatedAgent();
+        if(agent == null) {
           return null;
         }
 
-        BuildEstimates estimates = myQueuedBuild.getBuildEstimates();
-        if(estimates == null) {
-          return null;
-        }
-
-        BuildAgent agent = estimates.getAgent();
-        if(agent == null || !(agent instanceof SBuildAgent)) {
-          return null;
-        }
-
-        SRunningBuild delayer = ((SBuildAgent) agent).getRunningBuild();
+        SRunningBuild delayer = agent.getRunningBuild();
         if(delayer == null) {
           return null;
         }
@@ -1294,23 +1285,33 @@ public class Build {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("plannedAgent", false, false),
       () -> {
-        if(myQueuedBuild == null || myQueuedBuild.getBuildPromotion().isCompositeBuild()) {
+        SBuildAgent agent = getEstimatedAgent();
+        if(agent == null) {
           return null;
         }
 
-        BuildEstimates estimates = myQueuedBuild.getBuildEstimates();
-        if(estimates == null) {
-          return null;
-        }
-
-        BuildAgent agent = estimates.getAgent();
-        if(agent == null || !(agent instanceof SBuildAgent)) {
-          return null;
-        }
-
-        return new Agent((SBuildAgent) agent, myFields.getNestedField("plannedAgent"), myBeanContext);
+        return new Agent(agent, myFields.getNestedField("plannedAgent"), myBeanContext);
       }
     );
+  }
+
+  @Nullable
+  private SBuildAgent getEstimatedAgent() {
+    if(myQueuedBuild == null || myQueuedBuild.getBuildPromotion().isCompositeBuild()) {
+      return null;
+    }
+
+    BuildEstimates estimates = myQueuedBuild.getBuildEstimates();
+    if(estimates == null) {
+      return null;
+    }
+
+    BuildAgent agent = estimates.getAgent();
+    if(agent == null || !(agent instanceof SBuildAgent) || (agent instanceof BuildAgentEx && ((BuildAgentEx) agent).isFakeAgent())) {
+      return null;
+    }
+
+    return (SBuildAgent) agent;
   }
 
   /**
