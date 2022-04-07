@@ -29,11 +29,12 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.util.StringUtil;
-import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 
 
 public class TestScopesCollector {
+  public static final String SPLIT_TESTS_GROUP_BY_DEFAULT_TOGGLE = "rest.splitTests.groupByDefault";
+
   private static final String MISSING_BUILD_TYPE_ID = "<missingBuildType>";
   private static final List<String> SUPPORTED_SCOPES = Arrays.asList("suite", "package", "class");
   private static final Orders<TestScope> SUPPORTED_ORDERS = new Orders<TestScope>()
@@ -41,26 +42,28 @@ public class TestScopesCollector {
     .add("duration", Comparator.comparing(scope -> scope.getOrCalcCountersData().getDuration()))
     .add("count",    Comparator.comparing(scope -> scope.getOrCalcCountersData().getCount()));
 
+  /** Dimensions */
   public static final String TEST_OCCURRENCES = "testOccurrences";
   public static final String SCOPE_TYPE = "scopeType";
   public static final String ORDER_BY = "orderBy";
   public static final String SPLIT_BY_BUILD_TYPE = "splitByBuildType";
   public static final String GROUP_SPLIT_TESTS = "groupSplitTests";
+
   @NotNull
   private final TestOccurrenceFinder myTestOccurrenceFinder;
   @NotNull
   private final TestScopeFilterProducer myTestScopeFilterProducer;
 
-  private static final String DEFAULT_COUNT = "100";
+  private static final long DEFAULT_COUNT = 100;
 
   public TestScopesCollector(final @NotNull TestOccurrenceFinder finder, final @NotNull TestScopeFilterProducer testScopeFilterProducer) {
     myTestOccurrenceFinder = finder;
     myTestScopeFilterProducer = testScopeFilterProducer;
   }
 
+  @NotNull
   public PagedSearchResult<TestScope> getPagedItems(@NotNull Locator locator) {
-    locator.setDimensionIfNotPresent(PagerData.COUNT, DEFAULT_COUNT);
-    Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+    Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT, DEFAULT_COUNT);
     Long start = locator.getSingleDimensionValueAsLong(PagerData.START);
 
     Stream<TestScope> scopes = getItems(locator);
@@ -69,7 +72,7 @@ public class TestScopesCollector {
       scopes = scopes.skip(start);
     }
 
-    if(count != null && count != -1) {
+    if(count != -1) {
       scopes = scopes.limit(count);
     }
 
@@ -77,6 +80,7 @@ public class TestScopesCollector {
     return new PagedSearchResult<TestScope>(scopes.collect(Collectors.toList()), start, count.intValue());
   }
 
+  @NotNull
   public Stream<TestScope> getItems(@NotNull Locator locator) {
     locator.addSupportedDimensions(SCOPE_TYPE, TEST_OCCURRENCES, ORDER_BY, PagerData.START, PagerData.COUNT);
     locator.addSupportedDimensions(TestScopeFilterImpl.SUPPORTED_DIMENSIONS);
@@ -104,9 +108,10 @@ public class TestScopesCollector {
     }
 
     if(locator.isAnyPresent(SPLIT_BY_BUILD_TYPE)) {
-      Boolean split = locator.getSingleDimensionValueAsBoolean(SPLIT_BY_BUILD_TYPE);
-      if(BooleanUtils.isTrue(split)) {
-        boolean groupSlitTests = BooleanUtils.isNotFalse(locator.getSingleDimensionValueAsBoolean(GROUP_SPLIT_TESTS));
+      boolean split = locator.getSingleDimensionValueAsBoolean(SPLIT_BY_BUILD_TYPE, false);
+      if(split) {
+        boolean isGroupByDefault = TeamCityProperties.getBooleanOrTrue(SPLIT_TESTS_GROUP_BY_DEFAULT_TOGGLE);
+        boolean groupSlitTests = locator.getSingleDimensionValueAsBoolean(GROUP_SPLIT_TESTS, isGroupByDefault);
         scopes = splitByBuildType(scopes, groupSlitTests);
       }
     }
@@ -114,6 +119,7 @@ public class TestScopesCollector {
     return scopes;
   }
 
+  @NotNull
   private Stream<TestScope> groupByScope(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter filter, @NotNull String scopeName) {
     Stream<STestRun> testRunStream = testRuns.myEntries.stream();
     Stream<TestScope> scopes;
@@ -135,6 +141,7 @@ public class TestScopesCollector {
     return scopes;
   }
 
+  @NotNull
   public Stream<TestScope> splitByBuildType(@NotNull Stream<TestScope> testScopes, boolean groupSlitTests) {
     Map<String, SBuildType> encounteredBuildTypes = new HashMap<>();
 
@@ -182,21 +189,25 @@ public class TestScopesCollector {
     });
   }
 
+  @NotNull
   private Stream<TestScope> groupBySuite(@NotNull Stream<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
     return groupBySuiteInternal(testRuns, testScopeFilter);
   }
 
+  @NotNull
   public Stream<TestScope> groupByPackage(@NotNull Stream<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
     Stream<TestScope> bySuite = groupBySuiteInternal(testRuns, testScopeFilter);
     return groupByPackageInternal(bySuite);
   }
 
+  @NotNull
   public Stream<TestScope> groupByClass(@NotNull Stream<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
     Stream<TestScope> bySuite   = groupBySuiteInternal(testRuns, testScopeFilter);
     Stream<TestScope> byPackage = groupByPackageInternal(bySuite);
     return groupByClassInternal(byPackage);
   }
 
+  @NotNull
   private static Stream<TestScope> groupBySuiteInternal(@NotNull Stream<STestRun> testRuns, @NotNull TestScopeFilter testScopeFilter) {
     Map<String, List<STestRun>> scopes = testRuns.filter(testScopeFilter)
                                                  .collect(Collectors.groupingBy(item -> item.getTest().getName().getSuite()));
@@ -204,6 +215,7 @@ public class TestScopesCollector {
     return scopes.entrySet().stream().map(entry -> new TestScope(entry.getValue(), entry.getKey()));
   }
 
+  @NotNull
   private static Stream<TestScope> groupByPackageInternal(@NotNull Stream<TestScope> suites) {
     return suites.flatMap(testScope -> {
       Map<String, List<STestRun>> byPackage = testScope.getTestRuns().stream().collect(Collectors.groupingBy(item -> item.getTest().getName().getPackageName()));
@@ -211,6 +223,7 @@ public class TestScopesCollector {
     });
   }
 
+  @NotNull
   private static Stream<TestScope> groupByClassInternal(@NotNull Stream<TestScope> packages) {
     return packages.flatMap(testScope -> {
       Map<String, List<STestRun>> byClass = testScope.getTestRuns().stream().collect(Collectors.groupingBy(item -> item.getTest().getName().getClassName()));

@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.STestRun;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 
 public class TestScopeTreeCollector {
@@ -101,7 +102,8 @@ public class TestScopeTreeCollector {
 
     Stream<TestScope> scopeStream = myScopeCollector.groupByClass(testRunStream, new TestScopeFilterImpl(Collections.emptyList(), ""));
 
-    boolean groupSplitTests = treeLocator.getSingleDimensionValueAsBoolean(TestScopesCollector.GROUP_SPLIT_TESTS, true);
+    boolean isGroupByDefault = TeamCityProperties.getBooleanOrTrue(TestScopesCollector.SPLIT_TESTS_GROUP_BY_DEFAULT_TOGGLE);
+    boolean groupSplitTests = treeLocator.getSingleDimensionValueAsBoolean(TestScopesCollector.GROUP_SPLIT_TESTS, isGroupByDefault);
     scopeStream = myScopeCollector.splitByBuildType(scopeStream, groupSplitTests);
 
     List<TestScope> scopes = scopeStream.collect(Collectors.toList());
