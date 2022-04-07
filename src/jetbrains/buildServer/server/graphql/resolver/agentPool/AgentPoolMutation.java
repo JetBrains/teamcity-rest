@@ -299,7 +299,7 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
       thereAreOtherAssociatedPools = myAgentPoolManager.getAgentPoolsWithProject(project.getProjectId()).stream()
                                                        .map(poolId -> myAgentPoolManager.findAgentPoolById(poolId))
                                                        .filter(Objects::nonNull)
-                                                       .filter(pool -> !pool.isProjectPool())
+                                                       .filter(pool -> !pool.isProjectPool()) // We can't leave a project assign with a project pools only, see TW-70087
                                                        .count() > 1;
     }
 
