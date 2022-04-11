@@ -111,6 +111,9 @@ public class ApprovalInfo {
 
   @XmlAttribute(name = "canBeApprovedByCurrentUser")
   public Boolean getCanBeApprovedByCurrentUser() {
+    if (myApprovableBuildManager.hasTimedOut(myBuildPromotionEx)) {
+      return false;
+    }
     SUser currentUser = myBeanContext.getSingletonService(UserFinder.class).getCurrentUser();
     if (myFields.isIncluded("canBeApprovedByCurrentUser", false, true)) {
       if (myApprovableBuildManager.areApprovalRulesValid(myBuildPromotionEx)) {
