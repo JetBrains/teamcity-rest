@@ -1,13 +1,31 @@
-package jetbrains.buildServer.server.rest.model.build;
+/*
+ * Copyright 2000-2022 JetBrains s.r.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-import java.util.ArrayList;
+package jetbrains.buildServer.server.rest.model.build.approval;
+
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -16,15 +34,13 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
-import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.impl.ApprovableBuildManager;
-import jetbrains.buildServer.serverSide.impl.ApprovalBuildFeatureConfiguration;
-import jetbrains.buildServer.serverSide.impl.ApprovalRule;
+import jetbrains.buildServer.serverSide.impl.*;
+import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
+import org.omg.CORBA.DynAnyPackage.Invalid;
 
 
-@XmlType(propOrder = {"status", "timeoutTimestamp", "configurationValid", "approvalRuleStatuses"})
 @XmlRootElement(name = "approvalInfo")
 @ModelDescription("Represents approval status for this build, if applicable.")
 public class ApprovalInfo {
@@ -93,9 +109,21 @@ public class ApprovalInfo {
     );
   }
 
-  @XmlElement(name = "approvalRuleStatuses")
-  public ApprovalRuleStatuses getApprovalRuleStatuses() {
-    if (myFields.isIncluded("approvalRuleStatuses", true, true)) {
+  @XmlAttribute(name = "canBeApprovedByCurrentUser")
+  public Boolean getCanBeApprovedByCurrentUser() {
+    SUser currentUser = myBeanContext.getSingletonService(UserFinder.class).getCurrentUser();
+    if (myFields.isIncluded("canBeApprovedByCurrentUser", false, true)) {
+      if (myApprovableBuildManager.areApprovalRulesValid(myBuildPromotionEx)) {
+        return myApprovableBuildManager.isApprovableByUser(myBuildPromotionEx, currentUser);
+      }
+      return false;
+    }
+    return null;
+  }
+
+  @XmlElement(name = "userApprovals")
+  public UserApprovalRuleStatuses getUserApprovalRuleStatuses() {
+    if (myFields.isIncluded("userApprovals", true, true)) {
       try { // return empty list of rule statuses if user is not entitled to see build configuration settings
         myBeanContext.getServiceLocator().findSingletonService(PermissionChecker.class)
                      .checkProjectPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, myBuildPromotionEx.getProjectId());
@@ -105,10 +133,48 @@ public class ApprovalInfo {
 
       if (myDescriptor.isPresent()) {
         try {
-          return new ApprovalRuleStatuses(
+          List<ApprovalRule> userRules = myApprovableBuildManager
+            .getApprovalBuildFeatureConfiguration(myDescriptor)
+            .getApprovalRules() // asserted by descriptor.isPresent
+            .stream()
+            .filter(rule -> rule instanceof UserApprovalRule)
+            .collect(Collectors.toList());
+          return new UserApprovalRuleStatuses(
             myBuildPromotionEx,
-            myApprovableBuildManager.getApprovalBuildFeatureConfiguration(myDescriptor).getApprovalRules(), // asserted by descriptor.isPresent
-            myFields.getNestedField("approvalRuleStatuses", Fields.LONG, Fields.LONG),
+            userRules,
+            myFields.getNestedField("userApprovals", Fields.LONG, Fields.LONG),
+            myBeanContext
+          );
+        } catch (ApprovalBuildFeatureConfiguration.InvalidApprovalRuleException e) {
+          return null; // act as if there are no rules at all
+        }
+      }
+    }
+    return null;
+  }
+
+  @XmlElement(name = "groupApprovals")
+  public GroupApprovalRuleStatuses getGroupApprovalRuleStatuses() {
+    if (myFields.isIncluded("groupApprovals", true, true)) {
+      try { // return empty list of rule statuses if user is not entitled to see build configuration settings
+        myBeanContext.getServiceLocator().findSingletonService(PermissionChecker.class)
+                     .checkProjectPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, myBuildPromotionEx.getProjectId());
+      } catch (AuthorizationFailedException e) {
+        return null;
+      }
+
+      if (myDescriptor.isPresent()) {
+        try {
+          List<ApprovalRule> groupRules = myApprovableBuildManager
+            .getApprovalBuildFeatureConfiguration(myDescriptor)
+            .getApprovalRules() // asserted by descriptor.isPresent
+            .stream()
+            .filter(rule -> rule instanceof GroupApprovalRule)
+            .collect(Collectors.toList());
+          return new GroupApprovalRuleStatuses(
+            myBuildPromotionEx,
+            groupRules,
+            myFields.getNestedField("groupApprovals", Fields.LONG, Fields.LONG),
             myBeanContext
           );
         } catch (ApprovalBuildFeatureConfiguration.InvalidApprovalRuleException e) {

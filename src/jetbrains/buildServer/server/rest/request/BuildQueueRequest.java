@@ -26,6 +26,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -39,9 +40,12 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.build.Tags;
+import jetbrains.buildServer.server.rest.model.build.approval.ApprovalInfo;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.impl.ApprovableBuildManager;
 import jetbrains.buildServer.tags.TagsManager;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -538,5 +542,44 @@ public class  BuildQueueRequest {
 
 
     return new Build(queuedBuild.getBuildPromotion(), new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/{buildLocator}/approvalInfo")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="Get approval info of a queued matching build.",nickname="getApprovalInfo")
+  public ApprovalInfo getApprovalInfo(
+    @ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+    @QueryParam("fields") String fields
+  ) {
+    ApprovableBuildManager approvableBuildManager = myBeanContext.getSingletonService(ApprovableBuildManager.class);
+    BuildPromotionEx buildPromotionEx = (BuildPromotionEx)myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
+
+    if (approvableBuildManager.getApprovalFeature(buildPromotionEx).isPresent()) {
+      return new ApprovalInfo(buildPromotionEx, new Fields(fields), myBeanContext);
+    } else {
+      throw new BadRequestException(
+         "Trying to access approval status for a queued build that does not have approval feature enabled"
+      );
+    }
+  }
+
+  @POST
+  @Path("/{buildLocator}/approve")
+  @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+  @ApiOperation(value = "Approve queued build with approval feature enabled.", nickname = "approveQueuedBuild")
+  public ApprovalInfo approveQueuedBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
+                                  String requestor,
+                                  @QueryParam("fields") String fields) {
+    final ApprovableBuildManager approvableBuildManager = myServiceLocator.getSingletonService(ApprovableBuildManager.class);
+    BuildPromotionEx buildPromotionEx = (BuildPromotionEx)myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
+    SUser user = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
+    try {
+      approvableBuildManager.addApprovedByUser(buildPromotionEx, user);
+    } catch (IllegalStateException | AccessDeniedException e) {
+      throw new BadRequestException(e.getMessage());
+    }
+
+    return new ApprovalInfo(buildPromotionEx, new Fields(fields), myBeanContext);
   }
 }
