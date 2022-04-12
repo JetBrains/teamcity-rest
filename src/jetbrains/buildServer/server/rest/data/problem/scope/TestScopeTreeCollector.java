@@ -67,7 +67,7 @@ public class TestScopeTreeCollector {
   @NotNull
   public List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedTree(@NotNull Locator locator) {
     locator.addSupportedDimensions(BUILD, ORDER_BY, MAX_CHILDREN, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, NEW_FAILURE, SUBTREE_ROOT_ID,
-                                   TestScopesCollector.GROUP_SPLIT_TESTS);
+                                   TestScopesCollector.GROUP_PARALLEL_TESTS);
 
     if(locator.isAnyPresent(SUBTREE_ROOT_ID)) {
       return getSlicedSubTree(locator);
@@ -103,7 +103,7 @@ public class TestScopeTreeCollector {
     Stream<TestScope> scopeStream = myScopeCollector.groupByClass(testRunStream, new TestScopeFilterImpl(Collections.emptyList(), ""));
 
     boolean isGroupByDefault = TeamCityProperties.getBooleanOrTrue(TestScopesCollector.SPLIT_TESTS_GROUP_BY_DEFAULT_TOGGLE);
-    boolean groupSplitTests = treeLocator.getSingleDimensionValueAsBoolean(TestScopesCollector.GROUP_SPLIT_TESTS, isGroupByDefault);
+    boolean groupSplitTests = treeLocator.getSingleDimensionValueAsBoolean(TestScopesCollector.GROUP_PARALLEL_TESTS, isGroupByDefault);
     scopeStream = myScopeCollector.splitByBuildType(scopeStream, groupSplitTests);
 
     List<TestScope> scopes = scopeStream.collect(Collectors.toList());
@@ -191,7 +191,7 @@ public class TestScopeTreeCollector {
     scopesLocator.setDimension(TestScopesCollector.TEST_OCCURRENCES, occurrencesLocator.toString());
     scopesLocator.setDimension(TestScopesCollector.SCOPE_TYPE, "class");
     scopesLocator.setDimension(TestScopesCollector.SPLIT_BY_BUILD_TYPE, "true");
-    scopesLocator.setDimension(TestScopesCollector.GROUP_SPLIT_TESTS, locator.getDimensionValue(TestScopesCollector.GROUP_SPLIT_TESTS));
+    scopesLocator.setDimension(TestScopesCollector.GROUP_PARALLEL_TESTS, locator.getDimensionValue(TestScopesCollector.GROUP_PARALLEL_TESTS));
 
     return scopesLocator;
   }
