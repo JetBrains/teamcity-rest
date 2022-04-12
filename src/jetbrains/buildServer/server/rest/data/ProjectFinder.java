@@ -482,17 +482,12 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   }
 
   @Nullable
-  public BuildProject findProjectByInternalId(final String projectInternalId) {
-    return myProjectManager.findProjectById(projectInternalId);
-  }
-
-  @NotNull
-  public static SProject getProjectByInternalId(@NotNull final String projectInternalId, @NotNull final ProjectManager projectManager) {
-    final SProject project = projectManager.findProjectById(projectInternalId);
-    if (project == null) {
-      throw new NotFoundException("No project found by internal id '" + projectInternalId + "'.");
+  public SProject findProjectByInternalId(@NotNull final String projectInternalId) {
+    try {
+      return myProjectManager.findProjectById(projectInternalId);
+    } catch (AccessDeniedException ade) {
+      return null;
     }
-    return project;
   }
 
   public static boolean isSameOrParent(@NotNull final BuildProject parent, @NotNull final BuildProject project) {

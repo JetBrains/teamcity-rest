@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
@@ -107,14 +108,17 @@ public class ProblemScope {
         });
         break;
       case IN_PROJECT:
-        project = ValueWithDefault.decideDefault(fields.isIncluded("project"), new ValueWithDefault.Value<Project>() {
-          public Project get() {
-            final String projectId = scope.getProjectId();
-            return projectId == null
-                   ? null
-                   : new Project(ProjectFinder.getProjectByInternalId(projectId, beanContext.getSingletonService(ProjectManager.class)),
-                                 fields.getNestedField("project"), beanContext);
+        project = ValueWithDefault.decideDefault(fields.isIncluded("project"), () -> {
+          final String projectId = scope.getProjectId();
+          if(projectId == null) {
+            return null;
           }
+
+          final SProject project = beanContext.getSingletonService(ProjectFinder.class).findProjectByInternalId(projectId);
+          if(project == null) {
+            throw new NotFoundException("No project found by internal id '" + projectId + "'.");
+          }
+          return new Project(project, fields.getNestedField("project"), beanContext);
         });
         break;
       default:

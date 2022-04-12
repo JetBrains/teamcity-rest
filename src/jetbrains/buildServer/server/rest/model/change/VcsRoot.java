@@ -153,7 +153,7 @@ public class VcsRoot {
 
     vcsName = ValueWithDefault.decideDefault(fields.isIncluded("vcsName", false), root.getVcsName());
     final String ownerProjectId = root.getScope().getOwnerProjectId();
-    final SProject projectById = beanContext.getSingletonService(ProjectManager.class).findProjectById(ownerProjectId);
+    final SProject projectById = beanContext.getSingletonService(ProjectFinder.class).findProjectByInternalId(ownerProjectId);
     if (projectById != null) {
       project = ValueWithDefault.decideDefault(fields.isIncluded("project", false), () -> new Project(projectById, fields.getNestedField("project"), beanContext));
     } else {
