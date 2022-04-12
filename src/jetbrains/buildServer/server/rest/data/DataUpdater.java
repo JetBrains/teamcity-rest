@@ -27,8 +27,10 @@ import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignment;
 import jetbrains.buildServer.server.rest.model.user.RoleAssignments;
+import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.*;
+import jetbrains.buildServer.users.impl.NewUserAccountBuilder;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -48,13 +50,21 @@ public class DataUpdater {
     myUserModel = userModel;
   }
 
-  public SUser createUser(@Nullable final String username){
+  public SUser createUser(@NotNull final jetbrains.buildServer.server.rest.model.user.User userData) {
     myDataProvider.checkGlobalPermission(jetbrains.buildServer.serverSide.auth.Permission.CREATE_USER);
-    if (StringUtil.isEmpty(username)){
+
+    String submittedUsername = userData.getSubmittedUsername();
+    if (StringUtil.isEmpty(submittedUsername)){
       throw new BadRequestException("Username must not be empty when creating user.");
     }
     try {
-      return myUserModel.createUserAccount(null, username); //realm is hardly ever used in the system
+      NewUserAccountBuilder newUserAccountBuilder = new NewUserAccountBuilder(submittedUsername)
+        .setName(userData.getSubmittedName())
+        .setEmail(userData.getSubmittedEmail())
+        .setPassword(userData.getPassword())
+        .setProperties(convertToUserProperties(userData.getSubmittedProperties()));
+
+      return ((UserModelEx)myUserModel).createUserAccount(newUserAccountBuilder.create());
     } catch (DuplicateUserAccountException e) {
       throw new BadRequestException("Cannot create user as user with the same username already exists", e);
     } catch (MaxNumberOfUserAccountsReachedException e) {
@@ -63,24 +73,28 @@ public class DataUpdater {
       throw new BadRequestException("Cannot create user with empty username", e);
     }
   }
-  public void modify(SUser user, jetbrains.buildServer.server.rest.model.user.User userData, @NotNull final ServiceLocator serviceLocator) {
-    updateUserCoreFields(user, userData.getSubmittedUsername(), userData.getSubmittedName(), userData.getSubmittedEmail(),
-                         userData.getSubmittedPassword());
 
+  public void modify(SUser user, User userData, @NotNull final ServiceLocator serviceLocator, boolean applyGeneralSettings) {
     final ArrayList<Throwable> errors = new ArrayList<Throwable>();
+
+    if (applyGeneralSettings) {
+      updateUserCoreFields(user, userData.getSubmittedUsername(), userData.getSubmittedName(), userData.getSubmittedEmail(),
+                           userData.getSubmittedPassword());
+
+      try {
+        if (userData.getSubmittedProperties() != null) {
+          removeAllProperties(user);
+          addProperties(user, userData.getSubmittedProperties());
+        }
+      } catch (PartialUpdateError partialUpdateError) {
+        errors.add(partialUpdateError);
+      }
+    }
+
     try {
       if (userData.getSubmittedRoles() != null) {
         removeAllRoles(user);
         addRoles(user, userData.getSubmittedRoles(), serviceLocator);
-      }
-    } catch (PartialUpdateError partialUpdateError) {
-      errors.add(partialUpdateError);
-    }
-
-    try {
-      if (userData.getSubmittedProperties() != null) {
-        removeAllProperties(user);
-        addProperties(user, userData.getSubmittedProperties());
       }
     } catch (PartialUpdateError partialUpdateError) {
       errors.add(partialUpdateError);
@@ -215,11 +229,17 @@ public class DataUpdater {
 
   private void addProperties(final SUser user, @NotNull final Properties properties) {
     if (properties.properties == null) return;
+    Map<PropertyKey, String> convertedProperties = convertToUserProperties(properties);
+    user.setUserProperties(convertedProperties);
+  }
+
+  private Map<PropertyKey, String> convertToUserProperties(@Nullable Properties properties) {
+    if (properties == null) return null;
     Map<PropertyKey, String> convertedProperties = new HashMap<PropertyKey, String>(properties.properties.size());
     for (Property listItem : properties.properties) {
       convertedProperties.put(new SimplePropertyKey(listItem.name), listItem.value);
     }
-    user.setUserProperties(convertedProperties);
+    return convertedProperties;
   }
 
   private void removeAllProperties(final SUser user) {

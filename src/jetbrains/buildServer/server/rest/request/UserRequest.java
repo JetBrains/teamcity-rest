@@ -90,8 +90,9 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value = "Create a new user.", nickname = "addUser")
   public User createUser(User userData, @QueryParam("fields") String fields) {
-    final SUser user = myDataUpdater.createUser(userData.getSubmittedUsername());
-    myDataUpdater.modify(user, userData, myBeanContext.getServiceLocator());
+    final SUser user = myDataUpdater.createUser(userData);
+    // roles, groups and properties
+    myDataUpdater.modify(user, userData, myBeanContext.getServiceLocator(), false);
     return new User(user, new Fields(fields), myBeanContext);
   }
 
@@ -125,7 +126,7 @@ public class UserRequest {
                          User userData,
                          @QueryParam("fields") String fields) {
     SUser user = myUserFinder.getItem(userLocator, true);
-    myDataUpdater.modify(user, userData, myBeanContext.getServiceLocator());
+    myDataUpdater.modify(user, userData, myBeanContext.getServiceLocator(), true);
     return new User(user, new Fields(fields), myBeanContext);
   }
 
