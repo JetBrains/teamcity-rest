@@ -573,8 +573,9 @@ public class  BuildQueueRequest {
                                   @QueryParam("fields") String fields) {
     final ApprovableBuildManager approvableBuildManager = myServiceLocator.getSingletonService(ApprovableBuildManager.class);
     BuildPromotionEx buildPromotionEx = (BuildPromotionEx)myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
-    if (approvableBuildManager.hasTimedOut(buildPromotionEx)) {
-      throw new BadRequestException("This build has timed out and cannot be approved");
+    ApprovalInfo.ApprovalStatus status = ApprovalInfo.ApprovalStatus.resolve(buildPromotionEx, approvableBuildManager);
+    if (status != ApprovalInfo.ApprovalStatus.waitingForApproval) {
+      throw new BadRequestException("This build cannot be approved, approval status is: " + status);
     }
     SUser user = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     try {

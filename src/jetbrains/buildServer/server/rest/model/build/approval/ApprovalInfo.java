@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
@@ -38,7 +37,6 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
-import org.omg.CORBA.DynAnyPackage.Invalid;
 
 
 @XmlRootElement(name = "approvalInfo")
@@ -64,7 +62,26 @@ public class ApprovalInfo {
   }
 
   public enum ApprovalStatus {
-    notApproved, approved, timedOut
+    waitingForApproval, approved, timedOut, canceled;
+
+    public static ApprovalStatus resolve(
+      BuildPromotionEx buildPromotionEx,
+      ApprovableBuildManager approvableBuildManager
+    ) {
+      if (approvableBuildManager.hasTimedOut(buildPromotionEx)) {
+        return timedOut;
+      }
+
+      if (approvableBuildManager.allApprovalRulesAreMet(buildPromotionEx)) {
+        return approved;
+      }
+
+      if (buildPromotionEx.isCanceled()) {
+        return canceled;
+      }
+
+      return waitingForApproval;
+    }
   }
 
   @XmlAttribute(name = "status")
@@ -73,15 +90,7 @@ public class ApprovalInfo {
       return null;
     }
 
-    if (myApprovableBuildManager.hasTimedOut(myBuildPromotionEx)) {
-      return ApprovalStatus.timedOut;
-    }
-
-    if (myApprovableBuildManager.allApprovalRulesAreMet(myBuildPromotionEx)) {
-      return ApprovalStatus.approved;
-    }
-
-    return ApprovalStatus.notApproved;
+    return ApprovalStatus.resolve(myBuildPromotionEx, myApprovableBuildManager);
   }
 
   @XmlAttribute(name = "timeoutTimestamp")
@@ -111,7 +120,7 @@ public class ApprovalInfo {
 
   @XmlAttribute(name = "canBeApprovedByCurrentUser")
   public Boolean getCanBeApprovedByCurrentUser() {
-    if (myApprovableBuildManager.hasTimedOut(myBuildPromotionEx)) {
+    if (getStatus() != ApprovalStatus.waitingForApproval) {
       return false;
     }
     SUser currentUser = myBeanContext.getSingletonService(UserFinder.class).getCurrentUser();
