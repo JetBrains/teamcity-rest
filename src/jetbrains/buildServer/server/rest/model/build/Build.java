@@ -68,6 +68,7 @@ import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelExperimental;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.CachingValue;
@@ -149,6 +150,7 @@ import org.jetbrains.annotations.Nullable;
     "changesCollectingInProgress" /*experimental*/,
     "queuedWaitReasons", /*q experimental */
     "downloadedArtifacts", /*rf experimental*/
+    "parallelized" /*qrf experimental */
   })
 @ModelDescription("Represents a build instance.")
 public class Build {
@@ -1456,6 +1458,21 @@ public class Build {
                                           });
   }
 
+  @ModelExperimental
+  @XmlAttribute(name = "parallelized")
+  public Boolean isParallelized() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("parallelized", false, false),
+      () -> {
+        if(!myBuildPromotion.isCompositeBuild()) {
+          return false;
+        }
+
+        // todo: this is dirty and prone to breaking
+        return !((BuildPromotionEx) myBuildPromotion).getBuildSettings().getBuildFeaturesOfType("parallelTests").isEmpty();
+      }
+    );
+  }
 
   public static Comment getCanceledComment(@NotNull final SBuild build, @NotNull final Fields fields, @NotNull final BeanContext context) {
     final CanceledInfo canceledInfo = build.getCanceledInfo();
