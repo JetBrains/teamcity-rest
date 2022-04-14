@@ -290,9 +290,11 @@ public class ChangeRequest {
 
     ChangeStatusProvider myStatusProvider = myServiceLocator.getSingletonService(ChangeStatusProvider.class);
     ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
-    List<BuildPromotion> firstBuildsPromotions = changeStatus.getBuildTypesStatusMap().values().stream()
-                                                  .filter(Objects::nonNull)
-                                                  .collect(Collectors.toList());
+    List<BuildPromotion> firstBuildsPromotions = changeStatus.getBuildTypesStatusMap().entrySet().stream()
+                                                             .filter(entry -> !entry.getKey().getProject().isVirtual())
+                                                             .map(entry -> entry.getValue())
+                                                             .filter(Objects::nonNull)
+                                                             .collect(Collectors.toList());
 
     return Builds.createFromBuildPromotions(firstBuildsPromotions, null,  new Fields(fields), myBeanContext);
   }
