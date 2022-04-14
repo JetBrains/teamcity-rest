@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data.problem.scope;
 public enum TestScopeType {
   PROJECT,
   BUILD_TYPE,
+  BUILD,
   SUITE,
   PACKAGE,
   CLASS

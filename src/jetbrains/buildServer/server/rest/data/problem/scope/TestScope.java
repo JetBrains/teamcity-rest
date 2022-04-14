@@ -25,6 +25,7 @@ import java.util.List;
 import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.data.problem.tree.LeafInfo;
 import jetbrains.buildServer.server.rest.data.problem.tree.Scope;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STestRun;
@@ -44,33 +45,42 @@ public class TestScope implements LeafInfo<STestRun, TestCountersData> {
   @Nullable
   private final SBuildType myBuildType;
   @Nullable
+  private final BuildPromotion myBuildPromotion;
+  @Nullable
   private TestCountersData myCountersData;
   @Nullable
   private List<Scope> myPath;
 
-  public static TestScope withBuildType(@NotNull TestScope source, @NotNull List<STestRun> testRuns, @NotNull SBuildType buildType) {
-    return new TestScope(testRuns, source.getSuite(), source.getPackage(), source.getClass1(), source.myType, buildType);
+  public static TestScope withBuild(@NotNull TestScope source, @NotNull List<STestRun> testRuns, @NotNull BuildPromotion promo) {
+    return new TestScope(testRuns, source.getSuite(), source.getPackage(), source.getClass1(), source.myType, promo.getBuildType(), promo);
   }
 
   public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite) {
-    this(testRuns, suite, null, null, TestScopeType.SUITE, null);
+    this(testRuns, suite, null, null, TestScopeType.SUITE, null, null);
   }
 
   public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite, @NotNull String pack) {
-    this(testRuns, suite, pack, null, TestScopeType.PACKAGE, null);
+    this(testRuns, suite, pack, null, TestScopeType.PACKAGE, null, null);
   }
 
   public TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite, @NotNull String pack, @NotNull String clazz) {
-    this(testRuns, suite, pack, clazz, TestScopeType.CLASS, null);
+    this(testRuns, suite, pack, clazz, TestScopeType.CLASS, null, null);
   }
 
-  private TestScope(@NotNull List<STestRun> testRuns, @NotNull String suite, @Nullable String pack, @Nullable String clazz, @NotNull TestScopeType type, @Nullable SBuildType buildType) {
+  private TestScope(@NotNull List<STestRun> testRuns,
+                    @NotNull String suite,
+                    @Nullable String pack,
+                    @Nullable String clazz,
+                    @NotNull TestScopeType type,
+                    @Nullable SBuildType buildType,
+                    @Nullable BuildPromotion promotion) {
     myTestRuns = testRuns;
     mySuite = suite;
     myPackage = pack;
     myClass = clazz;
     myBuildType = buildType;
     myType = type;
+    myBuildPromotion = promotion;
   }
 
   @NotNull
@@ -120,6 +130,11 @@ public class TestScope implements LeafInfo<STestRun, TestCountersData> {
     return myBuildType;
   }
 
+  @Nullable
+  public BuildPromotion getBuildPromotion() {
+    return myBuildPromotion;
+  }
+
   @NotNull
   @Override
   public TestCountersData getCounters() {
@@ -147,6 +162,11 @@ public class TestScope implements LeafInfo<STestRun, TestCountersData> {
     }
     String btId = Hashing.sha1().hashString("BT" + myBuildType.getInternalId(), Charsets.UTF_8).toString();
     myPath.add(new TestScopeInfo(btId, myBuildType.getExternalId(), TestScopeType.BUILD_TYPE));
+
+    if(myBuildPromotion != null) {
+      String buildNodeId = Hashing.sha1().hashString("B" + Long.toString(myBuildPromotion.getId()), Charsets.UTF_8).toString();
+      myPath.add(new TestScopeInfo(buildNodeId, Long.toString(myBuildPromotion.getId()), TestScopeType.BUILD));
+    }
 
     String suiteId = Hashing.sha1().hashString(myBuildType.getExternalId() + "s" + mySuite, Charsets.UTF_8).toString();
     myPath.add(new TestScopeInfo(suiteId, mySuite, TestScopeType.SUITE));

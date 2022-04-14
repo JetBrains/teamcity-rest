@@ -96,23 +96,13 @@ public class TestScopeTreeCollector {
     final String testRunsLocator = "build:%d,status:failure,muted:false,ignored:false"
                                    + (treeLocator.isAnyPresent(NEW_FAILURE) ? ",newFailure:" + treeLocator.getSingleDimensionValue(NEW_FAILURE) : "");
 
-    Stream<STestRun> testRunStream = promotions
-      .filter(promotion -> promotion.getAssociatedBuildId() != null)
-      .flatMap(promotion -> myTestOccurrenceFinder.getItems(String.format(testRunsLocator, promotion.getAssociatedBuildId())).myEntries.stream());
-
-    Stream<TestScope> scopeStream = myScopeCollector.groupByClass(testRunStream, new TestScopeFilterImpl(Collections.emptyList(), ""));
-
     boolean isGroupByDefault = TeamCityProperties.getBooleanOrTrue(TestScopesCollector.SPLIT_TESTS_GROUP_BY_DEFAULT_TOGGLE);
     boolean groupSplitTests = treeLocator.getSingleDimensionValueAsBoolean(TestScopesCollector.GROUP_PARALLEL_TESTS, isGroupByDefault);
-    scopeStream = myScopeCollector.splitByBuildType(scopeStream, groupSplitTests);
 
-    List<TestScope> scopes = scopeStream.collect(Collectors.toList());
-
-    ScopeTree<STestRun, TestCountersData> tree = new ScopeTree<STestRun, TestCountersData>(
-      TestScopeInfo.ROOT,
-      new TestCountersData(),
-      scopes
-    );
+    ScopeTree<STestRun, TestCountersData> tree = new ScopeTree<STestRun, TestCountersData>(TestScopeInfo.ROOT, new TestCountersData(), Collections.emptyList());
+    promotions.filter(promotion -> promotion.getAssociatedBuildId() != null)
+              .map(promotion -> getTreeFromPromotion(promotion, testRunsLocator, groupSplitTests))
+              .forEach(promotionTree -> tree.merge(promotionTree));
 
     if(treeLocator.isAnyPresent(SUBTREE_ROOT_ID)) {
       String subTreeRootId = treeLocator.getSingleDimensionValue(SUBTREE_ROOT_ID);
@@ -129,6 +119,23 @@ public class TestScopeTreeCollector {
 
     treeLocator.checkLocatorFullyProcessed();
     return tree.getSlicedOrderedTree(DEFAULT_MAX_CHILDREN, STestRun.NEW_FIRST_NAME_COMPARATOR, SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT));
+  }
+
+  @NotNull
+  private ScopeTree<STestRun, TestCountersData> getTreeFromPromotion(@NotNull BuildPromotion promotion, @NotNull String testRunsLocator, boolean groupSplitTests) {
+    Stream<STestRun> testRunStream = myTestOccurrenceFinder.getItems(String.format(testRunsLocator, promotion.getAssociatedBuildId())).myEntries.stream();
+
+    Stream<TestScope> scopeStream = myScopeCollector.groupByClass(testRunStream, new TestScopeFilterImpl(Collections.emptyList(), ""));
+
+    scopeStream = myScopeCollector.splitByBuildType(scopeStream, groupSplitTests, promotion);
+
+    List<TestScope> scopes = scopeStream.collect(Collectors.toList());
+
+    return new ScopeTree<STestRun, TestCountersData>(
+      TestScopeInfo.ROOT,
+      new TestCountersData(),
+      scopes
+    );
   }
 
   @NotNull

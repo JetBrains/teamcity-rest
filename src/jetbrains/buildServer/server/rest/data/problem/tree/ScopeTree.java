@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.data.problem.tree;
 
 import java.util.*;
-import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,7 +41,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     for (LeafInfo<DATA, COUNTERS> leafInfo : leafs) {
       COUNTERS counters = leafInfo.getCounters();
       Node<DATA, COUNTERS> parent = myRoot;
-      parent.merge(counters);
+      parent.mergeCounters(counters);
 
       for (Scope scope : leafInfo.getPath()) {
         if(scope.equals(myRoot.getScope())) {
@@ -63,7 +62,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
   private Node<DATA, COUNTERS> getOrCreateNode(@NotNull Scope scope, @NotNull COUNTERS counters, @NotNull Node<DATA, COUNTERS> parent) {
     Node<DATA, COUNTERS> child = parent.getChild(scope.getId());
     if (child != null) {
-      child.merge(counters);
+      child.mergeCounters(counters);
       return child;
     }
 
@@ -72,6 +71,54 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     parent.putChild(child);
 
     return child;
+  }
+
+  public void merge(@NotNull ScopeTree<DATA, COUNTERS> other) {
+    if(!myRoot.equals(other.myRoot)) {
+      throw new UnsupportedOperationException(
+        String.format("Can't merge scope trees with different root nodes %s and %s.", myRoot, other.myRoot)
+      );
+    }
+
+    // merge starting from the root
+    mergeSubtree(myRoot, other.myRoot);
+  }
+
+  /**
+   * Merges two subtrees recursively.
+   * @param target - one of the nodes of this tree.
+   * @param toBeMerged - node of the tree that is getting merged into this one.
+   */
+  private void mergeSubtree(@NotNull Node<DATA, COUNTERS> target, @NotNull Node<DATA, COUNTERS> toBeMerged) {
+    if(target.getScope().isLeaf()) {
+      assert toBeMerged.getScope().isLeaf();
+      target.mergeCountersAndData(target.getCounters(), target.getData());
+      return;
+    }
+
+    // Merge children one by one, then merge total counters
+    for(Node<DATA, COUNTERS> mergingChild : toBeMerged.getChildren()) {
+      Node<DATA, COUNTERS> myChild = myIdToNodesMap.get(mergingChild.getId());
+      if(myChild == null) {
+        // there is no such child in our tree, so let's create one
+        target.putChild(mergingChild);
+        continue;
+      }
+
+      if(myChild.getId().equals(myRoot.getId())) {
+        throw new InvalidStateException("Added subtree contains our root as a child node.");
+      }
+
+      assert myChild.getParent() != null;      // that is true for all non-root nodes which we've already checked.
+      assert mergingChild.getParent() != null; // that is true because it's a child node
+      if(!myChild.getParent().getId().equals(mergingChild.getParent().getId())) {
+        throw new InvalidStateException("Added subtree has different nodes structure.");
+      }
+
+      mergeSubtree(myChild, mergingChild);
+    }
+
+    target.mergeCounters(toBeMerged.getCounters());
   }
 
   @NotNull
@@ -255,8 +302,13 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
       return myParent;
     }
 
-    public void merge(@NotNull COUNTERS counters) {
+    public void mergeCounters(@NotNull COUNTERS counters) {
       myCountersData = myCountersData.combinedWith(counters);
+    }
+
+    public void mergeCountersAndData(@NotNull COUNTERS counters, @NotNull Collection<DATA> newData) {
+      myCountersData = myCountersData.combinedWith(counters);
+      myTestRuns.addAll(newData);
     }
 
     public void putChild(@NotNull Node<DATA, COUNTERS> child) {
@@ -265,7 +317,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
 
     @Override
     public String toString() {
-      return "Node{id=" + myId + ", scope=" + myScope + "}";
+      return "Node{id=" + myId + ", scope=" + myScope + ", parentScope=" + (myParent == null ? "<none>" : myParent.getScope()) + "}";
     }
   }
 }
