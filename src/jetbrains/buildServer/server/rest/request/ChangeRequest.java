@@ -51,6 +51,7 @@ import jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -273,8 +274,13 @@ public class ChangeRequest {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
     ChangeStatusProvider myStatusProvider = myServiceLocator.getSingletonService(ChangeStatusProvider.class);
     ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
+    List<BuildTypeOrTemplate> buildTypes = BuildTypes.fromBuildTypes(
+      changeStatus.getRelatedConfigurations().stream()
+                  .filter(bt -> !bt.getProject().isVirtual())
+                  .collect(Collectors.toList())
+    );
 
-    return new BuildTypes(BuildTypes.fromBuildTypes(changeStatus.getRelatedConfigurations()), null, new Fields(fields), myBeanContext);
+    return new BuildTypes(buildTypes, null, new Fields(fields), myBeanContext);
   }
 
  /**
