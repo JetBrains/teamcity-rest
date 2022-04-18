@@ -16,17 +16,18 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeInfo;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeType;
 import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
-import jetbrains.buildServer.serverSide.STestRun;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
+import jetbrains.buildServer.util.Option;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
@@ -203,6 +204,114 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   }
 
   @Test
+  public void testVirtualBuildsMergedCorrectly() {
+    ProjectEx project = myFixture.createProject("project", "project");
+    ProjectEx virtual = project.createProject("virtual", "virtual");
+
+    virtual.setArchived(true, null);
+    virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
+
+    BuildTypeEx original = project.createBuildType("original");
+
+    BuildTypeEx p1 = virtual.createBuildType("parallel1");
+    BuildTypeEx p2 = virtual.createBuildType("parallel2");
+
+    SQueuedBuild pb1 = build().in(p1).addToQueue();
+    SQueuedBuild pb2 = build().in(p2).addToQueue();
+    SQueuedBuild b   = build().in(original).addToQueue();
+
+    ((BuildPromotionEx)b.getBuildPromotion()).addDependency((BuildPromotionEx) pb1.getBuildPromotion(), NULL_OPTIONS);
+    ((BuildPromotionEx)b.getBuildPromotion()).addDependency((BuildPromotionEx) pb2.getBuildPromotion(), NULL_OPTIONS);
+
+
+    build().startSuite("suite").withTest("package.classA.a", false).endSuite().run(pb1).finish();
+    build().startSuite("suite").withTest("package.classA.a", false).endSuite().run(pb2).finish();
+    build().run(b).finish();
+
+    List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
+    checkAncestorsBeforeChildren(fullTree);
+
+    // there should be 7 nodes
+    // _Root -> project -> original -> build -> suite -> package -> classA
+
+    assertEquals(7, fullTree.size());
+  }
+
+  @Test
+  public void testVirtualBuildsNotMergedWhenAsked() {
+    ProjectEx project = myFixture.createProject("project", "project");
+    ProjectEx virtual = project.createProject("virtual", "virtual");
+
+    virtual.setArchived(true, null);
+    virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
+
+    BuildTypeEx original = project.createBuildType("original");
+
+    BuildTypeEx p1 = virtual.createBuildType("parallel1");
+    BuildTypeEx p2 = virtual.createBuildType("parallel2");
+
+    SQueuedBuild pb1 = build().in(p1).addToQueue();
+    SQueuedBuild pb2 = build().in(p2).addToQueue();
+    SQueuedBuild b   = build().in(original).addToQueue();
+
+    ((BuildPromotionEx)b.getBuildPromotion()).addDependency((BuildPromotionEx) pb1.getBuildPromotion(), NULL_OPTIONS);
+    ((BuildPromotionEx)b.getBuildPromotion()).addDependency((BuildPromotionEx) pb2.getBuildPromotion(), NULL_OPTIONS);
+
+
+    build().startSuite("suite").withTest("package.classA.a", false).endSuite().run(pb1).finish();
+    build().startSuite("suite").withTest("package.classA.a", false).endSuite().run(pb2).finish();
+    build().run(b).finish();
+
+    List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100,groupParallelTests:false"));
+    checkAncestorsBeforeChildren(fullTree);
+
+    // there should be 13 nodes
+    // _Root -> project -> virtual -> parallel1 -> build -> suite -> package -> classA
+    //                                parallel2 -> build -> suite -> package -> classA
+
+    assertEquals(13, fullTree.size());
+  }
+
+  @Test
+  public void testVirtualBuildsMergedCorrectly2() {
+    ProjectEx project = myFixture.createProject("project", "project");
+    ProjectEx virtual = project.createProject("virtual", "virtual");
+
+    virtual.setArchived(true, null);
+    virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
+
+    BuildTypeEx original = project.createBuildType("original");
+
+    BuildTypeEx p1 = virtual.createBuildType("parallel1");
+    BuildTypeEx p2 = virtual.createBuildType("parallel2");
+
+    SQueuedBuild pb1 = build().in(p1).addToQueue();
+    SQueuedBuild pb2 = build().in(p2).addToQueue();
+    SQueuedBuild b   = build().in(original).addToQueue();
+
+    ((BuildPromotionEx)b.getBuildPromotion()).addDependency((BuildPromotionEx) pb1.getBuildPromotion(), NULL_OPTIONS);
+    ((BuildPromotionEx)b.getBuildPromotion()).addDependency((BuildPromotionEx) pb2.getBuildPromotion(), NULL_OPTIONS);
+
+
+    build().startSuite("suite").withTest("package.classA.a", false).endSuite().run(pb1).finish();
+    build().startSuite("suite").withTest("package.classA.a", false).endSuite().run(pb2).finish();
+    build().run(b).finish();
+
+
+    BuildTypeEx side = project.createBuildType("side");
+    build().in(side).startSuite("suite").withTest("package.classA.a", false).endSuite().finish();
+
+    List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
+    checkAncestorsBeforeChildren(fullTree);
+
+    // there should be 12 nodes
+    // _Root -> project -> original -> build -> suite -> package -> classA
+    //                  ->     side -> build -> suite -> package -> classA
+
+    assertEquals(12, fullTree.size());
+  }
+
+  @Test
   public void testSubtreeLeafNode() {
     buildTree();
 
@@ -252,4 +361,46 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
       seenNodes.add(node.getId());
     }
   }
+
+  private final DependencyOptions NULL_OPTIONS = new DependencyOptions() {
+    @Override
+    @NotNull
+    public Object getOption(@NotNull final Option option) {
+      return new Object();
+    }
+
+    @Override
+    public <T> void setOption(@NotNull final Option<T> option, @NotNull final T value) {
+    }
+
+    @Override
+    @NotNull
+    public Collection<Option> getOwnOptions() {
+      return Collections.emptyList();
+    }
+
+    @Override
+    @NotNull
+    public Collection<Option> getOptions() {
+      return Collections.emptyList();
+    }
+
+    @Override
+    @NotNull
+    public Option[] getChangedOptions() {
+      return new Option[0];
+    }
+
+    @Override
+    @NotNull
+    public <T> T getOptionDefaultValue(@NotNull final Option<T> option) {
+      return option.getDefaultValue();
+    }
+
+    @Nullable
+    @Override
+    public <T> T getDeclaredOption(final Option<T> option) {
+      return null;
+    }
+  };
 }
