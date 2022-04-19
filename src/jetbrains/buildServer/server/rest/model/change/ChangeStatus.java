@@ -261,18 +261,20 @@ public class ChangeStatus {
           myCriticalCollector.put(buildPromo);
           break;
 
-        case BuildStatusText.COMPILATION_ERROR:
-          myCompilationErrorCollector.put(buildPromo);
-          break;
-
         default:
           myNotCriticalCollector.put(buildPromo);
       }
 
+      boolean compilationErrorCounted = false;
       for (BuildProblem problem : buildPromo.getBuildProblems()) {
         if (problem.isMutedInBuild()) continue;
-        if (problem.getBuildProblemData().getType().equals(BuildProblemData.TC_FAILED_TESTS_TYPE) ||
-            ErrorData.isSnapshotDependencyError(problem.getBuildProblemData().getType())) continue;
+        final String problemType = problem.getBuildProblemData().getType();
+        if (BuildProblemData.TC_FAILED_TESTS_TYPE.equals(problemType) || ErrorData.isSnapshotDependencyError(problemType)) continue;
+
+        if(BuildProblemData.TC_COMPILATION_ERROR_TYPE.equals(problemType) && !compilationErrorCounted) {
+          myCompilationErrorCollector.put(buildPromo);
+          compilationErrorCounted = true;
+        }
 
         myTotalProblemCount++;
       }

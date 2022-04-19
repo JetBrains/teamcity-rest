@@ -74,7 +74,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
   }
 
   public void merge(@NotNull ScopeTree<DATA, COUNTERS> other) {
-    if(!myRoot.equals(other.myRoot)) {
+    if(!myRoot.getScope().equals(other.myRoot.getScope())) {
       throw new UnsupportedOperationException(
         String.format("Can't merge scope trees with different root nodes %s and %s.", myRoot, other.myRoot)
       );

@@ -27,6 +27,7 @@
       <class name="jetbrains.buildServer.server.rest.data.TypedFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.TestScopesCollectorTest"/>
       <class name="jetbrains.buildServer.server.rest.data.TestScopeTreeCollectorTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.ScopeTreeTest"></class>
 
       <class name="jetbrains.buildServer.server.rest.model.BuildTest"/>
       <class name="jetbrains.buildServer.server.rest.model.BuildTypeTest"/>
