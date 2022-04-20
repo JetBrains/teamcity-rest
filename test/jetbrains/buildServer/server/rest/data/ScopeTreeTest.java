@@ -135,6 +135,116 @@ public class ScopeTreeTest {
     Assert.assertEquals(3, nodes.get("L6").getCounters().myValue);
   }
 
+  public void testVerticalSlice() {
+    /*
+                   ROOT
+             /      |     \
+          C1       C2      C3
+        / |  \     |       / \
+      L1  L2  L3  L4     L5  L6
+      3   2   1   6      3   3
+     */
+    ScopeTree<Integer, Counters> tree = buildTree(
+      MyLeaf.at("ROOT", "C1", "L1").withData(3, 2, 1),
+      MyLeaf.at("ROOT", "C1", "L2").withData(5, 4),
+      MyLeaf.at("ROOT", "C1", "L3").withData(6),
+
+      MyLeaf.at("ROOT", "C2", "L4").withData(7, 8, 9, 10, 11, 12),
+
+      MyLeaf.at("ROOT", "C3", "L5").withData(13, 14, 15),
+      MyLeaf.at("ROOT", "C3", "L6").withData(16, 17, 18)
+    );
+    Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
+
+    /* We cut up to 2 children for each node (sorted alphabetically), exepected result:
+             ROOT
+            /    \
+          C1      C2
+         / \       \
+       L1  L2      L4
+       2   2        2
+     */
+    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(2, Integer::compareTo, (n1, n2) -> n1.getId().compareTo(n2.getId()))) {
+      nodes.put(node.getId(), node);
+    }
+    Assert.assertEquals(6, nodes.size());
+
+    Assert.assertEquals("Counters are expected to be preserved from original tree", 18, nodes.get("ROOT").getCounters().myValue);
+
+    Assert.assertEquals("Counters are expected to be preserved from original tree", 6, nodes.get("C1").getCounters().myValue);
+    Assert.assertEquals("Counters are expected to be preserved from original tree", 6, nodes.get("C2").getCounters().myValue);
+
+    Assert.assertEquals("Counters are expected to be preserved from original tree", 3, nodes.get("L1").getCounters().myValue);
+    Assert.assertEquals("Counters are expected to be preserved from original tree", 2, nodes.get("L2").getCounters().myValue);
+    Assert.assertEquals("Counters are expected to be preserved from original tree", 6, nodes.get("L4").getCounters().myValue);
+
+    Assert.assertEquals("Real data must be cut", 2, nodes.get("L1").getData().size());
+    Assert.assertEquals("Real data must be cut", 2, nodes.get("L4").getData().size());
+  }
+
+  public void testVerticalSliceNodeSorting() {
+    /*
+                   ROOT
+             /      |     \
+          C1       C2      C3
+        / |  \     |       / \
+      L1  L2  L3  L4     L5  L6
+      3   2   1   6      3   3
+     */
+    ScopeTree<Integer, Counters> tree = buildTree(
+      MyLeaf.at("ROOT", "C1", "L1").withData(3, 2, 1),
+      MyLeaf.at("ROOT", "C1", "L2").withData(5, 4),
+      MyLeaf.at("ROOT", "C1", "L3").withData(6),
+
+      MyLeaf.at("ROOT", "C2", "L4").withData(7, 8, 9, 10, 11, 12),
+
+      MyLeaf.at("ROOT", "C3", "L5").withData(13, 14, 15),
+      MyLeaf.at("ROOT", "C3", "L6").withData(16, 17, 18)
+    );
+
+    /* We cut up to 2 children for each node (sorted alphabetically backwards), exepected result:
+             ROOT
+            /    \
+          C3      C2
+         / \       \
+       L6  L5      L4
+       2   2        2
+     */
+    Comparator<ScopeTree.Node<Integer, Counters>> backwardsComparator = (n1, n2) -> n2.getId().compareTo(n1.getId());
+
+    Map<String, Integer> nodeOrder = new HashMap<>();
+    int idx = 0;
+    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(2, Integer::compareTo, backwardsComparator)) {
+      nodeOrder.put(node.getId(), idx);
+      idx++;
+    }
+    Assert.assertEquals("Tree must be cut correctly", 6, nodeOrder.size());
+
+    Assert.assertTrue("C3 must come earlier than C2", nodeOrder.get("C3") < nodeOrder.get("C2"));
+    Assert.assertTrue("L6 must come earlier than L5", nodeOrder.get("L6") < nodeOrder.get("L5"));
+    Assert.assertTrue("L5 must come earlier than L4", nodeOrder.get("L5") < nodeOrder.get("L4"));
+  }
+
+  public void testVerticalSliceLeafSorting() {
+    ScopeTree<Integer, Counters> tree = buildTree(
+      MyLeaf.at("ROOT", "L1").withData(3, 2, 1, 5, 4, 6, 8, 0, 9, 7)
+    );
+
+    Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
+    int idx = 0;
+    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(2, Integer::compareTo, (n1, n2) -> n1.getId().compareTo(n2.getId()))) {
+      nodes.put(node.getId(), node);
+      idx++;
+    }
+    Assert.assertEquals("Tree must be cut correctly", 2, nodes.size());
+
+    Assert.assertArrayEquals(
+      "Data in a list must be sorted and cut",
+      new Integer[] { 0, 1 },
+      nodes.get("L1").getData().toArray()
+    );
+  }
+
   private ScopeTree<Integer, Counters> buildTree(MyLeaf... leafs) {
     MyScope rootScope = (MyScope) leafs[0].getPath().iterator().next();
 
