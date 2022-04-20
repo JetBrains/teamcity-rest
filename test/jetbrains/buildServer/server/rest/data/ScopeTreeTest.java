@@ -29,32 +29,16 @@ import org.testng.annotations.Test;
 public class ScopeTreeTest {
 
   public void testSimpleTree() {
-    MyScope rootScope = new MyScope("ROOT",  false);
-    MyScope child1 = new MyScope("C1",  false);
-    MyScope child2 = new MyScope("C2",  false);
-
-    List<MyLeaf> leafs = Arrays.asList(
-      new MyLeaf(
-        Arrays.asList(rootScope, child1, new MyScope("L1", true)),
-        Arrays.asList(1, 2, 3)
-      ),
-      new MyLeaf(
-        Arrays.asList(rootScope, child1, new MyScope("L2", true)),
-        Arrays.asList(4, 5, 6)
-      ),
-      new MyLeaf(
-        Arrays.asList(rootScope, child2, new MyScope("L3", true)),
-        Arrays.asList(7, 8, 9)
-      )
-    );
-
-    /*
+     /*
            ROOT
         C1      C2
       L1  L2      L3
      */
-
-    ScopeTree<Integer, Counters> tree = new ScopeTree<>(rootScope, new Counters(0), leafs);
+    ScopeTree<Integer, Counters> tree = buildTree(
+      MyLeaf.at("ROOT", "C1", "L1").withData(1, 2, 3),
+      MyLeaf.at("ROOT", "C1", "L2").withData(4, 5, 6),
+      MyLeaf.at("ROOT", "C2", "L3").withData(7, 8, 9)
+    );
     Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
 
     for(ScopeTree.Node<Integer, Counters> node : tree.getTopTreeSliceUpTo((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()), scope -> true)) {
@@ -73,20 +57,14 @@ public class ScopeTreeTest {
   }
 
   public void testNonOverlappingMerge() {
-    MyScope rootScope1 = new MyScope("ROOT",  false);
-    MyScope l1Scope = new MyScope("LEAF1", true);
-
-    MyScope rootScope2 = new MyScope("ROOT",  false);
-    MyScope l2Scope = new MyScope("LEAF2", true);
-
-    List<MyLeaf> leafs1 = Arrays.asList(new MyLeaf(Arrays.asList(rootScope1, l1Scope), Arrays.asList(1, 2, 3)));
-    List<MyLeaf> leafs2 = Arrays.asList(new MyLeaf(Arrays.asList(rootScope2, l2Scope), Arrays.asList(4, 5)));
-
-    ScopeTree<Integer, Counters> tree1 = new ScopeTree<>(rootScope1, new Counters(0), leafs1);
-    ScopeTree<Integer, Counters> tree2 = new ScopeTree<>(rootScope2, new Counters(0), leafs2);
+    ScopeTree<Integer, Counters> tree1 = buildTree(
+      MyLeaf.at("ROOT", "LEAF1").withData(1, 2, 3)
+    );
+    ScopeTree<Integer, Counters> tree2 = buildTree(
+      MyLeaf.at("ROOT", "LEAF2").withData(4, 5)
+    );
 
     tree1.merge(tree2);
-
 
     Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
     for(ScopeTree.Node<Integer, Counters> node : tree1.getTopTreeSliceUpTo((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()), scope -> true)) {
@@ -103,29 +81,12 @@ public class ScopeTreeTest {
       L1  L2  L3  L4
        3   3   3   3
      */
-    MyScope rootScope = new MyScope("ROOT",  false);
-    MyScope c1 = new MyScope("C1",  false);
-    MyScope c21 = new MyScope("C2",  false);
-    List<MyLeaf> leafs = Arrays.asList(
-      new MyLeaf(
-        Arrays.asList(rootScope, c1, new MyScope("L1", true)),
-        Arrays.asList(1, 2, 3)
-      ),
-      new MyLeaf(
-        Arrays.asList(rootScope, c1, new MyScope("L2", true)),
-        Arrays.asList(4, 5, 6)
-      ),
-      new MyLeaf(
-        Arrays.asList(rootScope, c21, new MyScope("L3", true)),
-        Arrays.asList(7, 8, 9)
-      ),
-      new MyLeaf(
-        Arrays.asList(rootScope, c21, new MyScope("L4", true)),
-        Arrays.asList(7, 8, 9)
-      )
+    ScopeTree<Integer, Counters> tree = buildTree(
+      MyLeaf.at("ROOT", "C1", "L1").withData(1, 2, 3),
+      MyLeaf.at("ROOT", "C1", "L2").withData(4, 5, 6),
+      MyLeaf.at("ROOT", "C2", "L3").withData(7, 8, 9),
+      MyLeaf.at("ROOT", "C2", "L4").withData(7, 8, 9)
     );
-    ScopeTree<Integer, Counters> tree = new ScopeTree<>(rootScope, new Counters(0), leafs);
-
 
     /* Second tree
            ROOT
@@ -133,28 +94,14 @@ public class ScopeTreeTest {
           L4  L5  L6
            3   3   3
      */
-    MyScope rootScope2 = new MyScope("ROOT",  false);
-    MyScope c22 = new MyScope("C2",  false);
-    MyScope c3 = new MyScope("C3",  false);
-
-    List<MyLeaf> leafs2 = Arrays.asList(
-      new MyLeaf(
-        Arrays.asList(rootScope2, c22, new MyScope("L4", true)),
-        Arrays.asList(1, 2, 3)
-      ),
-      new MyLeaf(
-        Arrays.asList(rootScope2, c3, new MyScope("L5", true)),
-        Arrays.asList(4, 5, 6)
-      ),
-      new MyLeaf(
-        Arrays.asList(rootScope2, c3, new MyScope("L6", true)),
-        Arrays.asList(7, 8, 9)
-      )
+    ScopeTree<Integer, Counters> tree2 = buildTree(
+      MyLeaf.at("ROOT", "C2", "L4").withData(1, 2, 3),
+      MyLeaf.at("ROOT", "C3", "L5").withData(4, 5, 6),
+      MyLeaf.at("ROOT", "C3", "L6").withData(7, 8, 9)
     );
-    ScopeTree<Integer, Counters> tree2 = new ScopeTree<>(rootScope, new Counters(0), leafs2);
 
 
-    /* When merged:
+    /* When merged we expect:
                ROOT
            /     |    \
         C1      C2      C3
@@ -188,7 +135,13 @@ public class ScopeTreeTest {
     Assert.assertEquals(3, nodes.get("L6").getCounters().myValue);
   }
 
-  private class MyLeaf implements LeafInfo<Integer, Counters> {
+  private ScopeTree<Integer, Counters> buildTree(MyLeaf... leafs) {
+    MyScope rootScope = (MyScope) leafs[0].getPath().iterator().next();
+
+    return new ScopeTree<>(rootScope, new Counters(0), Arrays.asList(leafs));
+  }
+
+  private static class MyLeaf implements LeafInfo<Integer, Counters> {
     private final List<Scope> myPath;
     private final List<Integer> myData;
 
@@ -214,9 +167,27 @@ public class ScopeTreeTest {
     public Collection<Integer> getData() {
       return myData;
     }
+
+    public static Builder at(String... path) {
+      return new Builder(path);
+    }
+    private static class Builder {
+      private final List<Scope> myPath;
+      private Builder(String... path) {
+        myPath = new ArrayList<>();
+        for(int i = 0; i < path.length - 1; i++) {
+          myPath.add(new MyScope(path[i], false));
+        }
+        myPath.add(new MyScope(path[path.length - 1], true));
+      }
+
+      public MyLeaf withData(Integer... data) {
+        return new MyLeaf(myPath, Arrays.asList(data));
+      }
+    }
   }
 
-  private class MyScope implements Scope {
+  private static class MyScope implements Scope {
     private final String myId;
     private final boolean myIsLeaf;
 
@@ -261,7 +232,7 @@ public class ScopeTreeTest {
     }
   }
 
-  private class Counters implements TreeCounters<Counters> {
+  private static class Counters implements TreeCounters<Counters> {
     private final int myValue;
 
     public Counters(int c) {
