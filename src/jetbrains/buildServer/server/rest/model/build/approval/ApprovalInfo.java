@@ -32,9 +32,11 @@ import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
+import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.*;
+import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 
@@ -68,16 +70,20 @@ public class ApprovalInfo {
       BuildPromotionEx buildPromotionEx,
       ApprovableBuildManager approvableBuildManager
     ) {
-      if (approvableBuildManager.hasTimedOut(buildPromotionEx)) {
-        return timedOut;
-      }
-
       if (approvableBuildManager.allApprovalRulesAreMet(buildPromotionEx)) {
         return approved;
       }
 
-      if (buildPromotionEx.isCanceled()) {
-        return canceled;
+      SBuild associatedBuild = buildPromotionEx.getAssociatedBuild();
+      if (associatedBuild != null) {
+        CanceledInfo canceledInfo = associatedBuild.getCanceledInfo();
+        if (canceledInfo != null && canceledInfo.isCanceledByUser()) {
+          return canceled;
+        }
+      }
+
+      if (approvableBuildManager.hasTimedOut(buildPromotionEx)) {
+        return timedOut;
       }
 
       return waitingForApproval;
