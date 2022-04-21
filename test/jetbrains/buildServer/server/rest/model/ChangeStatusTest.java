@@ -16,11 +16,14 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import jetbrains.buildServer.BuildProblemData;
+import jetbrains.buildServer.BuildProblemTypes;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.BuildFinderTestBase;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
 import jetbrains.buildServer.server.rest.model.change.ChangeStatus;
 import jetbrains.buildServer.serverSide.RunningBuildEx;
+import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
@@ -238,6 +241,103 @@ public class ChangeStatusTest extends BaseFinderTest<SVcsModificationOrChangeDes
     assertEquals(0, (int) status.getFailed());
     assertEquals(0, (int) status.getPendingBuildTypes());
     assertEquals(1, (int) status.getQueuedBuildsCount());
+  }
+
+  public void testCompilationErrorBuilds() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    VcsRootInstance root1 = prepareSingleVscRoot(buildConf);
+
+    SVcsModification m20 = myFixture.addModification(modification().in(root1).version("20").parentVersions("10"));
+
+    SFinishedBuild finishedBuild = build().in(buildConf).onModifications(m20)
+                                        .withProblem(BuildProblemData.createBuildProblem("problem", BuildProblemTypes.TC_COMPILATION_ERROR_TYPE, "can't compile"))
+                                        .finish();
+
+    ChangeStatus status = new ChangeStatus(
+      myFixture.getChangeStatusProvider().getMergedChangeStatus(m20),
+      Fields.ALL_NESTED,
+      getBeanContext(myFixture)
+    );
+
+    assertEquals(1, (int) status.getFinished());
+    assertEquals(0, (int) status.getSuccessful());
+    assertEquals(1, (int) status.getFailed());
+    assertEquals(1, (int) status.getCompilationErrorBuilds().count);
+    assertEquals(finishedBuild.getBuildId(), (long) status.getCompilationErrorBuilds().builds.get(0).getId());
+  }
+
+  public void testCriticalErrorBuilds() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    VcsRootInstance root1 = prepareSingleVscRoot(buildConf);
+
+    SVcsModification m20 = myFixture.addModification(modification().in(root1).version("20").parentVersions("10"));
+
+    SFinishedBuild finishedBuild = build().in(buildConf).onModifications(m20)
+                                          .withProblem(BuildProblemData.createBuildProblem("problem", BuildProblemTypes.TC_JVM_CRASH_TYPE, "wow! such critical"))
+                                          .finish();
+
+    ChangeStatus status = new ChangeStatus(
+      myFixture.getChangeStatusProvider().getMergedChangeStatus(m20),
+      Fields.ALL_NESTED,
+      getBeanContext(myFixture)
+    );
+
+    assertEquals(1, (int) status.getFinished());
+    assertEquals(0, (int) status.getSuccessful());
+    assertEquals(1, (int) status.getFailed());
+    assertEquals(1, (int) status.getCriticalBuilds().count);
+    assertEquals(finishedBuild.getBuildId(), (long) status.getCriticalBuilds().builds.get(0).getId());
+  }
+
+  public void testNonCriticalErrorBuilds() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    VcsRootInstance root1 = prepareSingleVscRoot(buildConf);
+
+    SVcsModification m20 = myFixture.addModification(modification().in(root1).version("20").parentVersions("10"));
+
+    SFinishedBuild finishedBuild = build().in(buildConf).onModifications(m20)
+                                          .withProblem(BuildProblemData.createBuildProblem("problem", BuildProblemTypes.TC_JVM_CRASH_TYPE, "wow! such critical"))
+                                          .finish();
+
+    buildConf.setResponsible(myUser, null, null);
+
+    ChangeStatus status = new ChangeStatus(
+      myFixture.getChangeStatusProvider().getMergedChangeStatus(m20),
+      Fields.ALL_NESTED,
+      getBeanContext(myFixture)
+    );
+
+    assertEquals(1, (int) status.getFinished());
+    assertEquals(0, (int) status.getSuccessful());
+    assertEquals(1, (int) status.getFailed());
+    assertEquals(0, (int) status.getCriticalBuilds().count);
+    assertEquals(1, (int) status.getNonCriticalBuilds().count);
+    assertEquals(finishedBuild.getBuildId(), (long) status.getNonCriticalBuilds().builds.get(0).getId());
+  }
+
+  public void testNewTestsFailedBuilds() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+    VcsRootInstance root1 = prepareSingleVscRoot(buildConf);
+
+    SVcsModification m20 = myFixture.addModification(modification().in(root1).version("20").parentVersions("10"));
+
+    SFinishedBuild finishedBuild = build().in(buildConf).onModifications(m20)
+                                          .withFailedTests("yay")
+                                          .finish();
+
+    ChangeStatus status = new ChangeStatus(
+      myFixture.getChangeStatusProvider().getMergedChangeStatus(m20),
+      Fields.ALL_NESTED,
+      getBeanContext(myFixture)
+    );
+
+    assertEquals(1, (int) status.getFinished());
+    assertEquals(0, (int) status.getSuccessful());
+    assertEquals(1, (int) status.getFailed());
+    assertEquals(0, (int) status.getCriticalBuilds().count);
+    assertEquals(0, (int) status.getNonCriticalBuilds().count);
+    assertEquals(1, (int) status.getNewTestsFailedBuilds().count);
+    assertEquals(finishedBuild.getBuildId(), (long) status.getNewTestsFailedBuilds().builds.get(0).getId());
   }
 
   public void testNewFailedTests() {
