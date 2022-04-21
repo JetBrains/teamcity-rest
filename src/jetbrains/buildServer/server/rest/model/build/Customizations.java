@@ -16,12 +16,13 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
-import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
-
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Collection;
 import java.util.Map;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
+import jetbrains.buildServer.serverSide.impl.PromotionCustomizationInfo;
+import org.jetbrains.annotations.NotNull;
 
 import static java.util.Collections.emptyMap;
 
@@ -38,9 +39,9 @@ public class Customizations {
   public Customizations() {
   }
 
-  public Customizations(Collection<String> changed) {
-    parameters = changed.contains("params") ? emptyMap() : null;
-    changes = changed.contains("mod_id") ? emptyMap() : null;
-    artifactDependencies = changed.contains("artifacts") ? emptyMap() : null;
+  public Customizations(@NotNull Collection<String> changed) {
+    parameters = changed.contains(PromotionCustomizationInfo.PARAMS) ? emptyMap() : null;
+    changes = changed.contains(PromotionCustomizationInfo.MOD_ID) || changed.contains(PromotionCustomizationInfo.REVISIONS) ? emptyMap() : null;
+    artifactDependencies = changed.contains(PromotionCustomizationInfo.ARTIFACTS) ? emptyMap() : null;
   }
 }
