@@ -822,6 +822,53 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     assertEquals("Only one change is visible to the user.",1, result.size());
   }
 
+  @Test
+  public void testProjectDimension() throws Throwable {
+    ProjectEx project = createProject("project1");
+    BuildTypeEx parentBt = project.createBuildType("parentBt");
+
+    ProjectEx subproject = project.createProject("subproject", "subproject");
+    BuildTypeEx childBt = subproject.createBuildType("childBt");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", parentBt);
+    SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", childBt);
+    VcsRootInstance root1 = parentBt.getVcsRootInstanceForParent(parentRoot1);
+    VcsRootInstance root2 = childBt.getVcsRootInstanceForParent(parentRoot2);
+    assert root1 != null && root2 != null;
+
+    SVcsModification modInParent = myFixture.addModification(modification().in(root1).version("12345"));
+    SVcsModification modInChild = myFixture.addModification(modification().in(root2).version("12345"));
+
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("project:" + project.getExternalId()).myEntries;
+    assertEquals("Only one change is in build configuration directly in parent project.", 1, result.size());
+    assertEquals("Only change from parentBt should be visible.", modInParent.getId(), result.get(0).getSVcsModification().getId());
+  }
+
+  @Test
+  public void testAffectedProjectDimension() throws Throwable {
+    ProjectEx project = createProject("project1");
+    BuildTypeEx parentBt = project.createBuildType("parentBt");
+
+    ProjectEx subproject = project.createProject("subproject", "subproject");
+    BuildTypeEx childBt = subproject.createBuildType("childBt");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", parentBt);
+    SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", childBt);
+    VcsRootInstance root1 = parentBt.getVcsRootInstanceForParent(parentRoot1);
+    VcsRootInstance root2 = childBt.getVcsRootInstanceForParent(parentRoot2);
+    assert root1 != null && root2 != null;
+
+    SVcsModification modInParent = myFixture.addModification(modification().in(root1).version("12345"));
+    SVcsModification modInChild = myFixture.addModification(modification().in(root2).version("12345"));
+
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("affectedProject:" + project.getExternalId()).myEntries;
+    assertEquals("Changes from all build configurations (direct and indirect) in parent project should be visible.", 2, result.size());
+  }
+
   @NotNull
   private VcsRootInstance buildVcsRootInstance() {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
