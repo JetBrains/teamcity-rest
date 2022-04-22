@@ -102,6 +102,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
       if(myChild == null) {
         // there is no such child in our tree, so let's create one
         target.putChild(mergingChild);
+        myIdToNodesMap.put(mergingChild.getId(), mergingChild);
         continue;
       }
 
