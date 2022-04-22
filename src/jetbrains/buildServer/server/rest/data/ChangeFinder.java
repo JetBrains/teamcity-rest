@@ -76,6 +76,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   public static final String PERSONAL = "personal";
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
   public static final String PROJECT = "project";
+  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
+  private static final String AFFECTED_PROJECT = "affectedProject";
   @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
   public static final String BUILD_TYPE = "buildType";
   @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
@@ -342,18 +344,13 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     if (projectLocator != null) {
       final SProject project = myProjectFinder.getItem(projectLocator);
-      Set<String> btIds = project.getOwnBuildTypes().stream().map(BuildTypeDescriptor::getBuildTypeId).collect(Collectors.toSet());
-      result.add(item -> {
-        List<String> itemBtIds = ((VcsModificationEx)item).getRelatedConfigurationIds(false);
-        for (String itemBtId : itemBtIds) {
-          String finalId = RemoteBuildTypeIdUtil.isValidRemoteBuildTypeId(itemBtId) ? RemoteBuildTypeIdUtil.getParentBuildTypeId(itemBtId) : itemBtId;
-          if (btIds.contains(finalId)) {
-            return true;
-          }
-        }
+      result.add(getInBuildTypesListChecker(project.getOwnBuildTypes().stream()));
+    }
 
-        return false;
-      });
+    final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
+    if (affectedProjectLocator != null) {
+      final SProject affectedProject = myProjectFinder.getItem(affectedProjectLocator);
+      result.add(getInBuildTypesListChecker(affectedProject.getBuildTypes().stream()));
     }
 
     if (locator.isUnused(INTERNAL_VERSION)) {
@@ -424,6 +421,48 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     }
 
     return new UnwrappingFilter<>(result, SVcsModificationOrChangeDescriptor::getSVcsModification);
+  }
+
+  @NotNull
+  private FilterConditionChecker<SVcsModification> getInBuildTypesListChecker(@NotNull Stream<SBuildType> buildTypes) {
+    Set<String> btIds = buildTypes.map(BuildTypeDescriptor::getBuildTypeId).collect(Collectors.toSet());
+    HashMap<String, Boolean> remoteBtIsInTheList = new HashMap<>();
+
+    return modification -> {
+      List<String> modBtIds = ((VcsModificationEx)modification).getRelatedConfigurationIds(false);
+
+      for (String modBtId : modBtIds) {
+        if(remoteBtIsInTheList.containsKey(modBtId)) {
+          // that is a remote configuration we've seen, and we already made a check
+          if(remoteBtIsInTheList.get(modBtId)) {
+            return true;
+          }
+
+          continue;
+        }
+
+        boolean isNewRemoteBt = RemoteBuildTypeIdUtil.isValidRemoteBuildTypeId(modBtId);
+        if(isNewRemoteBt) {
+          // that is a remote configuration we didn't see yet, let's make a check and remember
+          String parentBtId = RemoteBuildTypeIdUtil.getParentBuildTypeId(modBtId);
+          boolean checkBtIsInTheList = btIds.contains(parentBtId);
+          remoteBtIsInTheList.put(modBtId, checkBtIsInTheList);
+
+          if(checkBtIsInTheList) {
+            return true;
+          }
+
+          continue;
+        }
+
+        // that is a regular configuration, let's just check
+        if (btIds.contains(modBtId)) {
+          return true;
+        }
+      }
+
+      return false;
+    };
   }
 
   @Nullable
@@ -574,7 +613,12 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
 
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     if (projectLocator != null) {
-      return wrapModifications(getProjectChanges(myProjectFinder.getItem(projectLocator), sinceChangeId));
+      return wrapModifications(getProjectChanges(myProjectFinder.getItem(projectLocator), sinceChangeId, false));
+    }
+
+    final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
+    if (affectedProjectLocator != null) {
+      return wrapModifications(getProjectChanges(myProjectFinder.getItem(affectedProjectLocator), sinceChangeId, true));
     }
 
     if (sinceChangeId != null) {
@@ -782,11 +826,18 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   }
 
   @NotNull
-  private List<SVcsModification> getProjectChanges(@NotNull final SProject project, @Nullable final Long sinceChangeId) {
-    final List<VcsRootInstance> vcsRoots = project.getVcsRootInstances();
+  private List<SVcsModification> getProjectChanges(@NotNull final SProject project, @Nullable final Long sinceChangeId, boolean includeChangesFromChildren) {
     final List<SVcsModification> result = new ArrayList<>();
 
-    Set<Long> interestingRootIds = vcsRoots.stream().map(VcsRoot::getId).collect(Collectors.toSet());
+    Stream<VcsRootInstance> vcsRoots;
+    if(includeChangesFromChildren) {
+      vcsRoots = project.getVcsRootInstances().stream();
+    } else {
+      vcsRoots = project.getOwnBuildTypes().stream()
+                        .flatMap(bt -> bt.getVcsRootInstances().stream());
+    }
+
+    Set<Long> interestingRootIds = vcsRoots.map(VcsRoot::getId).collect(Collectors.toSet());
 
     VcsModificationsStorage vcsModificationsStorage = myServiceLocator.getSingletonService(VcsModificationsStorage.class);
     SecurityContext securityContext = myServiceLocator.getSingletonService(SecurityContext.class);
