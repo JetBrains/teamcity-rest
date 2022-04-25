@@ -41,7 +41,7 @@ public class ScopeTreeTest {
     );
     Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
 
-    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()))) {
+    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree(Comparator.comparing(ScopeTree.Node::getId))) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(6, nodes.size());
@@ -67,7 +67,7 @@ public class ScopeTreeTest {
     tree1.merge(tree2);
 
     Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
-    for(ScopeTree.Node<Integer, Counters> node : tree1.getFullTree((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()))) {
+    for(ScopeTree.Node<Integer, Counters> node : tree1.getFullTree(Comparator.comparing(ScopeTree.Node::getId))) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(3, nodes.size());
@@ -114,7 +114,7 @@ public class ScopeTreeTest {
 
     Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
 
-    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()))) {
+    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree(Comparator.comparing(ScopeTree.Node::getId))) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(10, nodes.size());
@@ -180,7 +180,7 @@ public class ScopeTreeTest {
 
     Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
 
-    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()))) {
+    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree(Comparator.comparing(ScopeTree.Node::getId))) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(14, nodes.size());
@@ -234,7 +234,7 @@ public class ScopeTreeTest {
        L1  L2      L4
        2   2        2
      */
-    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(2, Integer::compareTo, (n1, n2) -> n1.getId().compareTo(n2.getId()))) {
+    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(2, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId))) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(6, nodes.size());
@@ -273,7 +273,7 @@ public class ScopeTreeTest {
     );
     Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
     List<String> order = new ArrayList<>();
-    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree((n1, n2) -> n1.getId().compareTo(n2.getId()))) {
+    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree(Comparator.comparing(ScopeTree.Node::getId))) {
       nodes.put(node.getId(), node);
       order.add(node.getId());
     }
@@ -332,7 +332,7 @@ public class ScopeTreeTest {
        L1  L2    L4    L5  L6
        2   2      2     2   2
      */
-    for(ScopeTree.Node<Integer, Counters> node : tree.getFullNodeAndSlicedOrderedSubtree("ROOT", 2, Integer::compareTo, (n1, n2) -> n1.getId().compareTo(n2.getId()))) {
+    for(ScopeTree.Node<Integer, Counters> node : tree.getFullNodeAndSlicedOrderedSubtree("ROOT", 2, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId))) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(9, nodes.size());
@@ -381,7 +381,7 @@ public class ScopeTreeTest {
        L1  L2    L4    L5  L6
        2   2      2     2   2
      */
-    for(ScopeTree.Node<Integer, Counters> node : tree.getFullNodeAndSlicedOrderedSubtree("ROOT", 2, Integer::compareTo, (n1, n2) -> n1.getId().compareTo(n2.getId()))) {
+    for(ScopeTree.Node<Integer, Counters> node : tree.getFullNodeAndSlicedOrderedSubtree("ROOT", 2, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId))) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(9, nodes.size());
@@ -452,10 +452,8 @@ public class ScopeTreeTest {
     );
 
     Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
-    int idx = 0;
-    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(2, Integer::compareTo, (n1, n2) -> n1.getId().compareTo(n2.getId()))) {
+    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(2, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId))) {
       nodes.put(node.getId(), node);
-      idx++;
     }
     Assert.assertEquals("Tree must be cut correctly", 2, nodes.size());
 
