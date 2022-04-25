@@ -41,7 +41,7 @@ public class ScopeTreeTest {
     );
     Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
 
-    for(ScopeTree.Node<Integer, Counters> node : tree.getTopTreeSliceUpTo((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()), scope -> true)) {
+    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()))) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(6, nodes.size());
@@ -67,7 +67,7 @@ public class ScopeTreeTest {
     tree1.merge(tree2);
 
     Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
-    for(ScopeTree.Node<Integer, Counters> node : tree1.getTopTreeSliceUpTo((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()), scope -> true)) {
+    for(ScopeTree.Node<Integer, Counters> node : tree1.getFullTree((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()))) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(3, nodes.size());
@@ -114,7 +114,7 @@ public class ScopeTreeTest {
 
     Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
 
-    for(ScopeTree.Node<Integer, Counters> node : tree.getTopTreeSliceUpTo((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()), scope -> true)) {
+    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()))) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(10, nodes.size());
@@ -180,7 +180,7 @@ public class ScopeTreeTest {
 
     Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
 
-    for(ScopeTree.Node<Integer, Counters> node : tree.getTopTreeSliceUpTo((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()), scope -> true)) {
+    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree((n1, n2) -> Integer.compare(n1.hashCode(), n2.hashCode()))) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(14, nodes.size());
@@ -250,6 +250,57 @@ public class ScopeTreeTest {
 
     Assert.assertEquals("Real data must be cut", 2, nodes.get("L1").getData().size());
     Assert.assertEquals("Real data must be cut", 2, nodes.get("L4").getData().size());
+  }
+
+  public void testFullTree() {
+     /*
+                   ROOT
+             /      |     \
+          C1       C2      C3
+        / |  \     |       / \
+      L1  L2  L3  L4     L5  L6
+      3   2   1   6      3   3
+     */
+    ScopeTree<Integer, Counters> tree = buildTree(
+      MyLeaf.at("ROOT", "C1", "L1").withData(3, 2, 1),
+      MyLeaf.at("ROOT", "C1", "L2").withData(5, 4),
+      MyLeaf.at("ROOT", "C1", "L3").withData(6),
+
+      MyLeaf.at("ROOT", "C2", "L4").withData(7, 8, 9, 10, 11, 12),
+
+      MyLeaf.at("ROOT", "C3", "L5").withData(13, 14, 15),
+      MyLeaf.at("ROOT", "C3", "L6").withData(16, 17, 18)
+    );
+    Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
+    List<String> order = new ArrayList<>();
+    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree((n1, n2) -> n1.getId().compareTo(n2.getId()))) {
+      nodes.put(node.getId(), node);
+      order.add(node.getId());
+    }
+
+    Assert.assertEquals(10, nodes.size());
+    Assert.assertArrayEquals(
+      new String[] {"ROOT", "C1", "C2", "C3", "L1", "L2", "L3", "L4", "L5", "L6"},
+      order.toArray()
+    );
+
+    Assert.assertEquals(18, nodes.get("ROOT").getCounters().myValue);
+
+    Assert.assertEquals(6, nodes.get("C1").getCounters().myValue);
+    Assert.assertEquals(6, nodes.get("C2").getCounters().myValue);
+    Assert.assertEquals(6, nodes.get("C2").getCounters().myValue);
+
+    Assert.assertEquals(3, nodes.get("L1").getCounters().myValue);
+    Assert.assertEquals(2, nodes.get("L2").getCounters().myValue);
+    Assert.assertEquals(1, nodes.get("L3").getCounters().myValue);
+    Assert.assertEquals(6, nodes.get("L4").getCounters().myValue);
+
+    Assert.assertEquals( 3, nodes.get("L1").getData().size());
+    Assert.assertEquals( 2, nodes.get("L2").getData().size());
+    Assert.assertEquals( 1, nodes.get("L3").getData().size());
+    Assert.assertEquals( 6, nodes.get("L4").getData().size());
+    Assert.assertEquals( 3, nodes.get("L5").getData().size());
+    Assert.assertEquals( 3, nodes.get("L6").getData().size());
   }
 
   public void testFullNodeSlice() {

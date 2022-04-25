@@ -122,6 +122,29 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     target.mergeCounters(toBeMerged.getCounters());
   }
 
+  /**
+   * Get all tree nodes, from top to bottom, parents before children in a breadth-first fashion.
+   */
+  @NotNull
+  public List<Node<DATA, COUNTERS>> getFullTree(@Nullable Comparator<Node<DATA, COUNTERS>> nodeComparator) {
+    List<Node<DATA, COUNTERS>> result = new ArrayList<>(myIdToNodesMap.size());
+
+    Deque<Node<DATA, COUNTERS>> deque = new ArrayDeque<>();
+    deque.add(myRoot);
+    while(!deque.isEmpty()) {
+      Node<DATA, COUNTERS> current = deque.poll();
+      result.add(current);
+
+      Stream<Node<DATA, COUNTERS>> children = current.getChildren().stream();
+      if (nodeComparator != null) {
+        children = children.sorted(nodeComparator);
+      }
+      children.forEach(deque::add);
+    }
+
+    return result;
+  }
+
   @NotNull
   public List<Node<DATA, COUNTERS>> getSlicedOrderedTree(int maxChildren, @NotNull Comparator<DATA> dataComparator, @Nullable Comparator<Node<DATA, COUNTERS>> nodeComparator) {
     return getSlicedOrderedSubtree(myRoot, maxChildren, dataComparator, nodeComparator);
