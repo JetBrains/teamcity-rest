@@ -26,7 +26,9 @@ import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.tree.*;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtil;
 import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
@@ -99,10 +101,22 @@ public class TestScopeTreeCollector {
     boolean isGroupByDefault = TeamCityProperties.getBooleanOrTrue(TestScopesCollector.SPLIT_TESTS_GROUP_BY_DEFAULT_TOGGLE);
     boolean groupSplitTests = treeLocator.getSingleDimensionValueAsBoolean(TestScopesCollector.GROUP_PARALLEL_TESTS, isGroupByDefault);
 
-    ScopeTree<STestRun, TestCountersData> tree = new ScopeTree<STestRun, TestCountersData>(TestScopeInfo.ROOT, new TestCountersData(), Collections.emptyList());
-    promotions.filter(promotion -> promotion.getAssociatedBuildId() != null)
-              .map(promotion -> getTreeFromPromotion(promotion, testRunsLocator, groupSplitTests))
-              .forEach(promotionTree -> tree.merge(promotionTree));
+    List<TestScope> scopes = promotions
+      .filter(promotion -> promotion.getAssociatedBuildId() != null)
+      .filter(promotion -> {
+        SBuildType bt = promotion.getParentBuildType();
+        return bt != null && !SplitBuildsFeatureUtil.isVirtualConfiguration(bt) &&
+               (!promotion.isCompositeBuild() || promotion.isCompositeBuild() && SplitBuildsFeatureUtil.isParallelizedBuild(promotion));
+      })
+      .flatMap(promotion -> {
+        Stream<STestRun> testRunStream = myTestOccurrenceFinder.getItems(String.format(testRunsLocator, promotion.getAssociatedBuildId())).myEntries.stream();
+
+        Stream<TestScope> scopeStream = myScopeCollector.groupByClass(testRunStream, new TestScopeFilterImpl(Collections.emptyList(), ""));
+
+        return myScopeCollector.splitByBuildType(scopeStream, groupSplitTests, promotion);
+      }).collect(Collectors.toList());
+
+      ScopeTree<STestRun, TestCountersData> tree = new ScopeTree<STestRun, TestCountersData>(TestScopeInfo.ROOT, new TestCountersData(), scopes);
 
     if(treeLocator.isAnyPresent(SUBTREE_ROOT_ID)) {
       String subTreeRootId = treeLocator.getSingleDimensionValue(SUBTREE_ROOT_ID);

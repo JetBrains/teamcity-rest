@@ -69,10 +69,7 @@ import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelExperimental;
-import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.server.rest.util.CachingValue;
-import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.server.rest.util.*;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
@@ -1461,14 +1458,7 @@ public class Build {
   public Boolean isParallelized() {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("parallelized", false, false),
-      () -> {
-        if(!myBuildPromotion.isCompositeBuild()) {
-          return false;
-        }
-
-        // todo: this is dirty and prone to breaking
-        return !((BuildPromotionEx) myBuildPromotion).getBuildSettings().getBuildFeaturesOfType("parallelTests").isEmpty();
-      }
+      () -> SplitBuildsFeatureUtil.isParallelizedBuild(myBuildPromotion)
     );
   }
 

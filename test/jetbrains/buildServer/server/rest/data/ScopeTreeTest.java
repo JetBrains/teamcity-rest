@@ -79,23 +79,23 @@ public class ScopeTreeTest {
            ROOT
         C1      C2
       L1  L2  L3  L4
-       3   3   3   3
+       3   3   3   2
      */
     ScopeTree<Integer, Counters> tree = buildTree(
       MyLeaf.at("ROOT", "C1", "L1").withData(1, 2, 3),
       MyLeaf.at("ROOT", "C1", "L2").withData(4, 5, 6),
       MyLeaf.at("ROOT", "C2", "L3").withData(7, 8, 9),
-      MyLeaf.at("ROOT", "C2", "L4").withData(7, 8, 9)
+      MyLeaf.at("ROOT", "C2", "L4").withData(7, 8)
     );
 
     /* Second tree
            ROOT
         C2      C3
           L4  L5  L6
-           3   3   3
+           4   3   3
      */
     ScopeTree<Integer, Counters> tree2 = buildTree(
-      MyLeaf.at("ROOT", "C2", "L4").withData(1, 2, 3),
+      MyLeaf.at("ROOT", "C2", "L4").withData(1, 2, 9, 3),
       MyLeaf.at("ROOT", "C3", "L5").withData(4, 5, 6),
       MyLeaf.at("ROOT", "C3", "L6").withData(7, 8, 9)
     );
@@ -130,6 +130,12 @@ public class ScopeTreeTest {
     Assert.assertEquals(3, nodes.get("L3").getCounters().myValue);
     Assert.assertEquals("3 come from the first tree + 3 come from the second tree",
                         6, nodes.get("L4").getCounters().myValue);
+
+    Assert.assertArrayEquals(
+      "Data in the leaf must be merged",
+      new Integer[]{ 1, 2, 3, 7, 8, 9},
+      nodes.get("L4").getData().stream().sorted().toArray()
+    );
 
     Assert.assertEquals(3, nodes.get("L5").getCounters().myValue);
     Assert.assertEquals(3, nodes.get("L6").getCounters().myValue);
@@ -401,6 +407,29 @@ public class ScopeTreeTest {
     Assert.assertEquals("Real data must be cut", 2, nodes.get("L4").getData().size());
     Assert.assertEquals("Real data must be cut", 2, nodes.get("L5").getData().size());
     Assert.assertEquals("Real data must be cut", 2, nodes.get("L6").getData().size());
+  }
+
+  public void testSliceAfterMerge() {
+     /*
+         ROOT
+          A
+        C1 C2
+      L1    D
+       3    L2
+             2
+     */
+    ScopeTree<Integer, Counters> tree = buildTree(MyLeaf.at("ROOT", "A", "C1", "L1").withData(3, 2, 1));
+    tree.merge(buildTree(MyLeaf.at("ROOT", "A", "C2", "D", "L2").withData(5, 4)));
+
+    Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
+    for(ScopeTree.Node<Integer, Counters> node : tree.getFullNodeAndSlicedOrderedSubtree("D", 2, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId))) {
+      nodes.put(node.getId(), node);
+    }
+
+    Assert.assertEquals(2, nodes.size());
+
+    Assert.assertEquals(2, nodes.get("L2").getCounters().myValue);
+    Assert.assertEquals(2, nodes.get("D").getCounters().myValue);
   }
 
   public void testVerticalSliceNodeSorting() {

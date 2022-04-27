@@ -31,7 +31,8 @@ public class MultiCheckerFilter<T> implements ItemFilter<T> {
     myCheckers = new ArrayList<FilterConditionChecker<T>>();
   }
 
-  public MultiCheckerFilter<T> add(FilterConditionChecker<T> checker) {
+  @NotNull
+  public MultiCheckerFilter<T> add(@NotNull FilterConditionChecker<T> checker) {
     myCheckers.add(checker);
     return this;
   }

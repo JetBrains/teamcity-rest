@@ -17,29 +17,30 @@
 package jetbrains.buildServer.server.rest.model.change;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.controllers.changes.BuildStatusText;
-import jetbrains.buildServer.controllers.changes.FailedTestsBean;
 import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.ItemsProviders;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtil;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.StandardProperties;
-import jetbrains.buildServer.users.impl.UserEx;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.BuildTypeChangeStatus;
 import org.jetbrains.annotations.NotNull;
@@ -178,18 +179,17 @@ public class ChangeStatus {
   private void initTests() {
     SecurityContext context = myBeanContext.getSingletonService(SecurityContext.class);
 
-    Comparator<SBuildType> userOrder;
-    if(context.getAuthorityHolder().getAssociatedUser() != null) {
-      UserEx user = (UserEx) context.getAuthorityHolder().getAssociatedUser();
-      userOrder = user.getProjectVisibilityHolder().getUserBuildTypeOrder();
-    } else {
-      userOrder = new BuildTypeComparator();
-    }
+    List<STestRun> testRuns = myChangeStatus.getFirstBuilds().values().stream()
+                                            .filter(Objects::nonNull)
+                                            .filter(b -> !SplitBuildsFeatureUtil.isVirtualBuild(b.getBuildPromotion()))
+                                            .filter(b -> !b.isCompositeBuild() || SplitBuildsFeatureUtil.isParallelizedBuild(b.getBuildPromotion()))
+                                            .flatMap(b -> b.getShortStatistics().getFailedTests().stream())
+                                            .collect(Collectors.toList());
 
-    FailedTestsBean testsBean = new FailedTestsBean(userOrder);
-    testsBean.fillFromModification(myChangeStatus);
-    myNewFailedTests   = testsBean.getNewTestsNumber();
-    myOtherFailedTests = testsBean.getOtherTestsNumber();
+    TestCountersData counters = new TestCountersData(testRuns, false, true, false, false, true, false);
+
+    myNewFailedTests   = counters.getNewFailed();
+    myOtherFailedTests = counters.getFailed() - counters.getNewFailed();
   }
 
   private void initCounters() {
@@ -205,7 +205,7 @@ public class ChangeStatus {
     final boolean includePersonalBuilds = self != null && StringUtil.isTrue(self.getPropertyValue(StandardProperties.SHOW_ALL_PERSONAL_BUILDS));
 
     for (BuildTypeChangeStatus status : myChangeStatus.getBuildTypesStatus().values()) {
-      if(status.getBuildType().getProject().isVirtual()) {
+      if(SplitBuildsFeatureUtil.isVirtualConfiguration(status.getBuildType())) {
         continue;
       }
 

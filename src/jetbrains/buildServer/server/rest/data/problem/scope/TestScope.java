@@ -163,20 +163,21 @@ public class TestScope implements LeafInfo<STestRun, TestCountersData> {
     String btId = Hashing.sha1().hashString("BT" + myBuildType.getInternalId(), Charsets.UTF_8).toString();
     myPath.add(new TestScopeInfo(btId, myBuildType.getExternalId(), TestScopeType.BUILD_TYPE));
 
+    String buildNodeId = "";
     if(myBuildPromotion != null) {
-      String buildNodeId = Hashing.sha1().hashString("B" + Long.toString(myBuildPromotion.getId()), Charsets.UTF_8).toString();
+      buildNodeId = Hashing.sha1().hashString("B" + Long.toString(myBuildPromotion.getId()), Charsets.UTF_8).toString();
       myPath.add(new TestScopeInfo(buildNodeId, Long.toString(myBuildPromotion.getId()), TestScopeType.BUILD));
     }
 
-    String suiteId = Hashing.sha1().hashString(myBuildType.getExternalId() + "s" + mySuite, Charsets.UTF_8).toString();
+    String suiteId = Hashing.sha1().hashString(myBuildType.getExternalId() + buildNodeId + "s" + mySuite, Charsets.UTF_8).toString();
     myPath.add(new TestScopeInfo(suiteId, mySuite, TestScopeType.SUITE));
 
     String packageName = myPackage == null ? "" : myPackage;
-    String packageId = Hashing.sha1().hashString(myBuildType.getExternalId() + "s" + mySuite + "p" + packageName, Charsets.UTF_8).toString();
+    String packageId = Hashing.sha1().hashString(suiteId + "p" + packageName, Charsets.UTF_8).toString();
     myPath.add(new TestScopeInfo(packageId, packageName, TestScopeType.PACKAGE));
 
     String className = myClass == null ? "" : myClass;
-    String classId = Hashing.sha1().hashString(myBuildType.getExternalId() + "s" + mySuite + "p" + packageName + "c" + className, Charsets.UTF_8).toString();
+    String classId = Hashing.sha1().hashString(packageId + "c" + className, Charsets.UTF_8).toString();
     myPath.add(new TestScopeInfo(classId, className, TestScopeType.CLASS));
 
     return myPath;

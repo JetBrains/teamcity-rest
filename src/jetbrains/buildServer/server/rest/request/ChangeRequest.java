@@ -52,6 +52,7 @@ import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtil;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -276,7 +277,7 @@ public class ChangeRequest {
     ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
     List<BuildTypeOrTemplate> buildTypes = BuildTypes.fromBuildTypes(
       changeStatus.getRelatedConfigurations().stream()
-                  .filter(bt -> !bt.getProject().isVirtual())
+                  .filter(bt -> !SplitBuildsFeatureUtil.isVirtualConfiguration(bt))
                   .collect(Collectors.toList())
     );
 
@@ -297,7 +298,7 @@ public class ChangeRequest {
     ChangeStatusProvider myStatusProvider = myServiceLocator.getSingletonService(ChangeStatusProvider.class);
     ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
     List<BuildPromotion> firstBuildsPromotions = changeStatus.getBuildTypesStatusMap().entrySet().stream()
-                                                             .filter(entry -> !entry.getKey().getProject().isVirtual())
+                                                             .filter(entry -> !SplitBuildsFeatureUtil.isVirtualConfiguration(entry.getKey()))
                                                              .map(entry -> entry.getValue())
                                                              .filter(Objects::nonNull)
                                                              .collect(Collectors.toList());

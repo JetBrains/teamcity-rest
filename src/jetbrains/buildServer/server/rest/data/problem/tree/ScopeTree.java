@@ -92,7 +92,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
   private void mergeSubtree(@NotNull Node<DATA, COUNTERS> target, @NotNull Node<DATA, COUNTERS> toBeMerged) {
     if(target.getScope().isLeaf()) {
       assert toBeMerged.getScope().isLeaf();
-      target.mergeCountersAndData(target.getCounters(), target.getData());
+      target.mergeCountersAndData(toBeMerged.getCounters(), toBeMerged.getData());
       return;
     }
 
@@ -102,7 +102,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
       if(myChild == null) {
         // there is no such child in our tree, so let's create one
         target.putChild(mergingChild);
-        myIdToNodesMap.put(mergingChild.getId(), mergingChild);
+        memoizeFullSubTree(mergingChild);
         continue;
       }
 
@@ -120,6 +120,18 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     }
 
     target.mergeCounters(toBeMerged.getCounters());
+  }
+
+  private void memoizeFullSubTree(@NotNull Node<DATA, COUNTERS> head) {
+    Deque<Node<DATA, COUNTERS>> deque = new ArrayDeque<>();
+    deque.add(head);
+
+    while(!deque.isEmpty()) {
+      Node<DATA, COUNTERS> current = deque.poll();
+      myIdToNodesMap.put(current.getId(), current);
+
+      current.getChildren().forEach(deque::add);
+    }
   }
 
   /**
