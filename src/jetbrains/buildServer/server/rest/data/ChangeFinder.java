@@ -557,14 +557,19 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     final String userLocator = locator.getSingleDimensionValue(USER);
     if (userLocator != null) {
       final SUser user = myUserFinder.getItem(userLocator);
-      return wrapModifications(myServiceLocator.getSingletonService(UserChangesFacade.class).getAllVcsModifications(user));
+      Stream<SVcsModification> modifications = myServiceLocator.getSingletonService(UserChangesFacade.class)
+                                                               .getAllVcsModifications(user).stream()
+                                                               .flatMap(this::modificationWithDuplicates)
+                                                               .filter(myPermissionChecker::checkCanView);
+      return wrapModifications(modifications);
     }
 
     final String username = locator.getSingleDimensionValue(USERNAME);
     if (username != null) {
       Stream<SVcsModification> modifications = myServiceLocator.getSingletonService(VcsModificationsStorage.class)
                                                                .findModificationsByUsername(username).stream()
-                                                               .filter(vcsModification -> myPermissionChecker.checkCanView(vcsModification));
+                                                               .flatMap(this::modificationWithDuplicates)
+                                                               .filter(myPermissionChecker::checkCanView);
       return wrapModifications(modifications);
     }
 
@@ -626,6 +631,16 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     }
 
     return wrapModifications(((VcsModificationHistoryEx)myVcsModificationHistory)::processModifications);  // ItemHolder
+  }
+
+  @NotNull
+  private Stream<SVcsModification> modificationWithDuplicates(@NotNull SVcsModification m) {
+    Collection<SVcsModification> dupliactes = m.getDuplicates();
+    if(dupliactes.size() > 0) {
+      return Stream.concat(Stream.of(m), m.getDuplicates().stream());
+    }
+
+    return Stream.of(m);
   }
 
   @Nullable

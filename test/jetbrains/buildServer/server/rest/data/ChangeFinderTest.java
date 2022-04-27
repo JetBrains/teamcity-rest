@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
+import jetbrains.VcsFixtureUtil;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -867,6 +868,35 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("affectedProject:" + project.getExternalId()).myEntries;
     assertEquals("Changes from all build configurations (direct and indirect) in parent project should be visible.", 2, result.size());
+  }
+
+  @TestFor(issues = "TW-76056")
+  @Test
+  public void testByUserChecksAllRoots() throws Throwable {
+    SUser user1 = createUser("user1");
+    ProjectEx project = createProject("project1");
+    ProjectEx subproject = project.createProject("subproject", "subproject");
+    BuildTypeEx childBt = subproject.createBuildType("childBt");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRoot root = project.createVcsRoot("vcs", "vcs_external_id", "vcs");
+    childBt.addVcsRoot(root);
+    childBt.setCheckoutRules(root, new CheckoutRules(""));
+    childBt.persist();
+
+    VcsRootInstance rootInstance = childBt.getVcsRootInstanceForParent(root);
+    assert rootInstance != null;
+
+    SVcsModification mod = myFixture.addModification(modification().in(root).by("user1").version("12345"));
+
+    List<SVcsModificationOrChangeDescriptor> result;
+
+    result = myChangeFinder.getItems("username:user1,project:" + subproject.getExternalId()).myEntries;
+    assertEquals("Change from VcsRoot root in parent project should be visible.", 1, result.size());
+
+    result = myChangeFinder.getItems("user:(id:" + user1.getId() + "),project:" + subproject.getExternalId()).myEntries;
+    assertEquals("Change from VcsRoot root in parent projectshould be visible.", 1, result.size());
   }
 
   @NotNull
