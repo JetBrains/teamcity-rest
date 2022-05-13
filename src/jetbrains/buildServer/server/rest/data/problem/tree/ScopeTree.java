@@ -170,7 +170,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     List<Node<DATA, COUNTERS>> result = new ArrayList<>();
     result.add(node);
     for(Node<DATA, COUNTERS> child : immediateChildren) {
-      getSlicedOrderedSubtree(child, maxChildren, dataComparator, nodeComparator).forEach(result::add);
+      result.addAll(getSlicedOrderedSubtree(child, maxChildren, dataComparator, nodeComparator));
     }
 
     return result;

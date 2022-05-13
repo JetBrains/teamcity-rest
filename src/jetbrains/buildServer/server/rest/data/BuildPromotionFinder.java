@@ -29,7 +29,10 @@ import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
-import jetbrains.buildServer.server.rest.data.util.*;
+import jetbrains.buildServer.server.rest.data.util.AggregatingItemHolder;
+import jetbrains.buildServer.server.rest.data.util.CollectionItemHolder;
+import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.KeyDuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -1244,9 +1247,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final BuildPromotionEx build = (BuildPromotionEx)getItem(equivalent);
       final List<BuildPromotionEx> result = build.getStartedEquivalentPromotions(-1);
       final Set<BuildPromotion> convertedResult = new TreeSet<BuildPromotion>(BUILD_PROMOTIONS_COMPARATOR);
-      for (BuildPromotionEx item : result) {
-        convertedResult.add(item);
-      }
+      convertedResult.addAll(result);
       return getItemHolder(convertedResult);
     }
 
