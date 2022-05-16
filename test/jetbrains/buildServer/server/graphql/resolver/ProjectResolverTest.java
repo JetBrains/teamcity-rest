@@ -16,14 +16,20 @@
 
 package jetbrains.buildServer.server.graphql.resolver;
 
+import java.util.Collections;
+import java.util.Map;
 import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.server.graphql.model.connections.BuildTypesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArgumentsProviderImpl;
+import jetbrains.buildServer.server.graphql.model.connections.ProjectAgentPoolsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
+import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
+import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -70,5 +76,37 @@ public class ProjectResolverTest extends BaseResolverTest {
     assertEquals(2, buildTypes.getCount());
     assertExtensibleEdges(buildTypes.getEdges().getData(), new BuildType(myBuildType1), new BuildType(myBuildType2)
     );
+  }
+
+  @Test
+  public void agentPoolsUseLocalContext() throws Exception {
+    SProject realProject = createProject("p");
+    Project p = new Project(realProject);
+
+    AgentPool pool1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1");
+    myFixture.getAgentPoolManager().associateProjectsWithPool(pool1.getAgentPoolId(), Collections.singleton(realProject.getProjectId()));
+    myFixture.getAgentPoolManager().dissociateProjectsFromOtherPools(pool1.getAgentPoolId(), Collections.singleton(realProject.getProjectId()));
+
+    Mock cahcedPoolsMock = mock(Map.class);
+    cahcedPoolsMock.expects(once()).method("get").with(eq(pool1.getAgentPoolId())).will(returnValue(pool1));
+    myDataFetchingEnvironment.setLocalContext(cahcedPoolsMock.proxy());
+
+    ProjectAgentPoolsConnection connection = myResolver.agentPools(p, myDataFetchingEnvironment);
+
+    assertEquals("Project p is associated with exactly 1 pool", 1, connection.getEdges().getData().size());
+  }
+
+  @Test
+  public void agentPoolsWorkWithoutLocalContext() throws Exception {
+    SProject realProject = createProject("p");
+    Project p = new Project(realProject);
+
+    AgentPool pool1 = myFixture.getAgentPoolManager().createNewAgentPool("pool1");
+    myFixture.getAgentPoolManager().associateProjectsWithPool(pool1.getAgentPoolId(), Collections.singleton(realProject.getProjectId()));
+    myFixture.getAgentPoolManager().dissociateProjectsFromOtherPools(pool1.getAgentPoolId(), Collections.singleton(realProject.getProjectId()));
+
+    ProjectAgentPoolsConnection connection = myResolver.agentPools(p, myDataFetchingEnvironment);
+
+    assertEquals("Project p is associated with exactly 1 pool", 1, connection.getEdges().getData().size());
   }
 }

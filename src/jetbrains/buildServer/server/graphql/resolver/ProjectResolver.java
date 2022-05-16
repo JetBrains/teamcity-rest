@@ -17,8 +17,7 @@
 package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.schema.DataFetchingEnvironment;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.*;
 import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.ProjectPermissions;
 import jetbrains.buildServer.server.graphql.model.agentPool.ProjectAgentPool;
@@ -27,14 +26,10 @@ import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
 import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.server.graphql.util.ParentsFetcher;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
-import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.auth.Permissions;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -88,12 +83,21 @@ public class ProjectResolver extends ModelResolver<Project> {
   @NotNull
   public ProjectAgentPoolsConnection agentPools(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
     SProject self = source.getRealProject();
+    Map<Integer, AgentPool> prefetchedPools = getPrefetchedPools(env);
 
-    List<jetbrains.buildServer.serverSide.agentPools.AgentPool> pools = myAgentPoolManager.getAgentPoolsWithProject(self.getProjectId()).stream()
-                                              .map(myAgentPoolManager::findAgentPoolById)
-                                              .collect(Collectors.toList());
+    Set<Integer> poolIdsWithCurrentProject = myAgentPoolManager.getAgentPoolsWithProject(self.getProjectId());
+    List<jetbrains.buildServer.serverSide.agentPools.AgentPool> resultData = new ArrayList<>(poolIdsWithCurrentProject.size());
+    if(prefetchedPools != null) {
+      for(Integer poolId : poolIdsWithCurrentProject) {
+        resultData.add(prefetchedPools.get(poolId));
+      }
+    } else {
+      for(Integer poolId : poolIdsWithCurrentProject) {
+        resultData.add(myAgentPoolManager.findAgentPoolById(poolId));
+      }
+    }
 
-    return new ProjectAgentPoolsConnection(pools, myPoolFactory::produce);
+    return new ProjectAgentPoolsConnection(resultData, myPoolFactory::produce);
   }
 
   @Nullable
@@ -105,6 +109,21 @@ public class ProjectResolver extends ModelResolver<Project> {
 
     return new ProjectAgentPool(pool);
   }
+
+  @Nullable
+  private Map<Integer, AgentPool> getPrefetchedPools(@NotNull DataFetchingEnvironment env) {
+    Object context = env.getLocalContext();
+    if(context == null) {
+      return null;
+    }
+
+    try {
+      return (Map<Integer, AgentPool>) context;
+    } catch (ClassCastException e) {
+      return null;
+    }
+  }
+
 
   @Override
   public String getIdPrefix() {

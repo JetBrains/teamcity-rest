@@ -21,6 +21,8 @@ import graphql.kickstart.tools.GraphQLQueryResolver;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.Agent;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
@@ -41,6 +43,7 @@ import jetbrains.buildServer.server.rest.data.Finder;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
@@ -125,31 +128,44 @@ public class Query implements GraphQLQueryResolver {
   }
 
   @NotNull
-  public ProjectsConnection projects(@NotNull ProjectsFilter filter, @Nullable Integer first, @Nullable String after, @NotNull DataFetchingEnvironment env) {
-    List<SProject> projects;
+  public DataFetcherResult<ProjectsConnection> projects(@NotNull ProjectsFilter filter, @Nullable Integer first, @Nullable String after, @NotNull DataFetchingEnvironment env) {
+    DataFetcherResult.Builder<ProjectsConnection> result = DataFetcherResult.newResult();
+
+    List<SProject> resultData;
     if(filter.getArchived() != null) {
       if(filter.getArchived()) {
-        projects = myProjectManager.getArchivedProjects();
+        resultData = myProjectManager.getArchivedProjects();
       } else {
-        projects = myProjectManager.getActiveProjects();
+        resultData = myProjectManager.getActiveProjects();
       }
     } else {
-      projects = myProjectManager.getProjects();
+      resultData = myProjectManager.getProjects();
     }
 
     if(filter.getVirtual() != null) {
       // need to create another list until Stream<ITEM> is not implemented in PagintatingConnection and ProjectConnection
       List<SProject> filteredResult = new ArrayList<>();
-      for(SProject project : projects) {
+      for(SProject project : resultData) {
         if(filter.getVirtual().equals(project.isVirtual())) {
           filteredResult.add(project);
         }
       }
 
-      return new ProjectsConnection(filteredResult, myPaginationArgumentsProvider.get(first, after, PaginationArgumentsProvider.FallbackBehaviour.RETURN_EVERYTHING));
+      resultData = filteredResult;
     }
 
-    return new ProjectsConnection(projects, myPaginationArgumentsProvider.get(first, after, PaginationArgumentsProvider.FallbackBehaviour.RETURN_EVERYTHING));
+    boolean shouldPrefetchPools = resultData.size() > TeamCityProperties.getInteger("teamcity.graphql.resolvers.query.agentPoolPrefetchThreshold", 10);
+    if(env.getSelectionSet().contains("edges/node/agentPools") && shouldPrefetchPools) {
+      Map<Integer, jetbrains.buildServer.serverSide.agentPools.AgentPool> poolIdToPool =
+        myAgentPoolManager.getAllAgentPoolsEx(true).stream()
+                          .collect(Collectors.toMap(pool -> pool.getAgentPoolId(), pool -> pool));
+
+      result.localContext(poolIdToPool);
+    }
+
+    result.data(new ProjectsConnection(resultData, myPaginationArgumentsProvider.get(first, after, PaginationArgumentsProvider.FallbackBehaviour.RETURN_EVERYTHING)));
+
+    return result.build();
   }
 
   @NotNull

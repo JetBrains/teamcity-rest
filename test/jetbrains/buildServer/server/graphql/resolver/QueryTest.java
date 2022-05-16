@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.graphql.resolver;
 
+import graphql.schema.DataFetchingFieldSelectionSet;
+import java.util.Map;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArgumentsProviderImpl;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
@@ -24,7 +26,9 @@ import jetbrains.buildServer.server.rest.data.Finder;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.SimpleParameter;
+import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
+import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -52,15 +56,15 @@ public class QueryTest extends BaseResolverTest {
 
   public void testProjectsVisibleOnlyDefault() {
     ProjectsFilter filter = new ProjectsFilter();
-    MockDataFetchingEnvironment mockDFE = new MockDataFetchingEnvironment();
+    Mock fieldSelectionSetMock = mock(DataFetchingFieldSelectionSet.class);
+    fieldSelectionSetMock.stubs().method("contains").with(eq("edges/node/agentPools")).will(returnValue(false));
+    myDataFetchingEnvironment.setSelectionSet((DataFetchingFieldSelectionSet) fieldSelectionSetMock.proxy());
 
     SProject virtual = createProject("virtualProject");
     virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
     SProject regular = createProject("regularProject");
 
-
-
-    ProjectsConnection result = myResolver.projects(filter, null, null, mockDFE);
+    ProjectsConnection result = myResolver.projects(filter, null, null, myDataFetchingEnvironment).getData();
 
     for(ProjectsConnection.ProjectsConnectionEdge edge : result.getEdges().getData()) {
       assertFalse("Only regular projects must be returned by default.", edge.getNode().getData().isVirtual());
@@ -70,14 +74,16 @@ public class QueryTest extends BaseResolverTest {
   public void testProjectsInvisibleWhenRequested() {
     ProjectsFilter filter = new ProjectsFilter();
     filter.setVirtual(true);
-    MockDataFetchingEnvironment mockDFE = new MockDataFetchingEnvironment();
 
     SProject virtual = createProject("virtualProject");
     virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
     SProject regular = createProject("regularProject");
 
+    Mock fieldSelectionSetMock = mock(DataFetchingFieldSelectionSet.class);
+    fieldSelectionSetMock.stubs().method("contains").with(eq("edges/node/agentPools")).will(returnValue(false));
+    myDataFetchingEnvironment.setSelectionSet((DataFetchingFieldSelectionSet) fieldSelectionSetMock.proxy());
 
-    ProjectsConnection result = myResolver.projects(filter, null, null, mockDFE);
+    ProjectsConnection result = myResolver.projects(filter, null, null, myDataFetchingEnvironment).getData();
 
     for(ProjectsConnection.ProjectsConnectionEdge edge : result.getEdges().getData()) {
       assertTrue("Only virtual projects must be returned when requested.", edge.getNode().getData().isVirtual());
@@ -87,14 +93,17 @@ public class QueryTest extends BaseResolverTest {
   public void testProjectsAnyVisibilityWhenRequested() {
     ProjectsFilter filter = new ProjectsFilter();
     filter.setVirtual(null);
-    MockDataFetchingEnvironment mockDFE = new MockDataFetchingEnvironment();
+
+    Mock fieldSelectionSetMock = mock(DataFetchingFieldSelectionSet.class);
+    fieldSelectionSetMock.stubs().method("contains").with(eq("edges/node/agentPools")).will(returnValue(false));
+    myDataFetchingEnvironment.setSelectionSet((DataFetchingFieldSelectionSet) fieldSelectionSetMock.proxy());
 
     SProject virtual = createProject("virtualProject");
     virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
     SProject regular = createProject("regularProject");
 
 
-    ProjectsConnection result = myResolver.projects(filter, null, null, mockDFE);
+    ProjectsConnection result = myResolver.projects(filter, null, null, myDataFetchingEnvironment).getData();
 
     boolean seenVirtual = false;
     boolean seenRegular = false;
@@ -108,5 +117,39 @@ public class QueryTest extends BaseResolverTest {
 
     assertTrue("Virtual projects must be returned when visibility filter is not set.", seenVirtual);
     assertTrue("Regular projects must be returned when visibility filter is not set.", seenRegular);
+  }
+
+  public void projectsPutAgentPoolsIntoLocalContext() {
+    ProjectsFilter filter = new ProjectsFilter();
+
+    Mock fieldSelectionSetMock = mock(DataFetchingFieldSelectionSet.class);
+    fieldSelectionSetMock.stubs().method("contains").with(eq("edges/node/agentPools")).will(returnValue(true));
+    myDataFetchingEnvironment.setSelectionSet((DataFetchingFieldSelectionSet) fieldSelectionSetMock.proxy());
+
+    // always prefetch
+    setInternalProperty("teamcity.graphql.resolvers.query.agentPoolPrefetchThreshold", 0);
+
+    Object context = myResolver.projects(filter, null, null, myDataFetchingEnvironment).getLocalContext();
+
+    assertNotNull("Agent pools must be prefetched when number of queried projects is above threashold.", context);
+    assertEquals("Prefetched data must be a map with all pools",
+      myFixture.getAgentPoolManager().getNumberOfAgentPools(),
+      ((Map<Integer, AgentPool>) context).size()
+    );
+  }
+
+  public void projectsDoesNotPutAgentPoolsIntoLocalContext() {
+    ProjectsFilter filter = new ProjectsFilter();
+
+    Mock fieldSelectionSetMock = mock(DataFetchingFieldSelectionSet.class);
+    fieldSelectionSetMock.stubs().method("contains").with(eq("edges/node/agentPools")).will(returnValue(true));
+    myDataFetchingEnvironment.setSelectionSet((DataFetchingFieldSelectionSet) fieldSelectionSetMock.proxy());
+
+    // very large threshold, don't prefetch pools
+    setInternalProperty("teamcity.graphql.resolvers.query.agentPoolPrefetchThreshold", 100000);
+
+    Object context = myResolver.projects(filter, null, null, myDataFetchingEnvironment).getLocalContext();
+
+    assertNull("Agent pools must not be prefetched when number of queried projects is below threshold.", context);
   }
 }
