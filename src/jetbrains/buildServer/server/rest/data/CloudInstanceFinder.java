@@ -25,14 +25,12 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.CloudImage;
 import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.clouds.InstanceStatus;
-import jetbrains.buildServer.clouds.server.CloudInstancesProvider;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
-import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
@@ -108,7 +106,7 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
         filter((value, item) -> value.id.equals(item.getInstance().getInstanceId()) && value.imageId.equals(item.getCloudImageId())
                                 && Util.resolveNull(myCloudUtil.getProfile(item.getInstance().getImage()), p -> value.profileId.equals(p.getProfileId()), false)).
         toItems(dimension -> Util.resolveNull(myCloudUtil.getInstance(dimension.profileId, dimension.imageId, dimension.id),
-                                              i -> Collections.singletonList(new CloudInstanceData(i, myServiceLocator)), Collections.emptyList()));
+                                              i -> Collections.singletonList(new CloudInstanceData(i, dimension.profileId, myServiceLocator)), Collections.emptyList()));
 
       dimensionValueCondition(ERROR).description("instance error message").valueForDefaultFilter(instance -> instance.getError());
       dimensionValueCondition(NETWORK_ADDRESS).description("instance network address").valueForDefaultFilter(instance -> instance.getInstance().getNetworkIdentity());
@@ -133,8 +131,9 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
       dimensionWithFinder(IMAGE, () -> myServiceLocator.getSingletonService(CloudImageFinder.class), "images of the instances").
         valueForDefaultFilter(item -> Collections.singleton(item.getInstance().getImage())).
         toItems(images -> images.stream()
-                                .flatMap(image -> image.getInstances().stream())
-                                .map(instance -> new CloudInstanceData(instance, myServiceLocator))
+                                .flatMap(image -> image.getInstances().stream()
+                                                       .map(instance -> new CloudInstanceData(instance, image.getProfileId(), myServiceLocator))
+                                )
                                 .collect(Collectors.toList()));
 
       dimensionWithFinder(PROFILE, () -> myServiceLocator.getSingletonService(CloudProfileFinder.class), "profiles of the instances").
@@ -148,7 +147,7 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
         toItems(agents -> agents.stream()
                                 .map(agent -> myCloudManager.findInstanceByAgent(agent))
                                 .filter(Objects::nonNull)
-                                .map(pair -> new CloudInstanceData(pair.getSecond(), myServiceLocator))
+                                .map(pair -> new CloudInstanceData(pair.getSecond(), pair.getFirst().getProfileId(), myServiceLocator))
                                 .collect(Collectors.toList()));
 
       multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> {

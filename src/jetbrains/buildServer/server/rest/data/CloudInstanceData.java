@@ -33,12 +33,16 @@ import org.jetbrains.annotations.Nullable;
  * Date: 21/08/2019
  */
 public class CloudInstanceData {
+  @NotNull
+  private final CloudInstance myInstance;
+  @NotNull
+  private final ServiceLocator myServiceLocator;
+  @Nullable
+  private String myCloudProfileId;
 
-  @NotNull private final CloudInstance myInstance;
-  @NotNull private final ServiceLocator myServiceLocator;
-
-  public CloudInstanceData(@NotNull final CloudInstance instance, @NotNull final ServiceLocator serviceLocator) {
+  public CloudInstanceData(@NotNull final CloudInstance instance, @Nullable String cloudProfileId, @NotNull final ServiceLocator serviceLocator) {
     myInstance = instance;
+    myCloudProfileId = cloudProfileId;
     myServiceLocator = serviceLocator;
   }
 
@@ -62,11 +66,20 @@ public class CloudInstanceData {
 
   @Nullable
   public SBuildAgent getAgent() {
-    CloudImage image = myInstance.getImage();
-    String profileId = myServiceLocator.getSingletonService(CloudInstanceFinder.class).myCloudUtil.getProfileId(image);
+    String profileId = getCloudProfileId();
+
     if (profileId == null) return null;
     Collection<SBuildAgent> agents = myServiceLocator.getSingletonService(CloudManager.class).findAgentByInstance(profileId, myInstance.getInstanceId());
     return agents.size() > 0 ? agents.iterator().next() : null;
+  }
+
+  @Nullable
+  private String getCloudProfileId() {
+    if(myCloudProfileId == null) {
+      myCloudProfileId = myServiceLocator.getSingletonService(CloudInstanceFinder.class).myCloudUtil.getProfileId(myInstance.getImage());
+    }
+
+    return myCloudProfileId;
   }
 
   /**

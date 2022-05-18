@@ -114,11 +114,15 @@ public class CloudImage {
 
   @XmlElement(name = "instances")
   public CloudInstances getInstances() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("instances", false, true),
-                                          () -> new CloudInstances(
-                                            CachingValue.simple(() -> myCloudImage.getInstances().stream().map(i -> new CloudInstanceData(i, myBeanContext.getServiceLocator())).collect(Collectors.toList())),
-                                            new PagerData(CloudRequest.getInstancesHref(myCloudImage, myBeanContext.getSingletonService(CloudUtil.class))),
-                                            myFields.getNestedField("instances", Fields.NONE, Fields.LONG), myBeanContext));
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("instances", false, true),
+      () -> new CloudInstances(
+        CachingValue.simple(() -> myCloudImage.getInstances().stream()
+                                              .map(i -> new CloudInstanceData(i, myCloudImage.getProfileId(), myBeanContext.getServiceLocator()))
+                                              .collect(Collectors.toList())),
+        new PagerData(CloudRequest.getInstancesHref(myCloudImage, myBeanContext.getSingletonService(CloudUtil.class))),
+        myFields.getNestedField("instances", Fields.NONE, Fields.LONG), myBeanContext)
+    );
   }
 
   @Nullable
