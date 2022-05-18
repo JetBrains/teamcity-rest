@@ -16,7 +16,10 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import com.intellij.openapi.diagnostic.Logger;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
@@ -44,11 +47,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 /**
  * @author Yegor.Yarko
  *         Date: 23.03.13
@@ -62,7 +60,6 @@ import java.util.stream.Stream;
     }
 )
 public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
-  private static final Logger LOG = Logger.getInstance(VcsRootInstanceFinder.class.getName());
   @LocatorDimension(value = "vcsRoot", format = LocatorName.VCS_ROOT, notes = "VCS root locator.")
   public static final String VCS_ROOT_DIMENSION = "vcsRoot";
   public static final String REPOSITORY_ID_STRING = "repositoryIdString";
@@ -189,7 +186,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     final MultiCheckerFilter<VcsRootInstance> result = new MultiCheckerFilter<VcsRootInstance>();
 
-    result.add(item -> hasPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, item));
+    result.add(item -> canViewSettingsFor(item.getParent()));
 
     final String type = locator.getSingleDimensionValue(TYPE);
     if (type != null) {
@@ -280,7 +277,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     final Boolean commitHookMode = locator.getSingleDimensionValueAsBoolean(COMMIT_HOOK_MODE);
     if (commitHookMode != null){
-      result.add(item -> FilterUtil.isIncludedByBooleanFilter(commitHookMode, !((VcsRootInstanceEx)item).isPollingMode()));
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(commitHookMode, !item.isPollingMode()));
     }
 
     TimeCondition.FilterAndLimitingDate<VcsRootInstance> finishFiltering =
@@ -405,11 +402,14 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       filterOutUnrelatedWithoutParameterResolution(locator, vcsRoots);
 
       for (SVcsRoot vcsRoot : vcsRoots) {
+        if (!canViewSettingsFor(vcsRoot)) {
+          continue;
+        }
+
         if (versionedSettingsUsagesOnly == null || !versionedSettingsUsagesOnly) {
           vcsRoot.getUsagesInConfigurations().stream()
                  .filter(filter)
                  .map(buildType -> buildType.getVcsRootInstanceForParent(vcsRoot))
-                 .filter(rootInstance -> ( (rootInstance != null) && hasPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, rootInstance))) //minor performance optimization not to return roots which will be filtered in the filter
                  .forEach(result::add);
         }
 
@@ -531,7 +531,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     for (SProject project : projectsInRoot) {
       VcsRootInstance instance = myVersionedSettingsManager.getVersionedSettingsVcsRootInstance(project);
       if (instance != null) {
-        if (hasPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, instance)) { //minor performance optimization not to return roots which will be filtered in the filter
+        if (canViewSettingsFor(instance.getParent())) { //minor performance optimization not to return roots which will be filtered in the filter
           result.add(instance);
         }
       }
@@ -539,9 +539,9 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     return result;
   }
 
-  private boolean hasPermission(@NotNull final Permission permission, @NotNull final VcsRootInstance rootInstance) {
+  private boolean canViewSettingsFor(@NotNull SVcsRoot parentVcsRoot) {
     try {
-      myVcsRootFinder.checkPermission(permission, rootInstance.getParent());
+      myVcsRootFinder.checkPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, parentVcsRoot);
       return true;
     } catch (AuthorizationFailedException e) {
       return false;
