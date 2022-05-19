@@ -28,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ValueCondition {
   @Nullable private final String myParameterValue;
+  @Nullable private String myParameterValueLowerCase;
   @NotNull private final RequirementType myRequirementType;
   @Nullable private Boolean myIgnoreCase;
 
@@ -69,7 +70,7 @@ public class ValueCondition {
           //special case as regexp cannot be lowercased
           return myRequirementType.matchValues(myParameterValue, toLower(value));
         }
-        return myRequirementType.matchValues(toLower(myParameterValue), toLower(value));
+        return myRequirementType.matchValues(getParameterLowerCaseValue(), toLower(value));
       } else {
         return myRequirementType.matchValues(myParameterValue, value);
       }
@@ -83,6 +84,16 @@ public class ValueCondition {
   @Contract("!null -> !null; null -> null")
   private String toLower(@Nullable final String value) {
     return value == null ? null : value.toLowerCase();
+  }
+
+  @Nullable
+  private String getParameterLowerCaseValue() {
+    if(myParameterValueLowerCase != null) {
+      return myParameterValueLowerCase;
+    }
+
+    myParameterValueLowerCase = toLower(myParameterValue);
+    return myParameterValueLowerCase;
   }
 
   @Nullable
