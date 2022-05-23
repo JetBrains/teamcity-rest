@@ -20,12 +20,13 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.server.Server;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.TeamCityNode;
 
 @XmlRootElement(name = "nodes")
-@XmlType(propOrder = {"id", "url", "online", "main", "current"})
+@XmlType(propOrder = {"id", "url", "online", "role", "current"})
 @ModelDescription(
   value = "Represents a TeamCity node.",
   externalArticleLink = "https://www.jetbrains.com/help/teamcity/multinode-setup.html",
@@ -34,14 +35,14 @@ import jetbrains.buildServer.serverSide.TeamCityNode;
 public class Node {
   @XmlAttribute public String id;
   @XmlAttribute public String url;
-  @XmlAttribute public Boolean main;
+  @XmlAttribute public String role;
   @XmlAttribute public Boolean online;
   @XmlAttribute public Boolean current;
 
   public Node(TeamCityNode node, final Fields fields) {
     url = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("url"), node.getUrl());
     id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), node.getId());
-    main = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("mainNode"), node.isMainNode());
+    role = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("role"), Server.nodeRole(node));
     online = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("online"), node.isOnline());
     current = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("current"), node.isCurrent());
   }
@@ -54,8 +55,8 @@ public class Node {
     return url;
   }
 
-  public Boolean getMain() {
-    return main;
+  public String getRole() {
+    return role;
   }
 
   public Boolean getOnline() {

@@ -45,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "server")
 @XmlType(name = "server", propOrder = {"version", "versionMajor", "versionMinor", "startTime", "currentTime", "buildNumber", "buildDate", "internalId", "role", "webUrl",
-  "projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools", "investigations", "mutes", "artifactsUrl"})
+  "projects", "vcsRoots", "builds", "users", "userGroups", "agents", "buildQueue", "agentPools", "investigations", "mutes", "artifactsUrl", "nodes"})
 @ModelDescription("Represents various details of this server including the installation version.")
 public class Server {
   private SBuildServer myServer;
@@ -116,15 +116,15 @@ public class Server {
   public String getRole() {
     TeamCityNode currentNode = myBeanContext.getSingletonService(TeamCityNodes.class).getCurrentNode();
     if (!currentNode.isMainNode()) {
-      return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("role"), serverRole(currentNode));
+      return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("role"), nodeRole(currentNode));
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("role"), serverRole(currentNode));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("role"), nodeRole(currentNode));
   }
 
   @NotNull
-  private static String serverRole(@NotNull TeamCityNode node) {
+  public static String nodeRole(@NotNull TeamCityNode node) {
     if (node.isMainNode()) {
-      return "main_server";
+      return "main_node";
     }
 
     return "secondary_node";
@@ -190,6 +190,11 @@ public class Server {
     return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("mutes"), new Href(MuteRequest.getHref(), myApiUrlBuilder));
   }
 
+  @XmlElement
+  public Href getNodes() {
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("nodes"), new Href(NodesRequest.getHref(), myApiUrlBuilder));
+  }
+
   @Nullable
   public static String getFieldValue(@Nullable final String field, @NotNull final ServiceLocator serviceLocator) {
     // Note: "build", "majorVersion" and "minorVersion" for backward compatibility.
@@ -214,12 +219,12 @@ public class Server {
       serviceLocator.getSingletonService(DataProvider.class).checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
       return serviceLocator.getSingletonService(DataProvider.class).getBean(ServerPaths.class).getDataDirectory().getAbsolutePath();
     } else if ("role".equals(field)) {
-      return serverRole(serviceLocator.getSingletonService(TeamCityNodes.class).getCurrentNode());
+      return nodeRole(serviceLocator.getSingletonService(TeamCityNodes.class).getCurrentNode());
     } else if ("webUrl".equals(field) || "url".equals(field)) {
       return serviceLocator.getSingletonService(RootUrlHolder.class).getRootUrl();
     } else if ("artifactsUrl".equals(field)) {
       return serviceLocator.getSingletonService(ServerSettings.class).getArtifactsRootUrl();
     }
-    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: version, versionMajor, versionMinor, buildNumber, startTime, currentTime, internalId.");
+    throw new NotFoundException("Field '" + field + "' is not supported. Supported are: version, versionMajor, versionMinor, buildNumber, startTime, currentTime, internalId, role, artifactsUrl.");
   }
 }
