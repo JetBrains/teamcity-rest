@@ -40,7 +40,7 @@ public class Nodes {
   public Nodes() {
   }
 
-  public Nodes(final List<TeamCityNode> nodes, @NotNull final Fields fields) {
+  public Nodes(@NotNull final List<TeamCityNode> nodes, @NotNull final Fields fields) {
     this.nodes = ValueWithDefault.decideDefault(fields.isIncluded("node", true), () ->
       nodes.stream().map(toNode(fields)).collect(toList())
     );

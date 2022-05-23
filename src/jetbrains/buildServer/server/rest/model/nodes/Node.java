@@ -39,6 +39,9 @@ public class Node {
   @XmlAttribute public Boolean online;
   @XmlAttribute public Boolean current;
 
+  public Node() {
+  }
+
   public Node(TeamCityNode node, final Fields fields) {
     url = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("url"), node.getUrl());
     id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), node.getId());
