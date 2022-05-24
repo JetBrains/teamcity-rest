@@ -20,11 +20,14 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.server.Server;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.TeamCityNode;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import org.jetbrains.annotations.NotNull;
 
 @XmlRootElement(name = "node")
 @XmlType(propOrder = {"id", "url", "online", "role", "current", "enabledResponsibilities", "effectiveResponsibilities"})
@@ -45,25 +48,32 @@ public class Node {
   public Node() {
   }
 
-  public Node(TeamCityNode node, final Fields fields) {
-    url = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("url"), node.getUrl());
+  public Node(TeamCityNode node, final Fields fields, @NotNull final PermissionChecker permissionChecker) {
+    boolean canViewSettings = permissionChecker.hasGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
+
+    url = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("url"), canViewSettings ? node.getUrl() : null);
     id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), node.getId());
     role = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("role"), Server.nodeRole(node));
     online = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("online"), node.isOnline());
     current = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("current"), node.isCurrent());
 
-    enabledResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("enabledResponsibilities", false), new ValueWithDefault.Value<EnabledResponsibilities>() {
-      public EnabledResponsibilities get() {
-        final Fields nestedFields = fields.getNestedField("enabledResponsibilities", Fields.NONE, Fields.LONG);
-        return new EnabledResponsibilities(node, nestedFields);
-      }
-    });
+    if (canViewSettings) {
+      enabledResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("enabledResponsibilities", false), new ValueWithDefault.Value<EnabledResponsibilities>() {
+        public EnabledResponsibilities get() {
+          final Fields nestedFields = fields.getNestedField("enabledResponsibilities", Fields.NONE, Fields.LONG);
+          return new EnabledResponsibilities(node, nestedFields);
+        }
+      });
 
-    effectiveResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("effectiveResponsibilities", false), new ValueWithDefault.Value<EffectiveResponsibilities>() {
-      public EffectiveResponsibilities get() {
-        final Fields nestedFields = fields.getNestedField("effectiveResponsibilities", Fields.NONE, Fields.LONG);
-        return new EffectiveResponsibilities(node, nestedFields);
-      }
-    });
+      effectiveResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("effectiveResponsibilities", false), new ValueWithDefault.Value<EffectiveResponsibilities>() {
+        public EffectiveResponsibilities get() {
+          final Fields nestedFields = fields.getNestedField("effectiveResponsibilities", Fields.NONE, Fields.LONG);
+          return new EffectiveResponsibilities(node, nestedFields);
+        }
+      });
+    } else {
+      enabledResponsibilities = null;
+      effectiveResponsibilities = null;
+    }
   }
 }

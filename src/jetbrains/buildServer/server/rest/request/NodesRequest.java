@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import java.util.function.Supplier;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
@@ -27,14 +28,17 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.nodes.Node;
 import jetbrains.buildServer.server.rest.model.nodes.Nodes;
+import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.TeamCityNode;
 import jetbrains.buildServer.serverSide.TeamCityNodes;
+import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import org.jetbrains.annotations.NotNull;
 
 @Path(NodesRequest.API_NODES_URL)
 @Api("Node")
 public class NodesRequest {
-  public static final String API_NODES_URL = Constants.API_URL + "/nodes";
+  public static final String NODES_PATH = "/nodes";
+  public static final String API_NODES_URL = Constants.API_URL + NODES_PATH;
 
   @Context private ServiceLocator myServiceLocator;
   @Context private ApiUrlBuilder myApiUrlBuilder;
@@ -48,8 +52,10 @@ public class NodesRequest {
   @GET
   @Produces({"application/xml", "application/json"})
   public Nodes nodes(@QueryParam("fields") String fields) {
-    TeamCityNodes teamCityNodes = myServiceLocator.getSingletonService(TeamCityNodes.class);
-    return new Nodes(teamCityNodes.getNodes(), new Fields(fields));
+    return executeSafely(() -> {
+      TeamCityNodes teamCityNodes = myServiceLocator.getSingletonService(TeamCityNodes.class);
+      return new Nodes(teamCityNodes.getNodes(), new Fields(fields), myPermissionChecker);
+    });
   }
 
   @GET
@@ -57,19 +63,36 @@ public class NodesRequest {
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value = "Get a node with specified id.", nickname = "getNode")
   public Node getNode(@PathParam("nodeId") final String nodeId, @QueryParam("fields") String fields) {
-    TeamCityNodes teamCityNodes = myServiceLocator.getSingletonService(TeamCityNodes.class);
-    TeamCityNode found = null;
-    for (TeamCityNode n: teamCityNodes.getNodes()) {
-      if (n.getId().equals(nodeId)) {
-        found = n;
-        break;
+    return executeSafely(() -> {
+      TeamCityNodes teamCityNodes = myServiceLocator.getSingletonService(TeamCityNodes.class);
+      TeamCityNode found = null;
+      for (TeamCityNode n: teamCityNodes.getNodes()) {
+        if (n.getId().equals(nodeId)) {
+          found = n;
+          break;
+        }
       }
+
+      if (found == null) {
+        throw new NotFoundException("Node with id '" + nodeId + "' does not exist.");
+      }
+
+      return new Node(found, new Fields(fields), myPermissionChecker);
+    });
+  }
+
+  private <T> T executeSafely(@NotNull Supplier<T> action) {
+    SecurityContextEx securityContext = myServiceLocator.getSingletonService(SecurityContextEx.class);
+    boolean notAuthorizedRequest = securityContext.isSystemAccess();
+    if (notAuthorizedRequest) {
+      return securityContext.runAsUnchecked(SecurityContextImpl.NO_PERMISSIONS, new SecurityContextEx.RunAsActionWithResult<T>() {
+        @Override
+        public T run() throws Throwable {
+          return action.get();
+        }
+      });
     }
 
-    if (found == null) {
-      throw new NotFoundException("Node with id '" + nodeId + "' does not exist.");
-    }
-
-    return new Node(found, new Fields(fields));
+    return action.get();
   }
 }

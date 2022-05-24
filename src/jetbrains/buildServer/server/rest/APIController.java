@@ -53,10 +53,7 @@ import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig;
 import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
 import jetbrains.buildServer.server.rest.jersey.WadlGenerator;
-import jetbrains.buildServer.server.rest.request.BuildRequest;
-import jetbrains.buildServer.server.rest.request.Constants;
-import jetbrains.buildServer.server.rest.request.RootApiRequest;
-import jetbrains.buildServer.server.rest.request.ServerRequest;
+import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildServerAdapter;
 import jetbrains.buildServer.serverSide.SBuildServer;
@@ -105,6 +102,7 @@ public class APIController extends BaseController implements ServletContextAware
     Constants.EXTERNAL_APPLICATION_WADL_NAME,
     Constants.EXTERNAL_APPLICATION_WADL_NAME + "/xsd*.xsd",
     "/swagger**",
+    NodesRequest.NODES_PATH
   };
   private final JerseyWebComponent myWebComponent;
   private final AtomicBoolean myWebComponentInitialized = new AtomicBoolean(false);

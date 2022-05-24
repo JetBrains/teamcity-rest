@@ -22,6 +22,7 @@ import java.util.function.Function;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.TeamCityNode;
@@ -40,15 +41,15 @@ public class Nodes {
   public Nodes() {
   }
 
-  public Nodes(@NotNull final List<TeamCityNode> nodes, @NotNull final Fields fields) {
+  public Nodes(@NotNull final List<TeamCityNode> nodes, @NotNull final Fields fields, @NotNull PermissionChecker permissionChecker) {
     this.nodes = ValueWithDefault.decideDefault(fields.isIncluded("node", true), () ->
-      nodes.stream().map(toNode(fields)).collect(toList())
+      nodes.stream().map(toNode(fields, permissionChecker)).collect(toList())
     );
     this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), Iterables.size(nodes));
   }
 
   @NotNull
-  private Function<TeamCityNode, Node> toNode(final @NotNull Fields fields) {
-    return n -> new Node(n, fields.getNestedField("node", Fields.SHORT, Fields.LONG));
+  private Function<TeamCityNode, Node> toNode(@NotNull Fields fields, @NotNull PermissionChecker permissionChecker) {
+    return n -> new Node(n, fields.getNestedField("node", Fields.SHORT, Fields.LONG), permissionChecker);
   }
 }
