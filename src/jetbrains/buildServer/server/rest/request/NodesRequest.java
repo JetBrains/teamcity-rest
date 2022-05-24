@@ -17,16 +17,17 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import io.swagger.annotations.ApiOperation;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.nodes.Node;
 import jetbrains.buildServer.server.rest.model.nodes.Nodes;
+import jetbrains.buildServer.serverSide.TeamCityNode;
 import jetbrains.buildServer.serverSide.TeamCityNodes;
 import org.jetbrains.annotations.NotNull;
 
@@ -49,5 +50,26 @@ public class NodesRequest {
   public Nodes nodes(@QueryParam("fields") String fields) {
     TeamCityNodes teamCityNodes = myServiceLocator.getSingletonService(TeamCityNodes.class);
     return new Nodes(teamCityNodes.getNodes(), new Fields(fields));
+  }
+
+  @GET
+  @Path("/{nodeId}")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value = "Get a node with specified id.", nickname = "getNode")
+  public Node getNode(@PathParam("nodeId") final String nodeId, @QueryParam("fields") String fields) {
+    TeamCityNodes teamCityNodes = myServiceLocator.getSingletonService(TeamCityNodes.class);
+    TeamCityNode found = null;
+    for (TeamCityNode n: teamCityNodes.getNodes()) {
+      if (n.getId().equals(nodeId)) {
+        found = n;
+        break;
+      }
+    }
+
+    if (found == null) {
+      throw new NotFoundException("Node with id '" + nodeId + "' does not exist.");
+    }
+
+    return new Node(found, new Fields(fields));
   }
 }
