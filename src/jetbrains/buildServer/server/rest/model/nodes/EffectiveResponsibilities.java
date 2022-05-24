@@ -34,7 +34,7 @@ import static java.util.stream.Collectors.toList;
 @XmlRootElement(name = "effectiveResponsibilities")
 @ModelDescription(
   value = "Represents a set of effective responsibilities of a TeamCity node. " +
-          "A responsibility becomes effective once it is enabled in the server configuration and a responsible node updates its state.",
+          "A responsibility becomes effective once it is enabled in the server configuration and a responsible node detects this change and updates its state.",
   externalArticleLink = "https://www.jetbrains.com/help/teamcity/multinode-setup.html",
   externalArticleName = "Multi-node setup"
 )
