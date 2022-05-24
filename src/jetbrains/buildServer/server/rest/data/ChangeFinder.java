@@ -20,10 +20,7 @@ import java.util.function.Function;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
-import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
-import jetbrains.buildServer.server.rest.data.util.KeyDuplicateChecker;
-import jetbrains.buildServer.server.rest.data.util.UnwrappingFilter;
-import jetbrains.buildServer.server.rest.data.util.WrappingItemHolder;
+import jetbrains.buildServer.server.rest.data.util.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -414,6 +411,13 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
       }
     }
 
+    // See FinderImp.getItemsByLocator(..) and this.createDuplicateChecker(..) for implementation details.
+    boolean deduplicate = locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_UNIQUE, locator.isAnyPresent(DIMENSION_ITEM));
+    if (deduplicate) {
+      final KeyDuplicateChecker<SVcsModification, String> checker = new KeyDuplicateChecker<>(m -> m.getVersion());
+      result.add(item -> !checker.checkDuplicateAndRemember(item));
+    }
+
     // include by build should be already handled by this time on the upper level
 
     if (TeamCityProperties.getBoolean("rest.request.changes.check.enforceChangeViewPermission")) {
@@ -646,12 +650,16 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   @Nullable
   @Override
   public DuplicateChecker<SVcsModificationOrChangeDescriptor> createDuplicateChecker() {
-    // See Collection<SVcsModification> getDuplicates(@NotNull final SVcsModification modification, final boolean byDisplayVersion);
+    // TLDR: Deduplication must be done last at the filtering stage, can't be done here.
     //
-    // There is an option to just use item.getDuplicates(), but all it does is retrieves all modifications with the same version.
-    // In reality, we don't need duplicates themselves, but need to know if given change is a duplicate of some change we've seen before.
-
-    return new KeyDuplicateChecker<SVcsModificationOrChangeDescriptor, String>(modificationOrDescriptor -> modificationOrDescriptor.getSVcsModification().getVersion());
+    // We must report that duplicate checks are not supported via duplicateChecker as it is applied *before* filtering, which leads to some
+    // modificaionts disapperaing form result set.
+    // I.e. we have two modifications tied to project A and project B. Request is recieved for modifications in project A,
+    // and modifications come to duplicate checker in order B, A then following will happen:
+    // 1. mod B is passed further to filters and filtered out as it's in the wrong project.
+    // 2. mod A is not passed further as we've already seen mod with the same version.
+    // 3. empty result is returned even though there is a mod which satisfies all the filters.
+    return null;
   }
 
   @NotNull

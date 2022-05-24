@@ -793,6 +793,30 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
   }
 
   @Test
+  public void testDuplicatesOverrideEachOther() {
+    final BuildTypeEx buildConf1 = createProject("project1").createBuildType("buildConf1");
+    final BuildTypeEx buildConf2 = createProject("project2").createBuildType("buildConf2");
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf1);
+    SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", buildConf2);
+    VcsRootInstance root1 = buildConf1.getVcsRootInstanceForParent(parentRoot1);
+    VcsRootInstance root2 = buildConf2.getVcsRootInstanceForParent(parentRoot2);
+    assert root1 != null && root2 != null;
+
+    SUser user1 = createUser("user1");
+    final String version = "12345";
+    SVcsModification m1 = myFixture.addModification(modification().in(root1).by("user1").version(version));
+    SVcsModification m2 = myFixture.addModification(modification().in(root2).by("user1").version(version));
+
+    // Include user dimension to the locator to ensure that we filter by project and not retrieve items by project.
+    // Check both projects to ensure that we find what we want for any order we obtain modifications
+    assertEquals(1, myChangeFinder.getItems("unique:true,user:user1,project:project1").myEntries.size());
+    assertEquals(1, myChangeFinder.getItems("unique:true,user:user1,project:project2").myEntries.size());
+  }
+
+  @Test
   public void testPermissionsToViewCommit() throws Throwable {
     myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
 
