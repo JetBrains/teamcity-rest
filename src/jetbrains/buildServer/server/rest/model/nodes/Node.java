@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.nodes;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -25,8 +26,8 @@ import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.TeamCityNode;
 
-@XmlRootElement(name = "nodes")
-@XmlType(propOrder = {"id", "url", "online", "role", "current"})
+@XmlRootElement(name = "node")
+@XmlType(propOrder = {"id", "url", "online", "role", "current", "enabledResponsibilities", "effectiveResponsibilities"})
 @ModelDescription(
   value = "Represents a TeamCity node.",
   externalArticleLink = "https://www.jetbrains.com/help/teamcity/multinode-setup.html",
@@ -38,6 +39,8 @@ public class Node {
   @XmlAttribute public String role;
   @XmlAttribute public Boolean online;
   @XmlAttribute public Boolean current;
+  @XmlElement public EnabledResponsibilities enabledResponsibilities;
+  @XmlElement public EffectiveResponsibilities effectiveResponsibilities;
 
   public Node() {
   }
@@ -48,25 +51,19 @@ public class Node {
     role = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("role"), Server.nodeRole(node));
     online = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("online"), node.isOnline());
     current = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("current"), node.isCurrent());
-  }
 
-  public String getId() {
-    return id;
-  }
+    enabledResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("enabledResponsibilities", false), new ValueWithDefault.Value<EnabledResponsibilities>() {
+      public EnabledResponsibilities get() {
+        final Fields nestedFields = fields.getNestedField("enabledResponsibilities", Fields.NONE, Fields.LONG);
+        return new EnabledResponsibilities(node, nestedFields);
+      }
+    });
 
-  public String getUrl() {
-    return url;
-  }
-
-  public String getRole() {
-    return role;
-  }
-
-  public Boolean getOnline() {
-    return online;
-  }
-
-  public Boolean getCurrent() {
-    return current;
+    effectiveResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("effectiveResponsibilities", false), new ValueWithDefault.Value<EffectiveResponsibilities>() {
+      public EffectiveResponsibilities get() {
+        final Fields nestedFields = fields.getNestedField("effectiveResponsibilities", Fields.NONE, Fields.LONG);
+        return new EffectiveResponsibilities(node, nestedFields);
+      }
+    });
   }
 }
