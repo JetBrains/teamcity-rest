@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.model.nodes;
 
 import com.google.common.collect.Iterables;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -48,10 +49,11 @@ public class EnabledResponsibilities {
   }
 
   public EnabledResponsibilities(@NotNull final TeamCityNode node, @NotNull final Fields fields) {
+    Set<NodeResponsibility> enabledResponsibilities = node.getEnabledResponsibilities();
     this.responsibilities = ValueWithDefault.decideDefault(fields.isIncluded("responsibility", true), () ->
-      node.getEnabledResponsibilities().stream().map(toResponsibility(fields)).collect(toList())
+      enabledResponsibilities.stream().map(toResponsibility(fields)).collect(toList())
     );
-    this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), Iterables.size(responsibilities));
+    this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), Iterables.size(enabledResponsibilities));
   }
 
   @NotNull

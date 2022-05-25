@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.nodes.Node;
 import jetbrains.buildServer.server.rest.model.nodes.Nodes;
+import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.TeamCityNode;
 import jetbrains.buildServer.serverSide.TeamCityNodes;
@@ -94,5 +95,14 @@ public class NodesRequest {
     }
 
     return action.get();
+  }
+
+  @NotNull
+  public static NodesRequest createForTests(@NotNull final BeanContext beanContext) {
+    NodesRequest result = new NodesRequest();
+    result.myServiceLocator = beanContext.getServiceLocator();
+    result.myPermissionChecker = beanContext.getSingletonService(PermissionChecker.class);
+    result.myApiUrlBuilder = beanContext.getApiUrlBuilder();
+    return result;
   }
 }
