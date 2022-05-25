@@ -63,19 +63,42 @@ public class TypedFinderBuilder<ITEM> {
   private Supplier<DuplicateChecker<ITEM>> myDuplicateCheckerSupplier;
   private String myFinderName;
 
+  /**
+   * Locator dimension builder. Allows to specify how to filter and retrieve items by given dimension.
+   * @param <ITEM> items, produced by corresponding Finder
+   * @param <TYPE> dimension value type, integer, boolean, string, etc.
+   */
   public interface TypedFinderDimension<ITEM, TYPE> {
+    /**
+     * Specifies description of the dimension used in locator help, error messages and similar places.
+     */
     @NotNull
     TypedFinderDimension<ITEM, TYPE> description(@NotNull String description);
 
+    /**
+     * Marks dimension as hidden, excluding it from locator help response.
+     */
     @NotNull
     TypedFinderDimension<ITEM, TYPE> hidden();
 
+    /**
+     * Defines default value for the dimension, in case it's not present in the locator.
+     */
     @NotNull
     TypedFinderDimension<ITEM, TYPE> withDefault(@NotNull String value);
 
+    /**
+     * Defines filter for the items obtained from other dimesnions.
+     */
     @NotNull
     TypedFinderDimension<ITEM, TYPE> filter(@NotNull Filter<TYPE, ITEM> filter);
 
+    /**
+     * Defines a way to obtain items with given dimension value.
+     * Items returned via {@link ItemsFromDimension} should be filtered exactly as if they were filtered via {@link #filter(Filter)}.
+     * @param filteringMapper mapping function producing items given the dimension value.
+     *
+     */
     @NotNull
     TypedFinderDimension<ITEM, TYPE> toItems(@NotNull ItemsFromDimension<ITEM, TYPE> filteringMapper);
 
@@ -87,6 +110,10 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public interface TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> extends TypedFinderDimension<ITEM, TYPE> {
+    /**
+     * Provide a way to extract key from the given item, e.g. some field, which will be used for comparison via default filter.
+     * @param retriever key extracting mapper
+     */
     @NotNull
     TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> valueForDefaultFilter(@NotNull TypeFromItem<TYPE_FOR_FILTER, ITEM> retriever);
 
@@ -488,14 +515,30 @@ public class TypedFinderBuilder<ITEM> {
     myFinderName = finderName;
   }
 
-  public <TYPE> TypedFinderDimension<ITEM, TYPE> dimension(@NotNull final Dimension<TYPE> dimension,
-                                                           @NotNull final Type<TYPE> typeMapper) { //typeMapper: dimensionValue->typed object
+  /**
+   * Defines a dimension value mapper, String -> {@code TYPE}, making the dimension typed. <br/>
+   * Example: in case <em>sequentialNumber</em> dimension is an integer, following may be implemented:
+   * <pre>
+   * builder.dimension(
+   *   new Dimension&lt;Integer>("sequentialNumber"),
+   *   type(Integer::valueOf).description("Extract sequantial number assigned to this item.")
+   * ).defaultFilter(Integer::equals);
+   * </pre>
+   *
+   * @param dimension actual typed dimension definition
+   * @param typeMapper dimension value mapper function
+   * @param <TYPE> target type used in filters, etc.
+   */
+  public <TYPE> TypedFinderDimension<ITEM, TYPE> dimension(@NotNull final Dimension<TYPE> dimension, @NotNull final Type<TYPE> typeMapper) {
     if (myDimensions.containsKey(dimension.name)) throw new OperationException("Dimension with name '" + dimension.name + "' was already added");
     @NotNull TypedFinderDimensionImpl<TYPE> value = new TypedFinderDimensionImpl<>(dimension, typeMapper);
     myDimensions.put(dimension.name, value);
     return value;
   }
 
+  /**
+   * Define behaviour when single value is passed in the locator. Usually, it's assumed that single dimension value represents an item id.
+   */
   public void singleDimension(@NotNull final ItemsFromDimension<ITEM, String> singleDimensionHandler) {
     mySingleDimensionHandler = singleDimensionHandler;
   }
@@ -1061,7 +1104,7 @@ public class TypedFinderBuilder<ITEM> {
     @NotNull
     @Override
     public String getItemLocator(@NotNull final ITEM item) {
-    if (myLocatorProvider == null) throw new OperationException("Incorrect configuration of the typed finder: locator provider not set");
+      if (myLocatorProvider == null) throw new OperationException("Incorrect configuration of the typed finder: locator provider not set");
       return myLocatorProvider.getLocator(item);
     }
 
