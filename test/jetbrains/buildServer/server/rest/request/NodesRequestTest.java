@@ -35,13 +35,10 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import static org.assertj.core.api.BDDAssertions.then;
-
 @Test
 public class NodesRequestTest extends BaseFinderTest<TeamCityNode> {
   private NodesRequest myRequest;
   private final List<Heartbeat> myHeartbeats = new ArrayList<>();
-  private Heartbeat myMainHeartbeat;
 
   @Override
   @BeforeMethod
@@ -49,9 +46,10 @@ public class NodesRequestTest extends BaseFinderTest<TeamCityNode> {
     super.setUp();
     final BeanContext beanContext = BaseFinderTest.getBeanContext(myFixture);
     myRequest = NodesRequest.createForTests(beanContext);
-    myMainHeartbeat = myFixture.getSingletonService(Heartbeat.class);
-    myMainHeartbeat.capture();
-    myHeartbeats.add(myMainHeartbeat);
+
+    Heartbeat mainHeartbeat = myFixture.getSingletonService(Heartbeat.class);
+    mainHeartbeat.capture();
+    myHeartbeats.add(mainHeartbeat);
   }
 
   @AfterMethod(alwaysRun = true)
@@ -70,8 +68,8 @@ public class NodesRequestTest extends BaseFinderTest<TeamCityNode> {
 
   public void nodes_no_authorized_user() {
     Nodes nodes = myRequest.nodes(Fields.SHORT.getFieldsSpec());
-    then(nodes.nodes.size()).isEqualTo(1);
-    then(nodes.count).isEqualTo(1);
+    assertEquals(1, nodes.nodes.size());
+    assertEquals(1, (int)nodes.count);
 
     Heartbeat hb = createHeartbeat("node-2");
     hb.capture();
@@ -79,25 +77,25 @@ public class NodesRequestTest extends BaseFinderTest<TeamCityNode> {
     waitForAssert(() -> myRequest.nodes(Fields.SHORT.getFieldsSpec()).count == 2);
 
     nodes = myRequest.nodes(Fields.SHORT.getFieldsSpec());
-    then(nodes.nodes.size()).isEqualTo(2);
-    then(nodes.nodes.get(0).current).isTrue(); // the current node is always first
-    then(nodes.nodes.get(0).role).isEqualTo("main_node");
-    then(nodes.nodes.get(0).online).isTrue();
-    then(nodes.nodes.get(0).url).isNull();
-    then(nodes.nodes.get(0).enabledResponsibilities).isNull();
-    then(nodes.nodes.get(0).effectiveResponsibilities).isNull();
+    assertEquals(2, nodes.nodes.size());
+    assertTrue(nodes.nodes.get(0).current); // the current node is always first
+    assertEquals("main_node", nodes.nodes.get(0).role);
+    assertTrue(nodes.nodes.get(0).online);
+    assertNull(nodes.nodes.get(0).url);
+    assertNull(nodes.nodes.get(0).enabledResponsibilities);
+    assertNull(nodes.nodes.get(0).effectiveResponsibilities);
 
-    then(nodes.nodes.get(1).current).isFalse();
-    then(nodes.nodes.get(1).role).isEqualTo("secondary_node");
-    then(nodes.nodes.get(1).online).isTrue();
-    then(nodes.nodes.get(1).url).isNull();
-    then(nodes.nodes.get(1).enabledResponsibilities).isNull();
-    then(nodes.nodes.get(1).effectiveResponsibilities).isNull();
+    assertFalse(nodes.nodes.get(1).current);
+    assertEquals("secondary_node", nodes.nodes.get(1).role);
+    assertTrue(nodes.nodes.get(1).online);
+    assertNull(nodes.nodes.get(1).url);
+    assertNull(nodes.nodes.get(1).enabledResponsibilities);
+    assertNull(nodes.nodes.get(1).effectiveResponsibilities);
   }
 
   public void nodes_authorized_user() {
     SUser user = createAdmin("admin");
-    then(user.isPermissionGrantedGlobally(Permission.VIEW_SERVER_SETTINGS)).isTrue();
+    assertTrue(user.isPermissionGrantedGlobally(Permission.VIEW_SERVER_SETTINGS));
 
     TeamCityNodes teamCityNodes = myFixture.getTeamCityNodes();
 
@@ -112,24 +110,24 @@ public class NodesRequestTest extends BaseFinderTest<TeamCityNode> {
     waitForAssert(() -> myRequest.nodes(Fields.SHORT.getFieldsSpec()).count == 2);
 
     Nodes nodes = myRequest.nodes(Fields.LONG.getFieldsSpec());
-    then(nodes.nodes.size()).isEqualTo(2);
-    then(nodes.nodes.get(0).current).isTrue(); // the current node is always first
-    then(nodes.nodes.get(0).role).isEqualTo("main_node");
-    then(nodes.nodes.get(0).online).isTrue();
-    then(nodes.nodes.get(0).url).isNotNull();
-    then(nodes.nodes.get(0).enabledResponsibilities).isNotNull();
-    then(nodes.nodes.get(0).effectiveResponsibilities).isNotNull();
-    then(nodes.nodes.get(0).enabledResponsibilities.responsibilities.stream().map(n -> n.name).collect(Collectors.toSet())).contains(NodeResponsibility.MAIN_NODE.name());
+    assertEquals(2, nodes.nodes.size());
+    assertTrue(nodes.nodes.get(0).current); // the current node is always first
+    assertEquals("main_node", nodes.nodes.get(0).role);
+    assertTrue(nodes.nodes.get(0).online);
+    assertNotNull(nodes.nodes.get(0).url);
+    assertNotNull(nodes.nodes.get(0).enabledResponsibilities);
+    assertNotNull(nodes.nodes.get(0).effectiveResponsibilities);
+    assertTrue(nodes.nodes.get(0).enabledResponsibilities.responsibilities.stream().map(n -> n.name).collect(Collectors.toSet()).contains(NodeResponsibility.MAIN_NODE.name()));
 
-    then(nodes.nodes.get(1).current).isFalse();
-    then(nodes.nodes.get(1).role).isEqualTo("secondary_node");
-    then(nodes.nodes.get(1).online).isTrue();
-    then(nodes.nodes.get(1).url).isNotNull().startsWith("http://some.url.com/");
-    then(nodes.nodes.get(1).enabledResponsibilities).isNotNull();
-    then(nodes.nodes.get(1).effectiveResponsibilities).isNotNull();
-    then(nodes.nodes.get(1).enabledResponsibilities.responsibilities.stream().map(n -> n.name).collect(Collectors.toSet()))
-      .doesNotContain(NodeResponsibility.MAIN_NODE.name())
-      .contains(NodeResponsibility.CAN_PROCESS_BUILD_MESSAGES.name());
+    assertFalse(nodes.nodes.get(1).current);
+    assertEquals("secondary_node", nodes.nodes.get(1).role);
+    assertTrue(nodes.nodes.get(1).online);
+    assertContains(nodes.nodes.get(1).url, "http://some.url.com/");
+    assertNotNull(nodes.nodes.get(1).enabledResponsibilities);
+    assertNotNull(nodes.nodes.get(1).effectiveResponsibilities);
+    final Set<String> enabledResps = nodes.nodes.get(1).enabledResponsibilities.responsibilities.stream().map(n -> n.name).collect(Collectors.toSet());
+    assertTrue(enabledResps.contains(NodeResponsibility.CAN_PROCESS_BUILD_MESSAGES.name()));
+    assertFalse(enabledResps.contains(NodeResponsibility.MAIN_NODE.name()));
   }
 
   public void getNodeById() {
@@ -141,10 +139,10 @@ public class NodesRequestTest extends BaseFinderTest<TeamCityNode> {
 
     waitForAssert(() -> myRequest.nodes(Fields.SHORT.getFieldsSpec()).count == 3);
 
-    then(myRequest.getNode("node-1", Fields.SHORT.getFieldsSpec())).isNotNull();
-    then(myRequest.getNode("node-1", Fields.SHORT.getFieldsSpec()).id).isEqualTo("node-1");
-    then(myRequest.getNode("node-2", Fields.SHORT.getFieldsSpec())).isNotNull();
-    then(myRequest.getNode("node-2", Fields.SHORT.getFieldsSpec()).id).isEqualTo("node-2");
+    assertNotNull(myRequest.getNode("node-1", Fields.SHORT.getFieldsSpec()));
+    assertEquals("node-1", myRequest.getNode("node-1", Fields.SHORT.getFieldsSpec()).id);
+    assertNotNull(myRequest.getNode("node-2", Fields.SHORT.getFieldsSpec()));
+    assertEquals("node-2", myRequest.getNode("node-2", Fields.SHORT.getFieldsSpec()).id);
   }
 
   @NotNull
