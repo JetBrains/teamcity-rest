@@ -102,9 +102,11 @@ public class TypedFinderBuilder<ITEM> {
     @NotNull
     TypedFinderDimension<ITEM, TYPE> toItems(@NotNull ItemsFromDimension<ITEM, TYPE> filteringMapper);
 
-    @NotNull
-    TypedFinderDimension<ITEM, TYPE> dimensionChecker(@NotNull Checker<TYPE> checker);
-
+    /**
+     * Defines a default filter for the dimension.
+     * @param checker predicate function, decideing whether to include given item in the result or not.
+     * @param <TYPE_FOR_FILTER>
+     */
     @NotNull
     <TYPE_FOR_FILTER> TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> defaultFilter(@NotNull Filter<TYPE, TYPE_FOR_FILTER> checker);
   }
@@ -138,16 +140,11 @@ public class TypedFinderBuilder<ITEM> {
     @NotNull
     @Override
     TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> toItems(@NotNull ItemsFromDimension<ITEM, TYPE> filteringMapper);
-
-    @NotNull
-    @Override
-    TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> dimensionChecker(@NotNull Checker<TYPE> checker);
   }
 
   public class TypedFinderDimensionImpl<TYPE> implements TypedFinderDimension<ITEM, TYPE> {
     @NotNull protected final Dimension<TYPE> myDimension;
     @NotNull protected final Type<TYPE> myType;
-    protected Checker<TYPE> myChecker = null;
     protected String myDescription = null;
     protected Boolean myHidden = null;
 
@@ -164,11 +161,6 @@ public class TypedFinderBuilder<ITEM> {
     @NotNull
     public Type<TYPE> getType() {
       return myType;
-    }
-
-    @Nullable
-    public Checker<TYPE> getChecker() {
-      return myChecker;
     }
 
     @Nullable
@@ -303,13 +295,6 @@ public class TypedFinderBuilder<ITEM> {
     @Override
     public <TYPE_FROM_ITEM> TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FROM_ITEM> defaultFilter(@NotNull final Filter<TYPE, TYPE_FROM_ITEM> checker) {
       throw new OperationException("Attempt to call defaultFilter for TypedFinderDimensionWithDefaultChecker");
-    }
-
-    @NotNull
-    @Override
-    public TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> dimensionChecker(@NotNull final Checker<TYPE> checker) {
-      myOriginal.dimensionChecker(checker);
-      return this;
     }
   }
 
@@ -720,12 +705,6 @@ public class TypedFinderBuilder<ITEM> {
       @Nullable
       TYPE get(@NotNull String dimensionValue);
     }
-  }
-
-
-  public static abstract class Checker<T> {
-    @NotNull
-    abstract T wrap(@NotNull final T value);
   }
 
   public interface DimensionObjects {
@@ -1239,12 +1218,8 @@ public class TypedFinderBuilder<ITEM> {
       for (String dimensionValue : dimensionValues) {
         TYPE result = getByDimensionValue(typedDimension, dimensionValue);
         if (result == null) continue; //dimension returned null (e.g. Boolean "any") - proceed as if not filtering is required by the dimension
-        Checker<TYPE> checker = typedDimension.getChecker();
-        if (checker != null) {
-          results.add(checker.wrap(result));
-        } else {
-          results.add(result);
-        }
+
+        results.add(result);
       }
       return results;
     }
