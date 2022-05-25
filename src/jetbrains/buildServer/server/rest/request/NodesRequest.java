@@ -38,7 +38,7 @@ import org.jetbrains.annotations.NotNull;
 @Path(NodesRequest.API_NODES_URL)
 @Api("Node")
 public class NodesRequest {
-  public static final String NODES_PATH = "/nodes";
+  public static final String NODES_PATH = ServerRequest.SERVER_REQUEST_PATH + "/nodes";
   public static final String API_NODES_URL = Constants.API_URL + NODES_PATH;
 
   @Context private ServiceLocator myServiceLocator;
