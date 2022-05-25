@@ -372,7 +372,7 @@ public class TypedFinderBuilder<ITEM> {
    * Use with caution: should be able to find items in set!
    */
   public <FINDER_TYPE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>> dimensionWithFinder(@NotNull final Dimension<List<FINDER_TYPE>> dimension,
-                                                                                                                             @NotNull final Value<Finder<FINDER_TYPE>> finderValue,
+                                                                                                                             @NotNull final Supplier<Finder<FINDER_TYPE>> finderValue,
                                                                                                                              @NotNull String typeDescription) {
     return dimension(dimension, type(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).description(typeDescription))
       .defaultFilter((fromFilter, fromItem) -> {
@@ -395,16 +395,16 @@ public class TypedFinderBuilder<ITEM> {
    * @return typed finder
    */
   public <FINDER_TYPE, MIDDLE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>>
-  dimensionWithFinder(@NotNull final Dimension<List<FINDER_TYPE>> dimension, @NotNull final Value<Finder<FINDER_TYPE>> finderValue,
-                      @NotNull final Converter<MIDDLE, FINDER_TYPE> converter, @NotNull String typeDescription) {
+  dimensionWithFinder(@NotNull final Dimension<List<FINDER_TYPE>> dimension, @NotNull final Supplier<Finder<FINDER_TYPE>> finderValue,
+                      @NotNull final Function<FINDER_TYPE, MIDDLE> converter, @NotNull String typeDescription) {
     return dimension(dimension, type(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).description(typeDescription))
       .defaultFilter((fromFilter, fromItem) -> {
         Set<MIDDLE> middleSet = new HashSet<>();
         for (FINDER_TYPE item : fromItem) {
-          middleSet.add(converter.convert(item));
+          middleSet.add(converter.apply(item));
         }
         for (FINDER_TYPE item : fromFilter) {
-          if (middleSet.contains(converter.convert(item))) return true;
+          if (middleSet.contains(converter.apply(item))) return true;
         }
         return false;
       });
@@ -817,16 +817,6 @@ public class TypedFinderBuilder<ITEM> {
   public interface TypeFromItem<TYPE, ITEM> {
     @Nullable
     TYPE get(@NotNull final ITEM item);
-  }
-
-  public interface Value<S> {
-    @NotNull
-    S get();
-  }
-
-  interface Converter<TO, FROM> {
-    @NotNull
-    TO convert(@NotNull FROM item);
   }
 
   //============================= Helper subclasses =============================
