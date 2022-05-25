@@ -26,6 +26,7 @@ import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
+import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -206,7 +207,12 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
       name("MuteFinder");
       singleDimension(dimension -> {
         // no dimensions found, assume it's id
-        return Collections.singletonList(findMuteById(getLong(dimension).intValue()));
+        try {
+          Long value = Long.valueOf(dimension);
+          return Collections.singletonList(findMuteById(value.intValue()));
+        } catch (NumberFormatException nfe) {
+          throw new LocatorProcessException("Invalid single dimension value: '" + dimension + "'. Expected a number.");
+        }
       });
 
       dimensionLong(ID).description("internal mute id")

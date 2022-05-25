@@ -174,13 +174,6 @@ public class TypedFinderBuilder<ITEM> {
 
     @Override
     @NotNull
-    public TypedFinderDimension<ITEM, TYPE> dimensionChecker(@NotNull final Checker<TYPE> checker) {
-      myChecker = checker;
-      return this;
-    }
-
-    @Override
-    @NotNull
     public TypedFinderDimension<ITEM, TYPE> description(@NotNull final String description) {
       if (description.length() == 0) throw new OperationException("Wrong description: empty");
       if (myDescription != null) throw new OperationException("Attempt to redefine description: old: '" + getDescription() + "', new: '" + description + "'");
@@ -303,7 +296,7 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   @NotNull
-  public static Long getLong(@NotNull final String dimensionValue) {
+  private static Long getLong(@NotNull final String dimensionValue) {
     try {
       return Long.parseLong(dimensionValue);
     } catch (NumberFormatException e) {
