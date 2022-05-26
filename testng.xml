@@ -27,14 +27,7 @@
       <class name="jetbrains.buildServer.server.rest.data.TypedFinderTest"/>
       <class name="jetbrains.buildServer.server.rest.data.TestScopesCollectorTest"/>
       <class name="jetbrains.buildServer.server.rest.data.TestScopeTreeCollectorTest"/>
-      <class name="jetbrains.buildServer.server.rest.data.ScopeTreeTest"></class>
-
-      <class name="jetbrains.buildServer.server.rest.model.BuildTest"/>
-      <class name="jetbrains.buildServer.server.rest.model.BuildTypeTest"/>
-      <class name="jetbrains.buildServer.server.rest.model.AgentTest"/>
-
-      <class name="jetbrains.buildServer.server.rest.model.PagerDataTest"/>
-      <class name="jetbrains.buildServer.server.rest.model.PropertiesTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.ScopeTreeTest"/>
 
       <class name="jetbrains.buildServer.server.rest.request.BuildTypeRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.GroupRequestTest"/>
@@ -54,9 +47,13 @@
       <class name="jetbrains.buildServer.server.rest.model.fields.TestOccurrenceFieldsTest" />
       <class name="jetbrains.buildServer.server.rest.model.ChangeStatusTest" />
       <class name="jetbrains.buildServer.server.rest.model.ProjectTest" />
+      <class name="jetbrains.buildServer.server.rest.model.BuildTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.BuildTypeTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.AgentTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.PagerDataTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.PropertiesTest"/>
     </classes>
   </test>
-
   <test name="GraphQL API Test" preserve-order="false">
     <classes>
       <class name="jetbrains.buildServer.server.graphql.resolver.ProjectResolverTest" />
