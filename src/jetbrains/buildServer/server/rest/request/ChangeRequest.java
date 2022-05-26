@@ -75,8 +75,6 @@ public class ChangeRequest {
 
   private static final String DEFAULT_CHANGES_LOOKUP_LIMIT_FOR_COMMITERS = "1000";
   @Context @NotNull private ServiceLocator myServiceLocator;
-  @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
-  @Context @NotNull private BeanFactory myFactory;
   @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private ChangeFinder myChangeFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
@@ -284,7 +282,7 @@ public class ChangeRequest {
     return new BuildTypes(buildTypes, null, new Fields(fields), myBeanContext);
   }
 
- /**
+  /**
    * Experimental support only!
    */
   @GET
@@ -448,6 +446,23 @@ public class ChangeRequest {
       return new FileChanges(new ArrayList<>(changeStatus.getMergedVcsModificationInfo().getChangedFiles()), new Fields(fields));
     }
 
-    return new FileChanges(change.getFilteredChanges(buildType), new Fields(fields));
+    return new FileChanges(
+      change.getFilteredChanges(buildType).stream().filter(filteredVcsChange -> !filteredVcsChange.isExcluded()).collect(Collectors.toList()),
+      new Fields(fields)
+    );
+  }
+
+  public void initForTests(@NotNull ServiceLocator serviceLocator,
+                           @NotNull BeanContext beanContext,
+                           @NotNull ChangeFinder changeFinder,
+                           @NotNull BuildTypeFinder buildTypeFinder,
+                           @Nullable TestScopeTreeCollector testScopeTreeCollector,
+                           @Nullable ProblemOccurrencesTreeCollector problemOccurrencesTreeCollector) {
+    myServiceLocator = serviceLocator;
+    myBeanContext = beanContext;
+    myChangeFinder = changeFinder;
+    myBuildTypeFinder = buildTypeFinder;
+    if(testScopeTreeCollector != null) myTestScopeTreeCollector = testScopeTreeCollector;
+    if(problemOccurrencesTreeCollector != null) myProblemOccurrencesTreeCollector = problemOccurrencesTreeCollector;
   }
 }

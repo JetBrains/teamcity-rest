@@ -39,6 +39,7 @@
       <class name="jetbrains.buildServer.server.rest.request.HealthRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.ServerRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.TwoFactorRequestTest" />
+      <class name="jetbrains.buildServer.server.rest.request.ChangeRequestTest"/>
     </classes>
   </test>
   <test name="Rest API Model Test" preserve-order="false">
