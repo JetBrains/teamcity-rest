@@ -61,7 +61,7 @@ public class DataUpdater {
       NewUserAccountBuilder newUserAccountBuilder = new NewUserAccountBuilder(submittedUsername)
         .setName(userData.getSubmittedName())
         .setEmail(userData.getSubmittedEmail())
-        .setPassword(userData.getPassword())
+        .setPassword(userData.getSubmittedPassword())
         .setProperties(convertToUserProperties(userData.getSubmittedProperties()));
 
       return ((UserModelEx)myUserModel).createUserAccount(newUserAccountBuilder.create());
