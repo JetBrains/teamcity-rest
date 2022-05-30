@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -50,7 +51,8 @@ public class EffectiveResponsibilities {
   }
 
   public EffectiveResponsibilities(@NotNull final TeamCityNode node, @NotNull final Fields fields) {
-    Set<NodeResponsibility> effectiveResponsibilities = node.getEffectiveResponsibilities();
+    Set<NodeResponsibility> editable = NodeResponsibility.assignableResponsibilities();
+    Set<NodeResponsibility> effectiveResponsibilities = node.getEffectiveResponsibilities().stream().filter(n -> editable.contains(n)).collect(Collectors.toSet());
     this.responsibilities = ValueWithDefault.decideDefault(fields.isIncluded("responsibility", true), () ->
       effectiveResponsibilities.stream().map(toResponsibility(fields)).collect(toList())
     );
