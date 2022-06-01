@@ -118,6 +118,7 @@ public class NodesRequestTest extends BaseFinderTest<TeamCityNode> {
     assertNotNull(nodes.nodes.get(0).enabledResponsibilities);
     assertNotNull(nodes.nodes.get(0).effectiveResponsibilities);
     assertTrue(nodes.nodes.get(0).enabledResponsibilities.responsibilities.stream().map(n -> n.name).collect(Collectors.toSet()).contains(NodeResponsibility.MAIN_NODE.name()));
+    assertNull(nodes.nodes.get(0).disabledResponsibilities.responsibilities);
 
     assertFalse(nodes.nodes.get(1).current);
     assertEquals("secondary_node", nodes.nodes.get(1).role);
@@ -128,6 +129,10 @@ public class NodesRequestTest extends BaseFinderTest<TeamCityNode> {
     final Set<String> enabledResps = nodes.nodes.get(1).enabledResponsibilities.responsibilities.stream().map(n -> n.name).collect(Collectors.toSet());
     assertTrue(enabledResps.contains(NodeResponsibility.CAN_PROCESS_BUILD_MESSAGES.name()));
     assertFalse(enabledResps.contains(NodeResponsibility.MAIN_NODE.name()));
+
+    final Set<String> disabledResps = nodes.nodes.get(1).disabledResponsibilities.responsibilities.stream().map(n -> n.name).collect(Collectors.toSet());
+    assertFalse(disabledResps.contains(NodeResponsibility.CAN_PROCESS_BUILD_MESSAGES.name()));
+    assertTrue(disabledResps.contains(NodeResponsibility.MAIN_NODE.name()));
   }
 
   public void getNodeById() {

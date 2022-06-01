@@ -30,7 +30,7 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 
 @XmlRootElement(name = "node")
-@XmlType(propOrder = {"id", "url", "online", "role", "current", "enabledResponsibilities", "effectiveResponsibilities"})
+@XmlType(propOrder = {"id", "url", "online", "role", "current", "enabledResponsibilities", "disabledResponsibilities", "effectiveResponsibilities"})
 @ModelDescription(
   value = "Represents a TeamCity node.",
   externalArticleLink = "https://www.jetbrains.com/help/teamcity/multinode-setup.html",
@@ -43,6 +43,7 @@ public class Node {
   @XmlAttribute public Boolean online;
   @XmlAttribute public Boolean current;
   @XmlElement public EnabledResponsibilities enabledResponsibilities;
+  @XmlElement public DisabledResponsibilities disabledResponsibilities;
   @XmlElement public EffectiveResponsibilities effectiveResponsibilities;
 
   public Node() {
@@ -65,6 +66,13 @@ public class Node {
         }
       });
 
+      disabledResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("disabledResponsibilities", false), new ValueWithDefault.Value<DisabledResponsibilities>() {
+        public DisabledResponsibilities get() {
+          final Fields nestedFields = fields.getNestedField("disabledResponsibilities", Fields.NONE, Fields.LONG);
+          return new DisabledResponsibilities(node, nestedFields);
+        }
+      });
+
       effectiveResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("effectiveResponsibilities", false), new ValueWithDefault.Value<EffectiveResponsibilities>() {
         public EffectiveResponsibilities get() {
           final Fields nestedFields = fields.getNestedField("effectiveResponsibilities", Fields.NONE, Fields.LONG);
@@ -74,6 +82,7 @@ public class Node {
     } else {
       enabledResponsibilities = null;
       effectiveResponsibilities = null;
+      disabledResponsibilities = null;
     }
   }
 }
