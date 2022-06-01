@@ -76,7 +76,7 @@ import org.jetbrains.annotations.Nullable;
   "branches", "builds", "investigations", "compatibleAgents", "vcsRootInstances", "externalStatusAllowed", "pauseComment" /*experimental*/})
 @ModelDescription(
     value = "Represents a build configuration.",
-    externalArticleLink = "https://www.jetbrains.com/help/teamcity/build-configuration.html",
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/creating-and-editing-build-configurations.html",
     externalArticleName = "Build Configuration"
 )
 public class BuildType {
