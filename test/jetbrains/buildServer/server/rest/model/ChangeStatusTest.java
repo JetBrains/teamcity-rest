@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model;
 import java.util.*;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.BuildProblemTypes;
+import jetbrains.buildServer.RunningBuild;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildFinderTestBase;
@@ -565,9 +566,14 @@ public class ChangeStatusTest extends BaseServerTestCase {
     List<VcsRootInstance> roots = prepareMultipleVscRoots(virtualBt1, virtualBt2, splitBt);
     List<SVcsModification> mods = prepareModificationInMultipleRoots(roots, "master", "20");
 
+    // add two agents, so we can run all three builds at the same time.
+    myFixture.createEnabledAgent("x");
+    myFixture.createEnabledAgent("x");
+
+    SQueuedBuild splitBuild    = build().in(splitBt).onModifications(mods.get(2)).addToQueue();
     SQueuedBuild virtual1Build = build().in(virtualBt1).onModifications(mods.get(0)).addToQueue();
     SQueuedBuild virtual2Build = build().in(virtualBt2).onModifications(mods.get(1)).addToQueue();
-    SQueuedBuild splitBuild    = build().in(splitBt).onModifications(mods.get(2)).addToQueue();
+    myFixture.flushQueueAndWaitN(3);
 
     // that is not a composite configuration, so we add deps manually
     ((BuildPromotionEx)splitBuild.getBuildPromotion()).addDependency((BuildPromotionEx) virtual1Build.getBuildPromotion(), NULL_OPTIONS);
@@ -575,12 +581,14 @@ public class ChangeStatusTest extends BaseServerTestCase {
 
     ((BuildPromotionImpl) splitBuild.getBuildPromotion()).setAttribute("teamcity.build.composite", "true");
 
-    build().withFailedTests("Split.failed1", "Split.failed2").run(virtual1Build).finish();
-    build().withFailedTests("Split.failed1", "Split.failed2").run(virtual2Build).finish();
-
     RunningBuildEx splitRunning = build().run(splitBuild);
+    RunningBuildEx virtual1running = build().withFailedTests("Split.failed1", "Split.failed2").run(virtual1Build);
+    RunningBuildEx virtual2running = build().withFailedTests("Split.failed1", "Split.failed2").run(virtual2Build);
     splitRunning.updateBuild();
-    splitRunning.finish();
+
+    myFixture.finishBuild(virtual1running, true);
+    myFixture.finishBuild(virtual2running, true);
+    myFixture.finishBuild(splitRunning, true);
 
     ChangeStatus status = new ChangeStatus(
       myFixture.getChangeStatusProvider().getMergedChangeStatus(mods.get(2)),
@@ -588,7 +596,11 @@ public class ChangeStatusTest extends BaseServerTestCase {
       getBeanContext(myFixture)
     );
 
-    assertEquals(2, (int) status.getNewFailedTests());
+    assertEquals(
+      "Failed tests are expected to be combined into multi run tests in a case of a virtual build.",
+      2, (int) status.getNewFailedTests()
+    );
+
     assertEquals(0, (int) status.getOtherFailedTests());
   }
 
