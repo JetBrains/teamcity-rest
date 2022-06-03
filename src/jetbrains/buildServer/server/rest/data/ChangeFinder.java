@@ -105,7 +105,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   public static final String PARENT_CHANGE = "parentChange";
   public static final String DAG_TRAVERSE = "dag";
   public static final String PREV_BUILD_POLICY = "policy";
-  public static final String CHANGES_FROM_DEPS = "changesFromDependencies";
+  public static final String CHANGES_FROM_DEPS = "changesFromDependencies"; // Before making public see TW-73600
   public static final String SETTINGS_CHANGES = "versionedSettings"; //experimental
 
   @NotNull private final PermissionChecker myPermissionChecker;
