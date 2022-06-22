@@ -2022,12 +2022,12 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     SUser user = createUser("user1");
 
     build().in(buildConf2).finish().getBuildPromotion();
-    List<BuildPromotion> buildsInFirstBuildType = IntStream.range(0, 10).mapToObj(i -> build().in(buildConf1).finish().getBuildPromotion()).collect(Collectors.toList());
+    List<BuildPromotion> builds = IntStream.range(0, 10).mapToObj(i -> build().in(buildConf1).finish().getBuildPromotion()).collect(Collectors.toList());
     build().in(buildConf2).finish().getBuildPromotion().setTags(Arrays.asList("a"));
 
-    buildsInFirstBuildType.get(3).setTags(Arrays.asList("a", "b"));
-    buildsInFirstBuildType.get(5).setPrivateTags(Arrays.asList("a"), user);
-    buildsInFirstBuildType.get(7).setTags(Arrays.asList("a"));
+    builds.get(3).setTags(Arrays.asList("a", "b"));
+    builds.get(5).setPrivateTags(Arrays.asList("a"), user);
+    builds.get(7).setTags(Arrays.asList("a"));
 
     checkCounts("tag:a", 3, 3);
     checkCounts("tag:c", 0, 0);
@@ -2037,9 +2037,10 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     setInternalProperty("rest.request.builds.prefilterByTag", "false");
     checkCounts("tag:a" + bt, 2, 2);
 
-    // We exepect finder to get prefiltered items using exact tag value, but still use buildType information
+    // We exepect finder to get prefiltered items using exact tag value.
+    // This means that we filter by build type after, which cases 1 extra build to be checked, so maxProcessedCount = 3
     setInternalProperty("rest.request.builds.prefilterByTag", "true");
-    checkCounts("tag:a" + bt, 2, 2);
+    checkCounts("tag:a" + bt, 2, 3);
 
     String userFilter = ",owner:(id:" + user.getId() + ")";
     checkCounts("tag:(condition:(value:a,matchType:(equals),ignoreCase:false),private:true" + userFilter + ")", 1, 1);

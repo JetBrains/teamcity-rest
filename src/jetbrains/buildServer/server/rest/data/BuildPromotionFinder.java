@@ -47,7 +47,6 @@ import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
-import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.StreamUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
@@ -1312,21 +1311,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       if (isStateIncluded(stateLocator, STATE_FINISHED)) {//no sense in going further here if no finished builds are requested
         final List<String> tagLocators = locator.lookupDimensionValue(TAG); //not marking as used to enforce filter processing later
 
-        final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
-        SBuildType requestedPromotion = null;
-        if(buildTypeLocator != null) {
-          List<BuildTypeOrTemplate> buildTypes = myBuildTypeFinder.getItems(buildTypeLocator).myEntries;
-          if(buildTypes.size() == 1 && buildTypes.get(0).isBuildType()) {
-            requestedPromotion = buildTypes.get(0).getBuildType();
-            locator.markUnused(BUILD_TYPE);
-            // it's only clear what to do with a single build type. Otherwise, let the filter do the job
-          }
-        }
-
-        Stream<BuildPromotion> finishedBuilds = TagFinder.getPrefilteredFinishedBuildPromotions(tagLocators, requestedPromotion, myServiceLocator);
+        Stream<BuildPromotion> finishedBuilds = TagFinder.getPrefilteredFinishedBuildPromotions(tagLocators, myServiceLocator);
         if (finishedBuilds != null) {
           FilterConditionChecker<BuildPromotion> tagsFilter = getFilterByTag(tagLocators);
-          // After this point no other builds will be added using TAG dimension
+          // After this point no other builds will be added
           locator.markUsed(Collections.singleton(TAG));
 
           Stream<BuildPromotion> queuedBuilds = Stream.empty();

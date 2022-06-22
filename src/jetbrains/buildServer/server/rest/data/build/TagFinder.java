@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data.build;
 
-import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.OperationException;
@@ -186,27 +185,21 @@ public class TagFinder extends AbstractFinder<TagData> {
    * @return null if cannot construct the set effectively
    */
   @Nullable
-  public static Stream<BuildPromotion> getPrefilteredFinishedBuildPromotions(@NotNull final List<String> tagLocators,
-                                                                             @Nullable final BuildType buildType,
-                                                                             @NotNull final ServiceLocator serviceLocator) {
+  public static Stream<BuildPromotion> getPrefilteredFinishedBuildPromotions(@NotNull final List<String> tagLocators, @NotNull final ServiceLocator serviceLocator) {
     FilterOptions filterOptions = getFilterOptions(tagLocators, serviceLocator);
     if (filterOptions == null) return null;
 
-    final TagsManager tagsManager = serviceLocator.getSingletonService(TagsManager.class);
     if (filterOptions.getTagOwner() != null) {
-      Stream<BuildPromotion> finishedBuilds = tagsManager.findAll(filterOptions.getTagName(), filterOptions.getTagOwner()).stream()
-                                                         .map(build -> ((SBuild)build).getBuildPromotion());
-      return finishedBuilds.sorted(BuildPromotionFinder.BUILD_PROMOTIONS_COMPARATOR); //workaround for TW-53934
+      Stream<BuildPromotion> finishedBuilds = serviceLocator.getSingletonService(TagsManager.class).findAll(filterOptions.getTagName(), filterOptions.getTagOwner()).stream()
+                                                            .map(build -> ((SBuild)build).getBuildPromotion());
+      finishedBuilds = finishedBuilds.sorted(BuildPromotionFinder.BUILD_PROMOTIONS_COMPARATOR); //workaround for TW-53934
+      return finishedBuilds;
     }
 
-    Stream<BuildPromotion> finishedBuilds;
-    if(buildType != null) {
-      finishedBuilds = tagsManager.findAllPromotions(filterOptions.getTagName(), buildType).stream();
-    } else {
-      finishedBuilds = tagsManager.findAllPromotions(filterOptions.getTagName()).stream();
-    }
-
-    return finishedBuilds.sorted(BuildPromotionFinder.BUILD_PROMOTIONS_COMPARATOR); //workaround for TW-53934
+    Stream<BuildPromotion> finishedBuilds =
+      serviceLocator.getSingletonService(TagsManager.class).findAll(filterOptions.getTagName()).stream().map(build -> ((SBuild)build).getBuildPromotion());
+    finishedBuilds = finishedBuilds.sorted(BuildPromotionFinder.BUILD_PROMOTIONS_COMPARATOR); //workaround for TW-53934
+    return finishedBuilds;
   }
 
   @Nullable
