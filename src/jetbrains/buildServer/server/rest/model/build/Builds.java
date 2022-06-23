@@ -17,8 +17,11 @@
 package jetbrains.buildServer.server.rest.model.build;
 
 import io.swagger.annotations.ExtensionProperty;
+import java.util.ArrayList;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.BuildPromotionFinder;
+import jetbrains.buildServer.server.rest.data.ItemFilter;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.ItemsProviders;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -82,13 +85,25 @@ public class Builds implements DefaultValueAware {
   public Builds(final @NotNull ItemsProviders.ItemsRetriever<BuildPromotion> data,
                 final @NotNull Fields fields,
                 final @NotNull BeanContext beanContext) {
-    builds = ValueWithDefault.decideDefault(
-      fields.isIncluded("build", false, true),
-      () -> {
-        Fields buildFields = fields.getNestedField("build");
-        return Util.resolveNull(data.getItems(), (items) -> items.stream().map(b -> new Build(b, buildFields, beanContext)).collect(Collectors.toList()));
-      }
-    );
+    final String locator = fields.getLocator();
+
+    if(locator == null) {
+      builds = ValueWithDefault.decideDefault(
+        fields.isIncluded("build", false, true),
+        () -> {
+          final Fields buildFields = fields.getNestedField("build");
+          return Util.resolveNull(data.getItems(), (items) -> items.stream().map(b -> new Build(b, buildFields, beanContext)).collect(Collectors.toList()));
+        }
+      );
+      count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", data.isCountCheap(), data.isCountCheap(), true), () -> data.getCount());
+    } else {
+      List<Build> filteredBuilds = calculateFilteredBuilds(data, fields, locator, beanContext);
+      builds = ValueWithDefault.decideDefault(fields.isIncluded("build", false, true), filteredBuilds);
+      count = ValueWithDefault.decideIncludeByDefault(
+        fields.isIncluded("count", true, true),
+        () -> Util.resolveNull(filteredBuilds, builds -> builds.size())
+      );
+    }
 
     PagerData pagerData = data.getPagerData();
     if (pagerData != null) {
@@ -98,7 +113,30 @@ public class Builds implements DefaultValueAware {
       prevHref = ValueWithDefault
         .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
     }
-    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", data.isCountCheap(), data.isCountCheap(), true), () -> data.getCount());
+  }
+
+  @Nullable
+  private List<Build> calculateFilteredBuilds(@NotNull final ItemsProviders.ItemsRetriever<BuildPromotion> data,
+                                              @NotNull final Fields fields,
+                                              @NotNull final String locator,
+                                              @NotNull final BeanContext beanContext) {
+    Fields buildFields = fields.getNestedField("build");
+
+    List<BuildPromotion> computedItems = data.getItems();
+    if (computedItems == null) {
+      return null;
+    }
+
+    List<Build> filteredBuilds = new ArrayList<>();
+    ItemFilter<BuildPromotion> filter = beanContext.getSingletonService(BuildPromotionFinder.class).getFilter(Locator.locator(locator));
+    for (BuildPromotion promo : computedItems) {
+      if (filter.shouldStop(promo))
+        break;
+
+      if (filter.isIncluded(promo))
+        filteredBuilds.add(new Build(promo, buildFields, beanContext));
+    }
+    return filteredBuilds;
   }
 
   @Override
