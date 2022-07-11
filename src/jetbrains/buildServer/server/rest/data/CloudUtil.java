@@ -133,7 +133,6 @@ public class CloudUtil {
       @Override public void processImageError(@NotNull final CloudProfile profile, @NotNull final CloudImage image) {}
       @Override public void processInstanceError(@NotNull final CloudProfile profile, @NotNull final CloudInstance instance) {}
       @Override public void processInstanceExpired(@NotNull final CloudProfile profile, @NotNull final CloudClientEx client, @NotNull final CloudInstance instance) {}
-      @Override public void processInstanceMaintained(@NotNull CloudProfile profile, @NotNull CloudClientEx client, @NotNull CloudInstance instance) {}
       @Override public boolean processInstance(@NotNull final CloudProfile profile, @NotNull final CloudInstance instance) {
         return processor.processItem(new CloudInstanceData(instance, profile.getProfileId(), myServiceLocator));
       }
