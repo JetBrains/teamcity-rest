@@ -33,7 +33,10 @@ import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "userApprovals")
-@ModelBaseType(ObjectType.LIST)
+@ModelBaseType(
+  value = ObjectType.LIST,
+  baseEntity = "UserApprovalRule"
+)
 public class UserApprovalRuleStatuses {
   @XmlAttribute
   public Integer count;
