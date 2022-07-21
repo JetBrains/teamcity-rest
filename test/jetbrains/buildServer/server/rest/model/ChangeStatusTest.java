@@ -17,9 +17,9 @@
 package jetbrains.buildServer.server.rest.model;
 
 import java.util.*;
+import jetbrains.BuildServerCreator;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.BuildProblemTypes;
-import jetbrains.buildServer.RunningBuild;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.BuildFinderTestBase;
@@ -438,7 +438,7 @@ public class ChangeStatusTest extends BaseServerTestCase {
     final BuildTypeEx targetBt = project.createBuildType("targetBt");
     final BuildTypeEx unrelatedBt = project.createBuildType("unrelated");
     final BuildTypeEx compositeBt = project.createBuildType("composite");
-    compositeBt.setOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE, BuildTypeOptions.BuildConfigurationType.COMPOSITE.name());
+    BuildServerCreator.makeComposite(compositeBt);
 
     List<VcsRootInstance> roots = prepareMultipleVscRoots(targetBt, compositeBt);
 
@@ -482,8 +482,8 @@ public class ChangeStatusTest extends BaseServerTestCase {
     final BuildTypeEx dep2Bt = project.createBuildType("dep2Bt");
     final BuildTypeEx composite2Bt = project.createBuildType("composite2");
 
-    composite1Bt.setOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE, BuildTypeOptions.BuildConfigurationType.COMPOSITE.name());
-    composite2Bt.setOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE, BuildTypeOptions.BuildConfigurationType.COMPOSITE.name());
+    BuildServerCreator.makeComposite(composite1Bt);
+    BuildServerCreator.makeComposite(composite2Bt);
 
     List<VcsRootInstance> roots = prepareMultipleVscRoots(dep1Bt, composite1Bt, dep2Bt, composite2Bt);
 
@@ -609,7 +609,7 @@ public class ChangeStatusTest extends BaseServerTestCase {
     final BuildTypeEx depBt = project.createBuildType("dependencyBt");
 
     final BuildTypeEx mainBt = project.createBuildType("mainBt");
-    mainBt.setOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE, BuildTypeOptions.BuildConfigurationType.COMPOSITE.name());
+    BuildServerCreator.makeComposite(mainBt);
     addDependency(mainBt, depBt);
 
     List<VcsRootInstance> roots = prepareMultipleVscRoots(mainBt, depBt);
