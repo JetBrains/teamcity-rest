@@ -29,7 +29,6 @@ import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.LogInitializer;
-import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -42,7 +41,6 @@ import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.OperationRequestor;
@@ -601,16 +599,20 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
 
-    final SQueuedBuild queuedBuild10 = build().in(buildConf1).addToQueue();
-    final SQueuedBuild queuedBuild20 = build().in(buildConf2).addToQueue();
+    final SQueuedBuild bQueuedAt_0ms = build().in(buildConf1).addToQueue();
 
-    time.jumpTo(10);
-    final SFinishedBuild bFinishedAt_10_000ms = myFixture.finishBuild(BuildBuilder.run(queuedBuild10, myFixture), false);
+    // Jump 1 s just to have two builds to be queued at different times
+    time.jumpTo(1);
+    final SQueuedBuild bQueuedAt_1ms = build().in(buildConf2).addToQueue();
+
+    // Jump to 10s from starting time, account for already jumped 1s
+    time.jumpTo(9);
+    final SFinishedBuild bFinishedAt_10_000ms = myFixture.finishBuild(BuildBuilder.run(bQueuedAt_0ms, myFixture), false);
     time.jumpTo(20);
 
     // Set time to the next whole second + 100ms, thus ensuring next 100 ms jump will be within the same second
     time.jumpTo(1000L - time.now() % 1000 + 100);
-    final SFinishedBuild bFinishedAt_31_100ms = myFixture.finishBuild(BuildBuilder.run(queuedBuild20, myFixture), false);
+    final SFinishedBuild bFinishedAt_31_100ms = myFixture.finishBuild(BuildBuilder.run(bQueuedAt_1ms, myFixture), false);
 
     time.jumpTo(100L);
     final SFinishedBuild bFinishedAt_31_200ms = build().in(buildConf2).finish();
@@ -621,7 +623,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
     final BuildBuilder bQueuedAt_41_200ms = build().in(buildConf2);
     time.jumpTo(10);
-    final SFinishedBuild bFinishedAt_51_200ms = bQueuedAt_41_200ms.failedToStart().finish();
+    final SFinishedBuild bFailedToStartAndFinishedAt_51_200ms = bQueuedAt_41_200ms.failedToStart().finish();
     time.jumpTo(10);
     final Date time_61_200ms = time.getNow();
     time.jumpTo(10);
@@ -649,30 +651,62 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     //noinspection ConstantConditions
     myFixture.getBuildQueue().moveTop(bQueuedAt_131_200ms_and_moved_to_top.getItemId());
 
-    checkBuilds("finishDate:(build:(id:" + bFinishedAt_10_000ms.getBuildId() + "),condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
-    checkBuilds("finishDate:(build:(id:" + bFinishedAt_10_000ms.getBuildId() + "),condition:after),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
-    checkBuilds("finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + "),condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms));
-    checkBuilds("finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + "),condition:after,includeInitial:true),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
-    checkBuilds("finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + "),condition:before),state:any", getBuildPromotions(bFinishedAt_10_000ms));
-    checkBuilds("finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + "),condition:equals),state:any", getBuildPromotions(bFinishedAt_31_100ms));
-    checkBuilds("finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + ")),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms));
-    checkExceptionOnBuildsSearch(BadRequestException.class, "finishDate:(build:(id:" + bQueuedAt_111_200ms.getItemId() + "))");
+    checkBuilds(
+      // Should return 'normal' finished builds after given one
+      "finishDate:(build:(id:" + bFinishedAt_10_000ms.getBuildId() + "),condition:after),state:any",
+      getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms)
+    );
+    checkBuilds(
+      // Should return failed to start builds in addition to all 'normal' finished builds
+      "finishDate:(build:(id:" + bFinishedAt_10_000ms.getBuildId() + "),condition:after),state:any,failedToStart:any",
+      getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFailedToStartAndFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms)
+    );
+    checkBuilds(
+      // Should return 'normal' finished builds, check for time precision, closest returned build is within the same second
+      "finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + "),condition:after),state:any",
+      getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms)
+    );
+    checkBuilds(
+      // Should return 'normal' finished builds including the given one
+      "finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + "),condition:after,includeInitial:true),state:any",
+      getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms)
+    );
+    checkBuilds(
+      // Should return 'normal' finished before the given one
+      "finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + "),condition:before),state:any",
+      getBuildPromotions(bFinishedAt_10_000ms)
+    );
+    checkBuilds(
+      // Should return given build only
+      "finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + "),condition:equals),state:any",
+      getBuildPromotions(bFinishedAt_31_100ms)
+    );
+    checkBuilds(
+      // Should return all 'normal' builds within the same minute as the given one
+      "finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + ")),state:any",
+      getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms)
+    );
+    checkExceptionOnBuildsSearch(
+      // Build at given date is not finished and there are no other finished builds inside the same second
+      BadRequestException.class,
+      "finishDate:(build:(id:" + bQueuedAt_111_200ms.getItemId() + "))"
+    );
 
     if (bFinishedAt_10_000ms.getFinishDate().getTime() % 1000 == 0) { //the comparison is strict "after", but the time in locator is with seconds precision, so times without ms part are special case
       checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
       checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after,includeInitial:true),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
 
-      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
-      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after,includeInitial:true),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
+      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFailedToStartAndFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after,includeInitial:true),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFailedToStartAndFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
     } else {
       checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
       checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after,includeInitial:true),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
 
-      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
-      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after,includeInitial:true),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
+      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFailedToStartAndFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
+      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after,includeInitial:true),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFailedToStartAndFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
     }
     checkBuilds("finishDate:(date:" + getTimeWithMs(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
-    checkBuilds("finishDate:(date:" + getTimeWithMs(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    checkBuilds("finishDate:(date:" + getTimeWithMs(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFailedToStartAndFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
     checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_31_100ms.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
     checkBuilds("finishDate:(date:" + getTimeWithMs(bFinishedAt_31_100ms.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms));
     checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_31_100ms.getFinishDate()) + ",condition:after,includeInitial:true),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
@@ -2330,16 +2364,10 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   public static String getPromotionsDescription(final List<BuildPromotion> result) {
-    return LogUtil.describe(CollectionsUtil.convertCollection(result, new Converter<Loggable, BuildPromotion>() {
-      public Loggable createFrom(@NotNull final BuildPromotion source) {
-        return new Loggable() {
-          @NotNull
-          public String describe(final boolean verbose) {
-            return LogUtil.appendDescription(LogUtil.describeInDetail(source), "startTime: " + LogUtil.describe(source.getServerStartDate()));
-          }
-        };
-      }
-    }), "\n", "", "");
+    return LogUtil.describe(CollectionsUtil.convertCollection(
+      result,
+      source -> LogUtil.appendDescription(LogUtil.describeInDetail(source), "startTime: " + LogUtil.describe(source.getServerStartDate()))
+    ), "\n", "", "");
   }
 
   public <E extends Throwable> void checkExceptionOnBuildSearch(final Class<E> exception, final String singleBuildLocator) {
