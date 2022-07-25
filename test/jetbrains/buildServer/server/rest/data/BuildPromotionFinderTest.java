@@ -592,8 +592,10 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     myServer.setTimeService(time);
     initFinders(); //recreate finders to let time service sink in
     if (timeAsSecondBoundary) {
+      // set the time to the next whole second
       time.jumpTo(1000L - time.now() % 1000);
     } else if (time.now() % 1000 == 0){
+      // make the time not at the whole second if it is
       time.jumpTo(10L);
     }
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
@@ -601,142 +603,141 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
     final SQueuedBuild queuedBuild10 = build().in(buildConf1).addToQueue();
     final SQueuedBuild queuedBuild20 = build().in(buildConf2).addToQueue();
+
     time.jumpTo(10);
-    final SFinishedBuild build10 = myFixture.finishBuild(BuildBuilder.run(queuedBuild10, myFixture), false);
-    time.jumpTo(10);
-    final Date afterBuild10 = time.getNow();
-    time.jumpTo(10);
-    time.jumpTo(1000L - time.now() % 1000 + 100); //ensuring next jump will be within the same second
-    final SFinishedBuild build20 = myFixture.finishBuild(BuildBuilder.run(queuedBuild20, myFixture), false);
+    final SFinishedBuild bFinishedAt_10_000ms = myFixture.finishBuild(BuildBuilder.run(queuedBuild10, myFixture), false);
+    time.jumpTo(20);
+
+    // Set time to the next whole second + 100ms, thus ensuring next 100 ms jump will be within the same second
+    time.jumpTo(1000L - time.now() % 1000 + 100);
+    final SFinishedBuild bFinishedAt_31_100ms = myFixture.finishBuild(BuildBuilder.run(queuedBuild20, myFixture), false);
+
     time.jumpTo(100L);
-    final SFinishedBuild build23 = build().in(buildConf2).finish();
-    time.jumpTo(10);
-
-    final SFinishedBuild build25Deleted = build().in(buildConf2).failed().finish();
-    final long build25DeletedId = build25Deleted.getBuildId();
-    myFixture.getSingletonService(BuildHistory.class).removeEntry(build25Deleted);
-
-    final BuildBuilder queuedBuild30 = build().in(buildConf2);
-    time.jumpTo(10);
-    final SFinishedBuild build30 = queuedBuild30.failedToStart().finish();
-    time.jumpTo(10);
-    final Date afterBuild30 = time.getNow();
-    time.jumpTo(10);
-
-    final SFinishedBuild build40 = build().in(buildConf1).finish();
-    time.jumpTo(10);
-
-    final SFinishedBuild build50Deleted = build().in(buildConf2).failed().finish();
-    final long build50DeletedId = build50Deleted.getBuildId();
-    myFixture.getSingletonService(BuildHistory.class).removeEntry(build50Deleted);
-
-    final SFinishedBuild build60 = build().in(buildConf2).finish();
-    time.jumpTo(10);
-    final Date afterBuild60 = time.getNow();
-
-    final SFinishedBuild build70 = build().in(buildConf1).finish();
+    final SFinishedBuild bFinishedAt_31_200ms = build().in(buildConf2).finish();
 
     time.jumpTo(10);
-    final SRunningBuild build80 = build().in(buildConf1).run();
+    final SFinishedBuild bDeletedAt_41_200ms = build().in(buildConf2).failed().finish();
+    myFixture.getSingletonService(BuildHistory.class).removeEntry(bDeletedAt_41_200ms);
+
+    final BuildBuilder bQueuedAt_41_200ms = build().in(buildConf2);
+    time.jumpTo(10);
+    final SFinishedBuild bFinishedAt_51_200ms = bQueuedAt_41_200ms.failedToStart().finish();
+    time.jumpTo(10);
+    final Date time_61_200ms = time.getNow();
+    time.jumpTo(10);
+
+    final SFinishedBuild bFinishedAt_71_200ms = build().in(buildConf1).finish();
+    time.jumpTo(10);
+
+    final SFinishedBuild bDeletedAt_81_200ms = build().in(buildConf2).failed().finish();
+    myFixture.getSingletonService(BuildHistory.class).removeEntry(bDeletedAt_81_200ms);
+
+    final SFinishedBuild bFinishedAt_81_200ms = build().in(buildConf2).finish();
+    time.jumpTo(10);
+
+    final SFinishedBuild bFinishedAt_91_200ms = build().in(buildConf1).finish();
 
     time.jumpTo(10);
-    final SQueuedBuild queuedBuild110 = build().in(buildConf1).addToQueue();
+    final SRunningBuild bStartedAt_101_200ms = build().in(buildConf1).run();
+
     time.jumpTo(10);
-    final SQueuedBuild queuedBuild120 = build().in(buildConf1).parameter("a", "x").addToQueue(); //preventing build from merging in the queue
+    final SQueuedBuild bQueuedAt_111_200ms = build().in(buildConf1).addToQueue();
     time.jumpTo(10);
-    final SQueuedBuild queuedBuild130 = build().in(buildConf1).parameter("a", "y").addToQueue(); //preventing build from merging in the queue
+    final SQueuedBuild bQueuedAt_121_200ms = build().in(buildConf1).parameter("a", "x").addToQueue(); //preventing build from merging in the queue
+    time.jumpTo(10);
+    final SQueuedBuild bQueuedAt_131_200ms_and_moved_to_top = build().in(buildConf1).parameter("a", "y").addToQueue(); //preventing build from merging in the queue
     //noinspection ConstantConditions
-    myFixture.getBuildQueue().moveTop(queuedBuild130.getItemId());
+    myFixture.getBuildQueue().moveTop(bQueuedAt_131_200ms_and_moved_to_top.getItemId());
 
-    checkBuilds("finishDate:(build:(id:" + build10.getBuildId() + "),condition:after),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
-    checkBuilds("finishDate:(build:(id:" + build10.getBuildId() + "),condition:after),state:any,failedToStart:any", getBuildPromotions(build70, build60, build40, build30, build23, build20));
-    checkBuilds("finishDate:(build:(id:" + build20.getBuildId() + "),condition:after),state:any", getBuildPromotions(build70, build60, build40, build23));
-    checkBuilds("finishDate:(build:(id:" + build20.getBuildId() + "),condition:after,includeInitial:true),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
-    checkBuilds("finishDate:(build:(id:" + build20.getBuildId() + "),condition:before),state:any", getBuildPromotions(build10));
-    checkBuilds("finishDate:(build:(id:" + build20.getBuildId() + "),condition:equals),state:any", getBuildPromotions(build20));
-    checkBuilds("finishDate:(build:(id:" + build20.getBuildId() + ")),state:any", getBuildPromotions(build70, build60, build40, build23));
-    checkExceptionOnBuildsSearch(BadRequestException.class, "finishDate:(build:(id:" + queuedBuild110.getItemId() + "))");
+    checkBuilds("finishDate:(build:(id:" + bFinishedAt_10_000ms.getBuildId() + "),condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    checkBuilds("finishDate:(build:(id:" + bFinishedAt_10_000ms.getBuildId() + "),condition:after),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    checkBuilds("finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + "),condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms));
+    checkBuilds("finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + "),condition:after,includeInitial:true),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    checkBuilds("finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + "),condition:before),state:any", getBuildPromotions(bFinishedAt_10_000ms));
+    checkBuilds("finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + "),condition:equals),state:any", getBuildPromotions(bFinishedAt_31_100ms));
+    checkBuilds("finishDate:(build:(id:" + bFinishedAt_31_100ms.getBuildId() + ")),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms));
+    checkExceptionOnBuildsSearch(BadRequestException.class, "finishDate:(build:(id:" + bQueuedAt_111_200ms.getItemId() + "))");
 
-    if (build10.getFinishDate().getTime() % 1000 == 0) { //the comparison is strict "after", but the time in locator is with seconds precision, so times without ms part are special case
-      checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
-      checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after,includeInitial:true),state:any", getBuildPromotions(build70, build60, build40, build23, build20, build10));
+    if (bFinishedAt_10_000ms.getFinishDate().getTime() % 1000 == 0) { //the comparison is strict "after", but the time in locator is with seconds precision, so times without ms part are special case
+      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after,includeInitial:true),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
 
-      checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(build70, build60, build40, build30, build23, build20));
-      checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after,includeInitial:true),state:any,failedToStart:any", getBuildPromotions(build70, build60, build40, build30, build23, build20, build10));
+      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after,includeInitial:true),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
     } else {
-      checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(build70, build60, build40, build23, build20, build10));
-      checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after,includeInitial:true),state:any", getBuildPromotions(build70, build60, build40, build23, build20, build10));
+      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
+      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after,includeInitial:true),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
 
-      checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(build70, build60, build40, build30, build23, build20, build10));
-      checkBuilds("finishDate:(date:" + Util.formatTime(build10.getFinishDate()) + ",condition:after,includeInitial:true),state:any,failedToStart:any", getBuildPromotions(build70, build60, build40, build30, build23, build20, build10));
+      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
+      checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after,includeInitial:true),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
     }
-    checkBuilds("finishDate:(date:" + getTimeWithMs(build10.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
-    checkBuilds("finishDate:(date:" + getTimeWithMs(build10.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(build70, build60, build40, build30, build23, build20));
-    checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
-    checkBuilds("finishDate:(date:" + getTimeWithMs(build20.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(build70, build60, build40, build23));
-    checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + ",condition:after,includeInitial:true),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
-    checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + ",condition:before),state:any", getBuildPromotions(build10));
-    checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + ",condition:equals),state:any", getBuildPromotions());
-    checkBuilds("finishDate:(date:" + getTimeWithMs(build20.getFinishDate()) + ",condition:equals),state:any", getBuildPromotions(build20));
-    checkBuilds("finishDate:(date:" + Util.formatTime(build20.getFinishDate()) + "),state:any", getBuildPromotions(build70, build60, build40, build23, build20));
-    checkBuilds("finishDate:(date:" + getTimeWithMs(build20.getFinishDate()) + "),state:any", getBuildPromotions(build70, build60, build40, build23));
+    checkBuilds("finishDate:(date:" + getTimeWithMs(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    checkBuilds("finishDate:(date:" + getTimeWithMs(bFinishedAt_10_000ms.getFinishDate()) + ",condition:after),state:any,failedToStart:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_51_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_31_100ms.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    checkBuilds("finishDate:(date:" + getTimeWithMs(bFinishedAt_31_100ms.getFinishDate()) + ",condition:after),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms));
+    checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_31_100ms.getFinishDate()) + ",condition:after,includeInitial:true),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_31_100ms.getFinishDate()) + ",condition:before),state:any", getBuildPromotions(bFinishedAt_10_000ms));
+    checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_31_100ms.getFinishDate()) + ",condition:equals),state:any", getBuildPromotions());
+    checkBuilds("finishDate:(date:" + getTimeWithMs(bFinishedAt_31_100ms.getFinishDate()) + ",condition:equals),state:any", getBuildPromotions(bFinishedAt_31_100ms));
+    checkBuilds("finishDate:(date:" + Util.formatTime(bFinishedAt_31_100ms.getFinishDate()) + "),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    checkBuilds("finishDate:(date:" + getTimeWithMs(bFinishedAt_31_100ms.getFinishDate()) + "),state:any", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms));
 
-    checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSSZ", Locale.ENGLISH)).format(build20.getFinishDate()) + "),state:any",
-                getBuildPromotions(build70, build60, build40, build23));
-    checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSSX", Locale.ENGLISH)).format(build20.getFinishDate()) + "),state:any",
-                getBuildPromotions(build70, build60, build40, build23));
-    checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.ENGLISH)).format(build20.getFinishDate()) + "),state:any",
-                getBuildPromotions(build70, build60, build40, build23, build20)); //new time parsing uses ms
-    checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.ENGLISH)).format(build20.getFinishDate()) + "),state:any",
-                getBuildPromotions(build70, build60, build40, build23, build20));
+    checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSSZ", Locale.ENGLISH)).format(bFinishedAt_31_100ms.getFinishDate()) + "),state:any",
+                getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms));
+    checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSSX", Locale.ENGLISH)).format(bFinishedAt_31_100ms.getFinishDate()) + "),state:any",
+                getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms));
+    checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.ENGLISH)).format(bFinishedAt_31_100ms.getFinishDate()) + "),state:any",
+                getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms)); //new time parsing uses ms
+    checkBuilds("finishDate:(date:" + (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.ENGLISH)).format(bFinishedAt_31_100ms.getFinishDate()) + "),state:any",
+                getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
 
 
-    checkBuilds("startDate:(build:(id:" + build10.getBuildId() + "),condition:after)", getBuildPromotions(build70, build60, build40, build23, build20));
-    checkBuilds("startDate:(build:(id:" + build10.getBuildId() + "),condition:after),state:any", getBuildPromotions(build80, build70, build60, build40, build23, build20));
+    checkBuilds("startDate:(build:(id:" + bFinishedAt_10_000ms.getBuildId() + "),condition:after)", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    checkBuilds("startDate:(build:(id:" + bFinishedAt_10_000ms.getBuildId() + "),condition:after),state:any", getBuildPromotions(bStartedAt_101_200ms, bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
 
-    checkBuilds("startDate:(build:(id:" + build10.getBuildId() + "))", getBuildPromotions(build70, build60, build40, build23, build20));
-    if (build10.getStartDate().getTime() % 1000 == 0) {
-      checkBuilds("startDate:(date:" + Util.formatTime(build10.getStartDate()) + ")", getBuildPromotions(build70, build60, build40, build23, build20));
-      checkBuilds("startDate:(date:" + Util.formatTime(build10.getStartDate()) + ",includeInitial:true)", getBuildPromotions(build70, build60, build40, build23, build20, build10));
+    checkBuilds("startDate:(build:(id:" + bFinishedAt_10_000ms.getBuildId() + "))", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    if (bFinishedAt_10_000ms.getStartDate().getTime() % 1000 == 0) {
+      checkBuilds("startDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getStartDate()) + ")", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+      checkBuilds("startDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getStartDate()) + ",includeInitial:true)", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
 
-      checkBuilds("startDate:(" + Util.formatTime(build10.getStartDate()) + ")", getBuildPromotions(build70, build60, build40, build23, build20));
+      checkBuilds("startDate:(" + Util.formatTime(bFinishedAt_10_000ms.getStartDate()) + ")", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
     } else{
-      checkBuilds("startDate:(date:" + Util.formatTime(build10.getStartDate()) + ")", getBuildPromotions(build70, build60, build40, build23, build20, build10));
-      checkBuilds("startDate:(date:" + Util.formatTime(build10.getStartDate()) + ",includeInitial:true)", getBuildPromotions(build70, build60, build40, build23, build20, build10));
+      checkBuilds("startDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getStartDate()) + ")", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
+      checkBuilds("startDate:(date:" + Util.formatTime(bFinishedAt_10_000ms.getStartDate()) + ",includeInitial:true)", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
 
-      checkBuilds("startDate:(" + Util.formatTime(build10.getStartDate()) + ")", getBuildPromotions(build70, build60, build40, build23, build20, build10));
+      checkBuilds("startDate:(" + Util.formatTime(bFinishedAt_10_000ms.getStartDate()) + ")", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
     }
-    checkBuilds("startDate:(date:" + getTimeWithMs(build10.getStartDate()) + ")", getBuildPromotions(build70, build60, build40, build23, build20));
-    checkBuilds("startDate:(" + getTimeWithMs(build10.getStartDate()) + ")", getBuildPromotions(build70, build60, build40, build23, build20));
+    checkBuilds("startDate:(date:" + getTimeWithMs(bFinishedAt_10_000ms.getStartDate()) + ")", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    checkBuilds("startDate:(" + getTimeWithMs(bFinishedAt_10_000ms.getStartDate()) + ")", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
 
-    checkBuilds("queuedDate:(build:(id:" + build10.getBuildId() + "),condition:after)", getBuildPromotions(build70, build60, build40, build23, build20));
-    checkBuilds("queuedDate:(build:(id:" + build10.getBuildId() + "),condition:after),state:any",
-                getBuildPromotions(queuedBuild130, queuedBuild110, queuedBuild120, build80, build70, build60, build40, build23, build20));
+    checkBuilds("queuedDate:(build:(id:" + bFinishedAt_10_000ms.getBuildId() + "),condition:after)", getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
+    checkBuilds("queuedDate:(build:(id:" + bFinishedAt_10_000ms.getBuildId() + "),condition:after),state:any",
+                getBuildPromotions(bQueuedAt_131_200ms_and_moved_to_top, bQueuedAt_111_200ms, bQueuedAt_121_200ms, bStartedAt_101_200ms, bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms));
 
-    checkBuilds("startDate:(-10m),state:any", getBuildPromotions(build80, build70, build60, build40, build23, build20, build10));
+    checkBuilds("startDate:(-10m),state:any", getBuildPromotions(bStartedAt_101_200ms, bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms, bFinishedAt_31_200ms, bFinishedAt_31_100ms, bFinishedAt_10_000ms));
 
-    time.jumpTo(afterBuild30.getTime() + 10 * 60 * 1000 - time.getNow().getTime()); // set time to afterBuild30 + 10 minutes
-    checkBuilds("startDate:(-10m),state:any", getBuildPromotions(build80, build70, build60, build40));
+    time.jumpTo(time_61_200ms.getTime() + 10 * 60 * 1000 - time.getNow().getTime()); // set time to afterBuild30 + 10 minutes
+    checkBuilds("startDate:(-10m),state:any", getBuildPromotions(bStartedAt_101_200ms, bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms));
     time.jumpTo(9);
-    checkBuilds("startDate:(-10m),state:any", getBuildPromotions(build80, build70, build60, build40));
+    checkBuilds("startDate:(-10m),state:any", getBuildPromotions(bStartedAt_101_200ms, bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms));
     time.jumpTo(1);
-    checkBuilds("startDate:(-10m),state:any", getBuildPromotions(build80, build70, build60));
+    checkBuilds("startDate:(-10m),state:any", getBuildPromotions(bStartedAt_101_200ms, bFinishedAt_91_200ms, bFinishedAt_81_200ms));
     time.jumpTo(60*10);
     checkBuilds("startDate:(-10m),state:any");
 
-    checkBuilds("startDate:(build:(id:" + build60.getBuildId() + "),shift:-11s),state:any", getBuildPromotions(build80, build70, build60, build40));
-    checkBuilds("startDate:(build:(id:" + build60.getBuildId() + "),shift:-10s),state:any", getBuildPromotions(build80, build70, build60));
-    checkBuilds("startDate:(build:(id:" + build60.getBuildId() + "),shift:+9s),state:any", getBuildPromotions(build80, build70));
-    checkBuilds("startDate:(build:(id:" + build60.getBuildId() + "),shift:+10s),state:any", getBuildPromotions(build80));
-    checkBuilds("startDate:(condition:after,build:(id:" + build60.getBuildId() + ")" +
-                ",shift:-11s),startDate:(condition:before,build:(id:" + build60.getBuildId() + "),shift:+11s),state:any",
-                getBuildPromotions(build70, build60, build40));
-    checkBuilds("startDate:(condition:after,build:(id:" + build60.getBuildId() + ")" +
-                ",shift:-9s),startDate:(condition:before,build:(id:" + build60.getBuildId() + "),shift:+9s),state:any",
-                getBuildPromotions(build60));
-    checkBuilds("startDate:(condition:after,build:(id:" + build60.getBuildId() + ")" +
-                ",shift:-10s),startDate:(condition:before,build:(id:" + build60.getBuildId() + "),shift:+10s),state:any",
-                getBuildPromotions(build60));
+    checkBuilds("startDate:(build:(id:" + bFinishedAt_81_200ms.getBuildId() + "),shift:-11s),state:any", getBuildPromotions(bStartedAt_101_200ms, bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms));
+    checkBuilds("startDate:(build:(id:" + bFinishedAt_81_200ms.getBuildId() + "),shift:-10s),state:any", getBuildPromotions(bStartedAt_101_200ms, bFinishedAt_91_200ms, bFinishedAt_81_200ms));
+    checkBuilds("startDate:(build:(id:" + bFinishedAt_81_200ms.getBuildId() + "),shift:+9s),state:any", getBuildPromotions(bStartedAt_101_200ms, bFinishedAt_91_200ms));
+    checkBuilds("startDate:(build:(id:" + bFinishedAt_81_200ms.getBuildId() + "),shift:+10s),state:any", getBuildPromotions(bStartedAt_101_200ms));
+    checkBuilds("startDate:(condition:after,build:(id:" + bFinishedAt_81_200ms.getBuildId() + ")" +
+                ",shift:-11s),startDate:(condition:before,build:(id:" + bFinishedAt_81_200ms.getBuildId() + "),shift:+11s),state:any",
+                getBuildPromotions(bFinishedAt_91_200ms, bFinishedAt_81_200ms, bFinishedAt_71_200ms));
+    checkBuilds("startDate:(condition:after,build:(id:" + bFinishedAt_81_200ms.getBuildId() + ")" +
+                ",shift:-9s),startDate:(condition:before,build:(id:" + bFinishedAt_81_200ms.getBuildId() + "),shift:+9s),state:any",
+                getBuildPromotions(bFinishedAt_81_200ms));
+    checkBuilds("startDate:(condition:after,build:(id:" + bFinishedAt_81_200ms.getBuildId() + ")" +
+                ",shift:-10s),startDate:(condition:before,build:(id:" + bFinishedAt_81_200ms.getBuildId() + "),shift:+10s),state:any",
+                getBuildPromotions(bFinishedAt_81_200ms));
 
     checkExceptionOnBuildsSearch(BadRequestException.class, "finishDate:(xxx)");
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "finishDate:(time:20150101T000000+0000,build:(id:3))");
