@@ -167,6 +167,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String EQUIVALENT = "equivalent"; /*experimental*/
   public static final String METADATA = "metadata"; /*experimental*/
 
+  @LocatorDimension(value = "revision", notes = "Build revision.")
   public static final String REVISION = "revision"; /*experimental*/
   //todo: filter by modId/chainModId (including null) - before(up to)/after filtering
 
