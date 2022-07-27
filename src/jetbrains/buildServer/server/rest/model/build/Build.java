@@ -696,16 +696,12 @@ public class Build {
 
   @XmlElement(name = "approvalInfo")
   public ApprovalInfo getApprovalInfo() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("approvalInfo", false), () -> {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("approvalInfo", false), () -> {
       ApprovableBuildManager approvableBuildManager = myBeanContext.getSingletonService(ApprovableBuildManager.class);
       BuildPromotionEx buildPromotionEx = (BuildPromotionEx)myBuildPromotion;
 
-      try {
-        if (approvableBuildManager.getApprovalFeature(buildPromotionEx).isPresent()) {
-          return new ApprovalInfo(buildPromotionEx, myFields.getNestedField("approvalInfo"), myBeanContext);
-        }
-      } catch (AccessDeniedException e) {
-        LOG.infoAndDebugDetails("Access denied to get approvalInfo information for " + buildPromotionEx + ": " + e.getMessage(), e);
+      if (approvableBuildManager.getApprovalFeature(buildPromotionEx).isPresent()) {
+        return new ApprovalInfo(buildPromotionEx, myFields.getNestedField("approvalInfo"), myBeanContext);
       }
       return null;
     });
