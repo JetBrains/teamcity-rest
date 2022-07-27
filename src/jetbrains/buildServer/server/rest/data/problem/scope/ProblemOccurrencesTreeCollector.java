@@ -25,17 +25,14 @@ import jetbrains.buildServer.BuildProblemTypes;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.problem.*;
 import jetbrains.buildServer.server.rest.data.problem.tree.*;
-import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
-import jetbrains.buildServer.util.StringUtil;
 import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class ProblemOccurrencesTreeCollector {
   private static final String UNCATEGORIZED_PROBLEM = "$$uncategorized$$"; // stub for problem type when typeDecription == null
@@ -92,16 +89,18 @@ public class ProblemOccurrencesTreeCollector {
     String maxChildrenDim = locator.getSingleDimensionValue(MAX_CHILDREN);
     int maxChildren = maxChildrenDim == null ? DEFAULT_MAX_CHILDREN : Integer.parseInt(maxChildrenDim);
 
+    TreeSlicingOptions<BuildProblem, ProblemCounters> slicingOptions = new TreeSlicingOptions<BuildProblem, ProblemCounters>(maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
+
     if(locator.isAnyPresent(SUB_TREE_ROOT_ID)) {
       String subTreeRootId = locator.getSingleDimensionValue(SUB_TREE_ROOT_ID);
       locator.checkLocatorFullyProcessed();
       //noinspection ConstantConditions
-      return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootId, maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
+      return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootId, slicingOptions);
     }
 
     locator.checkLocatorFullyProcessed();
 
-    return tree.getSlicedOrderedTree(maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
+    return tree.getSlicedOrderedTree(slicingOptions);
   }
 
   public List<ScopeTree.Node<BuildProblem, ProblemCounters>> getTreeFromBuildPromotions(@NotNull Stream<BuildPromotion> promotionStream, @NotNull Locator treeLocator) {
@@ -119,18 +118,22 @@ public class ProblemOccurrencesTreeCollector {
       problems
     );
 
-    Comparator<ScopeTree.Node<BuildProblem, ProblemCounters>> defaultNodeOrder = SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT);
+    TreeSlicingOptions<BuildProblem, ProblemCounters> slicingOptions = new TreeSlicingOptions<BuildProblem, ProblemCounters>(
+      DEFAULT_MAX_CHILDREN,
+      NEW_FAILED_FIRST_THEN_BY_ID,
+      SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT)
+    );
 
     if(treeLocator.isAnyPresent(SUB_TREE_ROOT_ID)) {
       String subTreeRootId = treeLocator.getSingleDimensionValue(SUB_TREE_ROOT_ID);
 
       treeLocator.checkLocatorFullyProcessed();
       //noinspection ConstantConditions
-      return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootId, DEFAULT_MAX_CHILDREN, NEW_FAILED_FIRST_THEN_BY_ID, defaultNodeOrder);
+      return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootId, slicingOptions);
     }
 
     treeLocator.checkLocatorFullyProcessed();
-    return tree.getSlicedOrderedTree(DEFAULT_MAX_CHILDREN, NEW_FAILED_FIRST_THEN_BY_ID, defaultNodeOrder);
+    return tree.getSlicedOrderedTree(slicingOptions);
   }
 
   private ScopeTree<BuildProblem, ProblemCounters> getTreeByLocator(@NotNull Locator fullLocator) {

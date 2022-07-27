@@ -88,7 +88,9 @@ public class TestScopeTreeCollector {
 
     locator.checkLocatorFullyProcessed();
 
-    return tree.getSlicedOrderedTree(maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order);
+    return tree.getSlicedOrderedTree(
+      new TreeSlicingOptions<STestRun, TestCountersData>(maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order)
+    );
   }
 
   @NotNull
@@ -116,23 +118,23 @@ public class TestScopeTreeCollector {
         return myScopeCollector.splitByBuildType(scopeStream, groupSplitTests, promotion);
       }).collect(Collectors.toList());
 
-      ScopeTree<STestRun, TestCountersData> tree = new ScopeTree<STestRun, TestCountersData>(TestScopeInfo.ROOT, new TestCountersData(), scopes);
+    ScopeTree<STestRun, TestCountersData> tree = new ScopeTree<STestRun, TestCountersData>(TestScopeInfo.ROOT, new TestCountersData(), scopes);
+    TreeSlicingOptions<STestRun, TestCountersData> slicingOptions = new TreeSlicingOptions<STestRun, TestCountersData>(
+      DEFAULT_MAX_CHILDREN,
+      STestRun.NEW_FIRST_NAME_COMPARATOR,
+      SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT)
+    );
 
     if(treeLocator.isAnyPresent(SUBTREE_ROOT_ID)) {
       String subTreeRootId = treeLocator.getSingleDimensionValue(SUBTREE_ROOT_ID);
       treeLocator.checkLocatorFullyProcessed();
 
       //noinspection ConstantConditions
-      return tree.getFullNodeAndSlicedOrderedSubtree(
-        subTreeRootId,
-        DEFAULT_MAX_CHILDREN,
-        STestRun.NEW_FIRST_NAME_COMPARATOR,
-        SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT)
-      );
+      return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootId, slicingOptions);
     }
 
     treeLocator.checkLocatorFullyProcessed();
-    return tree.getSlicedOrderedTree(DEFAULT_MAX_CHILDREN, STestRun.NEW_FIRST_NAME_COMPARATOR, SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT));
+    return tree.getSlicedOrderedTree(slicingOptions);
   }
 
   @NotNull
@@ -167,7 +169,10 @@ public class TestScopeTreeCollector {
 
     locator.checkLocatorFullyProcessed();
 
-    return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootID, maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order);
+    return tree.getFullNodeAndSlicedOrderedSubtree(
+      subTreeRootID,
+      new TreeSlicingOptions<STestRun, TestCountersData>(maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order)
+    );
   }
 
   @NotNull

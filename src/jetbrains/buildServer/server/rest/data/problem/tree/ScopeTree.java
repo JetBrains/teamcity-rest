@@ -158,12 +158,12 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
   }
 
   @NotNull
-  public List<Node<DATA, COUNTERS>> getSlicedOrderedTree(int maxChildren, @NotNull Comparator<DATA> dataComparator, @Nullable Comparator<Node<DATA, COUNTERS>> nodeComparator) {
-    return getSlicedOrderedSubtree(myRoot, maxChildren, dataComparator, nodeComparator);
+  public List<Node<DATA, COUNTERS>> getSlicedOrderedTree(@NotNull TreeSlicingOptions<DATA, COUNTERS> slicingOptions) {
+    return getSlicedOrderedSubtree(myRoot, slicingOptions);
   }
 
   @NotNull
-  public List<Node<DATA, COUNTERS>> getFullNodeAndSlicedOrderedSubtree(@NotNull String nodeId, int maxChildren, @NotNull Comparator<DATA> dataComparator, @Nullable Comparator<Node<DATA, COUNTERS>> nodeComparator) {
+  public List<Node<DATA, COUNTERS>> getFullNodeAndSlicedOrderedSubtree(@NotNull String nodeId, @NotNull TreeSlicingOptions<DATA, COUNTERS> slicingOptions) {
     Node<DATA, COUNTERS> node = myIdToNodesMap.get(nodeId);
     if(node == null) {
       return Collections.emptyList();
@@ -171,26 +171,26 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
 
     if(node.getScope().isLeaf()) {
       // We still need children to be sorted, so passing maxChildren = data.size()
-      return Collections.singletonList(sliceLeaf(node, node.getData().size(), dataComparator));
+      return Collections.singletonList(sliceLeaf(node, slicingOptions.withMaxChildren(node.getData().size())));
     }
 
     List<Node<DATA, COUNTERS>> immediateChildren = new ArrayList<>(node.getChildren());
-    if(nodeComparator != null) {
-      immediateChildren.sort(nodeComparator);
+    if(slicingOptions.getNodeComparator() != null) {
+      immediateChildren.sort(slicingOptions.getNodeComparator());
     }
 
     List<Node<DATA, COUNTERS>> result = new ArrayList<>();
     result.add(node);
     for(Node<DATA, COUNTERS> child : immediateChildren) {
-      result.addAll(getSlicedOrderedSubtree(child, maxChildren, dataComparator, nodeComparator));
+      result.addAll(getSlicedOrderedSubtree(child, slicingOptions));
     }
 
     return result;
   }
 
   @NotNull
-  private List<Node<DATA, COUNTERS>> getSlicedOrderedSubtree(@NotNull Node<DATA, COUNTERS> subTreeRoot, int maxChildren, @NotNull Comparator<DATA> dataComparator, @Nullable Comparator<Node<DATA, COUNTERS>> nodeComparator) {
-    Queue<Node<DATA, COUNTERS>> nodeQueue = new ArrayDeque<>(maxChildren + 1);
+  private List<Node<DATA, COUNTERS>> getSlicedOrderedSubtree(@NotNull Node<DATA, COUNTERS> subTreeRoot, @NotNull TreeSlicingOptions<DATA, COUNTERS> slicingOptions) {
+    Queue<Node<DATA, COUNTERS>> nodeQueue = new ArrayDeque<>(slicingOptions.getMaxChildren() + 1);
     nodeQueue.add(subTreeRoot);
 
     List<Node<DATA, COUNTERS>> result = new ArrayList<>();
@@ -200,18 +200,18 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
       final boolean isLeaf = node.getScope().isLeaf();
 
       if(isLeaf) {
-        result.add(sliceLeaf(node, maxChildren, dataComparator));
+        result.add(sliceLeaf(node, slicingOptions));
         continue;
       }
       result.add(node);
 
       Stream<Node<DATA, COUNTERS>> children = node.getChildren().stream();
 
-      if (nodeComparator != null) {
-        children = children.sorted(nodeComparator);
+      if (slicingOptions.getNodeComparator() != null) {
+        children = children.sorted(slicingOptions.getNodeComparator());
       }
 
-      children.limit(maxChildren)
+      children.limit(slicingOptions.getMaxChildren())
               .forEach(nodeQueue::add);
     }
 
@@ -222,14 +222,14 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
    * Slices a leaf node and returns a new one.<br/>
    * <b>Important:</b> modifies parent, replacing <code>node</code> with a new sliced one.
    */
-  private Node<DATA, COUNTERS> sliceLeaf(@NotNull Node<DATA, COUNTERS> node, int maxChildren, @NotNull Comparator<DATA> dataComparator) {
+  private Node<DATA, COUNTERS> sliceLeaf(@NotNull Node<DATA, COUNTERS> node, @NotNull TreeSlicingOptions<DATA, COUNTERS> slicingOptions) {
     // Actually, it shouldn't be the root node, so there should always be a parent, but just to be safe.
     if(!node.getScope().isLeaf() || node.getParent() == null) {
       throw new InvalidStateException("Can't slice a non-leaf.");
     }
     List<DATA> slicedData = node.getData().stream()
-                                .sorted(dataComparator)
-                                .limit(maxChildren)
+                                .sorted(slicingOptions.getDataComparator())
+                                .limit(slicingOptions.getMaxChildren())
                                 .collect(Collectors.toList());
 
     Node<DATA, COUNTERS> slicedLeaf = new Node<>(node.getId(), node.getScope(), slicedData, node.getCounters(), node.getParent());
