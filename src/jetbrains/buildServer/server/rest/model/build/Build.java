@@ -700,11 +700,14 @@ public class Build {
       ApprovableBuildManager approvableBuildManager = myBeanContext.getSingletonService(ApprovableBuildManager.class);
       BuildPromotionEx buildPromotionEx = (BuildPromotionEx)myBuildPromotion;
 
-      if (approvableBuildManager.getApprovalFeature(buildPromotionEx).isPresent()) {
-        return new ApprovalInfo(buildPromotionEx, myFields.getNestedField("approvalInfo"), myBeanContext);
-      } else {
-        return null;
+      try {
+        if (approvableBuildManager.getApprovalFeature(buildPromotionEx).isPresent()) {
+          return new ApprovalInfo(buildPromotionEx, myFields.getNestedField("approvalInfo"), myBeanContext);
+        }
+      } catch (AccessDeniedException e) {
+        LOG.infoAndDebugDetails("Access denied to get approvalInfo information for " + buildPromotionEx + ": " + e.getMessage(), e);
       }
+      return null;
     });
   }
 
