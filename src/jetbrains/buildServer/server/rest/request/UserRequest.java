@@ -19,12 +19,6 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
 import jetbrains.buildServer.controllers.login.RememberMe;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -45,7 +39,6 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.*;
-import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import jetbrains.buildServer.users.UserModel;
@@ -53,6 +46,13 @@ import jetbrains.buildServer.util.StringUtil;
 import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Path(UserRequest.API_USERS_URL)
 @Api("User")
@@ -111,7 +111,7 @@ public class UserRequest {
   public void deleteUser(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator) {
     final SUser deletee = myUserFinder.getItem(userLocator, true);
     final SUser deleter = myUserFinder.getCurrentUser();
-    if (!ServerAuthUtil.containsAllPermissionsOf(deleter, deletee)) {
+    if (deleter == null || !deleter.hasAllPermissionsOf(deletee)) {
       throw new AccessDeniedException(deleter, "You cannot delete user that has more permissions than you");
     }
     myDataProvider.getServer().getSingletonService(UserModel.class).removeUserAccount(deletee.getId());
