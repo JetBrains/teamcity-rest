@@ -24,30 +24,39 @@ public class TreeSlicingOptions<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
   private int myMaxChildren = 5;
   @NotNull
   private final Comparator<DATA> myDataComparator;
-
   @Nullable
   private Comparator<ScopeTree.Node<DATA, COUNTERS>> myNodeComparator = null;
+  @Nullable
+  private Integer myMaxTotalNodes = null;
+
+  public TreeSlicingOptions(int maxChildren,
+                            @NotNull Comparator<DATA> dataComparator,
+                            @Nullable Comparator<ScopeTree.Node<DATA, COUNTERS>> nodeComparator,
+                            @Nullable Integer maxTotalNodes) {
+    myMaxChildren = maxChildren;
+    myNodeComparator = nodeComparator;
+    myDataComparator = dataComparator;
+    myMaxTotalNodes = maxTotalNodes;
+  }
 
   public TreeSlicingOptions(int maxChildren,
                             @NotNull Comparator<DATA> dataComparator,
                             @Nullable Comparator<ScopeTree.Node<DATA, COUNTERS>> nodeComparator) {
-    myMaxChildren = maxChildren;
-    myNodeComparator = nodeComparator;
-    myDataComparator = dataComparator;
-  }
-
-  public TreeSlicingOptions(@NotNull Comparator<DATA> dataComparator) {
-    myDataComparator = dataComparator;
+    this(maxChildren, dataComparator, nodeComparator, null);
   }
 
   @NotNull
   public TreeSlicingOptions<DATA, COUNTERS> withMaxChildren(int maxChildren) {
-    return new TreeSlicingOptions<DATA, COUNTERS>(maxChildren, myDataComparator, myNodeComparator);
+    return new TreeSlicingOptions<DATA, COUNTERS>(maxChildren, myDataComparator, myNodeComparator, myMaxTotalNodes);
   }
 
   @NotNull
   public TreeSlicingOptions<DATA, COUNTERS> withNodeComparator(@NotNull Comparator<ScopeTree.Node<DATA, COUNTERS>> nodeComparator) {
-    return new TreeSlicingOptions<DATA, COUNTERS>(myMaxChildren, myDataComparator, nodeComparator);
+    return new TreeSlicingOptions<DATA, COUNTERS>(myMaxChildren, myDataComparator, nodeComparator, myMaxTotalNodes);
+  }
+
+  public TreeSlicingOptions<DATA, COUNTERS> withMaxNodes(int maxTotalNodes) {
+    return new TreeSlicingOptions<DATA, COUNTERS>(myMaxChildren, myDataComparator, myNodeComparator, maxTotalNodes);
   }
 
   public int getMaxChildren() {
@@ -62,5 +71,10 @@ public class TreeSlicingOptions<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
   @Nullable
   public Comparator<ScopeTree.Node<DATA, COUNTERS>> getNodeComparator() {
     return myNodeComparator;
+  }
+
+  @Nullable
+  public Integer getMaxTotalNodes() {
+    return myMaxTotalNodes;
   }
 }

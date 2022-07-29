@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.server.rest.data.problem.tree.*;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
@@ -488,6 +489,133 @@ public class ScopeTreeTest {
     Assert.assertTrue("L5 must come earlier than L4", nodeOrder.get("L5") < nodeOrder.get("L4"));
   }
 
+  public void testMaxTotalNodesSlicesOneLargeNode() {
+    /*
+               ROOT
+           /          \
+         C1            C2
+       /   \         /   \
+    L001 .. L100  L101 .. L200
+     */
+    MyLeaf[] leafs = new MyLeaf[200];
+    for(int i = 1; i <= 100; i++) {
+      leafs[i - 1] = MyLeaf.at("ROOT", "C1", String.format("L%03d", i)).withData(1);
+    }
+    for(int i = 101; i <= 200; i++) {
+      leafs[i - 1] = MyLeaf.at("ROOT", "C2", String.format("L%03d", i)).withData(1);
+    }
+
+    ScopeTree<Integer, Counters> tree = buildTree(leafs);
+
+    TreeSlicingOptions<Integer, Counters> options1 = new TreeSlicingOptions<Integer, Counters>(
+      100, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId)
+    ).withMaxNodes(50);
+
+    Set<String> nodeOrder = new HashSet<>();
+    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(options1)) {
+      nodeOrder.add(node.getId());
+    }
+    Assert.assertEquals("Tree must be cut correctly", 50, nodeOrder.size());
+
+    Assert.assertTrue("ROOT must be present", nodeOrder.contains("ROOT"));
+    Assert.assertTrue("C1 must be present", nodeOrder.contains("C1"));
+    Assert.assertTrue("C2 must be present", nodeOrder.contains("C2"));
+    Assert.assertTrue("L047 must be present", nodeOrder.contains("L047"));
+    Assert.assertFalse("L048 must be cut", nodeOrder.contains("L048"));
+  }
+
+  public void testMaxTotalNodesSlicesOneLargeNode2() {
+    /*
+               ROOT
+           /          \
+         C1            C2
+       /   \         /   \
+    L001 .. L100  L101 .. L200
+     */
+    MyLeaf[] leafs = new MyLeaf[200];
+    for(int i = 1; i <= 100; i++) {
+      leafs[i - 1] = MyLeaf.at("ROOT", "C1", String.format("L%03d", i)).withData(1);
+    }
+    for(int i = 101; i <= 200; i++) {
+      leafs[i - 1] = MyLeaf.at("ROOT", "C2", String.format("L%03d", i)).withData(1);
+    }
+
+    ScopeTree<Integer, Counters> tree = buildTree(leafs);
+
+    TreeSlicingOptions<Integer, Counters> options1 = new TreeSlicingOptions<Integer, Counters>(
+      100, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId)
+    ).withMaxNodes(50);
+
+    Set<String> nodeOrder = new HashSet<>();
+    for(ScopeTree.Node<Integer, Counters> node : tree.getFullNodeAndSlicedOrderedSubtree("C1", options1)) {
+      nodeOrder.add(node.getId());
+    }
+    Assert.assertEquals("Tree must be cut correctly", 50, nodeOrder.size());
+
+    Assert.assertTrue("C1 must be present", nodeOrder.contains("C1"));
+    Assert.assertTrue("L049 must be present", nodeOrder.contains("L049"));
+    Assert.assertFalse("L050 must be cut", nodeOrder.contains("L050"));
+  }
+
+  public void testMaxTotalNodesSlicesSecondLargeNode() {
+    /*
+               ROOT
+           /         \
+         C1           C2
+       /   \        /   \
+     L1 .. L100  L101 .. L200
+     */
+    MyLeaf[] leafs = new MyLeaf[200];
+    for(int i = 1; i <= 100; i++) {
+      leafs[i - 1] = MyLeaf.at("ROOT", "C1", String.format("L%03d", i)).withData(1);
+    }
+    for(int i = 101; i <= 200; i++) {
+      leafs[i - 1] = MyLeaf.at("ROOT", "C2", String.format("L%03d", i)).withData(1);
+    }
+
+    ScopeTree<Integer, Counters> tree = buildTree(leafs);
+
+    // Now we check the same but children of C1 node were not enough to max out the threshold.
+    TreeSlicingOptions<Integer, Counters> options2 = new TreeSlicingOptions<Integer, Counters>(
+      100, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId)
+    ).withMaxNodes(104);
+
+    Set<String> seenNodes = new HashSet<>();
+    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(options2)) {
+      seenNodes.add(node.getId());
+    }
+    Assert.assertEquals("Tree must be cut correctly", 104, seenNodes.size());
+
+    Assert.assertTrue("ROOT must be present", seenNodes.contains("ROOT"));
+    Assert.assertTrue("C1 must be present", seenNodes.contains("C1"));
+    Assert.assertTrue("C2 must be present", seenNodes.contains("C2"));
+    Assert.assertTrue("L101 must be present", seenNodes.contains("L101"));
+    Assert.assertFalse("L102 must be cut", seenNodes.contains("L102"));
+  }
+
+  public void testMaxTotalNodesCornerCase() {
+    /*
+               ROOT
+           /         \
+         C1           C2
+       /   \        /   \
+     L1    L2     L3    L4
+     */
+    ScopeTree<Integer, Counters> tree = buildTree(
+      MyLeaf.at("ROOT", "C1", "L1").withData(1),
+      MyLeaf.at("ROOT", "C1", "L2").withData(1),
+      MyLeaf.at("ROOT", "C2", "L3").withData(1),
+      MyLeaf.at("ROOT", "C2", "L4").withData(1)
+    );
+
+    TreeSlicingOptions<Integer, Counters> options1 = new TreeSlicingOptions<Integer, Counters>(
+      1, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId)
+    ).withMaxNodes(0);
+
+    List<ScopeTree.Node<Integer, Counters>> slice = tree.getSlicedOrderedTree(options1);
+    Assert.assertTrue("0 max total nodes == empty slice", slice.isEmpty());
+  }
+
   public void testVerticalSliceLeafSorting() {
     ScopeTree<Integer, Counters> tree = buildTree(
       MyLeaf.at("ROOT", "L1").withData(3, 2, 1, 5, 4, 6, 8, 0, 9, 7)
@@ -559,6 +687,11 @@ public class ScopeTreeTest {
         return new MyLeaf(myPath, Arrays.asList(data));
       }
     }
+
+    @Override
+    public String toString() {
+      return "Leaf{" + myPath.stream().map(s -> s.toString()).collect(Collectors.joining("_")) + ", data=" + myData + '}';
+    }
   }
 
   private static class MyScope implements Scope {
@@ -603,6 +736,11 @@ public class ScopeTreeTest {
       int result = myId.hashCode();
       result = 31 * result + (myIsLeaf ? 1 : 0);
       return result;
+    }
+
+    @Override
+    public String toString() {
+      return (myIsLeaf ? "L" : "N") + myId;
     }
   }
 

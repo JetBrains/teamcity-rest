@@ -174,6 +174,10 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
       return Collections.singletonList(sliceLeaf(node, slicingOptions.withMaxChildren(node.getData().size())));
     }
 
+    int maxTotalNodes = slicingOptions.getMaxTotalNodes() == null ? Integer.MAX_VALUE : slicingOptions.getMaxTotalNodes();
+    if(maxTotalNodes <= 0) {
+      return Collections.emptyList();
+    }
     List<Node<DATA, COUNTERS>> immediateChildren = new ArrayList<>(node.getChildren());
     if(slicingOptions.getNodeComparator() != null) {
       immediateChildren.sort(slicingOptions.getNodeComparator());
@@ -181,8 +185,16 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
 
     List<Node<DATA, COUNTERS>> result = new ArrayList<>();
     result.add(node);
+    maxTotalNodes -= 1;
+
     for(Node<DATA, COUNTERS> child : immediateChildren) {
-      result.addAll(getSlicedOrderedSubtree(child, slicingOptions));
+      if(maxTotalNodes <= 0) {
+        break;
+      }
+
+      List<Node<DATA, COUNTERS>> slice = getSlicedOrderedSubtree(child, slicingOptions.withMaxNodes(maxTotalNodes));
+      result.addAll(slice);
+      maxTotalNodes -= slice.size();
     }
 
     return result;
@@ -192,10 +204,13 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
   private List<Node<DATA, COUNTERS>> getSlicedOrderedSubtree(@NotNull Node<DATA, COUNTERS> subTreeRoot, @NotNull TreeSlicingOptions<DATA, COUNTERS> slicingOptions) {
     Queue<Node<DATA, COUNTERS>> nodeQueue = new ArrayDeque<>(slicingOptions.getMaxChildren() + 1);
     nodeQueue.add(subTreeRoot);
+    Integer maxTotalNodes = slicingOptions.getMaxTotalNodes();
+    if(maxTotalNodes == null) {
+      maxTotalNodes = Integer.MAX_VALUE;
+    }
 
     List<Node<DATA, COUNTERS>> result = new ArrayList<>();
-
-    while (!nodeQueue.isEmpty()) {
+    while (!nodeQueue.isEmpty() && result.size() < maxTotalNodes) {
       Node<DATA, COUNTERS> node = nodeQueue.poll();
       final boolean isLeaf = node.getScope().isLeaf();
 
