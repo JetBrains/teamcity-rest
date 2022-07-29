@@ -43,6 +43,8 @@ public class TestScopeTreeCollector {
   public static final String NEW_FAILURE = "newFailure";
   public static final String SUBTREE_ROOT_ID = "subTreeRootId";
 
+  public static final String TREE_MAX_TOTAL_NODES = "maxTotalNodes";
+
   public static final int DEFAULT_MAX_CHILDREN = 5;
   public static final String DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT = "newFailedCount:desc";
 
@@ -86,11 +88,20 @@ public class TestScopeTreeCollector {
     String maxChildrenDim = locator.getSingleDimensionValue(MAX_CHILDREN);
     int maxChildren = maxChildrenDim == null ? DEFAULT_MAX_CHILDREN : Integer.parseInt(maxChildrenDim);
 
+    TreeSlicingOptions<STestRun, TestCountersData> slicingOptions = new TreeSlicingOptions<STestRun, TestCountersData>(maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order);
+    String maxTotalNodesStr = locator.getSingleDimensionValue(TREE_MAX_TOTAL_NODES);
+    if(maxTotalNodesStr != null) {
+      try {
+        int maxTotalNodes = Integer.parseInt(maxTotalNodesStr);
+        slicingOptions = slicingOptions.withMaxNodes(maxTotalNodes);
+      } catch (NumberFormatException nfe) {
+        throw new LocatorProcessException("Dimension '" + TREE_MAX_TOTAL_NODES + "' must be an integer.");
+      }
+    }
+
     locator.checkLocatorFullyProcessed();
 
-    return tree.getSlicedOrderedTree(
-      new TreeSlicingOptions<STestRun, TestCountersData>(maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order)
-    );
+    return tree.getSlicedOrderedTree(slicingOptions);
   }
 
   @NotNull
@@ -125,6 +136,16 @@ public class TestScopeTreeCollector {
       SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT)
     );
 
+    String maxTotalNodesStr = treeLocator.getSingleDimensionValue(TREE_MAX_TOTAL_NODES);
+    if(maxTotalNodesStr != null) {
+      try {
+        int maxTotalNodes = Integer.parseInt(maxTotalNodesStr);
+        slicingOptions = slicingOptions.withMaxNodes(maxTotalNodes);
+      } catch (NumberFormatException nfe) {
+        throw new LocatorProcessException("Dimension '" + TREE_MAX_TOTAL_NODES + "' must be an integer.");
+      }
+    }
+
     if(treeLocator.isAnyPresent(SUBTREE_ROOT_ID)) {
       String subTreeRootId = treeLocator.getSingleDimensionValue(SUBTREE_ROOT_ID);
       treeLocator.checkLocatorFullyProcessed();
@@ -150,12 +171,21 @@ public class TestScopeTreeCollector {
       throw new LocatorProcessException("Missing value of required dimension " + SUBTREE_ROOT_ID);
     }
 
+    TreeSlicingOptions<STestRun, TestCountersData> slicingOptions = new TreeSlicingOptions<STestRun, TestCountersData>(maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order);
+
+    String maxTotalNodesStr = locator.getSingleDimensionValue(TREE_MAX_TOTAL_NODES);
+    if(maxTotalNodesStr != null) {
+      try {
+        int maxTotalNodes = Integer.parseInt(maxTotalNodesStr);
+        slicingOptions = slicingOptions.withMaxNodes(maxTotalNodes);
+      } catch (NumberFormatException nfe) {
+        throw new LocatorProcessException("Dimension '" + TREE_MAX_TOTAL_NODES + "' must be an integer.");
+      }
+    }
+
     locator.checkLocatorFullyProcessed();
 
-    return tree.getFullNodeAndSlicedOrderedSubtree(
-      subTreeRootID,
-      new TreeSlicingOptions<STestRun, TestCountersData>(maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order)
-    );
+    return tree.getFullNodeAndSlicedOrderedSubtree(subTreeRootID, slicingOptions);
   }
 
   @NotNull
