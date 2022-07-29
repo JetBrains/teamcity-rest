@@ -138,23 +138,6 @@ public class TestScopeTreeCollector {
   }
 
   @NotNull
-  private ScopeTree<STestRun, TestCountersData> getTreeFromPromotion(@NotNull BuildPromotion promotion, @NotNull String testRunsLocator, boolean groupSplitTests) {
-    Stream<STestRun> testRunStream = myTestOccurrenceFinder.getItems(String.format(testRunsLocator, promotion.getAssociatedBuildId())).myEntries.stream();
-
-    Stream<TestScope> scopeStream = myScopeCollector.groupByClass(testRunStream, new TestScopeFilterImpl(Collections.emptyList(), ""));
-
-    scopeStream = myScopeCollector.splitByBuildType(scopeStream, groupSplitTests, promotion);
-
-    List<TestScope> scopes = scopeStream.collect(Collectors.toList());
-
-    return new ScopeTree<STestRun, TestCountersData>(
-      TestScopeInfo.ROOT,
-      new TestCountersData(),
-      scopes
-    );
-  }
-
-  @NotNull
   private List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedSubTree(@NotNull Locator locator) {
     ScopeTree<STestRun, TestCountersData> tree = buildTree(locator);
     Comparator<ScopeTree.Node<STestRun, TestCountersData>> order = getNodeOrder(locator);
