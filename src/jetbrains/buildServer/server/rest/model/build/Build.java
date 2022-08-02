@@ -44,10 +44,7 @@ import jetbrains.buildServer.server.rest.data.change.BuildChangeData;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.InvalidStateException;
-import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
@@ -1271,7 +1268,14 @@ public class Build {
           return null;
         }
 
-        return new Build(delayer, myFields.getNestedField("delayedByBuild"), myBeanContext);
+        // workaround for TW-77050, the same at Agent.build
+        try {
+          myBeanContext.getSingletonService(PermissionChecker.class).checkPermission(Permission.VIEW_PROJECT, delayer.getBuildPromotion());
+
+          return new Build(delayer, myFields.getNestedField("delayedByBuild"), myBeanContext);
+        } catch (AuthorizationFailedException e) {
+          return Build.getNoPermissionsBuild(delayer, myFields.getNestedField("delayedByBuild"), myBeanContext);
+        }
       }
     );
   }
