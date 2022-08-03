@@ -151,7 +151,7 @@
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/tests/tests-integration.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/devPackage/tests/tests-support.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/agent-upgrade.jar"/>
-    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/guava-18.0.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/guava-31.1-android.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/hsqldb.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/jdom.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/remote-api-impl.jar"/>
@@ -163,7 +163,7 @@
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/annotations.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/commons-codec.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/commons-compress-1.21.jar"/>
-    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/guava-18.0.jar"/>
+    <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/guava-31.1-android.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/log4j-1.2-api-2.17.2.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/log4j-api-2.17.2.jar"/>
     <pathelement location="${path.variable.teamcitydistribution}/webapps/ROOT/WEB-INF/lib/log4j-core-2.17.2.jar"/>
