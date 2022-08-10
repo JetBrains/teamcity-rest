@@ -18,13 +18,16 @@ package jetbrains.buildServer.server.graphql.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 
 public class GraphQLRequestBody {
+  private static final Logger LOG = Logger.getInstance(GraphQLRequestBody.class.getName());
   @Nullable
   public final String query;
   @Nullable
@@ -42,10 +45,15 @@ public class GraphQLRequestBody {
     this.query = query;
     this.operationName = operationName;
 
-    if(variables != null)
-      this.variables = new ObjectMapper().readValue(variables, new TypeReference<Map<String,Object>>(){});
-    else
-      this.variables = Collections.emptyMap();
+    Map<String, Object> variablesInitializer = Collections.emptyMap();
+    if(variables != null) {
+      try {
+        variablesInitializer = new ObjectMapper().readValue(variables, new TypeReference<Map<String, Object>>() { });
+      } catch (JsonMappingException e) {
+        LOG.debug(() -> "Unable to initialize variables from: '" + variables + "', must be a mapping name -> value.", e);
+      }
+    }
+    this.variables = variablesInitializer;
   }
 
   public static GraphQLRequestBody fromJson(@Nullable String json) throws JsonProcessingException {
