@@ -16,26 +16,33 @@
 
 package jetbrains.buildServer.server.graphql.model;
 
+import jetbrains.buildServer.server.graphql.util.ObjectIdentificationNode;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import org.jetbrains.annotations.NotNull;
 
-public class AgentEnvironment {
-  @NotNull
-  private final OS myOS;
+public class AgentType implements ObjectIdentificationNode {
+  private final SAgentType mySource;
 
-  public static final AgentEnvironment UNKNOWN = new AgentEnvironment(new OS("", OSType.Unknown), 0);
-  private final int myCpuBenchmarkIndex;
-
-  public AgentEnvironment(@NotNull OS os, int cpuBenchmarkIndex) {
-    myOS = os;
-    myCpuBenchmarkIndex = cpuBenchmarkIndex;
-  }
-
-  public int getCpuBenchmarkIndex() {
-    return myCpuBenchmarkIndex;
+  public AgentType(@NotNull SAgentType source) {
+    mySource = source;
   }
 
   @NotNull
-  public OS getOs() {
-    return myOS;
+  public SAgentType getSource() {
+    return mySource;
+  }
+
+  @NotNull
+  public String getName() {
+    return mySource.getDetails().getDisplayName();
+  }
+
+  public boolean isCloud() {
+    return mySource.isCloud();
+  }
+
+  @Override
+  public String getRawId() {
+    return Integer.toString(mySource.getAgentTypeId());
   }
 }

@@ -35,9 +35,10 @@ import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
-import jetbrains.buildServer.serverSide.agentTypes.AgentType;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeKey;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeManager;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,10 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
 
   @Autowired
   @NotNull
+  private AgentTypeFinder myAgentTypeFinder;
+
+  @Autowired
+  @NotNull
   private AgentTypeManager myAgentTypeManager;
 
   @Autowired
@@ -65,17 +70,18 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
 
   public void initForTests(@NotNull AgentPoolManager agentPoolManager,
                            @NotNull ProjectManager projectManager,
-                           @NotNull AgentTypeManager agentTypeManager) {
+                           @NotNull AgentTypeFinder agentTypeManager) {
     myAgentPoolManager = agentPoolManager;
     myProjectManager = projectManager;
-    myAgentTypeManager = agentTypeManager;
+    myAgentTypeFinder = agentTypeManager;
   }
 
+  @Deprecated
   @NotNull
   public DataFetcherResult<Integer> agentTypeRawId(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
     DataFetcherResult.Builder<Integer> result = DataFetcherResult.newResult();
 
-    AgentType agentType = findAgentType(image);
+    SAgentType agentType = findAgentType(image);
     if(agentType == null) {
       return result.error(new EntityNotFoundGraphQLError(String.format("Agent type for image id=%s is no found.", image.getRawId()))).build();
     }
@@ -83,20 +89,41 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
     return result.data(agentType.getAgentTypeId()).build();
   }
 
+  public DataFetcherResult<jetbrains.buildServer.server.graphql.model.AgentType> agentType(@NotNull CloudImage image) {
+    DataFetcherResult.Builder<jetbrains.buildServer.server.graphql.model.AgentType> result = DataFetcherResult.newResult();
+
+    SAgentType agentType = findAgentType(image);
+    if(agentType == null) {
+      return result.error(new EntityNotFoundGraphQLError(String.format("Agent type for image id=%s is no found.", image.getRawId()))).build();
+    }
+
+    return result.data(new jetbrains.buildServer.server.graphql.model.AgentType(agentType)).build();
+  }
+
+  @Deprecated
   @NotNull
   public AgentEnvironment environment(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
-    AgentType agentType = findAgentType(image);
+    SAgentType agentType = findAgentType(image);
     if(agentType == null) {
       return AgentEnvironment.UNKNOWN;
     }
 
-    return new AgentEnvironment(new OS(agentType.getOperatingSystemName(), OSType.guessByName(agentType.getOperatingSystemName())));
+    return new AgentEnvironment(
+      new OS(agentType.getOperatingSystemName(), OSType.guessByName(agentType.getOperatingSystemName())),
+      agentType.getCpuBenchmarkIndex()
+    );
   }
 
   @Nullable
-  private AgentType findAgentType(@NotNull CloudImage image) {
+  private SAgentType findAgentType(@NotNull CloudImage image) {
     AgentTypeKey agentTypeKey = new AgentTypeKey(image.getRealProfile().getCloudCode(), image.getProfileId(), image.getRawId());
-    return myAgentTypeManager.findAgentTypeByKey(agentTypeKey);
+
+    jetbrains.buildServer.serverSide.agentTypes.AgentType agentType = myAgentTypeManager.findAgentTypeByKey(agentTypeKey);
+    if(agentType == null) {
+      return null;
+    }
+
+    return myAgentTypeFinder.findAgentType(agentType.getAgentTypeId());
   }
 
   @NotNull
@@ -148,7 +175,7 @@ public class CloudImageResolver extends ModelResolver<CloudImage> {
   public DataFetcherResult<AbstractAgentPool> agentPool(@NotNull CloudImage image, @NotNull DataFetchingEnvironment env) {
     DataFetcherResult.Builder<AbstractAgentPool> result = new DataFetcherResult.Builder<>();
 
-    AgentType agentType = findAgentType(image);
+    SAgentType agentType = findAgentType(image);
     AgentPool pool = agentType != null ? myAgentPoolManager.findAgentPoolById(agentType.getAgentPoolId()) : null;
 
     if(agentType == null || pool == null) {

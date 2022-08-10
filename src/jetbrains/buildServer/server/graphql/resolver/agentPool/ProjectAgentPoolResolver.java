@@ -22,9 +22,11 @@ import jetbrains.buildServer.server.graphql.model.agentPool.AgentPoolPermissions
 import jetbrains.buildServer.server.graphql.model.agentPool.ProjectAgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.actions.AgentPoolActionStatus;
 import jetbrains.buildServer.server.graphql.model.agentPool.actions.ProjectAgentPoolActions;
+import jetbrains.buildServer.server.graphql.model.connections.agent.AgentPoolAgentTypesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolAgentsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolCloudImagesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
+import jetbrains.buildServer.server.graphql.model.filter.AgentPoolAgentTypesFilter;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -42,6 +44,11 @@ public class ProjectAgentPoolResolver extends ModelResolver<ProjectAgentPool> {
   public ProjectAgentPoolResolver(@NotNull AbstractAgentPoolResolver delegate, @NotNull ProjectManager projectManager) {
     myDelegate = delegate;
     myProjectManager = projectManager;
+  }
+
+  @NotNull
+  public AgentPoolAgentTypesConnection agentTypes(@NotNull ProjectAgentPool pool, @NotNull AgentPoolAgentTypesFilter filter) {
+    return myDelegate.agentTypes(pool, filter);
   }
 
   @NotNull

@@ -14,28 +14,15 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model;
+package jetbrains.buildServer.server.graphql.model.connections.agent;
 
+import jetbrains.buildServer.server.graphql.model.AgentType;
+import jetbrains.buildServer.server.graphql.model.connections.LazyEdge;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import org.jetbrains.annotations.NotNull;
 
-public class AgentEnvironment {
-  @NotNull
-  private final OS myOS;
-
-  public static final AgentEnvironment UNKNOWN = new AgentEnvironment(new OS("", OSType.Unknown), 0);
-  private final int myCpuBenchmarkIndex;
-
-  public AgentEnvironment(@NotNull OS os, int cpuBenchmarkIndex) {
-    myOS = os;
-    myCpuBenchmarkIndex = cpuBenchmarkIndex;
-  }
-
-  public int getCpuBenchmarkIndex() {
-    return myCpuBenchmarkIndex;
-  }
-
-  @NotNull
-  public OS getOs() {
-    return myOS;
+public class AgentTypeEdge extends LazyEdge<SAgentType, AgentType> {
+  public AgentTypeEdge(@NotNull SAgentType val) {
+    super(val, AgentType::new);
   }
 }

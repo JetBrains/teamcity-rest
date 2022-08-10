@@ -31,9 +31,11 @@ import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPoolPermissions;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
+import jetbrains.buildServer.server.graphql.model.connections.agent.AgentPoolAgentTypesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolAgentsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolCloudImagesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
+import jetbrains.buildServer.server.graphql.model.filter.AgentPoolAgentTypesFilter;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
@@ -64,6 +66,17 @@ public class AbstractAgentPoolResolver {
     mySecurityContext = securityContext;
     myCloudManager = cloudManager;
     myAgentTypeFinder = agentTypeFinder;
+  }
+
+  @NotNull
+  public AgentPoolAgentTypesConnection agentTypes(@NotNull AbstractAgentPool pool, @NotNull AgentPoolAgentTypesFilter filter) {
+    Stream<SAgentType> agentTypes = myAgentTypeFinder.getAgentTypesByPool(pool.getRealPool().getAgentPoolId()).stream();
+    if(filter.getCloud() != null) {
+      boolean isCloudRequired = filter.getCloud();
+      agentTypes = agentTypes.filter(at -> at.isCloud() == isCloudRequired);
+    }
+
+    return new AgentPoolAgentTypesConnection(agentTypes.collect(Collectors.toList()), PaginationArguments.everything());
   }
 
   @NotNull

@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.graphql.model.agentPool.ProjectAgentPool;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArgumentsProvider;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
+import jetbrains.buildServer.server.graphql.model.connections.agent.AgentTypesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agent.AgentsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.AgentsFilter;
@@ -45,6 +46,8 @@ import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
@@ -77,6 +80,9 @@ public class Query implements GraphQLQueryResolver {
   @Autowired
   private List<ModelResolver<?>> myModelResolvers;
 
+  @Autowired
+  private AgentTypeFinder myAgentTypeFinder;
+
   void initForTests(@NotNull Finder<SBuildAgent> agentFinder,
                     @NotNull ProjectManager projectManager,
                     @NotNull AgentPoolManager agentPoolManager,
@@ -106,6 +112,14 @@ public class Query implements GraphQLQueryResolver {
 
     // TODO: implement me
     return null;
+  }
+
+  @NotNull
+  public AgentTypesConnection agentTypes(@NotNull DataFetchingEnvironment env) {
+    List<SAgentType> data = new ArrayList<>();
+    data.addAll(myAgentTypeFinder.getActiveAgentTypes());
+
+    return new AgentTypesConnection(data, PaginationArguments.everything());
   }
 
   @NotNull

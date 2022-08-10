@@ -33,9 +33,11 @@ import jetbrains.buildServer.server.graphql.model.agentPool.AgentPoolPermissions
 import jetbrains.buildServer.server.graphql.model.agentPool.actions.*;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
+import jetbrains.buildServer.server.graphql.model.connections.agent.AgentPoolAgentTypesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolAgentsConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolCloudImagesConnection;
 import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoolProjectsConnection;
+import jetbrains.buildServer.server.graphql.model.filter.AgentPoolAgentTypesFilter;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.serverSide.*;
@@ -79,6 +81,11 @@ public class AgentPoolResolver extends ModelResolver<AgentPool> {
     mySecurityContext = securityContext;
     myPoolManager = poolManager;
     myAgentTypeManager = agentTypeManager;
+  }
+
+  @NotNull
+  public AgentPoolAgentTypesConnection agentTypes(@NotNull AgentPool pool, @NotNull AgentPoolAgentTypesFilter filter) {
+    return myDelegate.agentTypes(pool, filter);
   }
 
   @NotNull

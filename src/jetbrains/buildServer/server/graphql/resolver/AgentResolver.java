@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.graphql.resolver;
 
+import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.HashSet;
 import java.util.List;
@@ -33,12 +34,15 @@ import jetbrains.buildServer.server.graphql.model.connections.agent.Diassociated
 import jetbrains.buildServer.server.graphql.model.filter.AgentBuildTypesFilter;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
 import jetbrains.buildServer.server.graphql.util.ModelResolver;
+import jetbrains.buildServer.server.graphql.util.UnexpectedServerGraphQLError;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildAgentManager;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,6 +71,10 @@ public class AgentResolver extends ModelResolver<Agent> {
   @NotNull
   private AbstractAgentPoolFactory myPoolFactory;
 
+  @Autowired
+  @NotNull
+  private AgentTypeFinder myAgentTypeFinder;
+
   @NotNull
   public AbstractAgentPool agentPool(@NotNull Agent agent, @NotNull DataFetchingEnvironment env) {
     return myPoolFactory.produce(agent.getRealAgent().getAgentPool());
@@ -76,7 +84,23 @@ public class AgentResolver extends ModelResolver<Agent> {
   public AgentEnvironment environment(@NotNull Agent agent, @NotNull DataFetchingEnvironment env) {
     SBuildAgent realAgent = agent.getRealAgent();
 
-    return new AgentEnvironment(new OS(realAgent.getOperatingSystemName(), OSType.guessByName(realAgent.getOperatingSystemName())));
+    return new AgentEnvironment(
+      new OS(realAgent.getOperatingSystemName(), OSType.guessByName(realAgent.getOperatingSystemName())),
+      realAgent.getCpuBenchmarkIndex()
+    );
+  }
+
+  @NotNull
+  public DataFetcherResult<AgentType> agentType(@NotNull Agent agent) {
+    DataFetcherResult.Builder<AgentType> result = DataFetcherResult.newResult();
+    int agentTypeId = agent.getRealAgent().getAgentTypeId();
+
+    SAgentType agentType = myAgentTypeFinder.findAgentType(agentTypeId);
+    if(agentType == null) {
+      return result.error(new UnexpectedServerGraphQLError("Unable to find agentType by id.")).build();
+    }
+
+    return result.data(new AgentType(agentType)).build();
   }
 
   @NotNull

@@ -43,6 +43,16 @@ type AgentPoolAgentsConnection {
   pageInfo: PageInfo!
 }
 
+type AgentTypeEdge {
+  node: AgentType!
+}
+
+type AgentPoolAgentTypesConnection {
+  edges: [AgentTypeEdge!]!
+  count: Int!
+  pageInfo: PageInfo!
+}
+
 type AgentPoolProjectEdge {
   node: Project!
 }
@@ -62,11 +72,13 @@ type CloudImage implements RawId & Node {
   id: ID!
   rawId: ID!
   name: String
-  agentTypeRawId: ID
+  agentType: AgentType
   environment: AgentEnvironment
   instances: CloudImageInstancesConnection
   project: Project
   agentPool: AbstractAgentPool
+
+  agentTypeRawId: ID @deprecated(reason: "Use agentType.rawId instead")
   assignableAgentPools: AgentPoolsConnection @deprecated(reason: "Use AgentPool.assignableCloudImages instead")
 }
 
@@ -122,10 +134,11 @@ interface AbstractAgentPool implements RawId & Node {
   rawId: ID!
   name: String
   projects(filter: ProjectsFilter = {archived: false}): AgentPoolProjectsConnection
-  cloudImages: AgentPoolCloudImagesConnection
-  agents: AgentPoolAgentsConnection
+  agentTypes(filter: AgentPoolAgentTypesFilter): AgentPoolAgentTypesConnection
   maxAgentsNumber: Int
 
+  cloudImages: AgentPoolCloudImagesConnection @deprecated(reason: "Use agentTypes(filter:{cloud = true})")
+  agents: AgentPoolAgentsConnection @deprecated(reason: "Use agentTypes(filter:{cloud = false})")
   permissions: AgentPoolPermissions @deprecated
 }
 
@@ -134,8 +147,9 @@ type AgentPool implements AbstractAgentPool & RawId & Node {
   rawId: ID!
   name: String
   projects(filter: ProjectsFilter = {archived: false}): AgentPoolProjectsConnection
-  cloudImages: AgentPoolCloudImagesConnection
-  agents: AgentPoolAgentsConnection
+  agentTypes(filter: AgentPoolAgentTypesFilter): AgentPoolAgentTypesConnection
+  cloudImages: AgentPoolCloudImagesConnection @deprecated(reason: "Use agentTypes(filter:{cloud = true})")
+  agents: AgentPoolAgentsConnection @deprecated(reason: "Use agentTypes(filter:{cloud = false})")
   maxAgentsNumber: Int
 
   assignableAgents: AgentPoolAgentsConnection
@@ -150,8 +164,9 @@ type ProjectAgentPool implements AbstractAgentPool & RawId & Node {
   rawId: ID!
   name: String
   projects(filter: ProjectsFilter = {archived: false}): AgentPoolProjectsConnection
-  cloudImages: AgentPoolCloudImagesConnection
-  agents: AgentPoolAgentsConnection
+  agentTypes(filter: AgentPoolAgentTypesFilter): AgentPoolAgentTypesConnection
+  cloudImages: AgentPoolCloudImagesConnection @deprecated(reason: "Use agentTypes(filter:{cloud = true})")
+  agents: AgentPoolAgentsConnection @deprecated(reason: "Use agentTypes(filter:{cloud = false})")
   maxAgentsNumber: Int
 
   project: Project
@@ -186,6 +201,10 @@ type UnmetRequirementAgentBuildTypeIncompatibility {
   propertyName: String!
   propertyValue: String
   type: String
+}
+
+input AgentPoolAgentTypesFilter {
+  cloud: Boolean
 }
 
 union AgentBuildTypeIncompatibility =
@@ -237,19 +256,41 @@ type OS {
 
 type AgentEnvironment {
   os: OS
+  cpuBenchmarkIndex: Int
+}
+
+type AgentTypeAgentsConnection {
+  edges: [AgentEdge!]!
+  count: Int!
+  pageInfo: PageInfo!
+}
+
+type AgentType implements RawId & Node {
+  id: ID!
+  rawId: ID!
+  isCloud: Boolean!
+  name: String
+  environment: AgentEnvironment
+  # Always empty in case this is a non-cloud AgentType
+  cloudImage: CloudImage
+  agentPool: AbstractAgentPool!
+  # There may be no agents in case it is non cloud agent and it is dead. There also may be more than one agent in case this is a cloud agent type.
+  agents: AgentTypeAgentsConnection
 }
 
 type Agent implements RawId & Node {
   id: ID!
   rawId: ID!
   name: String
-  agentPool: AbstractAgentPool
+  agentType: AgentType
   associatedBuildTypes(filter: AgentBuildTypesFilter): AssociatedAgentBuildTypesConnection
   dissociatedBuildTypes(filter: AgentBuildTypesFilter): DiassociatedAgentBuildTypesConnection
-  environment: AgentEnvironment
   authorized: Boolean
   enabled: Boolean
   connected: Boolean
+
+  agentPool: AbstractAgentPool @deprecated(reason: "Use agentType.agentPool instead")
+  environment: AgentEnvironment @deprecated(reason: "Use agentType.environment instead")
 }
 
 type ProjectEdge {
@@ -324,9 +365,15 @@ type AgentPoolsConnection {
   edges: [AgentPoolEdge!]!
 }
 
+type AgentTypesConnection {
+  edges: [AgentTypeEdge!]!
+}
+
 type Query {
   agent(id: ID!): Agent
   agents(filter: AgentsFilter): AgentsConnection
+  # Returns only active agent types
+  agentTypes: AgentTypesConnection
   agentPool(id: ID!): AbstractAgentPool
   agentPools: AgentPoolsConnection
   projects(filter: ProjectsFilter = {archived: false, virtual: false}, first: Int, after: String): ProjectsConnection

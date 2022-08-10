@@ -14,28 +14,20 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.graphql.model;
+package jetbrains.buildServer.server.graphql.model.filter;
 
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class AgentEnvironment {
-  @NotNull
-  private final OS myOS;
+public class AgentPoolAgentTypesFilter {
+  @Nullable
+  private Boolean myCloud;
 
-  public static final AgentEnvironment UNKNOWN = new AgentEnvironment(new OS("", OSType.Unknown), 0);
-  private final int myCpuBenchmarkIndex;
-
-  public AgentEnvironment(@NotNull OS os, int cpuBenchmarkIndex) {
-    myOS = os;
-    myCpuBenchmarkIndex = cpuBenchmarkIndex;
+  public void setCloud(@Nullable Boolean cloud) {
+    myCloud = cloud;
   }
 
-  public int getCpuBenchmarkIndex() {
-    return myCpuBenchmarkIndex;
-  }
-
-  @NotNull
-  public OS getOs() {
-    return myOS;
+  @Nullable
+  public Boolean getCloud() {
+    return myCloud;
   }
 }

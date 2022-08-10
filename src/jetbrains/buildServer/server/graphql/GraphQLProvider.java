@@ -94,6 +94,10 @@ public class GraphQLProvider {
   @NotNull
   private CloudImageResolver myCloudImageResolver;
 
+  @Autowired
+  @NotNull
+  private AgentTypeResolver myAgentTypeResolver;
+
   @Bean
   public GraphQL graphQL() {
     return graphQL;
@@ -137,7 +141,8 @@ public class GraphQLProvider {
                   myAgentBuildTypeEdgeResolver,
                   myAgentPoolResolver,
                   myProjectAgentPoolResolver,
-                  myCloudImageResolver
+                  myCloudImageResolver,
+                  myAgentTypeResolver
                 )
                 .dictionary(
                   InvalidRunParameterAgentBuildTypeIncompatibility.class,
