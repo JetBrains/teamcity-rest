@@ -43,6 +43,8 @@ import jetbrains.buildServer.server.rest.model.build.Tags;
 import jetbrains.buildServer.server.rest.model.build.approval.ApprovalInfo;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildQueuePositionDescriptor;
+import jetbrains.buildServer.server.rest.util.BuildQueuePostitionModifier;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.impl.ApprovableBuildManager;
@@ -528,18 +530,13 @@ public class  BuildQueueRequest {
       throw new BadRequestException("Cannot move build which is not queued");
     }
 
-    int queuePositionNumber;
-    queuePositionNumber = getQueuePositionNumber(queuePosition);
-    if (queuePositionNumber == 1) {
-      final BuildQueue buildQueue = myServiceLocator.getSingletonService(BuildQueue.class);
-      buildQueue.moveTop(queuedBuild.getItemId());
-    } else if (queuePositionNumber == Integer.MAX_VALUE) {
-      final BuildQueue buildQueue = myServiceLocator.getSingletonService(BuildQueue.class);
-      buildQueue.moveBottom(queuedBuild.getItemId());
-    } else {
+    BuildQueuePositionDescriptor newPosition = BuildQueuePositionDescriptor.parse(queuePosition);
+    if(newPosition == null) {
       throw new BadRequestException("Unsupported value of queuePosition \"" + queuePosition + "\": only \"1\", \"first\" and \"last\" are supported");
     }
 
+    BuildQueuePostitionModifier buildQueuePostitionModifier = myServiceLocator.getSingletonService(BuildQueuePostitionModifier.class);
+    buildQueuePostitionModifier.moveBuild(queuedBuild, newPosition);
 
     return new Build(queuedBuild.getBuildPromotion(), new Fields(fields), myBeanContext);
   }

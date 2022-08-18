@@ -41,6 +41,9 @@
       <class name="jetbrains.buildServer.server.rest.request.TwoFactorRequestTest" />
       <class name="jetbrains.buildServer.server.rest.request.ChangeRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.NodesRequestTest" />
+
+      <class name="jetbrains.buildServer.server.rest.util.BuildQueuePositionDescriptorTest" />
+      <class name="jetbrains.buildServer.server.rest.util.BuildQueuePositionModifierTest" />
     </classes>
   </test>
   <test name="Rest API Model Test" preserve-order="false">
