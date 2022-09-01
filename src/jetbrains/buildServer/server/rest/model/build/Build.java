@@ -1794,14 +1794,19 @@ public class Build {
     return result;
   }
 
-  private void setupRevisionsInCustomizer(@NotNull BuildCustomizerEx customizer, @NotNull SBuildType buildType, @NotNull Revisions submittedRevisions) {
-    List<BuildRevisionEx> buildRevisions = transformToBuildRevisions(buildType, submittedRevisions);
-    long modId = -1;
-    for (BuildRevisionEx r: buildRevisions) {
-      final Long revModId = r.getModificationId();
-      modId = Math.max(modId, revModId == null ? -1 : revModId);
-    }
-    customizer.setNodeRevisions(buildType.getBuildTypeId(), modId, modId, buildRevisions);
+  private void setupRevisionsInCustomizer(@NotNull BuildCustomizerEx customizer, @NotNull SBuildType topBuildType, @NotNull Revisions submittedRevisions) {
+    ((BuildTypeEx)topBuildType).traverseSelfAndDependencies(bt -> {
+      List<BuildRevisionEx> buildRevisions = transformToBuildRevisions(bt, submittedRevisions);
+      if (buildRevisions.isEmpty()) return DependencyConsumer.Result.CONTINUE;
+
+      long modId = -1;
+      for (BuildRevisionEx r: buildRevisions) {
+        final Long revModId = r.getModificationId();
+        modId = Math.max(modId, revModId == null ? -1 : revModId);
+      }
+      customizer.setNodeRevisions(bt.getBuildTypeId(), modId, modId, buildRevisions);
+      return DependencyConsumer.Result.CONTINUE;
+    });
   }
 
   @NotNull
