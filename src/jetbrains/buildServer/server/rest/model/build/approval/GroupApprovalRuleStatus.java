@@ -27,8 +27,8 @@ import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
-import jetbrains.buildServer.serverSide.impl.ApprovableBuildManager;
-import jetbrains.buildServer.serverSide.impl.ApprovalRule;
+import jetbrains.buildServer.serverSide.impl.approval.ApprovableBuildManager;
+import jetbrains.buildServer.serverSide.impl.approval.ApprovalRule;
 import org.jetbrains.annotations.NotNull;
 
 @ModelDescription("Represents group approval rule and its current status for the given build.")

@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.model.build.approval;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -33,12 +32,12 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
 import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.impl.*;
+import jetbrains.buildServer.serverSide.impl.approval.*;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 
 @XmlRootElement(name = "approvalInfo")
@@ -48,7 +47,8 @@ public class ApprovalInfo {
   @NotNull private Fields myFields;
   @NotNull private BeanContext myBeanContext;
   @NotNull private ApprovableBuildManager myApprovableBuildManager;
-  @NotNull private Optional<SBuildFeatureDescriptor> myDescriptor;
+  @NotNull private Boolean myApprovalFeatureEnabled;
+  @Nullable private ApprovalBuildFeatureConfiguration myConfiguration;
 
   public ApprovalInfo(@NotNull final BuildPromotionEx buildPromotionEx,
                       @NotNull final Fields fields,
@@ -57,7 +57,10 @@ public class ApprovalInfo {
     myFields = fields;
     myBeanContext = beanContext;
     myApprovableBuildManager = beanContext.getSingletonService(ApprovableBuildManager.class);
-    myDescriptor = myApprovableBuildManager.getApprovalFeature(myBuildPromotionEx);
+    myApprovalFeatureEnabled = myApprovableBuildManager.hasApprovalFeature(buildPromotionEx);
+    if (myApprovalFeatureEnabled) {
+      myConfiguration = myApprovableBuildManager.getApprovalBuildFeatureConfiguration(myBuildPromotionEx);
+    }
   }
 
   public ApprovalInfo() {
@@ -117,10 +120,9 @@ public class ApprovalInfo {
 
   @XmlAttribute(name = "configurationValid")
   public Boolean getConfigurationValid() {
-    ApprovalBuildFeatureConfiguration configuration = myApprovableBuildManager.getApprovalBuildFeatureConfiguration(myDescriptor);
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("configurationValid"), () ->
-        configuration != null ? configuration.areApprovalRulesValid() : false
+        myConfiguration != null ? myConfiguration.areApprovalRulesValid() : false
     );
   }
 
@@ -142,6 +144,9 @@ public class ApprovalInfo {
   @XmlElement(name = "userApprovals")
   public UserApprovalRuleStatuses getUserApprovalRuleStatuses() {
     if (myFields.isIncluded("userApprovals", true, true)) {
+      if (!myApprovalFeatureEnabled) {
+        return null;
+      }
       try { // return empty list of rule statuses if user is not entitled to see build configuration settings
         myBeanContext.getServiceLocator().findSingletonService(PermissionChecker.class)
                      .checkProjectPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, myBuildPromotionEx.getProjectId());
@@ -149,24 +154,22 @@ public class ApprovalInfo {
         return null;
       }
 
-      if (myDescriptor.isPresent()) {
-        try {
-          List<ApprovalRule> userRules = myApprovableBuildManager
-            .getApprovalBuildFeatureConfiguration(myDescriptor)
-            .getApprovalRules() // asserted by descriptor.isPresent
-            .stream()
-            .filter(rule -> rule instanceof UserApprovalRule)
-            .collect(Collectors.toList());
-          return new UserApprovalRuleStatuses(
-            myBuildPromotionEx,
-            userRules,
-            myFields.getNestedField("userApprovals", Fields.LONG, Fields.LONG),
-            myBeanContext
-          );
-        } catch (ApprovalBuildFeatureConfiguration.InvalidApprovalRuleException e) {
-          return null; // act as if there are no rules at all
-        }
+      try {
+        List<ApprovalRule> userRules = myConfiguration
+          .getApprovalRules() // asserted by myApprovalFeatureEnabled
+          .stream()
+          .filter(rule -> rule instanceof UserApprovalRule)
+          .collect(Collectors.toList());
+        return new UserApprovalRuleStatuses(
+          myBuildPromotionEx,
+          userRules,
+          myFields.getNestedField("userApprovals", Fields.LONG, Fields.LONG),
+          myBeanContext
+        );
+      } catch (InvalidApprovalRuleException e) {
+        return null; // act as if there are no rules at all
       }
+
     }
     return null;
   }
@@ -174,6 +177,10 @@ public class ApprovalInfo {
   @XmlElement(name = "groupApprovals")
   public GroupApprovalRuleStatuses getGroupApprovalRuleStatuses() {
     if (myFields.isIncluded("groupApprovals", true, true)) {
+      if (!myApprovalFeatureEnabled) {
+        return null;
+      }
+
       try { // return empty list of rule statuses if user is not entitled to see build configuration settings
         myBeanContext.getServiceLocator().findSingletonService(PermissionChecker.class)
                      .checkProjectPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, myBuildPromotionEx.getProjectId());
@@ -181,23 +188,20 @@ public class ApprovalInfo {
         return null;
       }
 
-      if (myDescriptor.isPresent()) {
-        try {
-          List<ApprovalRule> groupRules = myApprovableBuildManager
-            .getApprovalBuildFeatureConfiguration(myDescriptor)
-            .getApprovalRules() // asserted by descriptor.isPresent
-            .stream()
-            .filter(rule -> rule instanceof GroupApprovalRule)
-            .collect(Collectors.toList());
-          return new GroupApprovalRuleStatuses(
-            myBuildPromotionEx,
-            groupRules,
-            myFields.getNestedField("groupApprovals", Fields.LONG, Fields.LONG),
-            myBeanContext
-          );
-        } catch (ApprovalBuildFeatureConfiguration.InvalidApprovalRuleException e) {
-          return null; // act as if there are no rules at all
-        }
+      try {
+        List<ApprovalRule> groupRules = myConfiguration
+          .getApprovalRules() // asserted by myApprovalFeatureEnabled
+          .stream()
+          .filter(rule -> rule instanceof GroupApprovalRule)
+          .collect(Collectors.toList());
+        return new GroupApprovalRuleStatuses(
+          myBuildPromotionEx,
+          groupRules,
+          myFields.getNestedField("groupApprovals", Fields.LONG, Fields.LONG),
+          myBeanContext
+        );
+      } catch (InvalidApprovalRuleException e) {
+        return null; // act as if there are no rules at all
       }
     }
     return null;
