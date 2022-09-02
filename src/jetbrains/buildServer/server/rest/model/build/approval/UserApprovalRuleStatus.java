@@ -18,14 +18,13 @@ package jetbrains.buildServer.server.rest.model.build.approval;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
-import jetbrains.buildServer.serverSide.impl.ApprovableBuildManager;
-import jetbrains.buildServer.serverSide.impl.ApprovalRule;
+import jetbrains.buildServer.serverSide.impl.approval.ApprovableBuildManager;
+import jetbrains.buildServer.serverSide.impl.approval.ApprovalRule;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 

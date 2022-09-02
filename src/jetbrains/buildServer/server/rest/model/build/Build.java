@@ -80,7 +80,7 @@ import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
-import jetbrains.buildServer.serverSide.impl.ApprovableBuildManager;
+import jetbrains.buildServer.serverSide.impl.approval.ApprovableBuildManager;
 import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import jetbrains.buildServer.serverSide.impl.DownloadedArtifactsLoggerImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -697,7 +697,7 @@ public class Build {
       ApprovableBuildManager approvableBuildManager = myBeanContext.getSingletonService(ApprovableBuildManager.class);
       BuildPromotionEx buildPromotionEx = (BuildPromotionEx)myBuildPromotion;
 
-      if (approvableBuildManager.getApprovalFeature(buildPromotionEx).isPresent()) {
+      if (approvableBuildManager.hasApprovalFeature(buildPromotionEx)) {
         return new ApprovalInfo(buildPromotionEx, myFields.getNestedField("approvalInfo"), myBeanContext);
       }
       return null;

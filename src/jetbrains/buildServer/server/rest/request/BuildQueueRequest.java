@@ -47,7 +47,7 @@ import jetbrains.buildServer.server.rest.util.BuildQueuePositionDescriptor;
 import jetbrains.buildServer.server.rest.util.BuildQueuePostitionModifier;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
-import jetbrains.buildServer.serverSide.impl.ApprovableBuildManager;
+import jetbrains.buildServer.serverSide.impl.approval.ApprovableBuildManager;
 import jetbrains.buildServer.tags.TagsManager;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -552,7 +552,7 @@ public class  BuildQueueRequest {
     ApprovableBuildManager approvableBuildManager = myBeanContext.getSingletonService(ApprovableBuildManager.class);
     BuildPromotionEx buildPromotionEx = (BuildPromotionEx)myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
 
-    if (approvableBuildManager.getApprovalFeature(buildPromotionEx).isPresent()) {
+    if (approvableBuildManager.hasApprovalFeature(buildPromotionEx)) {
       return new ApprovalInfo(buildPromotionEx, new Fields(fields), myBeanContext);
     } else {
       throw new BadRequestException(
