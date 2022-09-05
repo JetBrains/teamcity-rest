@@ -509,6 +509,37 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
   }
 
   @Test
+  public void testBuildTypeDimensionInFilter() {
+    final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
+    final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
+    createDependencyChain(buildConf2, buildConf1);
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    vcs.setDAGBased(true);
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRootEx parentRoot1 = myFixture.addVcsRoot(vcs.getName(), "", buildConf1);
+    SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", buildConf2);
+    VcsRootInstance root1 = buildConf1.getVcsRootInstanceForParent(parentRoot1);
+    VcsRootInstance root2 = buildConf2.getVcsRootInstanceForParent(parentRoot2);
+    assert root1 != null;
+    assert root2 != null;
+
+    setBranchSpec(root1, "+:*");
+    setBranchSpec(root2, "+:*");
+
+    final BuildFinderTestBase.MockCollectRepositoryChangesPolicy changesPolicy = new BuildFinderTestBase.MockCollectRepositoryChangesPolicy();
+    vcs.setCollectChangesPolicy(changesPolicy);
+
+    SVcsModification mod1 = myFixture.addModification(modification().in(root1).version("1").parentVersions("0"));
+    SVcsModification mod2 = myFixture.addModification(modification().in(root2).version("2").parentVersions("0"));
+
+    ItemFilter<SVcsModificationOrChangeDescriptor> filter = getFinder().getFilter("buildType:buildConf2");
+
+    assertFalse(filter.isIncluded(new SVcsModificationOrChangeDescriptor(mod1)));
+    assertTrue(filter.isIncluded(new SVcsModificationOrChangeDescriptor(mod2)));
+  }
+
+  @Test
   public void testChangeBean() {
 
     MockVcsSupport vcsSupport = new MockVcsSupport("svn");

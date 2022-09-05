@@ -334,7 +334,9 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
       final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE); //todo: support multiple buildTypes here
       if (buildTypeLocator != null) {
         SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
-        result.add(item -> item.getRelatedConfigurations().contains(buildType)); //todo: this does not include "show changes from dependencies", relates to https://youtrack.jetbrains.com/issue/TW-63704
+
+        //todo: this does not include "show changes from dependencies", relates to https://youtrack.jetbrains.com/issue/TW-63704
+        result.add(item -> ((VcsModificationEx) item).isRelatedTo(buildType));
       }
     }
 
