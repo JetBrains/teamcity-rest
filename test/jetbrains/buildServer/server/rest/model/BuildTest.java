@@ -1573,6 +1573,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     r2.vcsRoot = new jetbrains.buildServer.server.rest.model.change.VcsRootInstance();
     r2.vcsRoot.id = String.valueOf(rootInst2.getId());
     r2.displayRevision = "r2_0";
+    r2.checkoutRules = ".=>subdir  \n";
     revisions.revisions = new ArrayList<>();
     revisions.revisions.add(r1);
     revisions.revisions.add(r2);
@@ -1616,6 +1617,8 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     bt1.addVcsRoot(root1);
     bt2.addVcsRoot(root2);
     bt2.setCheckoutRules(root2, new CheckoutRules("+:subdir"));
+    bt3.addVcsRoot(root2);
+    bt3.setCheckoutRules(root2, new CheckoutRules("+:other"));
 
     VcsRootInstance rootInst1 = bt1.getVcsRootInstanceForParent(root1);
     VcsRootInstance rootInst2 = bt2.getVcsRootInstanceForParent(root2);
@@ -1650,9 +1653,16 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     r2.vcsRoot = new jetbrains.buildServer.server.rest.model.change.VcsRootInstance();
     r2.vcsRoot.id = String.valueOf(rootInst2.getId());
     r2.displayRevision = "r2_0";
+    r2.checkoutRules = "+:subdir";
+    Revision r3 = new Revision();
+    r3.vcsRoot = new jetbrains.buildServer.server.rest.model.change.VcsRootInstance();
+    r3.vcsRoot.id = String.valueOf(rootInst2.getId());
+    r3.displayRevision = "r2_1";
+    r3.checkoutRules = "+:other";
     revisions.revisions = new ArrayList<>();
     revisions.revisions.add(r1);
     revisions.revisions.add(r2);
+    revisions.revisions.add(r3);
     build.setRevisions(revisions);
 
     final SUser user = getOrCreateUser("user");
@@ -1680,7 +1690,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
     BuildPromotionEx bt3Bp = bt2Bp.getDependencies().iterator().next().getDependOn();
     assertEquals(bt3, bt3Bp.getBuildType());
-    assertTrue(bt3Bp.getRevisions().isEmpty());
+    assertEquals("r2_1", bt3Bp.getRevisions().get(0).getRevision());
   }
 
   @Test
