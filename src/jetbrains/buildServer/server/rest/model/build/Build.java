@@ -1829,56 +1829,92 @@ public class Build {
       }
     }
 
-    List<BuildRevisionEx> res = new ArrayList<>();
+    Map<VcsRootInstanceEntry, Revision> rootEntryToRevisionMap = new HashMap<>();
     for (Revision r: submittedRevisions.revisions) {
-      VcsRootInstanceEntry rootEntry = null;
-      if (r.vcsRoot.id != null) {
-        long rootId;
-        try {
-          rootId = Long.parseLong(r.vcsRoot.id);
-        } catch (NumberFormatException e) {
-          continue;
-        }
-
-        rootEntry = vcsRootsMap.get(rootId);
-      } else if (r.vcsRoot.vcsRootId != null) { // external id of a parent VCS root
-        rootEntry = vcsRootsExtIdsMap.get(r.vcsRoot.vcsRootId);
-      }
-
+      VcsRootInstanceEntry rootEntry = findVcsRootEntry(vcsRootsMap, vcsRootsExtIdsMap, r);
       if (rootEntry == null) continue;
 
-      long modId = -1L;
-      SVcsModification mod = ((VcsRootInstanceEx)rootEntry.getVcsRoot()).findModificationByVersion(r.displayRevision);
-      if (mod != null) {
-        modId = mod.getId();
+      if (r.checkoutRules != null) {
+        CheckoutRules submittedCheckoutRules = new CheckoutRules(r.checkoutRules);
+        // if submitted revisions have checkout rules specified, then we should compare them with expected checkout rules and apply submitted revisions only if they are the same
+        if (!sameCheckoutRules(submittedCheckoutRules, rootEntry.getCheckoutRules())) {
+          Revision existing = rootEntryToRevisionMap.get(rootEntry);
+          if (existing != null && existing.checkoutRules == null) {
+            // we had a revision in the map which was set there without a checkout rules verification, we should remove this entry
+            // because there is a revision for the same entry but with checkout rules and for it the verification was not successful
+            rootEntryToRevisionMap.remove(rootEntry);
+          }
+          continue;
+        }
       }
 
-      BuildRevisionEx rev = new BuildRevisionEx(rootEntry, new RepositoryVersion(r.displayRevision, r.displayRevision, r.vcsBranchName), modId);
-      if (rootEntry == implicitSettingsRootEntry) {
-        rev.setCheckoutMode(BuildRevisionCheckoutMode.MANUAL);
-        rev.setType(BuildRevisionVcsRootType.PROJECT_SETTINGS);
+      if (r.checkoutRules != null) {
+        // a revision for which checkout rules verification passed has a higher priority than a revision without checkout rules
+        rootEntryToRevisionMap.put(rootEntry, r);
+      } else {
+        rootEntryToRevisionMap.putIfAbsent(rootEntry, r);
       }
-      res.add(rev);
+    }
+
+    Map<Long, BuildRevisionEx> revisionsMap = new HashMap<>();
+    for (Map.Entry<VcsRootInstanceEntry, Revision> e: rootEntryToRevisionMap.entrySet()) {
+      revisionsMap.put(e.getKey().getVcsRoot().getId(), createBuildRevision(e.getValue(), e.getKey(), implicitSettingsRootEntry));
     }
 
     // check all revisions are set
     List<VcsRootInstance> missing = new ArrayList<>();
     for (VcsRootInstanceEntry re: btRootInstances) {
-      boolean revisionExist = false;
-      for (BuildRevisionEx r: res) {
-        if (r.getRoot().getId() == re.getVcsRoot().getId()) {
-          revisionExist = true;
-          break;
-        }
-      }
-      if (!revisionExist) {
+      if (!revisionsMap.containsKey(re.getVcsRoot().getId())) {
         missing.add(re.getVcsRoot());
       }
     }
 
     if (!missing.isEmpty()) throw new RevisionsNotFoundException(Collections.singletonMap(buildType, missing));
 
-    return res;
+    return new ArrayList<>(revisionsMap.values());
+  }
+
+  @NotNull
+  private static BuildRevisionEx createBuildRevision(@NotNull Revision r, @NotNull VcsRootInstanceEntry rootEntry, @Nullable VcsRootInstanceEntry implicitSettingsRootEntry) {
+    long modId = findVcsModification(r.displayRevision, rootEntry.getVcsRoot());
+    BuildRevisionEx rev = new BuildRevisionEx(rootEntry, new RepositoryVersion(r.displayRevision, r.displayRevision, r.vcsBranchName), modId);
+    if (rootEntry == implicitSettingsRootEntry) {
+      rev.setCheckoutMode(BuildRevisionCheckoutMode.MANUAL);
+      rev.setType(BuildRevisionVcsRootType.PROJECT_SETTINGS);
+    }
+    return rev;
+  }
+
+  private static long findVcsModification(@NotNull String revision, @NotNull VcsRootInstance rootInstance) {
+    long modId = -1L;
+    SVcsModification mod = ((VcsRootInstanceEx)rootInstance).findModificationByVersion(revision);
+    if (mod != null) {
+      modId = mod.getId();
+    }
+    return modId;
+  }
+
+  @Nullable
+  private static VcsRootInstanceEntry findVcsRootEntry(@NotNull Map<Long, VcsRootInstanceEntry> vcsRootsMap, @NotNull Map<String, VcsRootInstanceEntry> vcsRootsExtIdsMap, @NotNull Revision revision) {
+    VcsRootInstanceEntry rootEntry = null;
+    if (revision.vcsRoot.id != null) {
+      long rootId;
+      try {
+        rootId = Long.parseLong(revision.vcsRoot.id);
+      } catch (NumberFormatException e) {
+        return null;
+      }
+
+      rootEntry = vcsRootsMap.get(rootId);
+    } else if (revision.vcsRoot.vcsRootId != null) { // external id of a parent VCS root
+      rootEntry = vcsRootsExtIdsMap.get(revision.vcsRoot.vcsRootId);
+    }
+
+    return rootEntry;
+  }
+
+  private static boolean sameCheckoutRules(@NotNull CheckoutRules r1, @NotNull CheckoutRules r2) {
+    return r1.getIncludeRules().equals(r2.getIncludeRules()) && r1.getExcludeRules().equals(r2.getExcludeRules());
   }
 
   @NotNull
