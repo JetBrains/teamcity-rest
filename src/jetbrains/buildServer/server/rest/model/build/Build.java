@@ -1806,13 +1806,22 @@ public class Build {
   }
 
   private void setupRevisionsInCustomizer(@NotNull BuildCustomizerEx customizer, @NotNull SBuildType topBuildType, @NotNull Revisions submittedRevisions) {
-    ((BuildTypeEx)topBuildType).traverseSelfAndDependencies(bt -> {
+    List<BuildTypeEx> buildTypes = new ArrayList<>();
+    buildTypes.add((BuildTypeEx)topBuildType);
+    if (TeamCityProperties.getBooleanOrTrue("rest.triggerBuild.applyCustomRevisionsToDependencies")) {
+      ((BuildTypeEx)topBuildType).traverseDependencies(bt -> {
+        buildTypes.add(bt);
+        return DependencyConsumer.Result.CONTINUE;
+      });
+    }
+
+    for (BuildTypeEx bt: buildTypes) {
       List<BuildRevisionEx> buildRevisions;
       try {
         buildRevisions = transformToBuildRevisions(bt, submittedRevisions);
       } catch (RevisionsNotFoundException e) {
         // not all VCS roots have revisions provided for this dependency, skip it then
-        return DependencyConsumer.Result.CONTINUE;
+        continue;
       }
 
       long modId = -1;
@@ -1821,8 +1830,7 @@ public class Build {
         modId = Math.max(modId, revModId == null ? -1 : revModId);
       }
       customizer.setNodeRevisions(bt.getBuildTypeId(), modId, modId, buildRevisions);
-      return DependencyConsumer.Result.CONTINUE;
-    });
+    }
   }
 
   @NotNull
