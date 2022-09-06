@@ -16,6 +16,10 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
+import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
@@ -26,11 +30,6 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlType;
-import java.util.List;
 
 /**
  * @author Yegor.Yarko
@@ -45,6 +44,9 @@ public class Revisions {
 
   @XmlElement(name = "revision")
   public List<Revision> revisions;
+
+  @XmlAttribute(name = "failOnMissingRevisions")
+  public Boolean failOnMissingRevisions;
 
   public Revisions() {
   }

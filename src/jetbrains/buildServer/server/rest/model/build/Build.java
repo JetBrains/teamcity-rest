@@ -101,6 +101,7 @@ import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.PasswordReplacer;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.RevisionsNotFoundException;
@@ -1660,6 +1661,11 @@ public class Build {
   }
 
   private BuildPromotion getBuildToTrigger(@Nullable final SUser user, @NotNull final ServiceLocator serviceLocator, @NotNull final Map<Long, Long> buildPromotionIdReplacements) {
+    List<BuildPromotion> customDependencies = Collections.emptyList();
+    if (submittedBuildDependencies != null) {
+      customDependencies = submittedBuildDependencies.getFromPosted(serviceLocator, buildPromotionIdReplacements);
+    }
+
     SVcsModification changeToUse = null;
     SVcsModification personalChangeToUse = null;
     if (submittedLastChanges != null) {
@@ -1692,7 +1698,18 @@ public class Build {
     if (changeToUse != null) {
       customizer.setChangesUpTo(changeToUse); //might need to rework after comparison to code in jetbrains.buildServer.controllers.RunBuildBean.setupBuildCustomizer: customizer.setNodeRevisions, etc.
     } else if (submittedRevisions != null) {
-      setupRevisionsInCustomizer(customizer, submittedBuildType, submittedRevisions);
+      try {
+        setupRevisionsInCustomizer(customizer, submittedBuildType, submittedRevisions, customDependencies);
+      } catch (RevisionsNotFoundException e) {
+        StringBuilder missingRevisionsError = new StringBuilder("Missing revisions for the following build configurations and VCS roots:");
+        e.getMissingRevisionsMap().forEach((bt, roots) -> {
+          missingRevisionsError.append("\n");
+          missingRevisionsError.append("build configuration: ").append(bt.getExternalId()).append(", VCS roots: ");
+          missingRevisionsError.append(StringUtil.join(",", roots.stream().map(r -> r.getParent().getExternalId()).collect(Collectors.toList())));
+        });
+
+        throw new BadRequestException(missingRevisionsError.toString());
+      }
     }
 
     if (submittedComment != null) {
@@ -1709,9 +1726,9 @@ public class Build {
     if (submittedBranchName != null) customizer.setDesiredBranchName(submittedBranchName); //this should ideally be used only when defaultBranc flag is not set. If set to false, should use customizer.setDesiredBranchName(submittedBranchName, false)
     if (submittedPersonal != null) customizer.setPersonal(submittedPersonal);
 
-    if (submittedBuildDependencies != null) {
+    if (!customDependencies.isEmpty()) {
       try {
-        customizer.setSnapshotDependencyNodes(submittedBuildDependencies.getFromPosted(serviceLocator, buildPromotionIdReplacements));
+        customizer.setSnapshotDependencyNodes(customDependencies);
       } catch (IllegalArgumentException e) {
         throw new BadRequestException("Error trying to use specified snapshot dependencies" + getRelatedBuildDescription() + ":" + e.getMessage());
       } catch (NotFoundException e) {
@@ -1805,7 +1822,13 @@ public class Build {
     return result;
   }
 
-  private void setupRevisionsInCustomizer(@NotNull BuildCustomizerEx customizer, @NotNull SBuildType topBuildType, @NotNull Revisions submittedRevisions) {
+  private void setupRevisionsInCustomizer(@NotNull BuildCustomizerEx customizer,
+                                          @NotNull SBuildType topBuildType,
+                                          @NotNull Revisions submittedRevisions,
+                                          @NotNull List<BuildPromotion> customDependencies) {
+    Set<String> customizedDependencies = customDependencies.stream().map(p -> p.getParentBuildTypeId()).collect(Collectors.toSet());
+    boolean failOnMissingRevisions = submittedRevisions.failOnMissingRevisions == null || Boolean.TRUE.equals(submittedRevisions.failOnMissingRevisions);
+
     List<BuildTypeEx> buildTypes = new ArrayList<>();
     buildTypes.add((BuildTypeEx)topBuildType);
     if (TeamCityProperties.getBooleanOrTrue("rest.triggerBuild.applyCustomRevisionsToDependencies")) {
@@ -1816,11 +1839,13 @@ public class Build {
     }
 
     for (BuildTypeEx bt: buildTypes) {
+      if (customizedDependencies.contains(bt.getBuildTypeId())) continue;
+
       List<BuildRevisionEx> buildRevisions;
       try {
         buildRevisions = transformToBuildRevisions(bt, submittedRevisions);
       } catch (RevisionsNotFoundException e) {
-        // not all VCS roots have revisions provided for this dependency, skip it then
+        if (failOnMissingRevisions) throw e;
         continue;
       }
 

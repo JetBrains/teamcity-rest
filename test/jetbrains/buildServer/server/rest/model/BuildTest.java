@@ -1750,6 +1750,20 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     build.setRevisions(revisions);
 
     final SUser user = getOrCreateUser("user");
+    try {
+      build.triggerBuild(user, myFixture, new HashMap<>());
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("Missing revisions"));
+      assertTrue(e.getMessage().contains(root3.getExternalId()));
+    }
+
+    revisions = new Revisions();
+    revisions.failOnMissingRevisions = false;
+    revisions.revisions = new ArrayList<>();
+    revisions.revisions.add(r1);
+    revisions.revisions.add(r2);
+    build.setRevisions(revisions);
+
     SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<>());
     BuildPromotionEx bp = (BuildPromotionEx)result.getBuildPromotion();
     assertFalse(bp.isChangeCollectingNeeded());
