@@ -1683,6 +1683,79 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     assertTrue(bt3Bp.getRevisions().isEmpty());
   }
 
+  @Test
+  public void testTriggerBuildWithCustomRevisions_RevisionsPassedToDependencies_RevisionsAreProvidedForSomeRootsOnly() {
+    MockVcsSupport git = new MockVcsSupport("git");
+    MockCollectRepositoryChangesPolicy policy = new MockCollectRepositoryChangesPolicy();
+    git.setCollectChangesPolicy(policy);
+
+    myFixture.getVcsManager().registerVcsSupport(git);
+    SVcsRootEx root1 = myProject.createVcsRoot(git.getName(), null, Collections.emptyMap());
+    SVcsRootEx root2 = myProject.createVcsRoot(git.getName(), null, Collections.emptyMap());
+    SVcsRootEx root3 = myProject.createVcsRoot(git.getName(), null, Collections.emptyMap());
+
+    SBuildType bt1 = myProject.createBuildType("bt1");
+    SBuildType bt2 = myProject.createBuildType("bt2");
+    addDependency(bt1, bt2);
+
+    bt1.addVcsRoot(root1);
+    bt2.addVcsRoot(root2);
+    bt2.addVcsRoot(root3);
+
+    VcsRootInstance rootInst1 = bt1.getVcsRootInstanceForParent(root1);
+    VcsRootInstance rootInst2 = bt2.getVcsRootInstanceForParent(root2);
+    VcsRootInstance rootInst3 = bt2.getVcsRootInstanceForParent(root3);
+
+    policy.setCurrentState(rootInst1, RepositoryStateData.createVersionState("master", map("master", "10")));
+    policy.setCurrentState(rootInst2, RepositoryStateData.createVersionState("master", map("master", "20")));
+    policy.setCurrentState(rootInst3, RepositoryStateData.createVersionState("master", map("master", "30")));
+    myServer.checkForModifications();
+
+    policy.setCurrentState(rootInst1, RepositoryStateData.createVersionState("master", map("master", "11")));
+    policy.setChanges(rootInst1, modification().by("user1").withChangedFile().version("11").parentVersions("10"));
+
+    policy.setCurrentState(rootInst2, RepositoryStateData.createVersionState("master", map("master", "21")));
+    policy.setChanges(rootInst2, modification().by("user1").withChangedFile().version("21").parentVersions("20"));
+    myServer.checkForModifications();
+
+    final Build build = new Build();
+    final BuildType buildTypeEntity = new BuildType();
+    buildTypeEntity.setId(bt1.getExternalId());
+    build.setBuildType(buildTypeEntity);
+    build.setBranchName("master");
+
+    Revisions revisions = new Revisions();
+    Revision r1 = new Revision();
+    r1.vcsRoot = new jetbrains.buildServer.server.rest.model.change.VcsRootInstance();
+    r1.vcsRoot.vcsRootId = root1.getExternalId();
+    r1.displayRevision = "11";
+    r1.vcsBranchName = "master";
+    Revision r2 = new Revision();
+    r2.vcsRoot = new jetbrains.buildServer.server.rest.model.change.VcsRootInstance();
+    r2.vcsRoot.id = String.valueOf(rootInst2.getId());
+    r2.displayRevision = "21";
+    revisions.revisions = new ArrayList<>();
+    revisions.revisions.add(r1);
+    revisions.revisions.add(r2);
+    build.setRevisions(revisions);
+
+    final SUser user = getOrCreateUser("user");
+    SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<>());
+    BuildPromotionEx bp = (BuildPromotionEx)result.getBuildPromotion();
+    assertFalse(bp.isChangeCollectingNeeded());
+    assertTrue(bp.isChangeCollectingNeeded(true));
+    assertEquals("master", bp.getBranch().getName());
+    assertEquals(1, bp.getRevisions().size());
+
+    assertEquals("11", bp.getRevisions().get(0).getRevision());
+
+    BuildPromotionEx bt2Bp = bp.getDependencies().iterator().next().getDependOn();
+    assertEquals(bt2, bt2Bp.getBuildType());
+    List<BuildRevision> depRevisions = bt2Bp.getRevisions();
+    assertTrue(bt2Bp.isChangeCollectingNeeded());
+    assertEquals(0, depRevisions.size());
+  }
+
   private void ensureChangesDetected() {
     myFixture.getVcsModificationChecker().checkForModifications(myBuildType.getVcsRootInstances(), OperationRequestor.UNKNOWN);
   }
