@@ -83,10 +83,10 @@ import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
-import jetbrains.buildServer.serverSide.impl.approval.ApprovableBuildManager;
 import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import jetbrains.buildServer.serverSide.impl.DownloadedArtifactsLoggerImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.impl.approval.ApprovableBuildManager;
 import jetbrains.buildServer.serverSide.impl.audit.filters.ActionTypesFilter;
 import jetbrains.buildServer.serverSide.impl.changeProviders.ArtifactDependencyChangesProvider;
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
@@ -1807,8 +1807,13 @@ public class Build {
 
   private void setupRevisionsInCustomizer(@NotNull BuildCustomizerEx customizer, @NotNull SBuildType topBuildType, @NotNull Revisions submittedRevisions) {
     ((BuildTypeEx)topBuildType).traverseSelfAndDependencies(bt -> {
-      List<BuildRevisionEx> buildRevisions = transformToBuildRevisions(bt, submittedRevisions);
-      if (buildRevisions.isEmpty()) return DependencyConsumer.Result.CONTINUE;
+      List<BuildRevisionEx> buildRevisions;
+      try {
+        buildRevisions = transformToBuildRevisions(bt, submittedRevisions);
+      } catch (RevisionsNotFoundException e) {
+        // not all VCS roots have revisions provided for this dependency, skip it then
+        return DependencyConsumer.Result.CONTINUE;
+      }
 
       long modId = -1;
       for (BuildRevisionEx r: buildRevisions) {
@@ -1825,7 +1830,8 @@ public class Build {
     VcsRootInstanceEntry implicitSettingsRootEntry = null;
     Map<Long, VcsRootInstanceEntry> vcsRootsMap = new HashMap<>();
     Map<String, VcsRootInstanceEntry> vcsRootsExtIdsMap = new HashMap<>();
-    for (VcsRootInstanceEntry e: ((BuildTypeEx)buildType).getVcsRootInstanceEntries(true)) {
+    final List<VcsRootInstanceEntry> btRootInstances = ((BuildTypeEx)buildType).getVcsRootInstanceEntries(true);
+    for (VcsRootInstanceEntry e: btRootInstances) {
       vcsRootsMap.put(e.getVcsRoot().getId(), e);
       vcsRootsExtIdsMap.put(e.getVcsRoot().getParent().getExternalId(), e);
 
@@ -1865,6 +1871,24 @@ public class Build {
       }
       res.add(rev);
     }
+
+    // check all revisions are set
+    List<VcsRootInstance> missing = new ArrayList<>();
+    for (VcsRootInstanceEntry re: btRootInstances) {
+      boolean revisionExist = false;
+      for (BuildRevisionEx r: res) {
+        if (r.getRoot().getId() == re.getVcsRoot().getId()) {
+          revisionExist = true;
+          break;
+        }
+      }
+      if (!revisionExist) {
+        missing.add(re.getVcsRoot());
+      }
+    }
+
+    if (!missing.isEmpty()) throw new RevisionsNotFoundException(Collections.singletonMap(buildType, missing));
+
     return res;
   }
 
