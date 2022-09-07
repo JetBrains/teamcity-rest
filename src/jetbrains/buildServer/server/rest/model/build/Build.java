@@ -1697,6 +1697,8 @@ public class Build {
           missingRevisionsError.append(StringUtil.join(",", roots.stream().map(r -> r.getParent().getExternalId()).collect(Collectors.toList())));
         });
 
+        missingRevisionsError.append("\n(add attribute failOnMissingRevisions=false to the revisions element to disable this check)");
+
         throw new BadRequestException(missingRevisionsError.toString());
       }
     }
