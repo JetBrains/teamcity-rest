@@ -34,12 +34,14 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.serverSide.impl.*;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.StandardProperties;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TestFor;
@@ -55,6 +57,7 @@ import org.jetbrains.annotations.NotNull;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import static jetbrains.buildServer.util.Util.map;
@@ -2170,11 +2173,11 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
-  public void testUserDimension() {
+  public void testUserDimension() throws Throwable {
     final SProject project = createProject("prj", "project");
     final BuildTypeEx buildConf = (BuildTypeEx)project.createBuildType("buildConf", "buildConf");
-    SUser user1 = createUser("user1");
-    SUser user2 = createUser("user2");
+    SUser user1 = createUser("user1"); user1.addRole(RoleScope.projectScope(project.getProjectId()), getTestRoles().getProjectViewerRole());
+    SUser user2 = createUser("user2"); user2.addRole(RoleScope.projectScope(project.getProjectId()), getTestRoles().getProjectViewerRole());
 
     BuildPromotion build10 = build().in(buildConf).number("1").finish().getBuildPromotion();
     BuildPromotion build20 = build().in(buildConf).number("1").personalForUser(user1.getUsername()).finish().getBuildPromotion();
@@ -2185,25 +2188,83 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     assertNull(build20.getAssociatedBuild().getTriggeredBy().getUser());
 
     //searches with "number:1" execute only filter part of the logic, but shold result in the same set of builds
-    check("state:any,defaultFilter:false", build50, build40, build30, build20, build10);
-    check("state:any,defaultFilter:false,number:1", build40, build30, build20, build10);
-    check("state:any,defaultFilter:false,user:user1", build50, build30, build20);
-    check("state:any,defaultFilter:false,user:user1,number:1", build30, build20);
-    check("state:any,defaultFilter:false,user:user2",          build40);
-    check("state:any,defaultFilter:false,user:user2,number:1", build40);
-    check("state:any,defaultFilter:false,user:user1,personal:true", build50, build20);
-    check("state:any,defaultFilter:false,user:user1,personal:true,number:1", build20);
-    check("state:any,defaultFilter:false,user:user2,personal:true",          build40);
-    check("state:any,defaultFilter:false,user:user2,personal:true,number:1", build40);
-    check("state:any,defaultFilter:false,user:user1,personal:false",          build30);
-    check("state:any,defaultFilter:false,user:user1,personal:false,number:1", build30);
-    check("state:any,defaultFilter:false,user:user2,personal:false");
-    check("state:any,defaultFilter:false,user:user2,personal:false,number:1");
 
-    check("state:any,defaultFilter:false,triggered:(user:user1)", build40, build30);
-    check("state:any,defaultFilter:false,triggered:(user:user1),user:user2", build40);
-    check("state:any,defaultFilter:false,user:user1,not:(triggered:(user:user1))", build50, build20);
-    check("state:any,defaultFilter:false,triggered:(type:user)", build40, build30);
+    {
+      check("state:any,defaultFilter:false", build50, build40, build30, build20, build10);
+      check("state:any,defaultFilter:false,number:1", build40, build30, build20, build10);
+      check("state:any,defaultFilter:false,user:user1", build50, build30, build20);
+      check("state:any,defaultFilter:false,user:user1,number:1", build30, build20);
+      check("state:any,defaultFilter:false,user:user2", build40);
+      check("state:any,defaultFilter:false,user:user2,number:1", build40);
+      check("state:any,defaultFilter:false,user:user1,personal:true", build50, build20);
+      check("state:any,defaultFilter:false,user:user1,personal:true,number:1", build20);
+      check("state:any,defaultFilter:false,user:user2,personal:true", build40);
+      check("state:any,defaultFilter:false,user:user2,personal:true,number:1", build40);
+      check("state:any,defaultFilter:false,user:user1,personal:false", build30);
+      check("state:any,defaultFilter:false,user:user1,personal:false,number:1", build30);
+      check("state:any,defaultFilter:false,user:user2,personal:false");
+      check("state:any,defaultFilter:false,user:user2,personal:false,number:1");
+
+      check("state:any,defaultFilter:false,triggered:(user:user1)", build40, build30);
+      check("state:any,defaultFilter:false,triggered:(user:user1),user:user2", build40);
+      check("state:any,defaultFilter:false,user:user1,not:(triggered:(user:user1))", build50, build20);
+      check("state:any,defaultFilter:false,triggered:(type:user)", build40, build30);
+    }
+
+    {
+      // this is needed to include build40, as it is personal for another user
+      user1.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "true");
+
+      myFixture.getSecurityContext().runAs(user1, () -> {
+        check("state:any,defaultFilter:false", build50, build40, build30, build20, build10);
+        check("state:any,defaultFilter:false,number:1", build40, build30, build20, build10);
+        check("state:any,defaultFilter:false,user:user1", build50, build30, build20);
+        check("state:any,defaultFilter:false,user:user1,number:1", build30, build20);
+        check("state:any,defaultFilter:false,user:user2", build40);
+        check("state:any,defaultFilter:false,user:user2,number:1", build40);
+        check("state:any,defaultFilter:false,user:user1,personal:true", build50, build20);
+        check("state:any,defaultFilter:false,user:user1,personal:true,number:1", build20);
+        check("state:any,defaultFilter:false,user:user2,personal:true", build40);
+        check("state:any,defaultFilter:false,user:user2,personal:true,number:1", build40);
+        check("state:any,defaultFilter:false,user:user1,personal:false", build30);
+        check("state:any,defaultFilter:false,user:user1,personal:false,number:1", build30);
+        check("state:any,defaultFilter:false,user:user2,personal:false");
+        check("state:any,defaultFilter:false,user:user2,personal:false,number:1");
+
+        check("state:any,defaultFilter:false,triggered:(user:user1)", build40, build30);
+        check("state:any,defaultFilter:false,triggered:(user:user1),user:user2", build40);
+        check("state:any,defaultFilter:false,user:user1,not:(triggered:(user:user1))", build50, build20);
+        check("state:any,defaultFilter:false,triggered:(type:user)", build40, build30);
+      });
+    }
+
+    {
+      // build20 and build50 should be excluded almost always except for cases when we specifically look for
+      // personal builds of the user1
+      user2.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "false");
+
+      myFixture.getSecurityContext().runAs(user2, () -> {
+        check("state:any,defaultFilter:false", build40, build30, build10);
+        check("state:any,defaultFilter:false,number:1", build40, build30, build10);
+        check("state:any,defaultFilter:false,user:user1", build50, build30, build20);
+        check("state:any,defaultFilter:false,user:user1,number:1", build30, build20);
+        check("state:any,defaultFilter:false,user:user2", build40);
+        check("state:any,defaultFilter:false,user:user2,number:1", build40);
+        check("state:any,defaultFilter:false,user:user1,personal:true", build50, build20);
+        check("state:any,defaultFilter:false,user:user1,personal:true,number:1", build20);
+        check("state:any,defaultFilter:false,user:user2,personal:true", build40);
+        check("state:any,defaultFilter:false,user:user2,personal:true,number:1", build40);
+        check("state:any,defaultFilter:false,user:user1,personal:false", build30);
+        check("state:any,defaultFilter:false,user:user1,personal:false,number:1", build30);
+        check("state:any,defaultFilter:false,user:user2,personal:false");
+        check("state:any,defaultFilter:false,user:user2,personal:false,number:1");
+
+        check("state:any,defaultFilter:false,triggered:(user:user1)", build40, build30);
+        check("state:any,defaultFilter:false,triggered:(user:user1),user:user2", build40);
+        check("state:any,defaultFilter:false,user:user1,not:(triggered:(user:user1))", build50, build20);
+        check("state:any,defaultFilter:false,triggered:(type:user)", build40, build30);
+      });
+    }
   }
 
   @Test
@@ -2294,7 +2355,217 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),type:(snapshotDependencyProblem:false)",
                               "problem1");
     }
-}
+  }
+
+  @Test(dataProvider = "all-build-states-locator-dim")
+  public void test_personal_dimension_with_user_property(String buildState) throws Throwable {
+    SUser user = createUser("user"); user.addRole(RoleScope.globalScope(), getTestRoles().getProjectViewerRole());
+    SUser secondUser = createUser("seconduser");
+
+    if("finished".equals(buildState)) {
+      createPersonalBuild(myBuildType, user, new String[0], new String[0]);
+      createPersonalBuild(myBuildType, secondUser, new String[0], new String[0]);
+      build().in(myBuildType).finish();
+    }
+
+    if("running".equals(buildState)) {
+      myFixture.createEnabledAgents("Ant", 3);
+      build().in(myBuildType).run();
+      build().in(myBuildType).personalForUser(secondUser.getUsername()).run();
+      build().in(myBuildType).personalForUser(user.getUsername()).run();
+    }
+
+    if("queued".equals(buildState)) {
+      build().in(myBuildType).addToQueue();
+      build().in(myBuildType).personalForUser(secondUser.getUsername()).addToQueue();
+      build().in(myBuildType).personalForUser(user.getUsername()).addToQueue();
+    }
+
+
+    PagedSearchResult<BuildPromotion> result;
+    {
+      String locator = "defaultFilter:false,buildType:(id:" + myBuildType.getExternalId() + "),state:" + buildState + ",personal:any";
+
+      user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "true");
+      result = myFixture.getSecurityContext().runAs(user, () -> myBuildPromotionFinder.getItems(locator));
+      assertEquals(
+        "All personal builds must be included when user property value is set to true.",
+        3, result.myEntries.size()
+      );
+      user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "false");
+      result = myFixture.getSecurityContext().runAs(user, () -> myBuildPromotionFinder.getItems(locator));
+      assertEquals(
+        "Only current user's personal build must be included when user property value is set to false.",
+        2, result.myEntries.size()
+      );
+    }
+
+
+    {
+      String locator = "defaultFilter:false,buildType:(id:" + myBuildType.getExternalId() + "),state:" + buildState + ",personal:true";
+
+      user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "true");
+      result = myFixture.getSecurityContext().runAs(user, () -> myBuildPromotionFinder.getItems(locator));
+      assertEquals(
+        "Both personal builds must be included when user property value is set to true.",
+        2, result.myEntries.size()
+      );
+      user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "false");
+      result = myFixture.getSecurityContext().runAs(user, () -> myBuildPromotionFinder.getItems(locator));
+      assertEquals(
+        "Only current user's personal build must be included when user property value is set to false.",
+        1, result.myEntries.size()
+      );
+    }
+
+
+    {
+      String locator = "defaultFilter:false,buildType:(id:" + myBuildType.getExternalId() + "),state:" + buildState + ",personal:false";
+
+      user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "true");
+      result = myFixture.getSecurityContext().runAs(user, () -> myBuildPromotionFinder.getItems(locator));
+      assertEquals(
+        "None personal builds must be included when dimension is set to false",
+        1, result.myEntries.size()
+      );
+      user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "false");
+      result = myFixture.getSecurityContext().runAs(user, () -> myBuildPromotionFinder.getItems(locator));
+      assertEquals(
+        "None personal builds must be included when dimension is set to false.",
+        1, result.myEntries.size()
+      );
+    }
+  }
+
+  @Test(dataProvider = "allBooleans")
+  public void test_computePersonalBuildsRuling_includePersonal(boolean showAllPersonalBuildsSetting) throws Throwable {
+    SUser user = createUser("user");
+    user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, Boolean.toString(showAllPersonalBuildsSetting));
+
+    Locator locator = Locator.locator("personal:true");
+    BuildPromotionFinder.IncludePersonalBuildsRuling ruling = myFixture.getSecurityContext().runAs(user, () ->
+      myBuildPromotionFinder.computePersonalBuildsRuling(locator)
+    );
+
+    assertTrue(
+      "Personal builds must be included when dimension is explicitely set regardless of the user property value.",
+      ruling.isIncludePersonal()
+    );
+    if(showAllPersonalBuildsSetting) {
+      assertNull(ruling.getOwner());
+    } else {
+      assertEquals(user, ruling.getOwner());
+    }
+  }
+
+  @Test(dataProvider = "allBooleans")
+  public void test_computePersonalBuildsRuling_includePersonalForUser(boolean showAllPersonalBuildsSetting) throws Throwable {
+    SUser user = createUser("user");
+    user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, Boolean.toString(showAllPersonalBuildsSetting));
+
+    Locator locator = Locator.locator("personal:true,user:user");
+    BuildPromotionFinder.IncludePersonalBuildsRuling ruling = myFixture.getSecurityContext().runAs(user, () ->
+      myBuildPromotionFinder.computePersonalBuildsRuling(locator)
+    );
+
+    assertTrue(
+      "Personal builds must be included when dimension is explicitely set regardless of the user property value.",
+      ruling.isIncludePersonal()
+    );
+    assertEquals(
+      "User must be set when dimension is set.",
+      user, ruling.getOwner()
+    );
+  }
+
+  @Test(dataProvider = "allBooleans")
+  public void test_computePersonalBuildsRuling_excludePersonal(boolean showAllPersonalBuildsSetting) throws Throwable {
+    SUser user = createUser("user");
+    user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, Boolean.toString(showAllPersonalBuildsSetting));
+
+    Locator locator = Locator.locator("personal:false");
+    BuildPromotionFinder.IncludePersonalBuildsRuling ruling = myFixture.getSecurityContext().runAs(user, () ->
+      myBuildPromotionFinder.computePersonalBuildsRuling(locator)
+    );
+
+    assertFalse(
+      "Personal builds must be excluded when dimension is explicitely set regardless of the user property value.",
+      ruling.isIncludePersonal()
+    );
+    assertNull(ruling.getOwner());
+  }
+
+  @Test(dataProvider = "allBooleans")
+  public void test_computePersonalBuildsRuling_excludePersonalWithUser(boolean showAllPersonalBuildsSetting) throws Throwable {
+    SUser user = createUser("user");
+    user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, Boolean.toString(showAllPersonalBuildsSetting));
+
+    Locator locator = Locator.locator("personal:false,user:user");
+    BuildPromotionFinder.IncludePersonalBuildsRuling ruling = myFixture.getSecurityContext().runAs(user, () ->
+      myBuildPromotionFinder.computePersonalBuildsRuling(locator)
+    );
+
+    assertFalse(
+      "Personal builds must be excluded when dimension is explicitely set regardless of the user property value.",
+      ruling.isIncludePersonal()
+    );
+    assertNull(ruling.getOwner());
+  }
+
+  @Test(dataProvider = "allBooleans")
+  public void test_computePersonalBuildsRuling_defaultPersonal(boolean showAllPersonalBuildsSetting) throws Throwable {
+    SUser user = createUser("user");
+    user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, Boolean.toString(showAllPersonalBuildsSetting));
+
+    Locator locator = Locator.locator("fake:dimension");
+    BuildPromotionFinder.IncludePersonalBuildsRuling ruling = myFixture.getSecurityContext().runAs(user, () ->
+      myBuildPromotionFinder.computePersonalBuildsRuling(locator)
+    );
+
+    assertTrue("Personal builds must be set according to the user property value when dimension value is not present.", ruling.isIncludePersonal());
+    if(showAllPersonalBuildsSetting) {
+      assertNull("Personal builds of all users are intertesting.", ruling.getOwner());
+    } else {
+      assertEquals("Only personal builds of the current user are intertesting.", user, ruling.getOwner());
+    }
+  }
+
+  @Test
+  public void test_computePersonalBuildsRuling_enablePersonalWhenNoUser() {
+    Locator locator = Locator.locator("fake:dimension");
+
+    BuildPromotionFinder.IncludePersonalBuildsRuling ruling = myBuildPromotionFinder.computePersonalBuildsRuling(locator);
+
+    assertTrue(
+      "Personal builds must be returned when requesting user can not be determined (e.g. request is coming from the build).",
+      ruling.isIncludePersonal()
+    );
+    assertNull(ruling.getOwner());
+  }
+
+  @Test(dataProvider = "allBooleans")
+  public void test_computePersonalBuildsRuling_includePersonalForOtherUser(boolean showAllPersonalBuildsSetting) throws Throwable {
+    SUser user = createUser("user");
+    SUser secondUser = createUser("secondUser");
+    user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, Boolean.toString(showAllPersonalBuildsSetting));
+
+    Locator locator = Locator.locator("user:secondUser");
+    BuildPromotionFinder.IncludePersonalBuildsRuling ruling = myFixture.getSecurityContext().runAs(user, () ->
+      myBuildPromotionFinder.computePersonalBuildsRuling(locator)
+    );
+
+    assertTrue(
+      "Personal builds must be returned when requesting user can not be determined (e.g. request is coming from the build).",
+      ruling.isIncludePersonal()
+    );
+    assertEquals(secondUser, ruling.getOwner());
+  }
+
+  @NotNull
+  @DataProvider(name = "all-build-states-locator-dim")
+  public String[] getAllBuildStates() {
+    return new String[] { "running", "finished", "queued" };
+  }
 
   private void checkProblemOccurrences(final String locator, final String... problemIds) {
     check(locator, (id, buildProblem) -> id.equals(buildProblem.getBuildProblemData().getIdentity()), myProblemOccurrenceFinder, problemIds);

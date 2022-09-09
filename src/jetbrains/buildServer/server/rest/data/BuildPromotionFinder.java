@@ -51,10 +51,12 @@ import jetbrains.buildServer.server.rest.util.StreamUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.serverSide.metadata.BuildMetadataEntry;
 import jetbrains.buildServer.serverSide.metadata.impl.MetadataStorageEx;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.StandardProperties;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.ItemProcessor;
@@ -98,7 +100,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String AGENT_TYPE_ID = "agentTypeId";
   @LocatorDimension(value = "personal", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is a personal build.")
   public static final String PERSONAL = "personal";
-  @LocatorDimension(value = "user", format = LocatorName.USER, notes = "User locator.")
+  @LocatorDimension(value = "user", format = LocatorName.USER, notes = "For personal builds checks the owner of the build, triggerring user in other cases.")
   public static final String USER = "user";
   public static final String TRIGGERED = "triggered"; //experimental
   @LocatorDimension(value = "branch", format = LocatorName.BRANCH, notes = "Branch locator.")
@@ -1408,9 +1410,19 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     Long agentTypeId = locator.getSingleDimensionValueAsLong(AGENT_TYPE_ID);
     Locator stateLocator = getStateLocator(locator);
 
+    IncludePersonalBuildsRuling personalBuildsRuling = computePersonalBuildsRuling(locator);
+
     if (isStateIncluded(stateLocator, STATE_QUEUED)) {
       //todo: should sort backwards as currently the order does not seem right...
       Stream<SQueuedBuild> builds = myBuildQueue.getItems().stream();
+      if(!personalBuildsRuling.isIncludePersonal()) {
+        builds = builds.filter(build -> !build.isPersonal());
+      } else {
+        if(personalBuildsRuling.getOwner() != null) {
+          builds = builds.filter(build -> !build.isPersonal() || personalBuildsRuling.getOwner().equals(build.getBuildPromotion().getOwner()));
+        }
+      }
+
       if (buildTypes != null) { //make sure buildTypes retrieved from the locator are used
         builds = builds.filter(qb -> buildTypes.contains(qb.getBuildPromotion().getParentBuildType()));
       }
@@ -1432,7 +1444,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     }
 
     if (isStateIncluded(stateLocator, STATE_RUNNING)) {
-      Stream<SRunningBuild> builds = myBuildsManager.getRunningBuilds().stream();
+      Stream<SRunningBuild> builds;
+      if(personalBuildsRuling.isIncludePersonal()) {
+        builds = myBuildsManager.getRunningBuilds(personalBuildsRuling.myOwner, null).stream();
+      } else {
+        builds = myBuildsManager.getRunningBuilds().stream()
+                                .filter(build -> !build.isPersonal());
+      }
+
       if (buildTypes != null) { //make sure buildTypes retrieved from the locator are used
         builds = builds.filter(b -> buildTypes.contains(b.getBuildPromotion().getParentBuildType()));
       }
@@ -1473,14 +1492,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
       if (agentName != null) {
         options.setAgentName(agentName);
-      }
-
-      final Boolean personal = locator.lookupSingleDimensionValueAsBoolean(PERSONAL);
-      if (personal == null || personal) {
-        final String userDimension = locator.getSingleDimensionValue(USER);
-        options.setIncludePersonal(true, userDimension == null ? null : myUserFinder.getItem(userDimension));
-      } else {
-        options.setIncludePersonal(false, null);
       }
 
       final Boolean failedToStart = locator.lookupSingleDimensionValueAsBoolean(FAILED_TO_START);
@@ -1535,6 +1546,17 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         options.setPageSize(count.intValue());
       }
 
+      // In a case when we need personal builds there is a twist, hence the following check.
+      // BuildQueryOptions and underlayoing mechanics treats given user as if we are acting at his will. This means that his it will check if the given user can see
+      // a specific personal build according to his own permissions and user settings, which is not what we want.
+      // Instead, we pretend that we need all personal builds and filter out unwanted ones later.
+      final SUser currentUser = (SUser) myServiceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder().getAssociatedUser();
+      if(Objects.equals(personalBuildsRuling.myOwner, currentUser)) {
+        options.setIncludePersonal(personalBuildsRuling.isIncludePersonal(), personalBuildsRuling.getOwner());
+      } else {
+        options.setIncludePersonal(personalBuildsRuling.isIncludePersonal(), null);
+      }
+
       finishedBuilds = new ItemHolder<BuildPromotion>() {
         public void process(@NotNull final ItemProcessor<BuildPromotion> processor) {
           myBuildsManager.processBuilds(options, new ItemProcessor<SBuild>() {
@@ -1558,6 +1580,49 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         }
       }
     };
+  }
+
+  // Package-private for tests
+  @NotNull
+  IncludePersonalBuildsRuling computePersonalBuildsRuling(@NotNull Locator locator) {
+    final Boolean personal = locator.lookupSingleDimensionValueAsBoolean(PERSONAL);
+    final SUser currentUser = (SUser) myServiceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder().getAssociatedUser();
+    final boolean showAllPersonalBuildsPreferense = currentUser != null && Boolean.parseBoolean(currentUser.getPropertyValue(StandardProperties.SHOW_ALL_PERSONAL_BUILDS));
+
+    if (personal == null || personal) {
+      final String userDimension = locator.lookupSingleDimensionValue(USER);
+      if (userDimension == null) {
+        if (currentUser != null) {
+          return new IncludePersonalBuildsRuling(true, showAllPersonalBuildsPreferense ? null : currentUser);
+        } else {
+          return new IncludePersonalBuildsRuling(true, null);
+        }
+      } else {
+        return new IncludePersonalBuildsRuling(true, myUserFinder.getItem(userDimension));
+      }
+    } else {
+      return new IncludePersonalBuildsRuling(false, null);
+    }
+  }
+
+  // Package-private for tests
+  class IncludePersonalBuildsRuling {
+    private final boolean myIncludePersonal;
+    private final SUser myOwner;
+
+    public IncludePersonalBuildsRuling(boolean includePersonalBuilds, @Nullable SUser owner) {
+      myIncludePersonal = includePersonalBuilds;
+      myOwner = owner;
+    }
+
+    public boolean isIncludePersonal() {
+      return myIncludePersonal;
+    }
+
+    @Nullable
+    public SUser getOwner() {
+      return myOwner;
+    }
   }
 
   private HashSet<SBuildType> getBuildTypes(final @NotNull Locator locator) {
@@ -1666,7 +1731,15 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         }
       }
     }
-    locator.setDimensionIfNotPresent(PERSONAL, "false");
+
+    SUser currentUser = (SUser) myServiceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder().getAssociatedUser();
+    if(currentUser != null) {
+      String userPreference = currentUser.getPropertyValue(StandardProperties.SHOW_ALL_PERSONAL_BUILDS);
+      locator.setDimensionIfNotPresent(PERSONAL, userPreference == null ? "false" : userPreference);
+    } else {
+      locator.setDimensionIfNotPresent(PERSONAL, "false");
+    }
+
     locator.setDimensionIfNotPresent(CANCELED, "false");
     locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
     if (defaultFiltering != null || !locator.isAnyPresent(SNAPSHOT_DEP, EQUIVALENT, ORDERED)) {
