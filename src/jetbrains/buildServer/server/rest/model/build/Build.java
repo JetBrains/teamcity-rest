@@ -1899,6 +1899,10 @@ public class Build {
     // check all revisions are set
     List<VcsRootInstance> missing = new ArrayList<>();
     for (VcsRootInstanceEntry re: btRootInstances) {
+      // for custom builds we do not require presence of the settings revision for the following reasons:
+      // 1) we assume that build settings are customized too
+      // 2) if settings revision is not specified then the settings will be taken/frozen from the current build configuration settings
+      if (re == implicitSettingsRootEntry) continue;
       if (!revisionsMap.containsKey(re.getVcsRoot().getId())) {
         missing.add(re.getVcsRoot());
       }
