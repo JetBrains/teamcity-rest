@@ -2268,6 +2268,40 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
+  public void testDefaultFilterWithShowAllPersonalPreference() throws Throwable {
+    final SProject project = createProject("prj", "project");
+    final BuildTypeEx buildConf = (BuildTypeEx)project.createBuildType("buildConf", "buildConf");
+    SUser user1 = createUser("user1"); user1.addRole(RoleScope.projectScope(project.getProjectId()), getTestRoles().getProjectViewerRole());
+    SUser user2 = createUser("user2"); user2.addRole(RoleScope.projectScope(project.getProjectId()), getTestRoles().getProjectViewerRole());
+
+    BuildPromotion regularFinishedBuild  = build().in(buildConf).number("1").finish().getBuildPromotion();
+    BuildPromotion cancelledBuild  = build().in(buildConf).number("1").cancel(user1).getBuildPromotion();
+    BuildPromotion personalBuild1 = build().in(buildConf).number("1").personalForUser(user1.getUsername()).finish().getBuildPromotion();
+    BuildPromotion personalBuild2 = build().in(buildConf).number("1").personalForUser(user2.getUsername()).finish().getBuildPromotion();
+
+    user1.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "true");
+    myFixture.getSecurityContext().runAs(user1, () -> {
+      // Eqvivalent to defaultFilter:true, so no cancelled or personal builds
+      check("buildType:buildConf", regularFinishedBuild);
+
+      check("defaultFilter:true,personal:any,buildType:buildConf", personalBuild2, personalBuild1, regularFinishedBuild);
+
+      check("defaultFilter:false,buildType:buildConf", personalBuild2, personalBuild1, cancelledBuild, regularFinishedBuild);
+    });
+
+    user1.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "false");
+    myFixture.getSecurityContext().runAs(user1, () -> {
+      // Eqvivalent to defaultFilter:true, so no cancelled or personal builds
+      check("buildType:buildConf", regularFinishedBuild);
+
+      check("defaultFilter:true,personal:any,buildType:buildConf", personalBuild1,regularFinishedBuild);
+
+      // Should return all builds except personal for another user
+      check("defaultFilter:false,buildType:buildConf", personalBuild1, cancelledBuild, regularFinishedBuild);
+    });
+  }
+
+  @Test
   public void testSnapshotDependenciesProblems() {
     final SProject project = createProject("prj", "project");
     final BuildTypeEx buildConfA = (BuildTypeEx)project.createBuildType("buildConfA", "buildConfA");

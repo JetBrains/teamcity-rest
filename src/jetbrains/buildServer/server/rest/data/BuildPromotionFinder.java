@@ -1732,13 +1732,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    SUser currentUser = (SUser) myServiceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder().getAssociatedUser();
-    if(currentUser != null) {
-      String userPreference = currentUser.getPropertyValue(StandardProperties.SHOW_ALL_PERSONAL_BUILDS);
-      locator.setDimensionIfNotPresent(PERSONAL, userPreference == null ? "false" : userPreference);
-    } else {
-      locator.setDimensionIfNotPresent(PERSONAL, "false");
-    }
+    locator.setDimensionIfNotPresent(PERSONAL, "false");
 
     locator.setDimensionIfNotPresent(CANCELED, "false");
     locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
