@@ -143,7 +143,8 @@ import org.jetbrains.annotations.Nullable;
     "changesCollectingInProgress" /*experimental*/,
     "queuedWaitReasons", /*q experimental */
     "downloadedArtifacts", /*rf experimental*/
-    "parallelized" /*qrf experimental */
+    "parallelized", /*qrf experimental */
+    "firstBuildWithSameChanges"
   })
 @ModelDescription("Represents a build instance.")
 public class Build {
@@ -321,6 +322,22 @@ public class Build {
   @XmlAttribute
   public Boolean isHistory() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("history"), () -> myBuildPromotion.isOutOfChangesSequence());
+  }
+
+  @XmlElement(name = "firstBuildWithSameChanges")
+  @Nullable
+  public Build getFirstBuildWithSameChanges() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("firstBuildWithSameChanges", false, false),
+      () -> {
+        SBuild sequenceBuild = ((BuildPromotionEx) myBuildPromotion).getSequenceBuild();
+        if(sequenceBuild == null || sequenceBuild.getBuildPromotion().equals(myBuildPromotion)) {
+          return null;
+        }
+
+        return new Build(sequenceBuild, myFields.getNestedField("firstBuildWithSameChanges"), myBeanContext);
+      }
+    );
   }
 
   @XmlAttribute
