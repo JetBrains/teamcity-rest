@@ -29,6 +29,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.buildTriggers.scheduler.CronParseException;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.metrics.ServerMetricsReader;
@@ -43,14 +44,13 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.metrics.Metrics;
 import jetbrains.buildServer.server.rest.model.plugin.PluginInfos;
-import jetbrains.buildServer.server.rest.model.server.LicenseKeyEntities;
-import jetbrains.buildServer.server.rest.model.server.LicenseKeyEntity;
-import jetbrains.buildServer.server.rest.model.server.LicensingData;
-import jetbrains.buildServer.server.rest.model.server.Server;
+import jetbrains.buildServer.server.rest.model.server.CleanupSettings;
+import jetbrains.buildServer.server.rest.model.server.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.cleanup.ServerCleanupManager;
 import jetbrains.buildServer.serverSide.maintenance.BackupConfig;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcess;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcessManager;
@@ -72,6 +72,7 @@ public class ServerRequest {
 
   protected static final String LICENSING_DATA = "/licensingData";
   protected static final String LICENSING_KEYS = LICENSING_DATA + "/licenseKeys";
+  protected static final String CLEANUP = "/cleanup";
 
   @Context
   private DataProvider myDataProvider;
@@ -302,6 +303,59 @@ public class ServerRequest {
       }
     }
     throw new NotFoundException("No license with key '" + licenseKey + "' is found");
+  }
+
+  @GET
+  @Path(CLEANUP)
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value = "Get clean-up settings.", nickname = "getCleanupSettings")
+  public CleanupSettings getCleanupSettings() {
+    myPermissionChecker.checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
+    return new CleanupSettings(myBeanContext.getSingletonService(ServerCleanupManager.class));
+  }
+
+  @PUT
+  @Path(CLEANUP)
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value = "Set clean-up settings.", nickname = "setCleanupSettings")
+  public CleanupSettings setCleanupSettings(CleanupSettings cleanupSettings) {
+    myPermissionChecker.checkGlobalPermission(Permission.CONFIGURE_SERVER_DATA_CLEANUP);
+    ServerCleanupManager serverCleanupManager = myBeanContext.getSingletonService(ServerCleanupManager.class);
+
+    CleanupDaily daily = cleanupSettings.daily;
+    CleanupCron cron = cleanupSettings.cron;
+    if (daily != null && cron != null) {
+      throw new BadRequestException("Cannot set both daily and cron schedule at the same time");
+    }
+    try {
+      if (daily != null) {
+        serverCleanupManager.setCleanupStartCron("0 " + daily.minute + " " + daily.hour + " * * ?");
+      }
+      if (cron != null) {
+        serverCleanupManager.setCleanupStartCron(
+          "0 " +
+          cron.minute + " " +
+          cron.hour + " " +
+          cron.day + " " +
+          cron.month + " " +
+          cron.dayWeek
+        );
+      }
+    } catch (CronParseException e) {
+      throw new BadRequestException("Incorrect cron expression");
+    }
+
+    Boolean enabled = cleanupSettings.enabled;
+    Integer maxCleanupDuration = cleanupSettings.maxCleanupDuration;
+    if (enabled != null) {
+      serverCleanupManager.setCleanupEnabled(enabled);
+    }
+    if (maxCleanupDuration != null) {
+      serverCleanupManager.setMaxCleanupDuration(maxCleanupDuration);
+    }
+
+    return new CleanupSettings(myBeanContext.getSingletonService(ServerCleanupManager.class));
   }
 
   @Path("/files/{areaId}")

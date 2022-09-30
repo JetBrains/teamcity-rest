@@ -18,6 +18,11 @@ package jetbrains.buildServer.server.rest.request;
 
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.server.CleanupCron;
+import jetbrains.buildServer.server.rest.model.server.CleanupDaily;
+import jetbrains.buildServer.server.rest.model.server.CleanupSettings;
 import jetbrains.buildServer.server.rest.model.server.LicensingData;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
@@ -27,6 +32,7 @@ import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.MockAuthorityHolder;
 import jetbrains.buildServer.users.SUser;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -119,5 +125,118 @@ public class ServerRequestTest extends BaseServerTestCase {
       assertNull(data.serverLicenseType);
       assertNotNull(data.getAgentsLeft());
     });
+  }
+
+  @Test
+  public void test_cleanup() {
+    SUser user = createAdmin("user");
+    assertTrue(user.isPermissionGrantedGlobally(Permission.VIEW_SERVER_SETTINGS));
+    makeLoggedIn(user);
+
+    CleanupSettings data = myRequest.getCleanupSettings();
+    assertNotNull(data.enabled);
+    assertNotNull(data.maxCleanupDuration);
+    assertNotNull(data.daily);
+    assertNotNull(data.daily.hour);
+    assertNotNull(data.daily.minute);
+    assertNull(data.cron);
+  }
+
+  @Test
+  public void test_cleanup_without_permissions() {
+    SUser user = createUser("user");
+    assertFalse(user.isPermissionGrantedGlobally(Permission.VIEW_SERVER_SETTINGS));
+    makeLoggedIn(user);
+
+    try {
+      myRequest.getCleanupSettings();
+    } catch (AuthorizationFailedException e) {
+      return;
+    }
+    fail("Should not have unauthorized access");
+  }
+
+  @Test
+  public void test_cleanup_set_without_permissions() {
+    SUser user = createUser("user");
+    assertFalse(user.isPermissionGrantedGlobally(Permission.CONFIGURE_SERVER_DATA_CLEANUP));
+    makeLoggedIn(user);
+
+    try {
+      myRequest.setCleanupSettings(new CleanupSettings());
+    } catch (AuthorizationFailedException e) {
+      return;
+    }
+    fail("Should not have unauthorized access");
+  }
+
+  @Test
+  public void test_cleanup_set() {
+    SUser user = createAdmin("user");
+    assertTrue(user.isPermissionGrantedGlobally(Permission.CONFIGURE_SERVER_DATA_CLEANUP));
+    makeLoggedIn(user);
+
+    CleanupSettings currentSettings = myRequest.getCleanupSettings();
+    assertFalse(currentSettings.enabled);
+    Assert.assertNotEquals(60, currentSettings.maxCleanupDuration);
+    Assert.assertNotEquals(15, currentSettings.daily.hour);
+    Assert.assertNotEquals(30, currentSettings.daily.minute);
+
+    CleanupSettings newSettings = new CleanupSettings();
+    newSettings.enabled = true;
+    newSettings.maxCleanupDuration = 60;
+    newSettings.daily = new CleanupDaily();
+    newSettings.daily.hour = 15;
+    newSettings.daily.minute = 30;
+    CleanupSettings result = myRequest.setCleanupSettings(newSettings);
+
+    assertTrue(result.enabled);
+    assertEquals(Integer.valueOf(60), result.maxCleanupDuration);
+    assertNotNull(result.daily);
+    assertEquals(Integer.valueOf(15), result.daily.hour);
+    assertEquals(Integer.valueOf(30), result.daily.minute);
+    assertNull(result.cron);
+  }
+
+  @Test
+  public void test_cleanup_set_cron() {
+    SUser user = createAdmin("user");
+    assertTrue(user.isPermissionGrantedGlobally(Permission.CONFIGURE_SERVER_DATA_CLEANUP));
+    makeLoggedIn(user);
+
+    CleanupSettings data = new CleanupSettings();
+    data.cron = new CleanupCron();
+    data.cron.minute = "1";
+    data.cron.hour = "2";
+    data.cron.day = "3";
+    data.cron.month = "4";
+    data.cron.dayWeek = "?";
+    CleanupSettings result = myRequest.setCleanupSettings(data);
+
+    assertNull(result.daily);
+    assertNotNull(result.cron);
+    assertEquals("1", result.cron.minute);
+    assertEquals("2", result.cron.hour);
+    assertEquals("3", result.cron.day);
+    assertEquals("4", result.cron.month);
+    assertEquals("?", result.cron.dayWeek);
+  }
+
+  @Test
+  public void test_cleanup_set_both_daily_and_cron() {
+    SUser user = createAdmin("user");
+    assertTrue(user.isPermissionGrantedGlobally(Permission.CONFIGURE_SERVER_DATA_CLEANUP));
+    makeLoggedIn(user);
+
+    CleanupSettings data = new CleanupSettings();
+    data.daily = new CleanupDaily();
+    data.cron = new CleanupCron();
+
+    try {
+      myRequest.setCleanupSettings(data);
+    } catch (BadRequestException e) {
+      return;
+    }
+    fail("Should get exception");
   }
 }
