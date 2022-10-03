@@ -138,7 +138,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
   }
 
   public void checkViewAllUsersPermission() throws AuthorizationFailedException {
-    myPermissionChecker.checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_USER_PROFILE, Permission.CHANGE_USER});
+    myPermissionChecker.checkViewAllUsersPermission();
   }
 
   public void checkViewUserPermission(final @Nullable SUser user) throws AuthorizationFailedException {
