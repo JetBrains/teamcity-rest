@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
@@ -1610,7 +1609,7 @@ public class BuildTypeRequest {
     return new FilesSubResource(new FilesSubResource.Provider() {
       @Override
       @NotNull
-      public Element getElement(@NotNull final String path) {
+      public Element getElement(@NotNull final String path, @NotNull Purpose purpose) {
         return BuildArtifactsFinder.getItem(buildType.getVcsFilesBrowser(), path, WHERE_NOTE, myBeanContext.getServiceLocator());
       }
 

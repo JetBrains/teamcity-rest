@@ -19,6 +19,14 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
@@ -40,15 +48,6 @@ import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joda.time.format.ISODateTimeFormat;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
@@ -300,7 +299,7 @@ public class VcsRootInstanceRequest {
     return new FilesSubResource(new FilesSubResource.Provider() {
       @Override
       @NotNull
-      public Element getElement(@NotNull final String path) {
+      public Element getElement(@NotNull final String path, @NotNull Purpose purpose) {
         return BuildArtifactsFinder.getItem(getVcsWorkspaceAccess(rootInstance).getVcsFilesBrowser(), path, WHERE_NOTE, myBeanContext.getServiceLocator());
       }
 

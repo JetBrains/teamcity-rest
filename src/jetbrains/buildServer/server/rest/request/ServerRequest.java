@@ -312,7 +312,7 @@ public class ServerRequest {
     return new FilesSubResource(new FilesSubResource.Provider() {
       @Override
       @NotNull
-      public Element getElement(@NotNull final String path) {
+      public Element getElement(@NotNull final String path, @NotNull Purpose purpose) {
         return BuildArtifactsFinder.getItem(getAreaRoot(areaId), path, "server " + areaId, myBeanContext.getServiceLocator());
       }
 

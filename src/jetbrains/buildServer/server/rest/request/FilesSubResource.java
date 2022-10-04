@@ -162,7 +162,7 @@ public class FilesSubResource {
                              @Context HttpServletRequest request,
                              @Context HttpServletResponse response) {
     final String preprocessedPath = myProvider.preprocess(StringUtil.removeLeadingSlash(path));
-    final Element initialElement = myProvider.getElement(preprocessedPath);
+    final Element initialElement = myProvider.getElement(preprocessedPath, Provider.Purpose.SERVE_CONTENT);
     if (!initialElement.isContentAvailable()) {
       throw new NotFoundException("Cannot provide content for '" + initialElement.getFullName() + "'. To get children use '" +
                                   fileApiUrlBuilder(null, myUrlPrefix).getChildrenHref(initialElement) + "'.");
@@ -343,7 +343,7 @@ public class FilesSubResource {
 
     final FileApiUrlBuilder urlBuilder = fileApiUrlBuilder(locator, myUrlPrefix);
     final List<ArtifactTreeElement> elements = BuildArtifactsFinder.getItems(myProvider.getElement(processedPath), actualBasePath, actualLocator, urlBuilder,
-      myBeanContext.getServiceLocator());
+                                                                             myBeanContext.getServiceLocator());
 
     final ArchiveElement archiveElement = new ArchiveElement(elements, finalName);
     final Response.ResponseBuilder builder = getContentByStream(archiveElement, request, new StreamingOutputProvider() {
@@ -538,8 +538,25 @@ public class FilesSubResource {
   }
 
   abstract static class Provider {
+    enum Purpose {
+      // use this purpose if the only reason to fetch the element is to return it's content
+      SERVE_CONTENT,
+      // use this reason if the element can be used for further browsing, obtaining children, metadata, as well as fetching the content of the element
+      BROWSE
+    }
+
+    /**
+     * Same as {@link #getElement(String, Purpose)} where purpose is set to BROWSE
+     * @param path
+     * @return
+     */
     @NotNull
-    public abstract Element getElement(@NotNull final String path);
+    public Element getElement(@NotNull final String path) {
+      return getElement(path, Purpose.BROWSE);
+    }
+
+    @NotNull
+    public abstract Element getElement(@NotNull final String path, @NotNull Purpose purpose);
 
     @NotNull
     public String getArchiveName(@NotNull final String path) {

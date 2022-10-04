@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
@@ -329,6 +330,29 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
   public static Element getArtifactElement(@NotNull final BuildPromotion buildPromotion, @NotNull final String path, final @NotNull ServiceLocator serviceLocator) {
     final BuildPromotionEx buildPromotionEx = (BuildPromotionEx)buildPromotion;
     final BuildArtifacts artifacts = buildPromotionEx.getArtifacts(BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT);
+    return createElement(buildPromotion, path, serviceLocator, buildPromotionEx, artifacts);
+  }
+  @NotNull
+  public static Element getArtifactElementToServeContent(@NotNull final BuildPromotion buildPromotion, @NotNull final String path, final @NotNull ServiceLocator serviceLocator) {
+    final BuildPromotionEx buildPromotionEx = (BuildPromotionEx)buildPromotion;
+    boolean analyzeDownloadPath = TeamCityProperties.getBooleanOrTrue("teamcity.rest.artifactContent.analyzePath");
+    BuildArtifactsViewMode mode = BuildArtifactsViewMode.VIEW_ALL_WITH_ARCHIVES_CONTENT;
+    if (analyzeDownloadPath && !path.contains("!")) {
+      // if path contains ! then we create an instance with ability to look inside archives
+      // if path does not have ! we return faster implementation
+      mode = BuildArtifactsViewMode.VIEW_ALL;
+    }
+
+    BuildArtifacts artifacts = buildPromotionEx.getArtifacts(mode);
+    return createElement(buildPromotion, path, serviceLocator, buildPromotionEx, artifacts);
+  }
+
+  @NotNull
+  private static ArtifactTreeElement createElement(@NotNull BuildPromotion buildPromotion,
+                                                            @NotNull String path,
+                                                            @NotNull ServiceLocator serviceLocator,
+                                                            BuildPromotionEx buildPromotionEx,
+                                                            BuildArtifacts artifacts) {
     if (!artifacts.isAvailable()) {
       return new BuildHoldingElement(artifacts.getRootArtifact(), buildPromotion);
     }

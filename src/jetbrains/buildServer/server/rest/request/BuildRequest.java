@@ -62,8 +62,8 @@ import jetbrains.buildServer.server.rest.util.AggregatedBuildArtifactsElementBui
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.TriggeredBy;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
 import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import jetbrains.buildServer.serverSide.impl.BuildAgentMessagesQueue;
@@ -1361,7 +1361,7 @@ public class BuildRequest {
     return new FilesSubResource(new FilesSubResource.Provider() {
       @Override
       @NotNull
-      public Element getElement(@NotNull final String path) {
+      public Element getElement(@NotNull final String path, @NotNull Purpose purpose) {
         return AggregatedBuildArtifactsElementBuilder.getBuildAggregatedArtifactElement(path, builds.myEntries, myBeanContext.getServiceLocator());
       }
 
@@ -1790,7 +1790,11 @@ public class BuildRequest {
 
     @Override
     @NotNull
-    public Element getElement(@NotNull final String path) {
+    public Element getElement(@NotNull final String path, @NotNull Purpose purpose) {
+      if (purpose == Purpose.SERVE_CONTENT) {
+        return BuildArtifactsFinder.getArtifactElementToServeContent(myBuildPromotion, path, myBeanContext.getServiceLocator());
+      }
+
       return BuildArtifactsFinder.getArtifactElement(myBuildPromotion, path, myBeanContext.getServiceLocator());
     }
 
