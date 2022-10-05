@@ -81,6 +81,7 @@ public class AgentResolver extends ModelResolver<Agent> {
   }
 
   @NotNull
+  @Deprecated
   public AgentEnvironment environment(@NotNull Agent agent, @NotNull DataFetchingEnvironment env) {
     SBuildAgent realAgent = agent.getRealAgent();
 

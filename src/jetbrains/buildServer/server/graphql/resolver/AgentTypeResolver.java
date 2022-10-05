@@ -95,7 +95,6 @@ public class AgentTypeResolver extends ModelResolver<AgentType> {
   }
 
   @Used("graphql")
-  @Deprecated
   @Nullable
   public AgentEnvironment getEnvironment(@NotNull AgentType agentType) {
     SAgentType realAgentType = agentType.getSource();
