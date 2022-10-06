@@ -22,7 +22,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.server.Server;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.TeamCityNode;
@@ -30,7 +29,7 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 
 @XmlRootElement(name = "node")
-@XmlType(propOrder = {"id", "url", "online", "role", "current", "enabledResponsibilities", "disabledResponsibilities", "effectiveResponsibilities"})
+@XmlType(propOrder = {"id", "url", "state", "role", "current", "enabledResponsibilities", "disabledResponsibilities", "effectiveResponsibilities"})
 @ModelDescription(
   value = "Represents a TeamCity node.",
   externalArticleLink = "https://www.jetbrains.com/help/teamcity/multinode-setup.html",
@@ -40,11 +39,19 @@ public class Node {
   @XmlAttribute public String id;
   @XmlAttribute public String url;
   @XmlAttribute public String role;
-  @XmlAttribute public Boolean online;
+  @XmlAttribute public NodeState state;
   @XmlAttribute public Boolean current;
   @XmlElement public EnabledResponsibilities enabledResponsibilities;
   @XmlElement public DisabledResponsibilities disabledResponsibilities;
   @XmlElement public EffectiveResponsibilities effectiveResponsibilities;
+
+  public enum NodeState {
+    online, offline, stopping, starting
+  }
+
+  public enum NodeRole {
+    main_node, secondary_node
+  }
 
   public Node() {
   }
@@ -54,8 +61,8 @@ public class Node {
 
     url = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("url"), canViewSettings ? node.getUrl() : null);
     id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), node.getId());
-    role = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("role"), Server.nodeRole(node));
-    online = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("online"), node.isOnline());
+    role = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("role"), getNodeRole(node).name());
+    state = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("state"), getNodeState(node));
     current = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("current"), node.isCurrent());
 
     if (canViewSettings) {
@@ -84,5 +91,22 @@ public class Node {
       effectiveResponsibilities = null;
       disabledResponsibilities = null;
     }
+  }
+
+  @NotNull
+  public static NodeRole getNodeRole(@NotNull TeamCityNode node) {
+    if (node.isMainNode()) {
+      return NodeRole.main_node;
+    }
+
+    return NodeRole.secondary_node;
+  }
+
+  @NotNull
+  public static NodeState getNodeState(@NotNull TeamCityNode node) {
+    if (!node.isOnline()) return NodeState.offline;
+    if (node.isStopping()) return NodeState.stopping;
+    if (node.isOnline() && !node.canAcceptHTTPRequests()) return NodeState.starting;
+    return NodeState.online;
   }
 }

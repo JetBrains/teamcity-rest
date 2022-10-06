@@ -42,4 +42,5 @@ public class LocatorName {
   public static final String TEST = "TestLocator";
   public static final String VCS_ROOT = "VcsRootLocator";
   public static final String VCS_ROOT_INSTANCE = "VcsRootInstanceLocator";
+  public static final String TEAMCITY_NODE = "TeamCityNodeLocator";
 }
