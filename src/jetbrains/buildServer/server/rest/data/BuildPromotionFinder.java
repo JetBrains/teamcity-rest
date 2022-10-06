@@ -1541,7 +1541,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       options.setIncludeRunning(false); //running builds are retrieved separately and appear before finished ones
       options.setOrderByChanges(false);
 
-      Long count = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
+      // Do not mark COUNT dimension used as we can recieve more results than we need.
+      Long count = locator.lookupSingleDimensionValueAsLong(PagerData.COUNT, getDefaultPageItemsCount());
       if (count != null) {
         options.setPageSize(count.intValue());
       }
