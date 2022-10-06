@@ -64,6 +64,7 @@
   <bean id="restBranchFinder" class="jetbrains.buildServer.server.rest.data.BranchFinder"/>
   <bean id="restAuditEventFinder" class="jetbrains.buildServer.server.rest.data.AuditEventFinder"/>
   <bean id="healthStatusItemFinder" class="jetbrains.buildServer.server.rest.data.HealthItemFinder"/>
+  <bean id="restTeamCityNodesFinder" class="jetbrains.buildServer.server.rest.data.TeamCityNodeFinder"/>
   <bean id="testScopesCollector" class="jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector" />
   <bean id="testScopeFilterProducer" class="jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer" />
   <bean id="testScopeTreeCollector" class="jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector" />
@@ -105,6 +106,7 @@
   <bean id="restTestOccurrenceFinderProvider" class="jetbrains.buildServer.server.rest.jersey.TestOccurrenceFinderProvider"/>
   <bean id="restBranchFinderProvider" class="jetbrains.buildServer.server.rest.jersey.BranchFinderProvider"/>
   <bean id="restAuditEventFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AuditEventFinderProvider"/>
+  <bean id="restTeamCityNodeFinderProvider" class="jetbrains.buildServer.server.rest.jersey.TeamCityNodeFinderProvider"/>
   <bean id="healthStatusItemFinderProvider" class="jetbrains.buildServer.server.rest.jersey.HealthItemFinderProvider"/>
   <bean id="testScopesCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.TestScopesCollectorProvider"/>
   <bean id="testScopeTreeCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.TestScopeTreeCollectorProvider"/>

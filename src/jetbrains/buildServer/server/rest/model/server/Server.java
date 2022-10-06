@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Href;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.nodes.Node;
 import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -116,18 +117,9 @@ public class Server {
   public String getRole() {
     TeamCityNode currentNode = myBeanContext.getSingletonService(TeamCityNodes.class).getCurrentNode();
     if (!currentNode.isMainNode()) {
-      return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("role"), nodeRole(currentNode));
+      return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("role"), Node.getNodeRole(currentNode).name());
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("role"), nodeRole(currentNode));
-  }
-
-  @NotNull
-  public static String nodeRole(@NotNull TeamCityNode node) {
-    if (node.isMainNode()) {
-      return "main_node";
-    }
-
-    return "secondary_node";
+    return ValueWithDefault.decideDefault(myFields.isIncluded("role"), Node.getNodeRole(currentNode).name());
   }
 
   @XmlAttribute
@@ -219,7 +211,7 @@ public class Server {
       serviceLocator.getSingletonService(DataProvider.class).checkGlobalPermission(Permission.VIEW_SERVER_SETTINGS);
       return serviceLocator.getSingletonService(DataProvider.class).getBean(ServerPaths.class).getDataDirectory().getAbsolutePath();
     } else if ("role".equals(field)) {
-      return nodeRole(serviceLocator.getSingletonService(TeamCityNodes.class).getCurrentNode());
+      return Node.getNodeRole(serviceLocator.getSingletonService(TeamCityNodes.class).getCurrentNode()).name();
     } else if ("webUrl".equals(field) || "url".equals(field)) {
       return serviceLocator.getSingletonService(RootUrlHolder.class).getRootUrl();
     } else if ("artifactsUrl".equals(field)) {

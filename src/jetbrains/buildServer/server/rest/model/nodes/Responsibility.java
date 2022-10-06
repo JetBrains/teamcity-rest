@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.nodes;
 
+import java.util.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -40,5 +41,18 @@ public class Responsibility {
   public Responsibility(@NotNull NodeResponsibility responsibility, @NotNull Fields fields) {
     name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), responsibility.name());
     description = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("description"), responsibility.getDisplayName());
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Responsibility that = (Responsibility)o;
+    return Objects.equals(name, that.name) && Objects.equals(description, that.description);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, description);
   }
 }
