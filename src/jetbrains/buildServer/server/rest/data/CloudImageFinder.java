@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.CloudErrorInfo;
 import jetbrains.buildServer.clouds.CloudImage;
@@ -103,8 +104,8 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
 
       dimension(ID, type(CloudUtil.ImageIdData::new).description("Specially formatted text"))
         .description("image id as provided by list images call")
-        .filter((value, item) -> value.id.equals(item.getId()) && Util.resolveNull(myCloudUtil.getProfile(item), p -> value.profileId.equals(p.getProfileId()), false))
-        .toItems(dimension -> Util.resolveNull(myCloudUtil.getImage(dimension.profileId, dimension.id), Collections::singletonList, Collections.emptyList()));
+        .filter((profileAndId, item) -> checkImageByProfileAndId(profileAndId, item))
+        .toItems(profileAndId -> findImageByProfileAndId(profileAndId));
 
       dimensionValueCondition(NAME)
         .description("image name")
@@ -114,7 +115,7 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
         .description("image error message")
         .valueForDefaultFilter(cloudImage -> Util.resolveNull(cloudImage.getErrorInfo(), CloudErrorInfo::getMessage));
 
-      dimensionWithFinder(AGENT, () -> myServiceLocator.getSingletonService(AgentFinder.class), "agents")
+      dimensionAgents(AGENT, myServiceLocator)
         .filter((agents, image) -> agents.stream().anyMatch(agentIsAssociatedWithCloudImage(image)));
 
       dimensionWithFinder(AGENT_POOL, () -> myServiceLocator.getSingletonService(AgentPoolFinder.class), "agent pools of the images")
@@ -122,7 +123,7 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
 
 
       dimensionWithFinder(INSTANCE, () -> myServiceLocator.getSingletonService(CloudInstanceFinder.class), "instances of the images")
-        .filter((value, item) -> value.stream().anyMatch(instance -> instance.getCloudImageId().equals(item.getId())))
+        .filter((instances, image) -> instances.stream().anyMatch(instanceBelongsToImage(image)))
         .toItems(instances -> instances.stream().map(instance -> instance.getInstance().getImage()).distinct().collect(Collectors.toList()));
 
       dimensionWithFinder(PROFILE, () -> myServiceLocator.getSingletonService(CloudProfileFinder.class), "profiles of the images")
@@ -133,24 +134,54 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
         .description("projects defining the cloud profiles/images")
         .valueForDefaultFilter(item -> Collections.singleton(myCloudUtil.getProject(item)))
         .toItems(projects -> projects.stream()
-                                     .flatMap(project -> myCloudManager.listProfilesByProject(project.getProjectId(), false).stream())
-                                     .flatMap(profile -> myCloudUtil.getImages(profile).stream())
+                                     .flatMap(project -> getAllCloudImagesInProject(project, false))
                                      .collect(Collectors.toList())
         );
 
       dimensionProjects(AFFECTED_PROJECT, myServiceLocator)
         .description("projects where the cloud profiles/images are accessible")
         .filter((projects, item) -> Util.resolveNull(myCloudUtil.getProject(item), p -> CloudUtil.containProjectOrParent(projects, p), false))
-        .toItems(projects -> projects.stream().flatMap(project -> myCloudManager.listProfilesByProject(project.getProjectId(), true).stream())
-                                              .flatMap(profile -> myCloudUtil.getImages(profile).stream())
-                                              .collect(Collectors.toList())
+        .toItems(projects -> projects.stream()
+                                     .flatMap(project -> getAllCloudImagesInProject(project, true))
+                                     .collect(Collectors.toList())
         );
 
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> processor -> myCloudManager.listAllProfiles().stream()
-                                                                                                    .flatMap(p -> myCloudUtil.getImages(p).stream())
-                                                                                                    .filter(i -> !processor.processItem(i)).findFirst());
+      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> getAllCloudImages());
 
-      locatorProvider(i -> getLocator(i, myCloudUtil));
+      locatorProvider(image -> getLocator(image, myCloudUtil));
+    }
+
+    private boolean checkImageByProfileAndId(CloudUtil.ImageIdData profileAndId, CloudImage item) {
+      return profileAndId.id.equals(item.getId()) && Util.resolveNull(myCloudUtil.getProfile(item), p -> profileAndId.profileId.equals(p.getProfileId()), false);
+    }
+
+    @NotNull
+    private List<CloudImage> findImageByProfileAndId(@NotNull CloudUtil.ImageIdData profileAndId) {
+      return Util.resolveNull(myCloudUtil.getImage(profileAndId.profileId, profileAndId.id), Collections::singletonList, Collections.emptyList());
+    }
+
+    @NotNull
+    private Stream<CloudImage> getAllCloudImagesInProject(@NotNull SProject project, boolean includeImagesInSubprojects) {
+      return myCloudManager.listProfilesByProject(project.getProjectId(), includeImagesInSubprojects)
+                           .stream()
+                           .flatMap(profile -> myCloudUtil.getImages(profile).stream());
+    }
+
+    @NotNull
+    private Predicate<CloudInstanceData> instanceBelongsToImage(@NotNull CloudImage image) {
+      return instance -> instance.getCloudImageId().equals(image.getId());
+    }
+
+    @NotNull
+    private FinderDataBinding.ItemHolder<CloudImage> getAllCloudImages() {
+      return itemProcessor -> {
+        Stream<CloudImage> allImages = myCloudManager.listAllProfiles().stream()
+                                                     .flatMap(p -> myCloudUtil.getImages(p).stream());
+
+        // this is equialent of takeWhile
+        allImages.filter(image -> !itemProcessor.processItem(image))
+                 .findFirst();
+      };
     }
 
     @NotNull
