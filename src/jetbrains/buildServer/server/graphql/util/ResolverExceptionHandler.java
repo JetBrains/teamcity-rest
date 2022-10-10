@@ -22,7 +22,7 @@ import graphql.GraphqlErrorBuilder;
 import graphql.execution.DataFetcherExceptionHandler;
 import graphql.execution.DataFetcherExceptionHandlerParameters;
 import graphql.execution.DataFetcherExceptionHandlerResult;
-import graphql.execution.ExecutionPath;
+import graphql.execution.ResultPath;
 import graphql.language.SourceLocation;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
@@ -36,7 +36,7 @@ public class ResolverExceptionHandler implements DataFetcherExceptionHandler {
   public DataFetcherExceptionHandlerResult onException(DataFetcherExceptionHandlerParameters handlerParameters) {
     Throwable exception = handlerParameters.getException();
     SourceLocation sourceLocation = handlerParameters.getSourceLocation();
-    ExecutionPath path = handlerParameters.getPath();
+    ResultPath path = handlerParameters.getPath();
 
     GraphqlErrorBuilder builder = GraphqlErrorBuilder.newError()
                                                      .path(path)

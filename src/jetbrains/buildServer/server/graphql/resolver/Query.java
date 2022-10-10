@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.graphql.resolver;
 
+import graphql.GraphQLContext;
 import graphql.execution.DataFetcherResult;
 import graphql.kickstart.tools.GraphQLQueryResolver;
 import graphql.schema.DataFetchingEnvironment;
@@ -23,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.Agent;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.agentPool.AgentPool;
@@ -38,6 +38,7 @@ import jetbrains.buildServer.server.graphql.model.connections.agentPool.AgentPoo
 import jetbrains.buildServer.server.graphql.model.filter.AgentsFilter;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
+import jetbrains.buildServer.server.graphql.util.Context;
 import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.server.graphql.util.ObjectIdentificationNode;
 import jetbrains.buildServer.server.rest.data.Finder;
@@ -184,9 +185,9 @@ public class Query implements GraphQLQueryResolver {
 
   @NotNull
   public GlobalPermissions globalPermissions(@NotNull DataFetchingEnvironment env) {
-    GraphQLContext ctx = env.getContext();
+    GraphQLContext ctx = env.getGraphQlContext();
 
-    SUser user = ctx.getUser();
+    SUser user = ctx.get(Context.CURRENT_USER);
     if(user == null) {
       return new GlobalPermissions(false);
     }

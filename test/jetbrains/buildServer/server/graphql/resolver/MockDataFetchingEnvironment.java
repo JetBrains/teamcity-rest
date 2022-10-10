@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.graphql.resolver;
 
+import graphql.GraphQLContext;
 import graphql.cachecontrol.CacheControl;
 import graphql.execution.ExecutionId;
 import graphql.execution.ExecutionStepInfo;
@@ -199,6 +200,11 @@ public class MockDataFetchingEnvironment implements DataFetchingEnvironment {
 
   @Override
   public Map<String, Object> getVariables() {
+    return null;
+  }
+
+  @Override
+  public GraphQLContext getGraphQlContext() {
     return null;
   }
 }

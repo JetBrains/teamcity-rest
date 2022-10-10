@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.graphql.resolver;
 
 import com.intellij.openapi.diagnostic.Logger;
+import graphql.GraphQLContext;
 import graphql.execution.DataFetcherResult;
 import graphql.kickstart.tools.GraphQLMutationResolver;
 import graphql.schema.DataFetchingEnvironment;
@@ -28,12 +29,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.LicenseNotGrantedException;
 import jetbrains.buildServer.Used;
-import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.*;
 import jetbrains.buildServer.server.graphql.model.agentPool.AbstractAgentPool;
 import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.server.graphql.model.mutation.*;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
+import jetbrains.buildServer.server.graphql.util.Context;
 import jetbrains.buildServer.server.graphql.util.EntityNotFoundGraphQLError;
 import jetbrains.buildServer.server.graphql.util.OperationFailedGraphQLError;
 import jetbrains.buildServer.server.rest.data.AgentFinder;
@@ -191,7 +192,7 @@ public class Mutation implements GraphQLMutationResolver {
       input.getAgentRawId(),
       agent -> {
         DataFetcherResult.Builder<AuthorizeAgentPayload> result = DataFetcherResult.newResult();
-        GraphQLContext context = dfe.getContext();
+        GraphQLContext context = dfe.getGraphQlContext();
         String authReason = input.getReason() == null ? "" : input.getReason();
 
         // Move agent to another pool first as we don't want some cheeky build to start while agent is in a wrong pool.
@@ -208,7 +209,7 @@ public class Mutation implements GraphQLMutationResolver {
             return result.error(new OperationFailedGraphQLError(String.format("Agent with id=%d can not be moved.", input.getAgentRawId()))).build();
           }
         }
-        agent.setAuthorized(true, context.getUser(), authReason);
+        agent.setAuthorized(true, context.get(Context.CURRENT_USER), authReason);
 
         Agent agentModel = new Agent(agent);
         AbstractAgentPool targetPoolModel = null;
@@ -227,7 +228,7 @@ public class Mutation implements GraphQLMutationResolver {
   @NotNull
   public DataFetcherResult<BulkAuthorizeAgentsPayload> bulkAuthorizeAgents(@NotNull BulkAuthorizeAgentsInput input, @NotNull DataFetchingEnvironment dfe) {
     DataFetcherResult.Builder<BulkAuthorizeAgentsPayload> result = DataFetcherResult.newResult();
-    GraphQLContext context = dfe.getContext();
+    GraphQLContext context = dfe.getGraphQlContext();
     String authReason = input.getReason() == null ? "" : input.getReason();
 
     Set<Integer> agentTypeIds = new HashSet<>(input.getAgentRawIds().size());
@@ -270,7 +271,7 @@ public class Mutation implements GraphQLMutationResolver {
     List<Agent> agentModels = new ArrayList<>();
     for(BuildAgentEx agent : agents) {
       try {
-        agent.setAuthorized(true, context.getUser(), authReason);
+        agent.setAuthorized(true, context.get(Context.CURRENT_USER), authReason);
       } catch (LicenseNotGrantedException e) {
         result.error(new OperationFailedGraphQLError(e.getMessage()));
       }
@@ -287,11 +288,11 @@ public class Mutation implements GraphQLMutationResolver {
       input.getAgentRawId(),
       agent -> {
         DataFetcherResult.Builder<UnauthorizeAgentPayload> result = DataFetcherResult.newResult();
-        GraphQLContext context = dfe.getContext();
+        GraphQLContext context = dfe.getGraphQlContext();
         String authReason = input.getReason() == null ? "" : input.getReason();
 
         try {
-          agent.setAuthorized(false, context.getUser(), authReason);
+          agent.setAuthorized(false, context.get(Context.CURRENT_USER), authReason);
         } catch (LicenseNotGrantedException e) {
           return result.error(new OperationFailedGraphQLError(e.getMessage())).build();
         }

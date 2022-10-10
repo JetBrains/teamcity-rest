@@ -16,14 +16,15 @@
 
 package jetbrains.buildServer.server.graphql.resolver;
 
+import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.*;
-import jetbrains.buildServer.server.graphql.GraphQLContext;
 import jetbrains.buildServer.server.graphql.model.ProjectPermissions;
 import jetbrains.buildServer.server.graphql.model.agentPool.ProjectAgentPool;
 import jetbrains.buildServer.server.graphql.model.connections.*;
 import jetbrains.buildServer.server.graphql.model.Project;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
+import jetbrains.buildServer.server.graphql.util.Context;
 import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.server.graphql.util.ParentsFetcher;
 import jetbrains.buildServer.serverSide.SProject;
@@ -68,9 +69,9 @@ public class ProjectResolver extends ModelResolver<Project> {
 
   @NotNull
   public ProjectPermissions permissions(@NotNull Project source, @NotNull DataFetchingEnvironment env) {
-    GraphQLContext ctx = env.getContext();
+    GraphQLContext ctx = env.getGraphQlContext();
 
-    SUser user = ctx.getUser();
+    SUser user = ctx.get(Context.CURRENT_USER);
     if(user == null) {
       return new ProjectPermissions(false);
     }

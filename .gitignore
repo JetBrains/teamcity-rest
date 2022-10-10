@@ -8,3 +8,5 @@ rest-api.iws
 dist/
 temp/
 test-output/
+# Ignore Gradle build output directory
+build

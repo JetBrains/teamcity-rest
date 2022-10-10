@@ -25,6 +25,7 @@ import javax.ws.rs.core.MediaType;
 import jetbrains.buildServer.server.graphql.util.GraphQLRequestBody;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.util.NamedThreadFactory;
+import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -71,7 +72,7 @@ public class GraphQLEndpoint {
     } else {
       ExecutionInput.Builder inputBuilder = ExecutionInput
         .newExecutionInput()
-        .context(new GraphQLContext(request))
+        .graphQLContext(builder -> builder.of(jetbrains.buildServer.server.graphql.util.Context.CURRENT_USER, SessionUser.getUser(request)).build())
         .query(body.query);
       if (body.operationName != null) {
         inputBuilder.operationName(body.operationName);
