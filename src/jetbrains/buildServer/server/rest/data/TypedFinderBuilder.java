@@ -27,6 +27,8 @@ import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.TypedFinderDimension;
+import jetbrains.buildServer.server.rest.data.util.TypedFinderDimensionWithDefaultChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
@@ -62,85 +64,6 @@ public class TypedFinderBuilder<ITEM> {
   private LocatorProvider<ITEM> myLocatorProvider;
   private Supplier<DuplicateChecker<ITEM>> myDuplicateCheckerSupplier;
   private String myFinderName;
-
-  /**
-   * Locator dimension builder. Allows to specify how to filter and retrieve items by given dimension.
-   * @param <ITEM> items, produced by corresponding Finder
-   * @param <TYPE> dimension value type, integer, boolean, string, etc.
-   */
-  public interface TypedFinderDimension<ITEM, TYPE> {
-    /**
-     * Specifies description of the dimension used in locator help, error messages and similar places.
-     */
-    @NotNull
-    TypedFinderDimension<ITEM, TYPE> description(@NotNull String description);
-
-    /**
-     * Marks dimension as hidden, excluding it from locator help response.
-     */
-    @NotNull
-    TypedFinderDimension<ITEM, TYPE> hidden();
-
-    /**
-     * Defines default value for the dimension, in case it's not present in the locator.
-     */
-    @NotNull
-    TypedFinderDimension<ITEM, TYPE> withDefault(@NotNull String value);
-
-    /**
-     * Defines filter for the items obtained from other dimesnions.
-     */
-    @NotNull
-    TypedFinderDimension<ITEM, TYPE> filter(@NotNull Filter<TYPE, ITEM> filter);
-
-    /**
-     * Defines a way to obtain items with given dimension value.
-     * Items returned via {@link ItemsFromDimension} should be filtered exactly as if they were filtered via {@link #filter(Filter)}.
-     * @param filteringMapper mapping function producing items given the dimension value.
-     *
-     */
-    @NotNull
-    TypedFinderDimension<ITEM, TYPE> toItems(@NotNull ItemsFromDimension<ITEM, TYPE> filteringMapper);
-
-    /**
-     * Defines a default filter for the dimension.
-     * @param checker predicate function, decideing whether to include given item in the result or not.
-     * @param <TYPE_FOR_FILTER>
-     */
-    @NotNull
-    <TYPE_FOR_FILTER> TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> defaultFilter(@NotNull Filter<TYPE, TYPE_FOR_FILTER> checker);
-  }
-
-  public interface TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> extends TypedFinderDimension<ITEM, TYPE> {
-    /**
-     * Provide a way to extract key from the given item, e.g. some field, which will be used for comparison via default filter.
-     * @param retriever key extracting mapper
-     */
-    @NotNull
-    TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> valueForDefaultFilter(@NotNull TypeFromItem<TYPE_FOR_FILTER, ITEM> retriever);
-
-    // all the same as in parent interface, with more precise return type
-
-    @NotNull
-    @Override
-    TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> description(@NotNull String description);
-
-    @NotNull
-    @Override
-    TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> hidden();
-
-    @NotNull
-    @Override
-    TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> withDefault(@NotNull String value);
-
-    @NotNull
-    @Override
-    TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> filter(@NotNull Filter<TYPE, ITEM> checker);
-
-    @NotNull
-    @Override
-    TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> toItems(@NotNull ItemsFromDimension<ITEM, TYPE> filteringMapper);
-  }
 
   public class TypedFinderDimensionImpl<TYPE> implements TypedFinderDimension<ITEM, TYPE> {
     @NotNull protected final Dimension<TYPE> myDimension;
@@ -232,7 +155,7 @@ public class TypedFinderBuilder<ITEM> {
     }
   }
 
-  private class TypedFinderDimensionWithDefaultCheckerImpl<TYPE, TYPE_FOR_FILTER> implements TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> {
+  class TypedFinderDimensionWithDefaultCheckerImpl<TYPE, TYPE_FOR_FILTER> implements TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> {
     @NotNull private final TypedFinderDimensionImpl<TYPE> myOriginal;
     @NotNull private final Filter<TYPE, TYPE_FOR_FILTER> myDefaultChecker;
 
