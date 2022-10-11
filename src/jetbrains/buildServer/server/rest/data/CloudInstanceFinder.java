@@ -98,7 +98,7 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
     Builder() {
       name("CloudInstanceFinder");
 
-      dimension(ID, type(value -> new CloudUtil.InstanceIdData(value)).acceptingType("Specially formatted text"))
+      dimension(ID, mapper(value -> new CloudUtil.InstanceIdData(value)).acceptingType("Specially formatted text"))
         .description("instance id as provided by list instances call")
         .filter((instanceIdData, instanceData) -> checkInstanceHasGivenIds(instanceIdData, instanceData))
         .toItems(instanceIdData -> getCloudInstanceDataById(instanceIdData));

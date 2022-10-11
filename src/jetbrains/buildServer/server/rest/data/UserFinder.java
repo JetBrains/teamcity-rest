@@ -488,7 +488,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
                                  return Collections.singletonList(user);
                                });
 
-      final DimensionValueMapper<SUserGroup> myGroupMapper = type(dimensionValue -> myGroupFinder.getGroup(dimensionValue)).acceptingType("user groups locator");
+      final DimensionValueMapper<SUserGroup> myGroupMapper = mapper(dimensionValue -> myGroupFinder.getGroup(dimensionValue)).acceptingType("user groups locator");
 
       dimension(GROUP, myGroupMapper).description("user group including the user directly")
                                      .filter((value, item) -> value.containsUserDirectly(item))
@@ -508,7 +508,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
       dimensionValueCondition(EMAIL).description("user's email").valueForDefaultFilter(item -> item.getEmail());
       dimensionValueCondition(NAME).description("user's display name").valueForDefaultFilter(item -> item.getName());
       dimensionBoolean(HAS_PASSWORD).description("user has not empty password").hidden().valueForDefaultFilter(item -> ((UserImpl)item).hasPassword());
-      dimension(PASSWORD, type(dimensionValue -> {
+      dimension(PASSWORD, mapper(dimensionValue -> {
         if (!myPermissionChecker.isPermissionGranted(Permission.CHANGE_SERVER_SETTINGS, null)) {
           throw new AuthorizationFailedException("Only system admin can query users for passwords");
         }
@@ -525,12 +525,12 @@ public class UserFinder extends DelegatingFinder<SUser> {
       dimensionTimeCondition(LAST_LOGIN_TIME, myTimeCondition).description("user's last login time").valueForDefaultFilter(item -> item.getLastLoginTimestamp());
 
 
-      dimension(ROLE, type(dimensionValue -> new RoleEntryDatas(dimensionValue, myRolesManager, myProjectFinder, myPermissionChecker)).acceptingType("role locator"))
+      dimension(ROLE, mapper(dimensionValue -> new RoleEntryDatas(dimensionValue, myRolesManager, myProjectFinder, myPermissionChecker)).acceptingType("role locator"))
         .description("user's role")
         .filter((roleEntryDatas, item) -> roleEntryDatas.matches(item));
 
       PermissionCheck permissionCheck = new PermissionCheck();
-      dimension(PERMISSION, type(dimensionValue -> permissionCheck.matches(dimensionValue)).acceptingType("permission check locator"))
+      dimension(PERMISSION, mapper(dimensionValue -> permissionCheck.matches(dimensionValue)).acceptingType("permission check locator"))
         .description("user's permission (experimental)").hidden()
         .filter((type, item) -> type.isIncluded(item));
 

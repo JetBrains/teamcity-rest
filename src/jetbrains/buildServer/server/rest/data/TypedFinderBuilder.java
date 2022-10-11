@@ -216,7 +216,7 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, Long, Long> dimensionLong(@NotNull final Dimension<Long> dimension) {
-    return dimension(dimension, type(TypedFinderBuilder::getLong).acceptingType("number")).defaultFilter(Long::equals);
+    return dimension(dimension, mapper(TypedFinderBuilder::getLong).acceptingType("number")).defaultFilter(Long::equals);
   }
 
   @NotNull
@@ -229,11 +229,11 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, String, String> dimensionString(@NotNull final Dimension<String> dimension) {
-    return dimension(dimension, type(dimensionValue -> dimensionValue).acceptingType("text")).defaultFilter(String::equals);
+    return dimension(dimension, mapper(dimensionValue -> dimensionValue).acceptingType("text")).defaultFilter(String::equals);
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, Boolean, Boolean> dimensionBoolean(@NotNull final Dimension<Boolean> dimension) {
-    return dimension(dimension, type(Locator::getBooleanByValue).acceptingType("boolean"))
+    return dimension(dimension, mapper(Locator::getBooleanByValue).acceptingType("boolean"))
       .defaultFilter(FilterUtil::isIncludedByBooleanFilter);
   }
 
@@ -300,7 +300,7 @@ public class TypedFinderBuilder<ITEM> {
   public <FINDER_TYPE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>> dimensionWithFinder(@NotNull final Dimension<List<FINDER_TYPE>> dimension,
                                                                                                                              @NotNull final Supplier<Finder<FINDER_TYPE>> finderValue,
                                                                                                                              @NotNull String typeDescription) {
-    return dimension(dimension, type(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).acceptingType(typeDescription))
+    return dimension(dimension, mapper(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).acceptingType(typeDescription))
       .defaultFilter((fromFilter, fromItem) -> {
         for (FINDER_TYPE item : fromFilter) {
           if (fromItem.contains(item)) return true;
@@ -323,7 +323,7 @@ public class TypedFinderBuilder<ITEM> {
   public <FINDER_TYPE, MIDDLE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>>
   dimensionWithFinder(@NotNull final Dimension<List<FINDER_TYPE>> dimension, @NotNull final Supplier<Finder<FINDER_TYPE>> finderValue,
                       @NotNull final Function<FINDER_TYPE, MIDDLE> converter, @NotNull String typeDescription) {
-    return dimension(dimension, type(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).acceptingType(typeDescription))
+    return dimension(dimension, mapper(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).acceptingType(typeDescription))
       .defaultFilter((fromFilter, fromItem) -> {
         Set<MIDDLE> middleSet = new HashSet<>();
         for (FINDER_TYPE item : fromItem) {
@@ -337,22 +337,22 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, ParametersProvider> dimensionParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
-    return dimension(dimension, type(ParameterCondition::create).acceptingType("parameter condition"))
+    return dimension(dimension, mapper(ParameterCondition::create).acceptingType("parameter condition"))
       .defaultFilter(ParameterCondition::matches);
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, InheritableUserParametersHolder> dimensionOwnParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
-    return dimension(dimension, type(ParameterCondition::create).acceptingType("parameter condition with inherited support"))
+    return dimension(dimension, mapper(ParameterCondition::create).acceptingType("parameter condition with inherited support"))
       .defaultFilter(ParameterCondition::matches);
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, ValueCondition, String> dimensionValueCondition(@NotNull final Dimension<ValueCondition> dimension) {
-    return dimension(dimension, type(ParameterCondition::createValueCondition).acceptingType("value condition"))
+    return dimension(dimension, mapper(ParameterCondition::createValueCondition).acceptingType("value condition"))
       .defaultFilter(ValueCondition::matches);
   }
 
   public<T extends Enum<T>> TypedFinderDimensionWithDefaultChecker<ITEM, T, T> dimensionEnum(@NotNull final Dimension<T> dimension, @NotNull final Class<T> enumClass) {
-    return dimension(dimension, type(dimensionValue -> getEnumValue(dimensionValue, enumClass)).acceptingType("one of " + getValues(enumClass)))
+    return dimension(dimension, mapper(dimensionValue -> getEnumValue(dimensionValue, enumClass)).acceptingType("one of " + getValues(enumClass)))
     .defaultFilter(Enum::equals);
   }
 
@@ -367,7 +367,7 @@ public class TypedFinderBuilder<ITEM> {
                                                                                     @NotNull final String helpTextDescribingItems,
                                                                                     @NotNull final Function<String, T> dimensionValueToItem) {
     return dimension(dimension,
-                     type(dimensionValue -> getValues(dimensionValue, helpTextDescribingItems, dimensionValueToItem)).acceptingType("one or more of " + helpTextDescribingItems))
+                     mapper(dimensionValue -> getValues(dimensionValue, helpTextDescribingItems, dimensionValueToItem)).acceptingType("one or more of " + helpTextDescribingItems))
       .defaultFilter(Set::contains);
   }
 
@@ -376,7 +376,7 @@ public class TypedFinderBuilder<ITEM> {
     Set<String> lowerCaseValues = Arrays.stream(values).map(String::toLowerCase).collect(Collectors.toSet());
     String supportedValuesText = StringUtil.join(values, ", ");
 
-    return dimension(dimension, type(dimensionValue -> {
+    return dimension(dimension, mapper(dimensionValue -> {
       if (lowerCaseValues.contains(dimensionValue.toLowerCase())) {
         return dimensionValue;
       }
@@ -388,14 +388,14 @@ public class TypedFinderBuilder<ITEM> {
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, TimeCondition.ParsedTimeCondition, Date> dimensionTimeCondition(@NotNull final Dimension<TimeCondition.ParsedTimeCondition> dimension,
                                                                                                                       @NotNull final TimeCondition timeCondition) {
-    return dimension(dimension, type(timeCondition::getTimeCondition).acceptingType("time condition"))
+    return dimension(dimension, mapper(timeCondition::getTimeCondition).acceptingType("time condition"))
       .defaultFilter(TimeCondition.ParsedTimeCondition::matches);
   }
 
   public <F> TypedFinderDimensionWithDefaultChecker<ITEM, ItemFilter<F>, F> dimensionFinderFilter(@NotNull final Dimension<ItemFilter<F>> dimension,
                                                                                                   @NotNull final Finder<F> finder,
                                                                                                   @NotNull final String description) {
-    return dimension(dimension, type(finder::getFilter).acceptingType("").acceptingType(description)).defaultFilter(FilterConditionChecker::isIncluded);
+    return dimension(dimension, mapper(finder::getFilter).acceptingType("").acceptingType(description)).defaultFilter(FilterConditionChecker::isIncluded);
   }
 
   @Nullable
@@ -524,7 +524,8 @@ public class TypedFinderBuilder<ITEM> {
     });
   }
 
-  public <TYPE> DimensionValueMapper<TYPE> type(@NotNull final DimensionValueMapper.ValueRetriever<TYPE> retriever) {
+  @NotNull
+  public <TYPE> DimensionValueMapper<TYPE> mapper(@NotNull final DimensionValueMapper.ValueRetriever<TYPE> retriever) {
     return new DimensionValueMapper<>(retriever);
   }
 
