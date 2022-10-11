@@ -102,10 +102,10 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
     Builder() {
       name("CloudInstanceFinder");
 
-      dimension(ID, type(value -> new CloudUtil.InstanceIdData(value)).description("Specially formatted text")).description("instance id as provided by list instances call").
-        filter((value, item) -> value.id.equals(item.getInstance().getInstanceId()) && value.imageId.equals(item.getCloudImageId())
+      dimension(ID, type(value -> new CloudUtil.InstanceIdData(value)).acceptingType("Specially formatted text")).description("instance id as provided by list instances call").
+                                                                                                                 filter((value, item) -> value.id.equals(item.getInstance().getInstanceId()) && value.imageId.equals(item.getCloudImageId())
                                 && Util.resolveNull(myCloudUtil.getProfile(item.getInstance().getImage()), p -> value.profileId.equals(p.getProfileId()), false)).
-        toItems(dimension -> Util.resolveNull(myCloudUtil.getInstance(dimension.profileId, dimension.imageId, dimension.id),
+                                                                                                                 toItems(dimension -> Util.resolveNull(myCloudUtil.getInstance(dimension.profileId, dimension.imageId, dimension.id),
                                               i -> Collections.singletonList(new CloudInstanceData(i, dimension.profileId, myServiceLocator)), Collections.emptyList()));
 
       dimensionValueCondition(ERROR).description("instance error message").valueForDefaultFilter(instance -> instance.getError());

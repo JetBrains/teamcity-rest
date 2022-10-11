@@ -25,6 +25,7 @@ import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.util.SetDuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.finderBuilder.DimensionValueMapper;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -487,7 +488,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
                                  return Collections.singletonList(user);
                                });
 
-      final Type<SUserGroup> myGroupMapper = type(dimensionValue -> myGroupFinder.getGroup(dimensionValue)).description("user groups locator");
+      final DimensionValueMapper<SUserGroup> myGroupMapper = type(dimensionValue -> myGroupFinder.getGroup(dimensionValue)).acceptingType("user groups locator");
 
       dimension(GROUP, myGroupMapper).description("user group including the user directly")
                                      .filter((value, item) -> value.containsUserDirectly(item))
@@ -517,19 +518,19 @@ public class UserFinder extends DelegatingFinder<SUser> {
           //ignore
         }
         return dimensionValue;
-      }).description("text")).description("user's password")
-                             .hidden()
-                             .filter((value, item) -> myUserModel.findUserAccount(item.getRealm(), item.getUsername(), value) != null);
+      }).acceptingType("text")).description("user's password")
+                               .hidden()
+                               .filter((value, item) -> myUserModel.findUserAccount(item.getRealm(), item.getUsername(), value) != null);
 
       dimensionTimeCondition(LAST_LOGIN_TIME, myTimeCondition).description("user's last login time").valueForDefaultFilter(item -> item.getLastLoginTimestamp());
 
 
-      dimension(ROLE, type(dimensionValue -> new RoleEntryDatas(dimensionValue, myRolesManager, myProjectFinder, myPermissionChecker)).description("role locator"))
+      dimension(ROLE, type(dimensionValue -> new RoleEntryDatas(dimensionValue, myRolesManager, myProjectFinder, myPermissionChecker)).acceptingType("role locator"))
         .description("user's role")
         .filter((roleEntryDatas, item) -> roleEntryDatas.matches(item));
 
       PermissionCheck permissionCheck = new PermissionCheck();
-      dimension(PERMISSION, type(dimensionValue -> permissionCheck.matches(dimensionValue)).description("permission check locator"))
+      dimension(PERMISSION, type(dimensionValue -> permissionCheck.matches(dimensionValue)).acceptingType("permission check locator"))
         .description("user's permission (experimental)").hidden()
         .filter((type, item) -> type.isIncluded(item));
 

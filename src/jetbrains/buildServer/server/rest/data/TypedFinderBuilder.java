@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.finderBuilder.DimensionValueMapper;
 import jetbrains.buildServer.server.rest.data.util.finderBuilder.TypedFinderDimension;
 import jetbrains.buildServer.server.rest.data.util.finderBuilder.TypedFinderDimensionWithDefaultChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -67,13 +68,13 @@ public class TypedFinderBuilder<ITEM> {
 
   public class TypedFinderDimensionImpl<TYPE> implements TypedFinderDimension<ITEM, TYPE> {
     @NotNull protected final Dimension<TYPE> myDimension;
-    @NotNull protected final Type<TYPE> myType;
+    @NotNull protected final DimensionValueMapper<TYPE> myValueMapper;
     protected String myDescription = null;
     protected Boolean myHidden = null;
 
-    public TypedFinderDimensionImpl(@NotNull final Dimension<TYPE> dimension, @NotNull final Type<TYPE> type) {
+    public TypedFinderDimensionImpl(@NotNull final Dimension<TYPE> dimension, @NotNull final DimensionValueMapper<TYPE> valueMapper) {
       myDimension = dimension;
-      myType = type;
+      myValueMapper = valueMapper;
     }
 
     @NotNull
@@ -82,8 +83,8 @@ public class TypedFinderBuilder<ITEM> {
     }
 
     @NotNull
-    public Type<TYPE> getType() {
-      return myType;
+    public DimensionValueMapper<TYPE> getValueMapper() {
+      return myValueMapper;
     }
 
     @Nullable
@@ -215,7 +216,7 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, Long, Long> dimensionLong(@NotNull final Dimension<Long> dimension) {
-    return dimension(dimension, type(TypedFinderBuilder::getLong).description("number")).defaultFilter(Long::equals);
+    return dimension(dimension, type(TypedFinderBuilder::getLong).acceptingType("number")).defaultFilter(Long::equals);
   }
 
   @NotNull
@@ -228,11 +229,11 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, String, String> dimensionString(@NotNull final Dimension<String> dimension) {
-    return dimension(dimension, type(dimensionValue -> dimensionValue).description("text")).defaultFilter(String::equals);
+    return dimension(dimension, type(dimensionValue -> dimensionValue).acceptingType("text")).defaultFilter(String::equals);
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, Boolean, Boolean> dimensionBoolean(@NotNull final Dimension<Boolean> dimension) {
-    return dimension(dimension, type(Locator::getBooleanByValue).description("boolean"))
+    return dimension(dimension, type(Locator::getBooleanByValue).acceptingType("boolean"))
       .defaultFilter(FilterUtil::isIncludedByBooleanFilter);
   }
 
@@ -299,7 +300,7 @@ public class TypedFinderBuilder<ITEM> {
   public <FINDER_TYPE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>> dimensionWithFinder(@NotNull final Dimension<List<FINDER_TYPE>> dimension,
                                                                                                                              @NotNull final Supplier<Finder<FINDER_TYPE>> finderValue,
                                                                                                                              @NotNull String typeDescription) {
-    return dimension(dimension, type(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).description(typeDescription))
+    return dimension(dimension, type(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).acceptingType(typeDescription))
       .defaultFilter((fromFilter, fromItem) -> {
         for (FINDER_TYPE item : fromFilter) {
           if (fromItem.contains(item)) return true;
@@ -322,7 +323,7 @@ public class TypedFinderBuilder<ITEM> {
   public <FINDER_TYPE, MIDDLE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>>
   dimensionWithFinder(@NotNull final Dimension<List<FINDER_TYPE>> dimension, @NotNull final Supplier<Finder<FINDER_TYPE>> finderValue,
                       @NotNull final Function<FINDER_TYPE, MIDDLE> converter, @NotNull String typeDescription) {
-    return dimension(dimension, type(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).description(typeDescription))
+    return dimension(dimension, type(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).acceptingType(typeDescription))
       .defaultFilter((fromFilter, fromItem) -> {
         Set<MIDDLE> middleSet = new HashSet<>();
         for (FINDER_TYPE item : fromItem) {
@@ -336,22 +337,22 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, ParametersProvider> dimensionParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
-    return dimension(dimension, type(ParameterCondition::create).description("parameter condition"))
+    return dimension(dimension, type(ParameterCondition::create).acceptingType("parameter condition"))
       .defaultFilter(ParameterCondition::matches);
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, InheritableUserParametersHolder> dimensionOwnParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
-    return dimension(dimension, type(ParameterCondition::create).description("parameter condition with inherited support"))
+    return dimension(dimension, type(ParameterCondition::create).acceptingType("parameter condition with inherited support"))
       .defaultFilter(ParameterCondition::matches);
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, ValueCondition, String> dimensionValueCondition(@NotNull final Dimension<ValueCondition> dimension) {
-    return dimension(dimension, type(ParameterCondition::createValueCondition).description("value condition"))
+    return dimension(dimension, type(ParameterCondition::createValueCondition).acceptingType("value condition"))
       .defaultFilter(ValueCondition::matches);
   }
 
   public<T extends Enum<T>> TypedFinderDimensionWithDefaultChecker<ITEM, T, T> dimensionEnum(@NotNull final Dimension<T> dimension, @NotNull final Class<T> enumClass) {
-    return dimension(dimension, type(dimensionValue -> getEnumValue(dimensionValue, enumClass)).description("one of " + getValues(enumClass)))
+    return dimension(dimension, type(dimensionValue -> getEnumValue(dimensionValue, enumClass)).acceptingType("one of " + getValues(enumClass)))
     .defaultFilter(Enum::equals);
   }
 
@@ -366,7 +367,7 @@ public class TypedFinderBuilder<ITEM> {
                                                                                     @NotNull final String helpTextDescribingItems,
                                                                                     @NotNull final Function<String, T> dimensionValueToItem) {
     return dimension(dimension,
-                     type(dimensionValue -> getValues(dimensionValue, helpTextDescribingItems, dimensionValueToItem)).description("one or more of " + helpTextDescribingItems))
+                     type(dimensionValue -> getValues(dimensionValue, helpTextDescribingItems, dimensionValueToItem)).acceptingType("one or more of " + helpTextDescribingItems))
       .defaultFilter(Set::contains);
   }
 
@@ -381,20 +382,20 @@ public class TypedFinderBuilder<ITEM> {
       }
       throw new BadRequestException("Unsupported value '" + dimensionValue + "'. Supported values are: " + supportedValuesText);
 
-    }).description("one of " + supportedValuesText))
+    }).acceptingType("one of " + supportedValuesText))
       .defaultFilter(String::equalsIgnoreCase);
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, TimeCondition.ParsedTimeCondition, Date> dimensionTimeCondition(@NotNull final Dimension<TimeCondition.ParsedTimeCondition> dimension,
                                                                                                                       @NotNull final TimeCondition timeCondition) {
-    return dimension(dimension, type(timeCondition::getTimeCondition).description("time condition"))
+    return dimension(dimension, type(timeCondition::getTimeCondition).acceptingType("time condition"))
       .defaultFilter(TimeCondition.ParsedTimeCondition::matches);
   }
 
   public <F> TypedFinderDimensionWithDefaultChecker<ITEM, ItemFilter<F>, F> dimensionFinderFilter(@NotNull final Dimension<ItemFilter<F>> dimension,
                                                                                                   @NotNull final Finder<F> finder,
                                                                                                   @NotNull final String description) {
-    return dimension(dimension, type(finder::getFilter).description("").description(description)).defaultFilter(FilterConditionChecker::isIncluded);
+    return dimension(dimension, type(finder::getFilter).acceptingType("").acceptingType(description)).defaultFilter(FilterConditionChecker::isIncluded);
   }
 
   @Nullable
@@ -428,13 +429,13 @@ public class TypedFinderBuilder<ITEM> {
    * ).defaultFilter(Integer::equals);
    * </pre>
    *
-   * @param dimension actual typed dimension definition
-   * @param typeMapper dimension value mapper function
+   * @param dimension actual typed dimension description
+   * @param dimensionValueMapper retrieves result of TYPE given dimension value
    * @param <TYPE> target type used in filters, etc.
    */
-  public <TYPE> TypedFinderDimension<ITEM, TYPE> dimension(@NotNull final Dimension<TYPE> dimension, @NotNull final Type<TYPE> typeMapper) {
+  public <TYPE> TypedFinderDimension<ITEM, TYPE> dimension(@NotNull final Dimension<TYPE> dimension, @NotNull final DimensionValueMapper<TYPE> dimensionValueMapper) {
     if (myDimensions.containsKey(dimension.name)) throw new OperationException("Dimension with name '" + dimension.name + "' was already added");
-    @NotNull TypedFinderDimensionImpl<TYPE> value = new TypedFinderDimensionImpl<>(dimension, typeMapper);
+    @NotNull TypedFinderDimensionImpl<TYPE> value = new TypedFinderDimensionImpl<>(dimension, dimensionValueMapper);
     myDimensions.put(dimension.name, value);
     return value;
   }
@@ -523,8 +524,8 @@ public class TypedFinderBuilder<ITEM> {
     });
   }
 
-  public <TYPE> TypeBuilder<TYPE> type(@NotNull final TypeBuilder.ValueRetriever<TYPE> retriever) {
-    return new TypeBuilder<>(retriever);
+  public <TYPE> DimensionValueMapper<TYPE> type(@NotNull final DimensionValueMapper.ValueRetriever<TYPE> retriever) {
+    return new DimensionValueMapper<>(retriever);
   }
 
   @NotNull
@@ -565,6 +566,10 @@ public class TypedFinderBuilder<ITEM> {
 
   //============================= Public subclasses =============================
 
+  /**
+   * TypedFinder dimension descriptor.
+   * @param <TYPE> type of the items, produced by dimension data retrievers.
+   */
   @SuppressWarnings("unused")
   public static class Dimension<TYPE> { //type is important here to let type inference for all the rest of the class usages
     @NotNull public final String name;
@@ -582,46 +587,6 @@ public class TypedFinderBuilder<ITEM> {
     @Override
     public String toString() {
       return "Dimension '" + name + "'";
-    }
-  }
-
-  public static abstract class Type<TYPE> {
-    @Nullable
-    String getDescription() {
-      return null;
-    }
-
-    @Nullable
-    abstract TYPE get(@NotNull final String dimensionValue);
-  }
-
-  public static class TypeBuilder<TYPE> extends Type<TYPE> {
-    @NotNull private final ValueRetriever<TYPE> myRetriever;
-    @Nullable private String myDescription;
-
-    public TypeBuilder(@NotNull final ValueRetriever<TYPE> retriever) {
-      myRetriever = retriever;
-    }
-
-    @Nullable
-    String getDescription() {
-      return myDescription;
-    }
-
-    @Nullable
-    TYPE get(@NotNull final String dimensionValue) {
-      return myRetriever.get(dimensionValue);
-    }
-
-    @NotNull
-    TypeBuilder<TYPE> description(@NotNull String description) {
-      myDescription = description;
-      return this;
-    }
-
-    public interface ValueRetriever<TYPE> {
-      @Nullable
-      TYPE get(@NotNull String dimensionValue);
     }
   }
 
@@ -1073,7 +1038,7 @@ public class TypedFinderBuilder<ITEM> {
           result.append(" - ");
           result.append(dimensionDescription);
         }
-        String typeDescription = dimension.getType().getDescription();
+        String typeDescription = dimension.getValueMapper().getLocatorTypeDescription();
         if (typeDescription != null) {
           result.append(" (type: ").append(typeDescription).append(")");
         }
@@ -1139,7 +1104,7 @@ public class TypedFinderBuilder<ITEM> {
     private <TYPE> TYPE getByDimensionValue(final @NotNull TypedFinderDimensionImpl<TYPE> typedDimension, final String dimensionValue) {
       TYPE result;
       try {
-        result = typedDimension.getType().get(dimensionValue);
+        result = typedDimension.getValueMapper().get(dimensionValue);
       } catch (LocatorProcessException e) {
         if (Locator.HELP_DIMENSION.equals(dimensionValue)) throw e;
         throw new LocatorProcessException("Error in dimension '" + typedDimension.getDimension().name + "', value: '" + dimensionValue + "'", e);
@@ -1174,5 +1139,3 @@ public class TypedFinderBuilder<ITEM> {
     }
   }
 }
-
-

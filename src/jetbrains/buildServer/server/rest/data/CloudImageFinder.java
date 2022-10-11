@@ -102,7 +102,7 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
     Builder() {
       name("CloudImageFinder");
 
-      dimension(ID, type(CloudUtil.ImageIdData::new).description("Specially formatted text"))
+      dimension(ID, type(CloudUtil.ImageIdData::new).acceptingType("Specially formatted text"))
         .description("image id as provided by list images call")
         .filter((profileAndId, item) -> checkImageByProfileAndId(profileAndId, item))
         .toItems(profileAndId -> findImageByProfileAndId(profileAndId));
