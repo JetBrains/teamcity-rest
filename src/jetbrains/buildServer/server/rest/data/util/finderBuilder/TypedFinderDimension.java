@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data.util;
+package jetbrains.buildServer.server.rest.data.util.finderBuilder;
 
 import jetbrains.buildServer.server.rest.data.TypedFinderBuilder;
 import org.jetbrains.annotations.NotNull;
