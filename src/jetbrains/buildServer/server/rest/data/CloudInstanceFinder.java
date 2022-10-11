@@ -66,7 +66,7 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
 
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final CloudManager myCloudManager;
-  @NotNull public final CloudUtil myCloudUtil;
+  @NotNull private final CloudUtil myCloudUtil;
   @NotNull private final TimeCondition myTimeCondition;
 
   public CloudInstanceFinder(@NotNull final ServiceLocator serviceLocator,

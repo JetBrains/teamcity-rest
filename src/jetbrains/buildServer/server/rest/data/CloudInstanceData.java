@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.Date;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.CloudErrorInfo;
-import jetbrains.buildServer.clouds.CloudImage;
 import jetbrains.buildServer.clouds.CloudInstance;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -76,7 +75,7 @@ public class CloudInstanceData {
   @Nullable
   private String getCloudProfileId() {
     if(myCloudProfileId == null) {
-      myCloudProfileId = myServiceLocator.getSingletonService(CloudInstanceFinder.class).myCloudUtil.getProfileId(myInstance.getImage());
+      myCloudProfileId = myServiceLocator.getSingletonService(CloudUtil.class).getProfileId(myInstance.getImage());
     }
 
     return myCloudProfileId;
@@ -99,5 +98,4 @@ public class CloudInstanceData {
   public String getError() {
     return Util.resolveNull(myInstance.getErrorInfo(), CloudErrorInfo::getMessage);
   }
-
 }
