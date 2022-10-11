@@ -79,22 +79,18 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
     setDelegate(new Builder().build());
   }
 
-  public static String getLocatorById(@NotNull final Long id) {
-    return Locator.getStringLocator(ID.name, String.valueOf(id));
-  }
-
   @NotNull
   public static String getLocator(@NotNull final CloudInstanceData item) {
     return Locator.getStringLocator(ID.name, item.getId());
   }
 
   @NotNull
-  public static String getLocator(final SBuildAgent agent) {
+  public static String getLocator(@NotNull final SBuildAgent agent) {
     return Locator.getStringLocator(AGENT.name, AgentFinder.getLocator(agent));
   }
 
   @NotNull
-  public static String getLocator(final CloudImage image, @NotNull final CloudUtil cloudUtil) {
+  public static String getLocator(@NotNull final CloudImage image, @NotNull final CloudUtil cloudUtil) {
     return Locator.getStringLocator(IMAGE.name, CloudImageFinder.getLocator(image, cloudUtil));
   }
 
@@ -102,11 +98,10 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
     Builder() {
       name("CloudInstanceFinder");
 
-      dimension(ID, type(value -> new CloudUtil.InstanceIdData(value)).acceptingType("Specially formatted text")).description("instance id as provided by list instances call").
-                                                                                                                 filter((value, item) -> value.id.equals(item.getInstance().getInstanceId()) && value.imageId.equals(item.getCloudImageId())
-                                && Util.resolveNull(myCloudUtil.getProfile(item.getInstance().getImage()), p -> value.profileId.equals(p.getProfileId()), false)).
-                                                                                                                 toItems(dimension -> Util.resolveNull(myCloudUtil.getInstance(dimension.profileId, dimension.imageId, dimension.id),
-                                              i -> Collections.singletonList(new CloudInstanceData(i, dimension.profileId, myServiceLocator)), Collections.emptyList()));
+      dimension(ID, type(value -> new CloudUtil.InstanceIdData(value)).acceptingType("Specially formatted text"))
+        .description("instance id as provided by list instances call")
+        .filter((instanceIdData, instanceData) -> checkInstanceHasGivenIds(instanceIdData, instanceData))
+        .toItems(instanceIdData -> getCloudInstanceDataById(instanceIdData));
 
       dimensionValueCondition(ERROR).description("instance error message").valueForDefaultFilter(instance -> instance.getError());
       dimensionValueCondition(NETWORK_ADDRESS).description("instance network address").valueForDefaultFilter(instance -> instance.getInstance().getNetworkIdentity());
@@ -156,6 +151,17 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
 
       locatorProvider(CloudInstanceFinder::getLocator);
     }
+  }
+
+  private boolean checkInstanceHasGivenIds(@NotNull CloudUtil.InstanceIdData instanceIdData, @NotNull CloudInstanceData instanceData) {
+    return instanceIdData.id.equals(instanceData.getInstance().getInstanceId()) && instanceIdData.imageId.equals(instanceData.getCloudImageId())
+           && Util.resolveNull(myCloudUtil.getProfile(instanceData.getInstance().getImage()), p -> instanceIdData.profileId.equals(p.getProfileId()), false);
+  }
+
+  @NotNull
+  private List<CloudInstanceData> getCloudInstanceDataById(@NotNull CloudUtil.InstanceIdData instanceIdData) {
+    return Util.resolveNull(myCloudUtil.getInstance(instanceIdData.profileId, instanceIdData.imageId, instanceIdData.id),
+                            i -> Collections.singletonList(new CloudInstanceData(i, instanceIdData.profileId, myServiceLocator)), Collections.emptyList());
   }
 }
 
