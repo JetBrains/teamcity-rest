@@ -507,31 +507,42 @@ public class ChangeStatusTest extends BaseFinderTest {
     myFixture.getVcsModificationChecker().checkForModifications(composite2Bt.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
 
-    SQueuedBuild dep1Build = null;
-    SQueuedBuild composite1Build = composite1Bt.addToQueue("test");
-    for(SQueuedBuild q : myFixture.getBuildQueue().getItems()) {
-      if(q.getBuildPromotion().isCompositeBuild()) continue;
-
-      dep1Build = q;
+    composite1Bt.addToQueue("test");
+    RunningBuildEx composite1Build = null;
+    RunningBuildEx dep1Build = null;
+    for(RunningBuildEx b : myFixture.flushQueueAndWaitN(2)) {
+      if(b.getBuildPromotion().isCompositeBuild()) {
+        composite1Build = b;
+      } else {
+        dep1Build = b;
+      }
     }
     assertNotNull("Test setup failure, unable to find dependent build.", dep1Build);
-    myFixture.flushQueueAndWaitN(2);
 
-    build().withFailedTests("Split.failed1", "Split.failed2").run(dep1Build).finish();
-    build().run(composite1Build).finish();
+    myFixture.doTestFailed(dep1Build, "Split.failed1");
+    myFixture.doTestFailed(dep1Build, "Split.failed2");
 
-    SQueuedBuild dep2Build = null;
-    SQueuedBuild composite2Build = composite2Bt.addToQueue("test");
-    for(SQueuedBuild q : myFixture.getBuildQueue().getItems()) {
-      if(q.getBuildPromotion().isCompositeBuild()) continue;
+    myFixture.finishBuild(dep1Build, true);
+    myFixture.finishBuild(composite1Build, true);
 
-      dep2Build = q;
+
+    composite2Bt.addToQueue("test");
+    RunningBuildEx composite2Build = null;
+    RunningBuildEx dep2Build = null;
+    for(RunningBuildEx b : myFixture.flushQueueAndWaitN(2)) {
+      if(b.getBuildPromotion().isCompositeBuild()) {
+        composite2Build = b;
+      } else {
+        dep2Build = b;
+      }
     }
     assertNotNull("Test setup failure, unable to find dependent build.", dep2Build);
-    myFixture.flushQueueAndWaitN(2);
 
-    build().withFailedTests("Split.failed1", "Split.failed2").run(dep2Build).finish();
-    build().run(composite2Build).finish();
+    myFixture.doTestFailed(dep2Build, "Split.failed1");
+    myFixture.doTestFailed(dep2Build, "Split.failed2");
+
+    myFixture.finishBuild(dep2Build, true);
+    myFixture.finishBuild(composite2Build, true);
 
 
     ChangeStatus status = new ChangeStatus(
