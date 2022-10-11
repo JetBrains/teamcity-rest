@@ -719,6 +719,10 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public interface ItemHolderFromDimensions<ITEM> {
+    /**
+     * Provide items which satisfy conditions applied by some or all of the given dimesnion values.
+     * Should mark dimensions which were taken into account as used.
+     */
     @NotNull
     FinderDataBinding.ItemHolder<ITEM> get(@NotNull final DimensionObjects dimensions);
   }
