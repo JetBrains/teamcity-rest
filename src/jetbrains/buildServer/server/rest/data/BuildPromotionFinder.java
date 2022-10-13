@@ -1530,7 +1530,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
       // Do not mark COUNT dimension used as we can recieve more results than we need.
       Long count = locator.lookupSingleDimensionValueAsLong(PagerData.COUNT, getDefaultPageItemsCount());
-      if (count != null) {
+      if (count != null && count != -1) {
         options.setPageSize(count.intValue());
       }
 
