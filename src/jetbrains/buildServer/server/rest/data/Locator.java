@@ -629,7 +629,7 @@ public class Locator {
    */
   @Nullable
   public String getSingleValue() {
-    myUsedDimensions.add(LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    markUsed(LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     return lookupSingleValue();
   }
 
@@ -659,7 +659,7 @@ public class Locator {
   @Nullable
   @Contract("_, !null -> !null")
   public Long getSingleDimensionValueAsLong(@NotNull final String dimensionName, @Nullable Long defaultValue) {
-    myUsedDimensions.add(dimensionName);
+    markUsed(dimensionName);
     return lookupSingleDimensionValueAsLong(dimensionName, defaultValue);
   }
 
@@ -769,7 +769,7 @@ public class Locator {
    */
   @Nullable
   public String getSingleDimensionValue(@NotNull final String dimensionName) {
-    myUsedDimensions.add(dimensionName);
+    markUsed(dimensionName);
     return lookupSingleDimensionValue(dimensionName);
   }
 
@@ -781,7 +781,7 @@ public class Locator {
    */
   @NotNull
   public List<String> getDimensionValue(@NotNull final String dimensionName) {
-    myUsedDimensions.add(dimensionName);
+    markUsed(dimensionName);
     return lookupDimensionValue(dimensionName);
   }
 
