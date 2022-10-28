@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ArtifactsConstants;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
 import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
@@ -219,7 +220,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     long childrenNestingLevel = 1;
     final String recursive = locator.getSingleDimensionValue(DIMENSION_RECURSIVE);
     if (recursive != null) {
-      final Boolean parsedBoolean = Locator.getStrictBoolean(recursive);
+      final Boolean parsedBoolean = LocatorUtil.getStrictBoolean(recursive);
       if (parsedBoolean != null) {
         if (parsedBoolean) {
           childrenNestingLevel = -1;
@@ -239,7 +240,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     long archiveChildrenNestingLevel = 0;
     final String listArchives = locator.getSingleDimensionValue(ARCHIVES_DIMENSION_NAME);
     if (listArchives != null) {
-      final Boolean parsedBoolean = Locator.getStrictBoolean(listArchives);
+      final Boolean parsedBoolean = LocatorUtil.getStrictBoolean(listArchives);
       if (parsedBoolean != null) {
         if (parsedBoolean) {
           archiveChildrenNestingLevel = 1;

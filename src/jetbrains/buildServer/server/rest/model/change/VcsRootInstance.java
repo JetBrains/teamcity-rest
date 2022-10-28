@@ -29,8 +29,8 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -275,7 +275,7 @@ public class VcsRootInstance {
       }
       return;
     } else if (COMMIT_HOOK_MODE.equals(field)) {
-      boolean pollingMode = !Locator.getStrictBooleanOrReportError(newValue);
+      boolean pollingMode = !LocatorUtil.getStrictBooleanOrReportError(newValue);
       ((VcsRootInstanceEx)rootInstance).setPollingMode(pollingMode);
       Loggers.VCS.info("Poling mode is set to \"" + pollingMode + "\" via REST API call for " + rootInstance.describe(false) + " by " + beanContext.getSingletonService(PermissionChecker.class).getCurrentUserDescription());
       return;

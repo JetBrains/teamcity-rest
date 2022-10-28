@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.util.StringPool;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -56,9 +57,9 @@ public class Locator {
   private static final String DIMENSIONS_DELIMITER = ",";
   private static final String DIMENSION_COMPLEX_VALUE_START_DELIMITER = "(";
   private static final String DIMENSION_COMPLEX_VALUE_END_DELIMITER = ")";
-  public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "$singleValue";
-  private static final String ANY_LITERAL = "$any";
   private static final String BASE64_ESCAPE_FAKE_DIMENSION = "$base64";
+  public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "$singleValue";
+  public static final String ANY_LITERAL = "$any";
   public static final String HELP_DIMENSION = "$help";
 
   private static final List<String> LIST_WITH_EMPTY_STRING = Arrays.asList("");
@@ -684,7 +685,7 @@ public class Locator {
   @Nullable
   public Boolean getSingleDimensionValueAsBoolean(@NotNull final String dimensionName) {
     try {
-      return getBooleanByValue(getSingleDimensionValue(dimensionName));
+      return LocatorUtil.getBooleanByValue(getSingleDimensionValue(dimensionName));
     } catch (LocatorProcessException e) {
       throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + e.getMessage(), e);
     }
@@ -696,44 +697,15 @@ public class Locator {
   @Nullable
   public Boolean lookupSingleDimensionValueAsBoolean(@NotNull final String dimensionName) {
     try {
-      return getBooleanByValue(lookupSingleDimensionValue(dimensionName));
+      return LocatorUtil.getBooleanByValue(lookupSingleDimensionValue(dimensionName));
     } catch (LocatorProcessException e) {
       throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + e.getMessage(), e);
     }
   }
 
-  public static Boolean getBooleanByValue(@Nullable final String value) {
-    if (value == null || "all".equalsIgnoreCase(value) || BOOLEAN_ANY.equalsIgnoreCase(value) || isAny(value)) {
-      return null;
-    }
-    final Boolean result = getStrictBoolean(value);
-    if (result != null) return result;
-    throw new LocatorProcessException("Invalid boolean value '" + value + "'. Should be 'true', 'false' or 'any'.");
-  }
-
   public static final String BOOLEAN_TRUE = "true";
   public static final String BOOLEAN_FALSE = "false";
   public static final String BOOLEAN_ANY = "any";
-  /**
-   * "any" is not supported
-   * @return "null" if cannot be parsed as boolean
-   */
-  @Nullable
-  public static Boolean getStrictBoolean(final @Nullable String value) {
-    if (BOOLEAN_TRUE.equalsIgnoreCase(value) || "on".equalsIgnoreCase(value) || "yes".equalsIgnoreCase(value) || "in".equalsIgnoreCase(value)) {
-      return true;
-    }
-    if (BOOLEAN_FALSE.equalsIgnoreCase(value) || "off".equalsIgnoreCase(value) || "no".equalsIgnoreCase(value) || "out".equalsIgnoreCase(value)) {
-      return false;
-    }
-    return null;
-  }
-
-  public static boolean getStrictBooleanOrReportError(@NotNull final String value) {
-    final Boolean result = getStrictBoolean(value);
-    if (result != null) return result;
-    throw new LocatorProcessException("Invalid strict boolean value '" + value + "'. Should be 'true' or 'false'.");
-  }
 
   /**
    * @param dimensionName name of the dimension
@@ -758,7 +730,7 @@ public class Locator {
     if (value == null) {
       return defaultValue;
     }
-    return getStrictBooleanOrReportError(value);
+    return LocatorUtil.getStrictBooleanOrReportError(value);
   }
 
   /**
@@ -1003,10 +975,6 @@ public class Locator {
       return Locator.getStringLocator(dimensionName, value);
     }
     return (new Locator(locator)).setDimensionIfNotPresent(dimensionName, value).getStringRepresentation();
-  }
-
-  public static boolean isAny(@NotNull final String value) {
-    return ANY_LITERAL.equals(value);
   }
 
   public static String getStringLocator(final String... strings) {

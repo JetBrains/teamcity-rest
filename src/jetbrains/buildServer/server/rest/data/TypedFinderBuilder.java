@@ -27,6 +27,7 @@ import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
 import jetbrains.buildServer.server.rest.data.util.finderBuilder.DimensionValueMapper;
 import jetbrains.buildServer.server.rest.data.util.finderBuilder.TypedFinderDimension;
 import jetbrains.buildServer.server.rest.data.util.finderBuilder.TypedFinderDimensionWithDefaultChecker;
@@ -233,7 +234,7 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, Boolean, Boolean> dimensionBoolean(@NotNull final Dimension<Boolean> dimension) {
-    return dimension(dimension, mapper(Locator::getBooleanByValue).acceptingType("boolean"))
+    return dimension(dimension, mapper(LocatorUtil::getBooleanByValue).acceptingType("boolean"))
       .defaultFilter(FilterUtil::isIncludedByBooleanFilter);
   }
 
