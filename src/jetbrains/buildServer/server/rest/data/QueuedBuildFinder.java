@@ -45,7 +45,8 @@ import org.jetbrains.annotations.Nullable;
     }
 )
 public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
-  @LocatorDimension(BuildFinder.PROMOTION_ID) public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
+  @LocatorDimension(value = BuildPromotionFinder.PROMOTION_ID, notes = "Deprecated.")
+  public static final String PROMOTION_ID = BuildPromotionFinder.PROMOTION_ID;
   @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
   public static final String BUILD_TYPE = "buildType";
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")

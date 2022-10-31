@@ -80,8 +80,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private static final Logger LOG = Logger.getInstance(BuildPromotionFinder.class.getName());
 
   //DIMENSION_ID - id of a build or id of build promotion which will get associated build with the id
-  @LocatorDimension(value = BuildFinder.PROMOTION_ID, dataType = LocatorDimensionDataType.INTEGER, notes = "ID of a build or build promotion.")
-  public static final String PROMOTION_ID = BuildFinder.PROMOTION_ID;
+  @LocatorDimension(value = "taskId", dataType = LocatorDimensionDataType.INTEGER, notes = "ID of a build or build promotion.")
+  public static final String PROMOTION_ID = "taskId";
   protected static final String PROMOTION_ID_ALIAS = "promotionId";
   protected static final String BUILD_ID = "buildId"; //this is experimental, for debug purposes only
   @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")

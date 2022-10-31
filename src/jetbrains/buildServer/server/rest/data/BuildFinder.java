@@ -50,7 +50,7 @@ import org.jetbrains.annotations.Nullable;
 public class BuildFinder {
   private static final Logger LOG = Logger.getInstance(BuildFinder.class.getName());
   public static final String DIMENSION_ID = "id";
-  public static final String PROMOTION_ID = "taskId";
+  public static final String PROMOTION_ID = BuildPromotionFinder.PROMOTION_ID;
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final BuildTypeFinder myBuildTypeFinder;
   @NotNull private final ProjectFinder myProjectFinder;

@@ -79,7 +79,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   public static final String BUILD_TYPE = "buildType";
   @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
   public static final String BUILD = "build";
-  public static final String PROMOTION = BuildFinder.PROMOTION_ID;
+  public static final String PROMOTION = BuildPromotionFinder.PROMOTION_ID;
   @LocatorDimension(value = "vcsRoot", format = LocatorName.VCS_ROOT, notes = "VCS root locator.")
   public static final String VCS_ROOT = "vcsRoot";
   @LocatorDimension(value = "vcsRootInstance", format = LocatorName.VCS_ROOT_INSTANCE, notes = "VCS instance locator.")
