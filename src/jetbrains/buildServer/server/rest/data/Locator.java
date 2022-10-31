@@ -685,7 +685,7 @@ public class Locator {
   @Nullable
   public Boolean getSingleDimensionValueAsBoolean(@NotNull final String dimensionName) {
     try {
-      return LocatorUtil.getBooleanByValue(getSingleDimensionValue(dimensionName));
+      return LocatorUtil.getBooleanAllowingAny(getSingleDimensionValue(dimensionName));
     } catch (LocatorProcessException e) {
       throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + e.getMessage(), e);
     }
@@ -697,7 +697,7 @@ public class Locator {
   @Nullable
   public Boolean lookupSingleDimensionValueAsBoolean(@NotNull final String dimensionName) {
     try {
-      return LocatorUtil.getBooleanByValue(lookupSingleDimensionValue(dimensionName));
+      return LocatorUtil.getBooleanAllowingAny(lookupSingleDimensionValue(dimensionName));
     } catch (LocatorProcessException e) {
       throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + e.getMessage(), e);
     }

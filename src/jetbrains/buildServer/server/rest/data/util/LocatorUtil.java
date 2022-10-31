@@ -34,8 +34,23 @@ public class LocatorUtil {
     return ANY_LITERAL.equals(value);
   }
 
+  /**
+   *
+   *
+   * Supported values for true:
+   * "true", "on", "yes", "in".
+   * <br/>
+   * Supported values for false:
+   * "false", "off", "no", "out".
+   *  <br/>
+   * Supported values for any:
+   * "false", "off", "no", "out".
+   * <br/>
+   *
+   * @throws LocatorProcessException when given value is not one of the supported ones.
+   */
   @Nullable
-  public static Boolean getBooleanByValue(@Nullable final String value) {
+  public static Boolean getBooleanAllowingAny(@Nullable final String value) {
     if (value == null || "all".equalsIgnoreCase(value) || BOOLEAN_ANY.equalsIgnoreCase(value) || isAny(value)) {
       return null;
     }
@@ -59,6 +74,16 @@ public class LocatorUtil {
     return null;
   }
 
+  /**
+   * Supported values for true:
+   * "true", "on", "yes", "in".
+   * <br/>
+   * Supported values for false:
+   * "false", "off", "no", "out".
+   *  <br/>
+   *
+   * @throws LocatorProcessException when given value is not one of the supported ones.
+   */
   public static boolean getStrictBooleanOrReportError(@NotNull final String value) {
     final Boolean result = LocatorUtil.getStrictBoolean(value);
     if (result != null) return result;

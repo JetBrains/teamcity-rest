@@ -234,7 +234,7 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, Boolean, Boolean> dimensionBoolean(@NotNull final Dimension<Boolean> dimension) {
-    return dimension(dimension, mapper(LocatorUtil::getBooleanByValue).acceptingType("boolean"))
+    return dimension(dimension, mapper(LocatorUtil::getBooleanAllowingAny).acceptingType("boolean"))
       .defaultFilter(FilterUtil::isIncludedByBooleanFilter);
   }
 
