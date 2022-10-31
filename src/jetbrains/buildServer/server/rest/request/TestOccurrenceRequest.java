@@ -96,7 +96,7 @@ public class TestOccurrenceRequest {
         // At the time of writing this, the returned build will be one of the non-composite snapshot dependencies.
         // We are okay with it as we account for a BUILD dimension when retrieving short statistics in the first place.
         // However, let's skip filtering as it will filter out legitimate results.
-        locator1.markUsed(Collections.singleton(TestOccurrenceFinder.BUILD));
+        locator1.markUsed(TestOccurrenceFinder.BUILD);
         ItemFilter<STestRun> filter = myTestOccurrenceFinder.getFilter(locator1);
         PagingItemFilter<STestRun> pagingFilter = myTestOccurrenceFinder.getPagingFilter(locator1, filter);
         FilterItemProcessor<STestRun> processor = new FilterItemProcessor<>(pagingFilter);

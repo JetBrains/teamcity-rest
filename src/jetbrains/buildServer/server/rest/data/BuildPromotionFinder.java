@@ -1318,7 +1318,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         if (finishedBuilds != null) {
           FilterConditionChecker<BuildPromotion> tagsFilter = getFilterByTag(tagLocators);
           // After this point no other builds will be added
-          locator.markUsed(Collections.singleton(TAG));
+          locator.markUsed(TAG);
 
           Stream<BuildPromotion> queuedBuilds = Stream.empty();
           if(isStateIncluded(stateLocator, STATE_QUEUED)) {
@@ -1402,7 +1402,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     String agentNameCondition = locator.lookupSingleDimensionValue(AGENT_NAME);
     if (agentNameCondition != null) {
       agentName = ParameterCondition.createValueCondition(agentNameCondition).getConstantValueIfSimpleEqualsCondition();
-      if (agentName != null) locator.markUsed(Collections.singleton(AGENT_NAME));
+      if (agentName != null) locator.markUsed(AGENT_NAME);
     } else {
       agentName = null;
     }

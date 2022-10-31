@@ -499,7 +499,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     ValueCondition displayVersionCondition = ParameterCondition.createValueCondition(locator.lookupSingleDimensionValue(VERSION));
     final String displayVersion = displayVersionCondition != null ? displayVersionCondition.getConstantValueIfSimpleEqualsCondition() : null;
     if (displayVersion != null) {
-      locator.markUsed(Collections.singleton(VERSION));
+      locator.markUsed(VERSION);
       return wrapModifications(((VcsModificationHistoryEx)myVcsModificationHistory).findModificationsByDisplayVersion(displayVersion));
     }
 
@@ -720,7 +720,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     if (TeamCityProperties.getBooleanOrTrue("rest.request.changes.legacyChangesInAllBranches")) {
       boolean anyBranch = filterBranches == null || myBranchFinder.isAnyBranch(locator.lookupSingleDimensionValue(BRANCH));
       if (anyBranch && policy == SelectPrevBuildPolicy.SINCE_NULL_BUILD && locator.lookupSingleDimensionValueAsBoolean(SETTINGS_CHANGES) == null) {
-        locator.markUsed(Collections.singleton(SETTINGS_CHANGES)); //in case it was set to "any"
+        locator.markUsed(SETTINGS_CHANGES); //in case it was set to "any"
         //todo: This approach has a bug: if includeDependencyChanges==true changes from all branches are returned, if includeDependencyChanges==false - only from the default branch
         if ((includeDependencyChanges != null && !includeDependencyChanges) || (includeDependencyChanges == null && !buildType.getOption(BuildTypeOptions.BT_SHOW_DEPS_CHANGES))) {
           return myVcsModificationHistory.getAllModifications(buildType).stream().map(SVcsModificationOrChangeDescriptor::new);

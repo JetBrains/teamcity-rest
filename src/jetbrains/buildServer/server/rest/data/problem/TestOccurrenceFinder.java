@@ -450,7 +450,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      locator.markUsed(Collections.singleton(CURRENT));
+      locator.markUsed(CURRENT);
       return getPossibleExpandedTestsHolder(getCurrentOccurrences(getAffectedProject(locator), myCurrentProblemsManager),
           locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
     }

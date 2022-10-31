@@ -151,13 +151,13 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
 
     Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      locator.markUsed(Collections.singleton(CURRENT));
+      locator.markUsed(CURRENT);
       return getItemHolder(getCurrentProblemsList(affectedProject));
     }
 
     Boolean currentlyMutedDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null && currentlyMutedDimension) {
-      locator.markUsed(Collections.singleton(CURRENTLY_MUTED));
+      locator.markUsed(CURRENTLY_MUTED);
       return getItemHolder(getCurrentlyMutedProblems(affectedProject));
     }
 

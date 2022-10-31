@@ -181,7 +181,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      locator.markUsed(Collections.singleton(CURRENT));
+      locator.markUsed(CURRENT);
       return getItemHolder(getCurrentProblemOccurences(getAffectedProject(locator)));
     }
 
@@ -192,7 +192,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     Boolean currentlyMutedDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null && currentlyMutedDimension) {
-      locator.markUsed(Collections.singleton(CURRENTLY_MUTED));
+      locator.markUsed(CURRENTLY_MUTED);
       final SProject affectedProject = getAffectedProject(locator);
       return getProblemOccurrences(myProblemFinder.getCurrentlyMutedProblems(affectedProject));
     }
