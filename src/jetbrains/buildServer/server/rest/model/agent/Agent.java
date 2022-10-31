@@ -26,6 +26,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.agent.OSKind;
 import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -272,7 +273,7 @@ public class Agent {
                                               () -> {
                                                 Fields nestedFields = fields.getNestedField("builds", Fields.NONE, Fields.SHORT);
                                                 String locator = Locator.merge(nestedFields.getLocator(),
-                                                                               Locator.setDimension(BuildPromotionFinder.getLocator(agent), PagerData.COUNT, "1"));
+                                                                               LocatorUtil.setDimension(BuildPromotionFinder.getLocator(agent), PagerData.COUNT, "1"));
                                                 return Builds.createFromBuildPromotions(
                                                   beanContext.getServiceLocator().getSingletonService(BuildPromotionFinder.class).getItems(locator).myEntries,
                                                   new PagerData(BuildRequest.getHref(locator)), fields, beanContext);

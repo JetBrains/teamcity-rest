@@ -29,10 +29,7 @@ import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
-import jetbrains.buildServer.server.rest.data.util.AggregatingItemHolder;
-import jetbrains.buildServer.server.rest.data.util.CollectionItemHolder;
-import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
-import jetbrains.buildServer.server.rest.data.util.KeyDuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -256,7 +253,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static String getLocator(@NotNull final SBuildType buildType, @Nullable final Branch branch, @Nullable final String additionalLocator){
     String result = Locator.getStringLocator(BUILD_TYPE, BuildTypeFinder.getLocator(buildType));
     if (branch != null) {
-      result = Locator.setDimension(result, BRANCH, BranchFinder.getLocator(branch));
+      result = LocatorUtil.setDimension(result, BRANCH, BranchFinder.getLocator(branch));
     }
     if (additionalLocator == null) return result;
     return Locator.merge(result, additionalLocator);

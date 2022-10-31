@@ -19,8 +19,6 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.util.StringPool;
@@ -53,16 +51,20 @@ import org.jetbrains.annotations.Nullable;
  */
 public class Locator {
   private static final Logger LOG = Logger.getInstance(Locator.class.getName());
-  private static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
+  public static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
   private static final String DIMENSIONS_DELIMITER = ",";
   private static final String DIMENSION_COMPLEX_VALUE_START_DELIMITER = "(";
   private static final String DIMENSION_COMPLEX_VALUE_END_DELIMITER = ")";
+  private static final List<String> LIST_WITH_EMPTY_STRING = Arrays.asList("");
   private static final String BASE64_ESCAPE_FAKE_DIMENSION = "$base64";
   public static final String LOCATOR_SINGLE_VALUE_UNUSED_NAME = "$singleValue";
   public static final String ANY_LITERAL = "$any";
   public static final String HELP_DIMENSION = "$help";
 
-  private static final List<String> LIST_WITH_EMPTY_STRING = Arrays.asList("");
+  public static final String BOOLEAN_TRUE = "true";
+  public static final String BOOLEAN_FALSE = "false";
+  public static final String BOOLEAN_ANY = "any";
+
 
   private final String myRawValue;
   @NotNull private final Metadata myMetadata;
@@ -184,7 +186,7 @@ public class Locator {
     }
   }
     
-    @Nullable
+  @Nullable
   private static String getBase64UnescapedSingleValue(final @NotNull String text, final boolean extendedMode) {
     if (!TeamCityProperties.getBooleanOrTrue("rest.locator.allowBase64")) return null;
     if (!text.startsWith(BASE64_ESCAPE_FAKE_DIMENSION + DIMENSION_NAME_VALUE_DELIMITER)) {
@@ -226,11 +228,6 @@ public class Locator {
       throw new LocatorProcessException("Error converting decoded '" + base64EncodedValue + "' value bytes to UTF-8 string", e);
     }
   }
-
-  private final static String UNSAFE_CHARACTERS = DIMENSION_COMPLEX_VALUE_END_DELIMITER +
-                                                  DIMENSION_COMPLEX_VALUE_START_DELIMITER +
-                                                  DIMENSION_NAME_VALUE_DELIMITER +
-                                                  DIMENSIONS_DELIMITER + "$";
 
   private boolean hasDimensions(final @NotNull String locatorText) {
     if (locatorText.contains(DIMENSION_NAME_VALUE_DELIMITER)) {
@@ -333,8 +330,9 @@ public class Locator {
 
   @NotNull
   private static HashMap<String, List<String>> parse(@NotNull final String locator,
-                                  @Nullable final String[] supportedDimensions, @NotNull final Collection<String> hiddenSupportedDimensions,
-                                  final boolean extendedMode) {
+                                                     @Nullable final String[] supportedDimensions,
+                                                     @NotNull final Collection<String> hiddenSupportedDimensions,
+                                                     final boolean extendedMode) {
     StringPool stringPool = RestContext.getThreadLocalStringPool();
     HashMap<String, List<String>> result = new HashMap<>();
     String currentDimensionName;
@@ -477,7 +475,9 @@ public class Locator {
   }
 
   private static boolean isValidName(@Nullable final String name,
-                                     final String[] supportedDimensions, @NotNull final Collection<String> hiddenSupportedDimensions, final boolean extendedMode) {
+                                     final String[] supportedDimensions,
+                                     @NotNull final Collection<String> hiddenSupportedDimensions,
+                                     final boolean extendedMode) {
     if ((supportedDimensions == null || !Arrays.asList(supportedDimensions).contains(name)) && !hiddenSupportedDimensions.contains(name)) {
       for (int i = 0; i < name.length(); i++) {
         if (!Character.isLetter(name.charAt(i)) && !Character.isDigit(name.charAt(i)) && !(name.charAt(i) == '-' && extendedMode)) return false;
@@ -575,7 +575,7 @@ public class Locator {
     }
   }
 
-  public interface DescriptionProvider{
+  public interface DescriptionProvider {
     @NotNull String get(@NotNull Locator locator, boolean includeHidden);
   }
 
@@ -703,10 +703,6 @@ public class Locator {
     }
   }
 
-  public static final String BOOLEAN_TRUE = "true";
-  public static final String BOOLEAN_FALSE = "false";
-  public static final String BOOLEAN_ANY = "any";
-
   /**
    * @param dimensionName name of the dimension
    * @param defaultValue  default value to use if no dimension with the name is found
@@ -763,7 +759,7 @@ public class Locator {
     return idDimension != null ? new ArrayList<String>(idDimension) : Collections.<String>emptyList();
   }
 
-  public Boolean isAnyPresent(@NotNull final String... dimensionName) {
+  public boolean isAnyPresent(@NotNull final String... dimensionName) {
     for (String name : dimensionName) {
       if (myDimensions.get(name) != null) return true;
     }
@@ -795,6 +791,7 @@ public class Locator {
     return myDimensions.size();
   }
 
+  @NotNull
   public Collection<String> getDefinedDimensions() {
     return myDimensions.keySet();
   }
@@ -806,6 +803,7 @@ public class Locator {
    * @param name  name of the dimension
    * @param value value of the dimension
    */
+  @NotNull
   public Locator setDimension(@NotNull final String name, @NotNull final String value) {
     return setDimension(name, Collections.singletonList(value));
   }
@@ -817,6 +815,7 @@ public class Locator {
    * @param name  name of the dimension
    * @param values new values of the dimension
    */
+  @NotNull
   public Locator setDimension(@NotNull final String name, @NotNull final List<String> values) {
     if (isSingleValue()) {
       throw new IllegalArgumentException("Attempt to set dimension '" + name + "' for single value locator.");
@@ -834,6 +833,7 @@ public class Locator {
    * @param name  name of the dimension
    * @param value value of the dimension
    */
+  @NotNull
   public Locator setDimensionIfNotPresent(@NotNull final String name, @NotNull final String value) {
     Collection<String> idDimension = myDimensions.get(name);
     if (idDimension == null || idDimension.isEmpty()) {
@@ -842,6 +842,7 @@ public class Locator {
     return this;
   }
 
+  @NotNull
   public Locator setDimensionIfNotPresent(@NotNull final String name, @NotNull final List<String> values) {
     Collection<String> idDimension = myDimensions.get(name);
     if (idDimension == null || idDimension.isEmpty()) {
@@ -922,39 +923,6 @@ public class Locator {
    */
   public void markAllUnused() {
     myUsedDimensions.clear();
-  }
-
-  /**
-   * Returns a locator based on the supplied one replacing the numeric value of the dimension specified with the passed number.
-   * The structure of the returned locator might be different from the passed one, while the same dimensions and values are present.
-   *
-   * @param locator       existing locator (should be valid), or null to create new locator
-   * @param dimensionName only alpha-numeric characters are supported! Only numeric values without brackets are supported!
-   * @param value         new value for the dimension, only alpha-numeric characters are supported!
-   * @return
-   */
-  public static String setDimension(@Nullable final String locator, @NotNull final String dimensionName, final String value) {
-    if (locator == null){
-      return Locator.getStringLocator(dimensionName, value);
-    }
-
-    try {
-      return new Locator(locator).setDimension(dimensionName, value).getStringRepresentation();
-    } catch (LocatorProcessException e) {
-      //not a valid locator... try replacing in the string, but might actually need to throw an error here
-      final Matcher matcher = Pattern.compile(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + "\\d+").matcher(locator);
-      String result = matcher.replaceFirst(dimensionName + DIMENSION_NAME_VALUE_DELIMITER + value);
-      try {
-        matcher.end();
-      } catch (IllegalStateException ex) {
-        throw new LocatorProcessException("Cannot replace locator values: invalid locator '" + locator + "'");
-      }
-      return result;
-    }
-  }
-
-  public static String setDimension(@Nullable final String locator, @NotNull final String dimensionName, final long value) {
-    return setDimension(locator, dimensionName, String.valueOf(value));
   }
 
   /**

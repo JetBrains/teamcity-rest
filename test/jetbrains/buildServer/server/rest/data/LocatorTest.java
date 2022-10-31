@@ -22,6 +22,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.TestInternalProperties;
+import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -182,7 +183,7 @@ public class LocatorTest {
     assertEquals("a:b,x:y", Locator.setDimensionIfNotPresent("a:b,x:y", "a","z"));
     assertEquals("a:$any,x:y", Locator.setDimensionIfNotPresent("a:$any,x:y", "a","z"));
 
-    assertEquals("a:(b:10),b:20", Locator.setDimension("a:(b:10)", "b","20"));
+    assertEquals("a:(b:10),b:20", LocatorUtil.setDimension("a:(b:10)", "b", "20"));
   }
 
   @Test

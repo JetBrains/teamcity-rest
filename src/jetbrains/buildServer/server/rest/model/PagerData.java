@@ -22,6 +22,7 @@ import javax.ws.rs.core.UriBuilder;
 import jetbrains.buildServer.server.rest.data.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
@@ -66,8 +67,9 @@ public class PagerData {
    */
   public PagerData(@NotNull final UriBuilder uriBuilder,
                    @NotNull final String contextPath,
-                   @NotNull final PagedSearchResult pagedResult,
-                   @Nullable final String locatorText, @Nullable final String locatorQueryParameterName) {
+                   @NotNull final PagedSearchResult<?> pagedResult,
+                   @Nullable final String locatorText,
+                   @Nullable final String locatorQueryParameterName) {
     final Long start = pagedResult.myStart;
     final Long count = pagedResult.myCount == null ? null : Long.valueOf(pagedResult.myCount);
     long currentPageRealCount = pagedResult.myActualCount;
@@ -111,7 +113,7 @@ public class PagerData {
       } else {
         nextHref = getModifiedBuilder(uriBuilder, (start != null ? start : 0) + currentPageRealCount, (count != null ? count : 0), locatorText, locatorQueryParameterName);
       }
-      final String newLocator = Locator.setDimension(nextHref.getCurrentLocatorText(), AbstractFinder.DIMENSION_LOOKUP_LIMIT, getNextLookUpLimit(pagedResult.myLookupLimit));
+      final String newLocator = LocatorUtil.setDimension(nextHref.getCurrentLocatorText(), AbstractFinder.DIMENSION_LOOKUP_LIMIT, getNextLookUpLimit(pagedResult.myLookupLimit));
       nextHref = new UriModification(nextHref.getBuilder().replaceQueryParam(locatorQueryParameterName, Util.encodeUrlParamValue(newLocator)), newLocator);
     }
     myNextHref = nextHref == null ? null : getRelativePath(nextHref.getBuilder().build(), contextPath);
@@ -142,8 +144,8 @@ public class PagerData {
       return new UriModification(result, null);
     }
     newBuilder.replaceQueryParam(START, null).replaceQueryParam(COUNT, null);
-    final String locatorWithStart = Locator.setDimension(locatorText, START, start);
-    String newLocator = count == null ? locatorWithStart : Locator.setDimension(locatorWithStart, COUNT, count);
+    final String locatorWithStart = LocatorUtil.setDimension(locatorText, START, start);
+    String newLocator = count == null ? locatorWithStart : LocatorUtil.setDimension(locatorWithStart, COUNT, count);
     return new UriModification(newBuilder.replaceQueryParam(locatorQueryParameterName, Util.encodeUrlParamValue(newLocator)), newLocator);
   }
 
