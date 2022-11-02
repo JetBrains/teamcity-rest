@@ -110,7 +110,9 @@ public class LocatorAwareReader extends Reader {
     for (Field field : cls.getDeclaredFields()) { //iterate through the class fields
       if (field.isAnnotationPresent(LocatorDimension.class)) {
         LocatorDimension dimension = field.getAnnotation(LocatorDimension.class);
-        dimensions.add(dimension);
+        if(!dimension.hidden()) {
+          dimensions.add(dimension);
+        }
       }
     }
 

@@ -26,13 +26,15 @@ public class CommonLocatorDimension implements LocatorDimension {
   public final String format;
   public final String notes;
   public final String allowableValues;
+  public final boolean hidden;
 
-  public CommonLocatorDimension(String value, String dataType, String format, String notes, String allowableValues) {
+  public CommonLocatorDimension(String value, String dataType, String format, String notes, String allowableValues, boolean hidden) {
     this.value = value;
     this.dataType = dataType;
     this.format = format;
     this.notes = notes;
     this.allowableValues = allowableValues;
+    this.hidden = hidden;
   }
 
   @Override
@@ -61,5 +63,10 @@ public class CommonLocatorDimension implements LocatorDimension {
   @Override
   public Class<? extends Annotation> annotationType() {
     return null;
+  }
+
+  @Override
+  public boolean hidden() {
+    return this.hidden;
   }
 }

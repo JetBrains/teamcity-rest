@@ -34,38 +34,39 @@ public class CommonLocatorDimensionsList {
     Map<String, CommonLocatorDimension> dimensionHashMap = new HashMap<>();
     dimensionHashMap.put(
         PagerData.COUNT, new CommonLocatorDimension(
-            PagerData.COUNT, LocatorDimensionDataType.INTEGER, "", "For paginated calls, how many entities to return per page.", ""
+            PagerData.COUNT, LocatorDimensionDataType.INTEGER, "", "For paginated calls, how many entities to return per page.", "", false
         )
     );
     dimensionHashMap.put(
         PagerData.START, new CommonLocatorDimension(
-            PagerData.START, LocatorDimensionDataType.INTEGER, "", "For paginated calls, from which entity to start rendering the page.", ""
+            PagerData.START, LocatorDimensionDataType.INTEGER, "", "For paginated calls, from which entity to start rendering the page.", "", false
         )
     );
     dimensionHashMap.put(
         AbstractFinder.DIMENSION_LOOKUP_LIMIT, new CommonLocatorDimension(
-            AbstractFinder.DIMENSION_LOOKUP_LIMIT, LocatorDimensionDataType.INTEGER, "", "Limit processing to the latest `<lookupLimit>` entities.", ""
+            AbstractFinder.DIMENSION_LOOKUP_LIMIT, LocatorDimensionDataType.INTEGER, "", "Limit processing to the latest `<lookupLimit>` entities.", "", false
         )
     );
     dimensionHashMap.put(
         AbstractFinder.DIMENSION_ID, new CommonLocatorDimension(
-            AbstractFinder.DIMENSION_ID, LocatorDimensionDataType.INTEGER, "", "Entity ID.", ""
+            AbstractFinder.DIMENSION_ID, LocatorDimensionDataType.INTEGER, "", "Entity ID.", "", false
         )
     );
     dimensionHashMap.put(
         AbstractFinder.DIMENSION_ITEM, new CommonLocatorDimension(
-            AbstractFinder.DIMENSION_ITEM, LocatorDimensionDataType.STRING, "item:(<locator1>),item:(<locator2>...)", "Supply multiple locators and return a union of the results.", ""
+            AbstractFinder.DIMENSION_ITEM, LocatorDimensionDataType.STRING, "item:(<locator1>),item:(<locator2>...)", "Supply multiple locators and return a union of the results.", "", false
         )
     );
     dimensionHashMap.put(
         PROPERTY, new CommonLocatorDimension(
             PROPERTY, LocatorDimensionDataType.STRING, "property:(name:<name>,value:<value>,matchType:<matchType>)", "",
-            "exists,not-exists,equals,does-not-equal,starts-with,contains,does-not-contain,ends-with,any,matches,does-not-match,more-than,no-more-than,less-than,no-less-than,ver-more-than,ver-no-more-than,ver-less-than,ver-no-less-than"
+            "exists,not-exists,equals,does-not-equal,starts-with,contains,does-not-contain,ends-with,any,matches,does-not-match,more-than,no-more-than,less-than,no-less-than,ver-more-than,ver-no-more-than,ver-less-than,ver-no-less-than",
+            false
         )
     );
     dimensionHashMap.put(
       CURRENT, new CommonLocatorDimension(
-        CURRENT, LocatorDimensionDataType.STRING, "current", "Return user that has issued this request.", ""
+        CURRENT, LocatorDimensionDataType.STRING, "current", "Return user that has issued this request.", "", false
       )
     );
     return dimensionHashMap;

@@ -82,8 +82,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   //DIMENSION_ID - id of a build or id of build promotion which will get associated build with the id
   @LocatorDimension(value = "taskId", dataType = LocatorDimensionDataType.INTEGER, notes = "ID of a build or build promotion.")
   public static final String PROMOTION_ID = "taskId";
+  @LocatorDimension(value = "prmotionId", dataType = LocatorDimensionDataType.INTEGER, notes = "ID of a build or build promotion (compatibility with TC 8.0).", hidden = true)
   protected static final String PROMOTION_ID_ALIAS = "promotionId";
-  protected static final String BUILD_ID = "buildId"; //this is experimental, for debug purposes only
+  @LocatorDimension(value = "buildId", format = LocatorDimensionDataType.INTEGER, notes = "Build type locator (experimental, for debug purposes only).", hidden = true)
+  protected static final String BUILD_ID = "buildId";
   @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
   public static final String BUILD_TYPE = "buildType";
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project (direct parent) locator.")
@@ -92,6 +94,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private static final String AFFECTED_PROJECT = "affectedProject";
   @LocatorDimension(value = "agent", format = LocatorName.AGENT, notes = "Agent locator.")
   public static final String AGENT = "agent";
+  @LocatorDimension(value = "agentName", format = LocatorDimensionDataType.STRING, notes = "Agent name (experimental).", hidden = true)
   public static final String AGENT_NAME = "agentName";
   @LocatorDimension(value = "agentTypeId", dataType = LocatorDimensionDataType.INTEGER, notes = "typeId of agent used to execute build.")
   public static final String AGENT_TYPE_ID = "agentTypeId";
@@ -99,13 +102,17 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   public static final String PERSONAL = "personal";
   @LocatorDimension(value = "user", format = LocatorName.USER, notes = "For personal builds checks the owner of the build, triggerring user in other cases.")
   public static final String USER = "user";
-  public static final String TRIGGERED = "triggered"; //experimental
+  @LocatorDimension(value = "triggered", format = LocatorDimensionDataType.STRING, notes = "Triggered by (experimental).", hidden = true)
+  public static final String TRIGGERED = "triggered";
   @LocatorDimension(value = "branch", format = LocatorName.BRANCH, notes = "Branch locator.")
   protected static final String BRANCH = "branch";
-  protected static final String BRANCHED = "branched"; //experimental
+  @LocatorDimension(value = "branched", format = LocatorDimensionDataType.STRING, notes = "Build in a branch (experimental).", hidden = true)
+  protected static final String BRANCHED = "branched";
+  // @LocatorDimension(value = "property", notes = "Build in a branch (experimental).", hidden = true)
+  //
   protected static final String PROPERTY = "property";
+  @LocatorDimension(value = "statisticValue", format = LocatorDimensionDataType.STRING, notes = "Build in a branch (experimental).", hidden = true)
   protected static final String STATISTIC_VALUE = "statisticValue";
-
   @LocatorDimension(value = "state", allowableValues = "queued,running,finished,any")
   public static final String STATE = "state";
   @LocatorDimension(value = "queued", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is queued.")
@@ -117,37 +124,50 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @LocatorDimension(value = "any", dataType = LocatorDimensionDataType.BOOLEAN, notes = "State can be any.")
   protected static final String STATE_ANY = "any";
 
-  @LocatorDimension("number") protected static final String NUMBER = "number";
-  @LocatorDimension("status") protected static final String STATUS = "status";
+  @LocatorDimension(value = "number", notes = "Build number string.")
+  protected static final String NUMBER = "number";
+  @LocatorDimension(value = "status", notes = "Status text.")
+  protected static final String STATUS = "status";
   @LocatorDimension(value = "canceled", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is canceled.")
   protected static final String CANCELED = "canceled";
   @LocatorDimension(value = "failedToStart", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is failed to start.")
   protected static final String FAILED_TO_START = "failedToStart";
   @LocatorDimension(value = "pinned", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is pinned.")
   protected static final String PINNED = "pinned";
+  @LocatorDimension(value = "running", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is in running state (compatibility with TC 9.0).", hidden = true)
   protected static final String RUNNING = "running";
   @LocatorDimension(value = "hanging", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is hanging.")
   protected static final String HANGING = "hanging";
   @LocatorDimension(value = "composite", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is composite.")
   protected static final String COMPOSITE = "composite";
-  @LocatorDimension("snapshotDependency") protected static final String SNAPSHOT_DEP = "snapshotDependency";
-  @LocatorDimension("artifactDependency") protected static final String ARTIFACT_DEP = "artifactDependency";
-  public static final String SNAPSHOT_PROBLEM = "snapshotDependencyProblem"; /*experimental*/
+  @LocatorDimension("snapshotDependency")
+  protected static final String SNAPSHOT_DEP = "snapshotDependency";
+  @LocatorDimension("artifactDependency")
+  protected static final String ARTIFACT_DEP = "artifactDependency";
+  @LocatorDimension(value = "snapshotDependencyProblem", notes = "Experimental", hidden = true)
+  public static final String SNAPSHOT_PROBLEM = "snapshotDependencyProblem";
   protected static final String COMPATIBLE_AGENTS_COUNT = "compatibleAgentsCount";
-  protected static final String TAGS = "tags"; //legacy support only
+  @LocatorDimension(value = "tags", notes = "legacy support only", hidden = true)
+  protected static final String TAGS = "tags";
   @LocatorDimension(value = "tag", format = LocatorName.TAG, notes = "Tag locator.")
   protected static final String TAG = "tag";
   @LocatorDimension(value = "compatibleAgent", format = LocatorName.AGENT, notes = "Agent locator.")
   protected static final String COMPATIBLE_AGENT = "compatibleAgent";
   @LocatorDimension(value = "history", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is history build.")
   protected static final String HISTORY = "history";
+  @LocatorDimension(value = "testOccurrence", notes = "Experimental", hidden = true)
   protected static final String TEST_OCCURRENCE = "testOccurrence";
+  @LocatorDimension(value = "test", notes = "Experimental", hidden = true)
   protected static final String TEST = "test";
   //todo: add problem* filtering; filtering by statusText;
-  protected static final String SINCE_BUILD = "sinceBuild"; //use startDate:(build:(<locator>),condition:after) instead
-  protected static final String SINCE_DATE = "sinceDate"; //use startDate:(date:<date>,condition:after) instead
-  protected static final String UNTIL_BUILD = "untilBuild"; //use startDate:(build:(<locator>),condition:before) instead
-  protected static final String UNTIL_DATE = "untilDate"; //use startDate:(date:<date>,condition:before) instead
+  @LocatorDimension(value = "sinceBuild", notes = "Experimental, use startDate:(build:(<locator>),condition:after) instead", hidden = true)
+  protected static final String SINCE_BUILD = "sinceBuild"; //
+  @LocatorDimension(value = "sinceDate", notes = "Experimental, use startDate:(date:<date>,condition:after) instead", hidden = true)
+  protected static final String SINCE_DATE = "sinceDate";
+  @LocatorDimension(value = "untilBuild", notes = "Experimental, use startDate:(build:(<locator>),condition:before) instead", hidden = true)
+  protected static final String UNTIL_BUILD = "untilBuild";
+  @LocatorDimension(value = "untilDate", notes = "Experimental, use startDate:(date:<date>,condition:before) instead", hidden = true)
+  protected static final String UNTIL_DATE = "untilDate";
 
   @LocatorDimension(value = "queuedDate", format = "date:<yyyyMMddTHHmmss+ZZZZ>,build:<build locator>,condition:<before/after>", notes = "Requires either date or build dimension.")
   protected static final String QUEUED_TIME = "queuedDate";
@@ -158,16 +178,22 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @LocatorDimension(value = "defaultFilter", dataType = LocatorDimensionDataType.BOOLEAN, notes = "If true, applies default filter which returns only \"normal\" builds (finished builds which are not canceled, not failed-to-start, not personal, and on default branch (in branched build configurations)).")
   protected static final String DEFAULT_FILTERING = "defaultFilter";
+  @LocatorDimension(value = "sinceBuildIdLookAheadCount", notes = "Experimental", hidden = true)
   protected static final String SINCE_BUILD_ID_LOOK_AHEAD_COUNT = "sinceBuildIdLookAheadCount";  /*experimental*/
+  @LocatorDimension(value = "ordered", notes = "Experimental", hidden = true)
   public static final String ORDERED = "ordered"; /*experimental*/
+  @LocatorDimension(value = "strob", notes = "Experimental", hidden = true)
   public static final String STROB = "strob"; /*experimental*/  //might need a better name
 
+  @LocatorDimension(value = "byPromotion", notes = "Legacy", hidden = true)
   public static final String BY_PROMOTION = "byPromotion";  //used in BuildFinder
+  @LocatorDimension(value = "equivalent", notes = "Experimental", hidden = true)
   public static final String EQUIVALENT = "equivalent"; /*experimental*/
+  @LocatorDimension(value = "metadata", notes = "Experimental", hidden = true)
   public static final String METADATA = "metadata"; /*experimental*/
 
   @LocatorDimension(value = "revision", notes = "Build revision.")
-  public static final String REVISION = "revision"; /*experimental*/
+  public static final String REVISION = "revision";
   //todo: filter by modId/chainModId (including null) - before(up to)/after filtering
 
   protected static final String STROB_BUILD_LOCATOR = "locator";
@@ -598,7 +624,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       result.add(item -> Util.resolveNull(getTriggeredBy(item), filter::isIncluded, false));
     }
 
-    final List<String> properties = locator.getDimensionValue(PROPERTY);
+    final List<String> properties = locator.getDimensionValue(CommonLocatorDimensionsList.PROPERTY);
     if (!properties.isEmpty()) {
       final Matcher<ParametersProvider> parameterCondition = ParameterCondition.create(properties);
       result.add(new FilterConditionChecker<BuildPromotion>() {

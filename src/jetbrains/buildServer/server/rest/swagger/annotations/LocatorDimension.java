@@ -31,4 +31,9 @@ public @interface LocatorDimension {
   String format() default "";
   String notes() default "";
   String allowableValues() default "";
+
+  /**
+   * Specify if marked dimension should not propagate to documentation for some reason, e.g. it is deemed experimental.
+   */
+  boolean hidden() default false;
 }
