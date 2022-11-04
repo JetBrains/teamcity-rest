@@ -576,7 +576,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     assertTrue(((BuildPromotionEx)queuedBuild2.getBuildPromotion()).getTopDependencyGraph().collectChangesForGraph(new CancelableTaskHolder()));
 
     myFixture.getBuildQueue().setMergeBuildsInQueue(true);
-    myFixture.getBuildQueue().mergeBuilds();
+    myFixture.getBuildQueue().mergeBuilds(null);
 
     assertEquals(2, myFixture.getBuildQueue().getNumberOfItems());
 
