@@ -37,7 +37,12 @@ import jetbrains.buildServer.serverSide.artifacts.BuildArtifactHolder;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.impl.AbstractBuildArtifact;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.impl.artifacts.BuildArtifactsBase;
+import jetbrains.buildServer.serverSide.impl.artifacts.CompositeBuildArtifacts;
+import jetbrains.buildServer.serverSide.impl.artifacts.ExternalBuildArtifacts;
+import jetbrains.buildServer.serverSide.impl.artifacts.archives.ArchivedBuildArtifacts;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.ExceptionUtil;
@@ -50,6 +55,8 @@ import jetbrains.buildServer.web.artifacts.browser.ArtifactTreeElement;
 import jetbrains.buildServer.web.artifacts.browser.ArtifactsBrowserImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * @author Yegor.Yarko
@@ -350,10 +357,10 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
 
   @NotNull
   private static ArtifactTreeElement createElement(@NotNull BuildPromotion buildPromotion,
-                                                            @NotNull String path,
-                                                            @NotNull ServiceLocator serviceLocator,
-                                                            BuildPromotionEx buildPromotionEx,
-                                                            BuildArtifacts artifacts) {
+                                                   @NotNull String path,
+                                                   @NotNull ServiceLocator serviceLocator,
+                                                   BuildPromotionEx buildPromotionEx,
+                                                   BuildArtifacts artifacts) {
     if (!artifacts.isAvailable()) {
       return new BuildHoldingElement(artifacts.getRootArtifact(), buildPromotion);
     }
@@ -364,7 +371,43 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
     if (!holder.isAccessible()) {
       throw new AuthorizationFailedException("Artifact is not accessible with current user permissions. Relative path: '" + holder.getRelativePath() + "'");
     }
+
+
+    // special case for artifacts root and internal artifacts: do not show internal artifacts from external storage until artifacts tree merge is implemented
+    if (artifacts instanceof CompositeBuildArtifacts && "".equals(path)) {
+      BuildArtifact artifact = new AbstractBuildArtifact<CompositeBuildArtifacts>((CompositeBuildArtifacts)artifacts, path, 0, false) {
+        @NotNull
+        @Override
+        public Collection<BuildArtifact> getChildren() {
+          final List<BuildArtifact> result = new ArrayList<>();
+          ((CompositeBuildArtifacts)artifacts).getArtifactProviders().forEach(
+            buildArtifacts -> {
+              if (isExternal(buildArtifacts)) {
+                buildArtifacts.getRootArtifact().getChildren().stream()
+                              .filter(child -> {
+                                return !child.getRelativePath().equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR);
+                              })
+                              .forEach(result::add);
+              } else {
+                result.addAll(buildArtifacts.getRootArtifact().getChildren());
+              }
+            }
+          );
+          return result.stream().sorted(BuildArtifactsBase.COMPARATOR).collect(toList());
+        }
+      };
+      return new BuildHoldingElement(artifact, buildPromotion);
+    }
     return new BuildHoldingElement(holder.getArtifact(), buildPromotion);
+  }
+
+  private static boolean isExternal(BuildArtifacts buildArtifacts) {
+    if (buildArtifacts instanceof ExternalBuildArtifacts) {
+      return true;
+    } else if (buildArtifacts instanceof ArchivedBuildArtifacts) {
+      return ((ArchivedBuildArtifacts)buildArtifacts).getOrigin() instanceof ExternalBuildArtifacts;
+    }
+    return false;
   }
 
   @Nullable
@@ -375,7 +418,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
       final ArtifactTreeElement first = items.get(0);
       //now find it in browser to make sure archive's children can be listed
       final Element foundAgain = browser.getElement(first.getFullName());
-        return foundAgain != null ? foundAgain : first;
+      return foundAgain != null ? foundAgain : first;
     }
     return null;
   }
@@ -438,7 +481,6 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
         final long nextListChildrenLevel = myListChildrenLevel > 0 ? myListChildrenLevel - 1 : myListChildrenLevel;
         final long nextListArchiveChildrenLevel =
           (myElement.isArchive() && myListArchiveChildrenLevel > 0 && !myFirstNode) ? myListArchiveChildrenLevel - 1 : myListArchiveChildrenLevel;
-        //noinspection unchecked
         return CollectionsUtil.filterAndConvertCollection(myElement.getChildren(), source -> {
           final Boolean nestedHidden = myHidden != null && myHidden && isHiddenDir(source) ? null : myHidden; //do not filter if we list hidden files and already within .teamcity
           return new Node(source, nextListChildrenLevel, nextListArchiveChildrenLevel, nestedHidden, false);
@@ -473,14 +515,14 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
 
         @Override
         public String toString() {
-          return myElement.toString() + " with children concealed";
+          return myElement + " with children concealed";
         }
       };
     }
 
     @Override
     public String toString() {
-      return "Node '" + myElement.toString() + "', childrenLevel: " + myListChildrenLevel +
+      return "Node '" + myElement + "', childrenLevel: " + myListChildrenLevel +
              ", archiveLevel: " + myListArchiveChildrenLevel +
              ", includeHidden: " + myHidden +
              ", first: " + myFirstNode + ")";
@@ -573,7 +615,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
 
     @Override
     public String toString() {
-      return myElement.toString() + " unified";
+      return myElement + " unified";
     }
   }
 
