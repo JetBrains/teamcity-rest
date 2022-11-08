@@ -384,7 +384,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
               if (isExternal(buildArtifacts)) {
                 buildArtifacts.getRootArtifact().getChildren().stream()
                               .filter(child -> {
-                                return !child.getRelativePath().equals(".teamcity");
+                                return !child.getRelativePath().equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR);
                               })
                               .forEach(result::add);
               } else {
