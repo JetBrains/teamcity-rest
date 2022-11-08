@@ -17,10 +17,7 @@
 package jetbrains.buildServer.server.rest.util;
 
 import java.util.stream.Collectors;
-import jetbrains.buildServer.serverSide.BuildQueue;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.SQueuedBuild;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
@@ -130,6 +127,34 @@ public class BuildQueuePositionModifierTest extends BaseServerTestCase {
     myModifier.moveBuild(queuedBuilds[0], afterOneThreeAndFive);
     assertEquals(
       "B1,B2,B3,B4,B5,B0,B6,B7,B8,B9",
+      getQueueStateWithBuildTypeNames(q)
+    );
+  }
+
+  public void should_not_fail_if_no_such_build() {
+    SProject project = createProject("test");
+    SBuildType special = project.createBuildType("SPECIAL", "SPECIAL");
+    SQueuedBuild mySpecialBuild = special.addToQueue("");
+
+    SQueuedBuild[] queuedBuilds = new SQueuedBuild[10];
+    for(int i = 0; i < 10; i++) {
+      SBuildType bt = project.createBuildType("B" + i, "B" + i);
+      queuedBuilds[i] = build().in(bt).addToQueue();
+    }
+
+    BuildQueue q = myFixture.getBuildQueue();
+    assertEquals("Test setup failure", "SPECIAL,B0,B1,B2,B3,B4,B5,B6,B7,B8,B9", getQueueStateWithBuildTypeNames(q));
+
+    BuildQueuePositionDescriptor afterOneThreeAndFive = new BuildQueuePositionDescriptor(
+      queuedBuilds[1].getBuildPromotion().getId(),
+      queuedBuilds[3].getBuildPromotion().getId(),
+      queuedBuilds[5].getBuildPromotion().getId()
+    );
+    mySpecialBuild.removeFromQueue(null, "removed");
+
+    myModifier.moveBuild(mySpecialBuild, afterOneThreeAndFive);
+    assertEquals(
+      "B0,B1,B2,B3,B4,B5,B6,B7,B8,B9",
       getQueueStateWithBuildTypeNames(q)
     );
   }

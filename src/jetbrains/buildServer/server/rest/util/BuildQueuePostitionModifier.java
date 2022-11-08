@@ -21,6 +21,7 @@ import java.util.Set;
 import jetbrains.buildServer.serverSide.BuildQueue;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class BuildQueuePostitionModifier {
   @NotNull
@@ -46,12 +47,13 @@ public class BuildQueuePostitionModifier {
     }
 
     String[] newOrder = calculateNewOrder(buildToMove, newPosition.getBuildIds());
-
-    // TC API issue: we've got no way to know if the new order was applied except for loonking manually into logs.
-    myBuildQueue.applyOrder(newOrder);
+    if(newOrder != null) {
+      // TC API issue: we've got no way to know if the new order was applied except for loonking manually into logs.
+      myBuildQueue.applyOrder(newOrder);
+    }
   }
 
-  @NotNull
+  @Nullable
   private String[] calculateNewOrder(@NotNull SQueuedBuild ourBuildToMove, @NotNull Set<Long> buildsWhichMustBeBefore) {
     List<SQueuedBuild> currentOrder = myBuildQueue.getItems();
 
@@ -66,6 +68,11 @@ public class BuildQueuePostitionModifier {
       if(buildsWhichMustBeBefore.contains(qb.getBuildPromotion().getId())) {
         lastBuildWhichMustBeBeforeOurs = curPos;
       }
+    }
+
+    if(ourBuildPos == -1) {
+      // Build wich we want to move is not in the queue anymore, so there is nothing to reorder
+      return null;
     }
 
     // We need to shift down or up by one all builds between new target position and current position.
