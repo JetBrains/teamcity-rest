@@ -56,13 +56,15 @@ import org.jetbrains.annotations.Nullable;
  * Date: 29.03.2009
  */
 @XmlRootElement(name = "project")
-@XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "virtual", "description", "href", "webUrl",
-  "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects", "cloudProfiles", "ancestorProjects"})
+@XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "virtual", "description",
+  "href", "webUrl",
+  "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects", "cloudProfiles",
+  "ancestorProjects"})
 @SuppressWarnings("PublicField")
 @ModelDescription(
-    value = "Represents a project.",
-    externalArticleLink = "https://www.jetbrains.com/help/teamcity/project.html",
-    externalArticleName = "Project"
+  value = "Represents a project.",
+  externalArticleLink = "https://www.jetbrains.com/help/teamcity/project.html",
+  externalArticleName = "Project"
 )
 public class Project {
   @XmlAttribute
@@ -129,23 +131,23 @@ public class Project {
   @XmlElement
   public Properties parameters;
 
-  @XmlElement (name = "vcsRoots")
+  @XmlElement(name = "vcsRoots")
   public VcsRoots vcsRoots;
 
   @XmlElement
   public PropEntitiesProjectFeature projectFeatures;
 
-  @XmlElement (name = "projects")
+  @XmlElement(name = "projects")
   public Projects projects;
 
-
-  @XmlElement (name = "cloudProfiles")
+  @XmlElement(name = "cloudProfiles")
   public CloudProfiles cloudProfiles;
 
   /**
    * This is used only when posting a link to a project
    */
-  @XmlAttribute public String locator;
+  @XmlAttribute
+  public String locator;
 
   private Fields myFields;
   private SProject myProject;
@@ -172,13 +174,26 @@ public class Project {
     name = ValueWithDefault.decideDefault(fields.isIncluded("name"), project::getName);
 
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), () -> beanContext.getApiUrlBuilder().getHref(project));
-    webUrl = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("webUrl"), () -> beanContext.getSingletonService(WebLinks.class).getProjectPageUrl(project.getExternalId()));
+    webUrl = ValueWithDefault.decideDefaultIgnoringAccessDenied(
+      fields.isIncluded("webUrl"),
+      () -> beanContext.getSingletonService(WebLinks.class).getProjectPageUrl(project.getExternalId())
+    );
 
     links = getLinks(project, fields, beanContext);
 
-    description = ValueWithDefault.decideDefault(fields.isIncluded("description"), () -> Util.resolveNull(project.getDescription(), d -> StringUtil.isEmpty(d) ? null : d));
+    description = ValueWithDefault.decideDefault(
+      fields.isIncluded("description"),
+      () -> Util.resolveNull(project.getDescription(), d -> StringUtil.isEmpty(d) ? null : d));
+
     archived = ValueWithDefault.decideDefault(fields.isIncluded("archived"), project::isArchived);
-    readOnlyUI = ValueWithDefault.decideDefault(fields.isIncluded("readOnlyUI"), () -> StateField.create(project.isReadOnly(), ((ProjectEx)project).isCustomSettingsFormatUsed() ? false : null, fields.getNestedField("readOnlyUI")));
+    readOnlyUI = ValueWithDefault.decideDefault(
+      fields.isIncluded("readOnlyUI"),
+      () -> StateField.create(
+        project.isReadOnly(),
+        ((ProjectEx)project).isCustomSettingsFormatUsed() ? false : null,
+        fields.getNestedField("readOnlyUI")
+      )
+    );
 
     final CachingValue<BuildTypeFinder> buildTypeFinder = CachingValue.simple(() -> beanContext.getSingletonService(BuildTypeFinder.class));
     buildTypes = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("buildTypes", false), new ValueWithDefault.Value<BuildTypes>() {
@@ -206,25 +221,35 @@ public class Project {
       }
     });
 
-    defaultTemplate = ValueWithDefault.decideDefault(fields.isIncluded("defaultTemplate", false),
-                                                     () -> !canViewSettings.get()
-                                                           ? null
-                                                           : getDefaultTemplate(project, fields.getNestedField("defaultTemplate", Fields.NONE, Fields.SHORT), beanContext));
+    defaultTemplate = ValueWithDefault.decideDefault(
+      fields.isIncluded("defaultTemplate", false),
+      () -> !canViewSettings.get()
+            ? null
+            : getDefaultTemplate(project, fields.getNestedField("defaultTemplate", Fields.NONE, Fields.SHORT), beanContext)
+    );
 
-    parameters = ValueWithDefault.decideDefault(fields.isIncluded("parameters", false),
-                                                () -> !canViewSettings.get() ? null : new Properties(createEntity(project), ProjectRequest.getParametersHref(project),
-                                                                                                     null, fields.getNestedField("parameters", Fields.NONE, Fields.LONG),
-                                                                                                     beanContext));
-    vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcsRoots", false),
-                                              () -> !canViewSettings.get() ? null : new VcsRoots(project.getOwnVcsRoots(), //consistent with VcsRootFinder
-                                                                                                 new PagerData(VcsRootRequest.getHref(project)), fields.getNestedField("vcsRoots"),
-                                                                                                 beanContext));
-    projectFeatures = ValueWithDefault.decideDefault(fields.isIncluded("projectFeatures", false),
-                                                     () -> {
-                                                       if (!canViewSettings.get()) return null;
-                                                       Fields nestedFields = fields.getNestedField("projectFeatures", Fields.NONE, Fields.LONG);
-                                                       return new PropEntitiesProjectFeature(project, nestedFields.getLocator(), nestedFields, beanContext);
-                                                     });
+    parameters = ValueWithDefault.decideDefault(
+      fields.isIncluded("parameters", false),
+      () -> !canViewSettings.get() ? null :
+            new Properties(createEntity(project), ProjectRequest.getParametersHref(project), null, fields.getNestedField("parameters", Fields.NONE, Fields.LONG), beanContext)
+    );
+
+    vcsRoots = ValueWithDefault.decideDefault(
+      fields.isIncluded("vcsRoots", false),
+      () -> !canViewSettings.get() ? null : new VcsRoots(
+        project.getOwnVcsRoots(), //consistent with VcsRootFinder
+        new PagerData(VcsRootRequest.getHref(project)),
+        fields.getNestedField("vcsRoots"),
+        beanContext)
+    );
+
+    projectFeatures = ValueWithDefault.decideDefault(
+      fields.isIncluded("projectFeatures", false),
+      () -> {
+        if (!canViewSettings.get()) return null;
+        Fields nestedFields = fields.getNestedField("projectFeatures", Fields.NONE, Fields.LONG);
+        return new PropEntitiesProjectFeature(project, nestedFields.getLocator(), nestedFields, beanContext);
+      });
 
 
     projects = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
@@ -246,9 +271,12 @@ public class Project {
       return new CloudProfiles(items, new PagerData(CloudRequest.getProfilesHref(nestedFields.getLocator(), project)), nestedFields, beanContext);
     });
 
-    final CachingValueNullable<SProject> actualParentProject = CachingValueNullable.simple(project::getParentProject); //use lazy calculation in order not to have performance impact when no related fields are retrieved
-    parentProject = ValueWithDefault.decideDefault(fields.isIncluded("parentProject", false),
-                                                   () -> Util.resolveNull(actualParentProject.get(), (v) -> new Project(v, fields.getNestedField("parentProject"), beanContext)));
+    // use lazy calculation in order not to have performance impact when no related fields are retrieved
+    final CachingValueNullable<SProject> actualParentProject = CachingValueNullable.simple(project::getParentProject);
+    parentProject = ValueWithDefault.decideDefault(
+      fields.isIncluded("parentProject", false),
+      () -> Util.resolveNull(actualParentProject.get(), (v) -> new Project(v, fields.getNestedField("parentProject"), beanContext))
+    );
 
     parentProjectId = ValueWithDefault.decideDefault(
       fields.isIncluded("parentProjectId"),
@@ -274,21 +302,24 @@ public class Project {
 
   @XmlAttribute(name = "uuid")
   public String getUuid() {
-    if(myProject == null || myBeanContext == null) {
+    if (myProject == null || myBeanContext == null) {
       return null;
     }
 
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("uuid", false, false), () -> {
-        return myBeanContext.getSingletonService(PermissionChecker.class)
-                            .isPermissionGranted(Permission.EDIT_PROJECT, myProject.getProjectId()) ? ((ProjectEx)myProject).getId().getConfigId() : null;
+        return myBeanContext
+                 .getSingletonService(PermissionChecker.class)
+                 .isPermissionGranted(Permission.EDIT_PROJECT, myProject.getProjectId())
+               ? ((ProjectEx)myProject).getId().getConfigId()
+               : null;
       }
     );
   }
 
   @XmlAttribute(name = "virtual")
   public Boolean isVirtual() {
-    if(myProject == null || myBeanContext == null) {
+    if (myProject == null || myBeanContext == null) {
       return null;
     }
 
@@ -297,14 +328,14 @@ public class Project {
 
   @XmlElement(name = "ancestorProjects")
   public Projects getAncestorProjects() {
-    if(myProject == null || myBeanContext == null) {
+    if (myProject == null || myBeanContext == null) {
       return null;
     }
 
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("ancestorProjects", false, false),
       () -> {
-        if(myProject.isRootProject()) {
+        if (myProject.isRootProject()) {
           return new Projects(Collections.emptyList(), null, myFields.getNestedField("ancestorProjects"), myBeanContext);
         }
 
@@ -384,14 +415,14 @@ public class Project {
                                              final String field,
                                              final String value, @NotNull final ServiceLocator serviceLocator) {
     if ("name".equals(field)) {
-      if (StringUtil.isEmpty(value)){
+      if (StringUtil.isEmpty(value)) {
         throw new BadRequestException("Project name cannot be empty.");
       }
       project.setName(value);
       project.schedulePersisting("Project name changed");
       return;
     } else if ("id".equals(field)) {
-      if (StringUtil.isEmpty(value)){
+      if (StringUtil.isEmpty(value)) {
         throw new BadRequestException("Project id cannot be empty.");
       }
       project.setExternalId(value);
@@ -430,11 +461,11 @@ public class Project {
         throw new BadRequestException("Both 'locator' and 'id' or 'internalId' attributes are specified. Only one should be present.");
       }
     }
-    if (StringUtil.isEmpty(locatorText)){
+    if (StringUtil.isEmpty(locatorText)) {
       //find by href for compatibility with 7.0
-      if (!StringUtil.isEmpty(href)){
+      if (!StringUtil.isEmpty(href)) {
         locatorText = StringUtil.lastPartOf(href, '/');
-      } else{
+      } else {
         throw new BadRequestException("No project specified. Either 'id', 'internalId' or 'locator' attribute should be present.");
       }
     }
@@ -463,5 +494,5 @@ public class Project {
     public void persist(@NotNull String description) {
       myProject.schedulePersisting(description);
     }
- }
+  }
 }
