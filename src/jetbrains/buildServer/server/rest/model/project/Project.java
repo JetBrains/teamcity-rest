@@ -183,7 +183,8 @@ public class Project {
 
     description = ValueWithDefault.decideDefault(
       fields.isIncluded("description"),
-      () -> Util.resolveNull(project.getDescription(), d -> StringUtil.isEmpty(d) ? null : d));
+      () -> Util.resolveNull(project.getDescription(), d -> StringUtil.isEmpty(d) ? null : d)
+    );
 
     archived = ValueWithDefault.decideDefault(fields.isIncluded("archived"), project::isArchived);
     readOnlyUI = ValueWithDefault.decideDefault(
