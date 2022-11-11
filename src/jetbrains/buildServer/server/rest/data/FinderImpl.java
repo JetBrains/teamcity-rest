@@ -38,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
- *         Date: 06/06/2016
+ * Date: 06/06/2016
  */
 public class FinderImpl<ITEM> implements Finder<ITEM> {
   private static final Logger LOG = Logger.getInstance(FinderImpl.class.getName());
@@ -95,8 +95,10 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   @Override
   @NotNull
   public ITEM getItem(@Nullable final String locatorText) {
-    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Using " + getName() + " to get single item for locator \"" + locatorText + "\"",
-                                                         () -> getItem(locatorText, null));
+    return NamedThreadFactory.executeWithNewThreadNameFuncThrow(
+      "Using " + getName() + " to get single item for locator \"" + locatorText + "\"",
+      () -> getItem(locatorText, null)
+    );
   }
 
   /**
@@ -106,8 +108,10 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   @Override
   @NotNull
   public PagedSearchResult<ITEM> getItems(@Nullable final String locatorText) {
-    return NamedThreadFactory.executeWithNewThreadNameFuncThrow("Using " + getName() + " to get items for locator \"" + locatorText + "\"",
-                                                                () -> getItemsByLocator(getLocatorOrNull(locatorText), true));
+    return NamedThreadFactory.executeWithNewThreadNameFuncThrow(
+      "Using " + getName() + " to get items for locator \"" + locatorText + "\"",
+      () -> getItemsByLocator(getLocatorOrNull(locatorText), true)
+    );
   }
 
   @NotNull
@@ -117,12 +121,14 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     final ItemFilter<ITEM> result;
     try {
       result = getFilterWithLogicOpsSupport(locator, myDataBinding.getLocatorDataBinding(locator));
-    } catch (LocatorProcessException|BadRequestException e){
-      if (!locator.isHelpRequested()){
+    } catch (LocatorProcessException | BadRequestException e) {
+      if (!locator.isHelpRequested()) {
         throw e;
       }
-      throw new BadRequestException(e.getMessage() +
-                                    "\nLocator details: " + locator.getLocatorDescription(locator.helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)), e);
+      throw new BadRequestException(
+        e.getMessage() +
+        "\nLocator details: " + locator.getLocatorDescription(locator.helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)), e
+      );
     }
     locator.checkLocatorFullyProcessed();
     return result;
@@ -385,11 +391,13 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   private boolean isHeavyRequest(long processingTimeMs, long totalItemsProcessed, int resultSize) {
-    if(processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000))
+    if (processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000)) {
       return true;
+    }
 
-    if(processingTimeMs < TeamCityProperties.getLong("rest.finder.minimumTimeWarnLimit", 1000))
+    if (processingTimeMs < TeamCityProperties.getLong("rest.finder.minimumTimeWarnLimit", 1000)) {
       return false;
+    }
 
     return (totalItemsProcessed - resultSize) > TeamCityProperties.getLong("rest.finder.processedAndFilteredItemsWarnLimit", 10000)
            || totalItemsProcessed > TeamCityProperties.getLong("rest.finder.processedItemsWarnLimit", 100000);
@@ -470,7 +478,9 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     List<String> contextVars = getContextVars(locator);
     if (!contextVars.isEmpty()) {
       result.append(", context: ");
-      result.append(contextVars.stream().map(s -> s + "=" + Optional.ofNullable(getContextItems(s)).map(v -> v.stream().map(vElem -> (vElem == null ? "<null>" : "'" + vElem.toString() + "'")).collect(Collectors.joining(", ","{", "}"))).orElse("<null>")).collect(Collectors.joining(", ","{", "}")));
+      result.append(contextVars.stream().map(s -> s + "=" + Optional.ofNullable(getContextItems(s)).map(
+                                 v -> v.stream().map(vElem -> (vElem == null ? "<null>" : "'" + vElem.toString() + "'")).collect(Collectors.joining(", ", "{", "}"))).orElse("<null>"))
+                               .collect(Collectors.joining(", ", "{", "}")));
       //vElem.toString() might produce not due presentation
       result.append('}');
     }
@@ -484,7 +494,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     ArrayList<String> result = new ArrayList<>();
     try {
       for (String name : locator.getDefinedDimensions()) {
-        if(BuildPromotionFinder.CONTEXT_ITEM_DIMENSION_NAME.equals(name)) {
+        if (BuildPromotionFinder.CONTEXT_ITEM_DIMENSION_NAME.equals(name)) {
           result.addAll(locator.getDimensionValue(name));
         } else {
           for (String value : locator.getDimensionValue(name)) {
