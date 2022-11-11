@@ -33,7 +33,8 @@ public class ValueWithDefault {
   final static Logger LOG = Logger.getInstance(ValueWithDefault.class.getName());
 
   /**
-   * If given value is equal to the default value (see {@link ValueWithDefault#isDefault(Object)}) then return it if not excluded explicitly. <br/>
+   * If given value is equal to the default value (see {@link ValueWithDefault#isDefault(Object)})
+   * then return it if not excluded explicitly. <br/>
    * If given value is a non-default value then return it if included explicitly. <br/>
    * In all other cases return null. <br/><br/>
    * Example: T=Integer, so value==0 is considered to be a default value. <br/>
