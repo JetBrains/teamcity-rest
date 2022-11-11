@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.model.metrics;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -69,7 +71,15 @@ public class Metric {
 
   @XmlElement
   public MetricTags getMetricTags() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("metricTags"), () -> new MetricTags(metricId().getTags(), myFields));
+    return ValueWithDefault.decideDefault(myFields.isIncluded("metricTags"), () -> {
+      Map<String, String> tags = metricId().getTags();
+      if (metricId().isExperimental()) {
+        // Add a fake "experimental" tag to mark experimental metrics in UI
+        tags = new HashMap<>(tags);
+        tags.put("experimental", "true");
+      }
+      return new MetricTags(tags, myFields);
+    });
   }
 
   @XmlElement
