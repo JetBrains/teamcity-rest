@@ -728,8 +728,8 @@ public class ChangeStatusTest extends BaseServerTestCase {
   }
 
   @org.testng.annotations.DataProvider(name = "allBooleans")
-  public static Object[] allBooleans() {
-    return new Object[] {true, false};
+  public static Object[][] allBooleans() {
+    return new Object[][] {{true}, {false}};
   }
 
   private final DependencyOptions NULL_OPTIONS = new DependencyOptions() {

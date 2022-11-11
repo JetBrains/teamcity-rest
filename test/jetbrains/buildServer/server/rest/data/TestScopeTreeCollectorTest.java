@@ -205,7 +205,8 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
   @Test
   public void testVirtualBuildsMergedCorrectly() {
-    myFixture.createEnabledAgents("ant", 2);
+    createTwoAdditionalAgents();
+
     ProjectEx project = myFixture.createProject("project", "project");
 
     runBuildWithFailedTestInVirtualDeps(project);
@@ -221,7 +222,8 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
   @Test
   public void testVirtualBuildsNotMergedWhenAsked() {
-    myFixture.createEnabledAgents("ant", 2);
+    createTwoAdditionalAgents();
+
     ProjectEx project = myFixture.createProject("project", "project");
 
     runBuildWithFailedTestInVirtualDeps(project);
@@ -239,7 +241,8 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
   @Test
   public void testVirtualBuildsMergedCorrectly2() {
-    myFixture.createEnabledAgents("ant", 2);
+    createTwoAdditionalAgents();
+
     ProjectEx project = myFixture.createProject("project", "project");
     BuildTypeEx side = project.createBuildType("side");
 
@@ -341,6 +344,15 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
       seenNodes.add(node.getId());
     }
+  }
+
+  private void createTwoAdditionalAgents() {
+    // We call createEnabledAgent twice here instead of calling myFixture.createEnabledAgents("ant", 2) to avoid
+    // licence checks as LicenceManager is not available for REST plugin. We won't be able to create more than two
+    // though, as TC core still internally checks licences when authorizing an agent.
+
+    myFixture.createEnabledAgent("ant");
+    myFixture.createEnabledAgent("ant");
   }
 
   private final DependencyOptions NULL_OPTIONS = new DependencyOptions() {

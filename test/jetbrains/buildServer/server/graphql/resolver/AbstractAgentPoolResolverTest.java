@@ -275,7 +275,7 @@ public class AbstractAgentPoolResolverTest extends BaseResolverTest {
   }
 
   @org.testng.annotations.DataProvider(name = "allBooleans")
-  public static Object[] allBooleans() {
-    return new Object[] {true, false};
+  public static Object[][] allBooleans() {
+    return new Object[][] {{true}, {false}};
   }
 }

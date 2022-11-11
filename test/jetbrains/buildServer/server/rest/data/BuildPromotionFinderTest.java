@@ -583,8 +583,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @org.testng.annotations.DataProvider(name = "allBooleans")
-  public static Object[] allBooleans() {
-     return new Object[] {true, false};
+  public static Object[][] allBooleans() {
+     return new Object[][] {{true}, {false}};
   }
 
   @Test(dataProvider = "allBooleans")
@@ -2403,7 +2403,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     }
 
     if("running".equals(buildState)) {
-      myFixture.createEnabledAgents("Ant", 3);
+      createTwoAdditionalAgents();
+
       build().in(myBuildType).run();
       build().in(myBuildType).personalForUser(secondUser.getUsername()).run();
       build().in(myBuildType).personalForUser(user.getUsername()).run();
@@ -2597,8 +2598,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
   @NotNull
   @DataProvider(name = "all-build-states-locator-dim")
-  public String[] getAllBuildStates() {
-    return new String[] { "running", "finished", "queued" };
+  public String[][] getAllBuildStates() {
+    return new String[][] {{"running"}, {"finished"}, {"queued"}};
   }
 
   private void checkProblemOccurrences(final String locator, final String... problemIds) {
@@ -2698,6 +2699,15 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       buildPromotions[i] = builds[i].getBuildPromotion();
     }
     return buildPromotions;
+  }
+
+  private void createTwoAdditionalAgents() {
+    // We call createEnabledAgent twice here instead of calling myFixture.createEnabledAgents("ant", 2) to avoid
+    // licence checks as LicenceManager is not available for REST plugin. We won't be able to create more than two
+    // though, as TC core still internally checks licences when authorizing an agent.
+
+    myFixture.createEnabledAgent("Ant");
+    myFixture.createEnabledAgent("Ant");
   }
 
   private static class TestingLogAppender extends AbstractAppender {
