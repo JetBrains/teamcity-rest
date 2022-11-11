@@ -21,14 +21,12 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.TimeCondition;
 import jetbrains.buildServer.server.rest.data.TimeWithPrecision;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.RelatedEntity;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -44,8 +42,10 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "resolution")
 @ModelDescription("Represents an investigation resolution timestamp and details.")
 public class Resolution {
-  @XmlAttribute public ResolutionType type;
-  @XmlElement public String time;
+  @XmlAttribute
+  public ResolutionType type;
+  @XmlElement
+  public String time;
 
   public Resolution() {
   }
