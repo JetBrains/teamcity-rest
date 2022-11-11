@@ -517,8 +517,8 @@ public class ChangeStatusTest extends BaseFinderTest {
     assertNotNull("Test setup failure, unable to find dependent build.", dep1Build);
     myFixture.flushQueueAndWaitN(2);
 
-    build().withFailedTests("Split.failed1", "Split.failed2").run(dep1Build).finish();
-    build().run(composite1Build).finish();
+    RunningBuildEx dep1Fail = build().withFailedTests("Split.failed1", "Split.failed2").run(dep1Build); finishBuild(dep1Fail, true);
+    RunningBuildEx comp1Fail = build().run(composite1Build); finishBuild(comp1Fail, true);
 
     SQueuedBuild dep2Build = null;
     SQueuedBuild composite2Build = composite2Bt.addToQueue("test");
@@ -530,8 +530,8 @@ public class ChangeStatusTest extends BaseFinderTest {
     assertNotNull("Test setup failure, unable to find dependent build.", dep2Build);
     myFixture.flushQueueAndWaitN(2);
 
-    build().withFailedTests("Split.failed1", "Split.failed2").run(dep2Build).finish();
-    build().run(composite2Build).finish();
+    RunningBuildEx dep2Fail = build().withFailedTests("Split.failed1", "Split.failed2").run(dep2Build); finishBuild(dep2Fail, true);
+    RunningBuildEx comp2Fail = build().run(composite2Build); finishBuild(comp2Fail, true);
 
 
     ChangeStatus status = new ChangeStatus(
@@ -629,7 +629,9 @@ public class ChangeStatusTest extends BaseFinderTest {
     myFixture.flushQueueAndWaitN(2);
 
 
-    build().withFailedTests("depFail").run(depBuild).finish();
+    RunningBuildEx depFail = build().withFailedTests("depFail").run(depBuild);
+    finishBuild(depFail, true);
+
     RunningBuildEx mainRunning = build().run(mainBuild);
     mainRunning.updateBuild(); mainRunning.finish();
 
@@ -718,8 +720,8 @@ public class ChangeStatusTest extends BaseFinderTest {
   }
 
   @org.testng.annotations.DataProvider(name = "allBooleans")
-  public static Object[] allBooleans() {
-    return new Object[] {true, false};
+  public static Object[][] allBooleans() {
+    return new Object[][] {{true}, {false}};
   }
 
   private final DependencyOptions NULL_OPTIONS = new DependencyOptions() {
