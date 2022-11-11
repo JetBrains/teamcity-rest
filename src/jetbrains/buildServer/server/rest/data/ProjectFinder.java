@@ -46,28 +46,32 @@ import java.util.stream.Collectors;
 
 /**
  * @author Yegor.Yarko
- *         Date: 23.03.13
+ * Date: 23.03.13
  */
 @LocatorResource(value = LocatorName.PROJECT,
-    extraDimensions = {PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
-    baseEntity = "Project",
-    examples = {
-        "`name:MyProject` — find a project with name `MyProject`.",
-        "`archived:false` — find projects which are not archived."
-    }
+  extraDimensions = {PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
+  baseEntity = "Project",
+  examples = {
+    "`name:MyProject` — find a project with name `MyProject`.",
+    "`archived:false` — find projects which are not archived."
+  }
 )
 public class ProjectFinder extends AbstractFinder<SProject> {
   private static final Logger LOG = Logger.getInstance(ProjectFinder.class.getName());
 
-  @LocatorDimension(AbstractFinder.DIMENSION_ID) public static final String DIMENSION_ID = AbstractFinder.DIMENSION_ID;
-  @LocatorDimension("internalId") public static final String DIMENSION_INTERNAL_ID = "internalId";
-  @LocatorDimension("uuid") public static final String DIMENSION_UUID = "uuid";
+  @LocatorDimension(AbstractFinder.DIMENSION_ID)
+  public static final String DIMENSION_ID = AbstractFinder.DIMENSION_ID;
+  @LocatorDimension("internalId")
+  public static final String DIMENSION_INTERNAL_ID = "internalId";
+  @LocatorDimension("uuid")
+  public static final String DIMENSION_UUID = "uuid";
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project (direct parent) locator.")
   public static final String DIMENSION_PROJECT = "project";
   public static final String DIMENSION_PARENT_PROJECT = "parentProject";
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
   private static final String DIMENSION_AFFECTED_PROJECT = "affectedProject";
-  @LocatorDimension("name") public static final String DIMENSION_NAME = "name";
+  @LocatorDimension("name")
+  public static final String DIMENSION_NAME = "name";
   @LocatorDimension(value = "archived", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is archived.")
   public static final String DIMENSION_ARCHIVED = "archived";
   public static final String DIMENSION_READ_ONLY_UI = "readOnlyUI";
@@ -93,7 +97,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   private final PermissionChecker myPermissionChecker;
   @NotNull private final ServiceLocator myServiceLocator;
 
-  public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator){
+  public ProjectFinder(@NotNull final ProjectManager projectManager, final PermissionChecker permissionChecker, @NotNull final ServiceLocator serviceLocator) {
     super(DIMENSION_ID, DIMENSION_INTERNAL_ID, DIMENSION_UUID, DIMENSION_PROJECT, DIMENSION_AFFECTED_PROJECT, DIMENSION_NAME, DIMENSION_ARCHIVED, DIMENSION_VIRTUAL,
           BUILD, BUILD_TYPE, DEFAULT_TEMPLATE, VCS_ROOT, FEATURE, AGENT_POOL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     setHiddenDimensions(DIMENSION_PARAMETER, DIMENSION_SELECTED, DIMENSION_READ_ONLY_UI, USER_PERMISSION,
@@ -248,7 +252,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     }
 
     // In a case of a single value locator (that's looking up by external id, name or id) virtual projects should not be filtered out
-    if(!locator.isSingleValue()) {
+    if (!locator.isSingleValue()) {
       final Boolean virtual = locator.getSingleDimensionValueAsBoolean(DIMENSION_VIRTUAL);
       if (virtual != null) {
         result.add(project -> virtual.equals(project.isVirtual()));
@@ -321,8 +325,10 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
     final String defaultTemplateDimension = locator.getSingleDimensionValue(DEFAULT_TEMPLATE);
     if (defaultTemplateDimension != null) {
-      Set<String> defaultTemplateIds = myServiceLocator.getSingletonService(BuildTypeFinder.class).
-        getItems(defaultTemplateDimension).myEntries.stream().map(bt -> bt.getInternalId()).collect(Collectors.toSet());
+      Set<String> defaultTemplateIds = myServiceLocator
+        .getSingletonService(BuildTypeFinder.class)
+        .getItems(defaultTemplateDimension)
+        .myEntries.stream().map(bt -> bt.getInternalId()).collect(Collectors.toSet());
       result.add(item -> {
         final boolean canView = !Project.shouldRestrictSettingsViewing(item, myPermissionChecker);
         if (!canView) {
@@ -384,10 +390,10 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     }
 
     final SProject parentProject;
-     try {
+    try {
       parentProject = getParentProject(locator);
     } catch (AccessDeniedException e) {
-       //workaround for https://youtrack.jetbrains.com/issue/TW-46290
+      // workaround for https://youtrack.jetbrains.com/issue/TW-46290
       // note: finding affectedProject under system is a bad approach as that can be used to probe server data without due permissions, so support only some hardcoded cases here
       String affectedProjectDimension = locator.lookupSingleDimensionValue(DIMENSION_AFFECTED_PROJECT);
       if (getRootProject().getExternalId().equals(affectedProjectDimension) || getLocator(getRootProject()).equals(affectedProjectDimension)) {
@@ -403,7 +409,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
         return getItemHolder(findProjectsByName(parentProject, name, true));
       }
       String directParent = locator.getSingleDimensionValue(DIMENSION_PROJECT);
-      if (directParent != null){
+      if (directParent != null) {
         return getItemHolder(findProjectsByName(getItem(directParent), name, false));
       }
     }
@@ -458,6 +464,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   /**
    * Finds projects with the given name under the project specified
+   *
    * @param parentProject Project under which to search. If 'null' - process all projects including root one.
    * @param name
    * @param recursive
@@ -474,7 +481,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     }
     final List<SProject> projects = recursive ? parentProject.getProjects() : parentProject.getOwnProjects();
     for (SProject project : projects) {
-      if (name.equals(project.getName())){
+      if (name.equals(project.getName())) {
         result.add(project);
       }
     }
@@ -500,7 +507,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
   public static boolean isSameOrParent(@NotNull final Collection<? extends BuildProject> parents, @NotNull final BuildProject project) {
     Set<String> projectIds = parents.stream().map(p -> p.getProjectId()).collect(Collectors.toSet());
     BuildProject currentProject = project;
-    while(currentProject != null) {
+    while (currentProject != null) {
       if (projectIds.contains(currentProject.getProjectId())) return true;
       currentProject = currentProject.getParentProject();
     }
