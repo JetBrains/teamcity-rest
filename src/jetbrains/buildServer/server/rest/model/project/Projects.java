@@ -67,7 +67,7 @@ public class Projects {
   }
 
   public Projects(@NotNull final List<SProject> projectObjects, @Nullable final PagerData pagerData, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
-    if (fields.isIncluded("project", false, true)){
+    if (fields.isIncluded("project", false, true)) {
       projects = ValueWithDefault.decideDefault(fields.isIncluded("project"), new ValueWithDefault.Value<List<Project>>() {
         public List<Project> get() {
           final ArrayList<Project> result = new ArrayList<Project>(projectObjects.size());
@@ -78,15 +78,25 @@ public class Projects {
           return result;
         }
       });
-    }else{
+    } else {
       projects = null;
     }
     if (pagerData != null) {
       href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
       nextHref = ValueWithDefault
-        .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
+        .decideDefault(
+          fields.isIncluded("nextHref"),
+          pagerData.getNextHref() != null
+          ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref())
+          : null
+        );
       prevHref = ValueWithDefault
-        .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
+        .decideDefault(
+          fields.isIncluded("prevHref"),
+          pagerData.getPrevHref() != null
+          ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref())
+          : null
+        );
     }
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), projectObjects.size());
   }
