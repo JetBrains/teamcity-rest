@@ -205,101 +205,50 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
   @Test
   public void testVirtualBuildsMergedCorrectly() {
+    createTwoAdditionalAgents();
+
     ProjectEx project = myFixture.createProject("project", "project");
-    ProjectEx virtual = project.createProject("virtual", "virtual");
 
-    virtual.setArchived(true, null);
-    virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
-
-    BuildTypeEx original = project.createBuildType("original");
-
-    BuildTypeEx p1 = virtual.createBuildType("parallel1");
-    BuildTypeEx p2 = virtual.createBuildType("parallel2");
-
-    SQueuedBuild pb1 = build().in(p1).addToQueue();
-    SQueuedBuild pb2 = build().in(p2).addToQueue();
-    SQueuedBuild b   = build().in(original).addToQueue();
-
-    ((BuildPromotionEx)b.getBuildPromotion()).addDependency((BuildPromotionEx) pb1.getBuildPromotion(), NULL_OPTIONS);
-    ((BuildPromotionEx)b.getBuildPromotion()).addDependency((BuildPromotionEx) pb2.getBuildPromotion(), NULL_OPTIONS);
-
-
-    build().startSuite("suite").withTest("package.classA.a", false).endSuite().run(pb1).finish();
-    build().startSuite("suite").withTest("package.classA.a", false).endSuite().run(pb2).finish();
-    build().run(b).finish();
+    runBuildWithFailedTestInVirtualDeps(project);
 
     List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
     checkAncestorsBeforeChildren(fullTree);
 
     // there should be 7 nodes
-    // _Root -> project -> original -> build -> suite -> package -> classA
+    // _Root -> project -> original -> build -> suite (empty) -> package -> classA
 
     assertEquals(7, fullTree.size());
   }
 
   @Test
   public void testVirtualBuildsNotMergedWhenAsked() {
+    createTwoAdditionalAgents();
+
     ProjectEx project = myFixture.createProject("project", "project");
-    ProjectEx virtual = project.createProject("virtual", "virtual");
 
-    virtual.setArchived(true, null);
-    virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
-
-    BuildTypeEx original = project.createBuildType("original");
-
-    BuildTypeEx p1 = virtual.createBuildType("parallel1");
-    BuildTypeEx p2 = virtual.createBuildType("parallel2");
-
-    SQueuedBuild pb1 = build().in(p1).addToQueue();
-    SQueuedBuild pb2 = build().in(p2).addToQueue();
-    SQueuedBuild b   = build().in(original).addToQueue();
-
-    ((BuildPromotionEx)b.getBuildPromotion()).addDependency((BuildPromotionEx) pb1.getBuildPromotion(), NULL_OPTIONS);
-    ((BuildPromotionEx)b.getBuildPromotion()).addDependency((BuildPromotionEx) pb2.getBuildPromotion(), NULL_OPTIONS);
-
-
-    build().startSuite("suite").withTest("package.classA.a", false).endSuite().run(pb1).finish();
-    build().startSuite("suite").withTest("package.classA.a", false).endSuite().run(pb2).finish();
-    build().run(b).finish();
+    runBuildWithFailedTestInVirtualDeps(project);
 
     List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100,groupParallelTests:false"));
     checkAncestorsBeforeChildren(fullTree);
 
-    // there should be 13 nodes
-    // _Root -> project -> virtual -> parallel1 -> build -> suite -> package -> classA
-    //                                parallel2 -> build -> suite -> package -> classA
-
-    assertEquals(13, fullTree.size());
+    assertEquals(
+      "Tree should have 13 nodes:\n" +
+      "_Root -> project -> virtual -> parallel1 -> build -> suite -> package -> classA\n" +
+      "                               parallel2 -> build -> suite -> package -> classA",
+      13, fullTree.size()
+    );
   }
 
   @Test
   public void testVirtualBuildsMergedCorrectly2() {
+    createTwoAdditionalAgents();
+
     ProjectEx project = myFixture.createProject("project", "project");
-    ProjectEx virtual = project.createProject("virtual", "virtual");
-
-    virtual.setArchived(true, null);
-    virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
-
-    BuildTypeEx original = project.createBuildType("original");
-
-    BuildTypeEx p1 = virtual.createBuildType("parallel1");
-    BuildTypeEx p2 = virtual.createBuildType("parallel2");
-
-    SQueuedBuild pb1 = build().in(p1).addToQueue();
-    SQueuedBuild pb2 = build().in(p2).addToQueue();
-    SQueuedBuild b   = build().in(original).addToQueue();
-
-    ((BuildPromotionEx)b.getBuildPromotion()).addDependency((BuildPromotionEx) pb1.getBuildPromotion(), NULL_OPTIONS);
-    ((BuildPromotionEx)b.getBuildPromotion()).addDependency((BuildPromotionEx) pb2.getBuildPromotion(), NULL_OPTIONS);
-
-
-    build().startSuite("suite").withTest("package.classA.a", false).endSuite().run(pb1).finish();
-    build().startSuite("suite").withTest("package.classA.a", false).endSuite().run(pb2).finish();
-    build().run(b).finish();
-
-
     BuildTypeEx side = project.createBuildType("side");
-    build().in(side).startSuite("suite").withTest("package.classA.a", false).endSuite().finish();
+
+    runBuildWithFailedTestInVirtualDeps(project);
+    RunningBuildEx sideFail = build().in(side).withFailedTests("package.classA.a").run();
+    finishBuild(sideFail, true);
 
     List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
     checkAncestorsBeforeChildren(fullTree);
@@ -327,6 +276,42 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     assertEquals(1, result.size());
     assertEquals(1, result.get(0).getData().size());
     assertEquals("classZ", result.get(0).getScope().getName());
+  }
+
+  private void runBuildWithFailedTestInVirtualDeps(ProjectEx project) {
+    ProjectEx virtual = project.createProject("virtual", "virtual");
+
+    virtual.setArchived(true, null);
+    virtual.addParameter(new SimpleParameter(ProjectImpl.TEAMCITY_VIRTUAL_PROJECT_PARAM, "true"));
+
+    BuildTypeEx original = project.createBuildType("original");
+    BuildTypeEx p1 = virtual.createBuildType("parallel1");
+    BuildTypeEx p2 = virtual.createBuildType("parallel2");
+
+    BuildPromotionEx dep1 = p1.createBuildPromotion();
+    BuildPromotionEx dep2 = p2.createBuildPromotion();
+    BuildPromotionEx originalPromotion = original.createBuildPromotion();
+
+    // It is important that original is NOT a composite build type, but the promotion is.
+    originalPromotion.addDependency(dep1, NULL_OPTIONS);
+    originalPromotion.addDependency(dep2, NULL_OPTIONS);
+
+    dep1.addToQueue("");
+    dep2.addToQueue("");
+
+    List<RunningBuildEx> running = myFixture.flushQueueAndWaitN(2);
+
+    myFixture.doTestFailed(running.get(0), "package.classA.a");
+    running.get(0).updateBuild();
+    running.get(0).finish();
+    myFixture.doTestFailed(running.get(1), "package.classA.a");
+    running.get(1).updateBuild();
+    running.get(1).finish();
+
+    originalPromotion.addToQueue("");
+    RunningBuildEx runningOriginal = myFixture.flushQueueAndWait();
+    runningOriginal.updateBuild();
+    runningOriginal.finish();
   }
 
   @NotNull
@@ -360,6 +345,15 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
       seenNodes.add(node.getId());
     }
+  }
+
+  private void createTwoAdditionalAgents() {
+    // We call createEnabledAgent twice here instead of calling myFixture.createEnabledAgents("ant", 2) to avoid
+    // licence checks as LicenceManager is not available for REST plugin. We won't be able to create more than two
+    // though, as TC core still internally checks licences when authorizing an agent.
+
+    myFixture.createEnabledAgent("ant");
+    myFixture.createEnabledAgent("ant");
   }
 
   private final DependencyOptions NULL_OPTIONS = new DependencyOptions() {

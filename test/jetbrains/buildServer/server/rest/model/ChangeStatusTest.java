@@ -507,42 +507,31 @@ public class ChangeStatusTest extends BaseFinderTest {
     myFixture.getVcsModificationChecker().checkForModifications(composite2Bt.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
 
-    composite1Bt.addToQueue("test");
-    RunningBuildEx composite1Build = null;
-    RunningBuildEx dep1Build = null;
-    for(RunningBuildEx b : myFixture.flushQueueAndWaitN(2)) {
-      if(b.getBuildPromotion().isCompositeBuild()) {
-        composite1Build = b;
-      } else {
-        dep1Build = b;
-      }
+    SQueuedBuild dep1Build = null;
+    SQueuedBuild composite1Build = composite1Bt.addToQueue("test");
+    for(SQueuedBuild q : myFixture.getBuildQueue().getItems()) {
+      if(q.getBuildPromotion().isCompositeBuild()) continue;
+
+      dep1Build = q;
     }
     assertNotNull("Test setup failure, unable to find dependent build.", dep1Build);
+    myFixture.flushQueueAndWaitN(2);
 
-    myFixture.doTestFailed(dep1Build, "Split.failed1");
-    myFixture.doTestFailed(dep1Build, "Split.failed2");
+    RunningBuildEx dep1Fail = build().withFailedTests("Split.failed1", "Split.failed2").run(dep1Build); finishBuild(dep1Fail, true);
+    RunningBuildEx comp1Fail = build().run(composite1Build); finishBuild(comp1Fail, true);
 
-    myFixture.finishBuild(dep1Build, true);
-    myFixture.finishBuild(composite1Build, true);
+    SQueuedBuild dep2Build = null;
+    SQueuedBuild composite2Build = composite2Bt.addToQueue("test");
+    for(SQueuedBuild q : myFixture.getBuildQueue().getItems()) {
+      if(q.getBuildPromotion().isCompositeBuild()) continue;
 
-
-    composite2Bt.addToQueue("test");
-    RunningBuildEx composite2Build = null;
-    RunningBuildEx dep2Build = null;
-    for(RunningBuildEx b : myFixture.flushQueueAndWaitN(2)) {
-      if(b.getBuildPromotion().isCompositeBuild()) {
-        composite2Build = b;
-      } else {
-        dep2Build = b;
-      }
+      dep2Build = q;
     }
     assertNotNull("Test setup failure, unable to find dependent build.", dep2Build);
+    myFixture.flushQueueAndWaitN(2);
 
-    myFixture.doTestFailed(dep2Build, "Split.failed1");
-    myFixture.doTestFailed(dep2Build, "Split.failed2");
-
-    myFixture.finishBuild(dep2Build, true);
-    myFixture.finishBuild(composite2Build, true);
+    RunningBuildEx dep2Fail = build().withFailedTests("Split.failed1", "Split.failed2").run(dep2Build); finishBuild(dep2Fail, true);
+    RunningBuildEx comp2Fail = build().run(composite2Build); finishBuild(comp2Fail, true);
 
 
     ChangeStatus status = new ChangeStatus(
@@ -639,6 +628,7 @@ public class ChangeStatusTest extends BaseFinderTest {
 
     myFixture.flushQueueAndWaitN(2);
 
+
     RunningBuildEx depFail = build().withFailedTests("depFail").run(depBuild);
     finishBuild(depFail, true);
 
@@ -730,8 +720,8 @@ public class ChangeStatusTest extends BaseFinderTest {
   }
 
   @org.testng.annotations.DataProvider(name = "allBooleans")
-  public static Object[] allBooleans() {
-    return new Object[] {true, false};
+  public static Object[][] allBooleans() {
+    return new Object[][] {{true}, {false}};
   }
 
   private final DependencyOptions NULL_OPTIONS = new DependencyOptions() {
