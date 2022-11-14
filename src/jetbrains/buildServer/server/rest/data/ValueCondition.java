@@ -58,12 +58,6 @@ public class ValueCondition {
     if (myRequirementType.isParameterRequired() && myParameterValue == null) {
       return false;
     }
-    if (myRequirementType.isActualValueRequired() && value == null) {
-      return false;
-    }
-    if (!myRequirementType.isActualValueCanBeEmpty() && (value == null || value.length() == 0)) {
-      return false;
-    }
     try {
       if (getActualIgnoreCase()) {
         if (myRequirementType.equals(RequirementType.MATCHES) || myRequirementType.equals(RequirementType.DOES_NOT_MATCH)) {
