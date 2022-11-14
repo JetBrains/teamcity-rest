@@ -31,7 +31,7 @@ import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
@@ -101,7 +101,7 @@ public class Test {
     investigations = ValueWithDefault.decideDefault(fields.isIncluded("investigations", false), new ValueWithDefault.Value<Investigations>() {
       public Investigations get() {
         return new Investigations(beanContext.getSingletonService(InvestigationFinder.class).getInvestigationWrappers(test),
-                                  new PagerData(InvestigationRequest.getHref(test)), fields.getNestedField("investigations"),
+                                  new PagerDataImpl(InvestigationRequest.getHref(test)), fields.getNestedField("investigations"),
                                   beanContext);
       }
     });

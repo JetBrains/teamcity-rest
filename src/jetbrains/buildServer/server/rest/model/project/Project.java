@@ -239,7 +239,7 @@ public class Project {
       fields.isIncluded("vcsRoots", false),
       () -> !canViewSettings.get() ? null : new VcsRoots(
         project.getOwnVcsRoots(), //consistent with VcsRootFinder
-        new PagerData(VcsRootRequest.getHref(project)),
+        new PagerDataImpl(VcsRootRequest.getHref(project)),
         fields.getNestedField("vcsRoots"),
         beanContext)
     );
@@ -269,7 +269,7 @@ public class Project {
 
       final CloudProfileFinder finder = beanContext.getSingletonService(CloudProfileFinder.class);
       final List<CloudProfile> items = finder.getItems(locator).myEntries;
-      return new CloudProfiles(items, new PagerData(CloudRequest.getProfilesHref(nestedFields.getLocator(), project)), nestedFields, beanContext);
+      return new CloudProfiles(items, new PagerDataImpl(CloudRequest.getProfilesHref(nestedFields.getLocator(), project)), nestedFields, beanContext);
     });
 
     // use lazy calculation in order not to have performance impact when no related fields are retrieved

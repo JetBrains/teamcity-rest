@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.helpers.AuthorityHelper;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.audit.AuditEvent;
 import jetbrains.buildServer.server.rest.model.audit.AuditEvents;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
@@ -57,7 +58,7 @@ public class AuditRequest {
                          @Context HttpServletRequest request) {
     AuthorityHelper.checkGlobalPermission(myBeanContext, Permission.VIEW_AUDIT_LOG);
     PagedSearchResult<AuditLogAction> items = myAuditEventFinder.getItems(locator);
-    final PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), items, locator, "locator");
+    final PagerData pagerData = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), items, locator, "locator");
     return new AuditEvents(items.myEntries, pagerData, new Fields(fields), myBeanContext);
   }
 

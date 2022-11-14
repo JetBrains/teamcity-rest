@@ -28,7 +28,7 @@ import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.request.AgentRequest;
@@ -100,7 +100,7 @@ public class AgentPool {
       public Agents get() {
         Fields nestedFields = fields.getNestedField("agents", Fields.NONE, Fields.LONG);
         String locator = Locator.merge(nestedFields.getLocator(), AgentFinder.getLocator(agentPool));
-        return new Agents(locator, new PagerData(AgentRequest.getItemsHref(locator)), nestedFields, beanContext);
+        return new Agents(locator, new PagerDataImpl(AgentRequest.getItemsHref(locator)), nestedFields, beanContext);
       }
     });
 

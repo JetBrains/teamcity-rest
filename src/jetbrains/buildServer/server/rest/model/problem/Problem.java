@@ -28,7 +28,7 @@ import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.request.InvestigationRequest;
 import jetbrains.buildServer.server.rest.request.ProblemOccurrenceRequest;
@@ -87,7 +87,7 @@ public class Problem {
     });
     investigations = ValueWithDefault.decideDefault(fields.isIncluded("investigations", false), new ValueWithDefault.Value<Investigations>() {
       public Investigations get() {
-        return new Investigations(problem.getInvestigations(), new PagerData(InvestigationRequest.getHref(problem)), fields.getNestedField("investigations"), beanContext);
+        return new Investigations(problem.getInvestigations(), new PagerDataImpl(InvestigationRequest.getHref(problem)), fields.getNestedField("investigations"), beanContext);
       }
     });
     problemOccurrences = ValueWithDefault.decideDefault(fields.isIncluded("problemOccurrences", false), new ValueWithDefault.Value<ProblemOccurrences>() {

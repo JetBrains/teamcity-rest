@@ -25,7 +25,7 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.mutes.MuteFinder;
 import jetbrains.buildServer.server.rest.data.problem.MuteData;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.problem.Mute;
 import jetbrains.buildServer.server.rest.model.problem.Mutes;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
@@ -97,7 +97,7 @@ public class MuteRequest {
     final PagedSearchResult<MuteInfo> result = myMuteFinder.getItems(locatorText);
 
     return new Mutes(result.myEntries,
-                     uriInfo == null ? null : new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
+                     uriInfo == null ? null : new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
                      new Fields(fields),
                      myBeanContext
     );

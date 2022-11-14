@@ -907,7 +907,7 @@ public class Build {
         LOG.warnAndDebugDetails("Failed to get changes (including empty changes) for " + LogUtil.describe(myBuildPromotion), e);
         data = CachingValue.simple(() -> Collections.emptyList());
       }
-      return new Changes(new PagerData(href), changesFields, myBeanContext, data);
+      return new Changes(new PagerDataImpl(href), changesFields, myBeanContext, data);
     }, null, true);
     //see jetbrains.buildServer.controllers.changes.ChangesBean.getLimitedChanges for further optimization
   }
@@ -1147,7 +1147,7 @@ public class Build {
     return myQueuedBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false, true), () -> {
       final Fields nestedFields = myFields.getNestedField("compatibleAgents");
       String actualLocatorText = Locator.merge(nestedFields.getLocator(), AgentFinder.getCompatibleAgentsLocator(myBuildPromotion));
-      return new Agents(actualLocatorText, new PagerData(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
+      return new Agents(actualLocatorText, new PagerDataImpl(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
     });
   }
 

@@ -30,7 +30,7 @@ import jetbrains.buildServer.server.rest.data.CloudInstanceData;
 import jetbrains.buildServer.server.rest.data.CloudUtil;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.request.CloudRequest;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
@@ -120,7 +120,7 @@ public class CloudImage {
         CachingValue.simple(() -> myCloudImage.getInstances().stream()
                                               .map(i -> new CloudInstanceData(i, myCloudImage.getProfileId(), myBeanContext.getServiceLocator()))
                                               .collect(Collectors.toList())),
-        new PagerData(CloudRequest.getInstancesHref(myCloudImage, myBeanContext.getSingletonService(CloudUtil.class))),
+        new PagerDataImpl(CloudRequest.getInstancesHref(myCloudImage, myBeanContext.getSingletonService(CloudUtil.class))),
         myFields.getNestedField("instances", Fields.NONE, Fields.LONG), myBeanContext)
     );
   }

@@ -25,6 +25,7 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.agent.AgentPools;
@@ -79,7 +80,7 @@ public class AgentPoolRequest {
                              @Context UriInfo uriInfo,
                              @Context HttpServletRequest request) {
     PagedSearchResult<jetbrains.buildServer.serverSide.agentPools.AgentPool> result = myAgentPoolFinder.getItems(locator);
-    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
+    final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
     return new AgentPools(result.myEntries, pager, new Fields(fields), myBeanContext);
   }
 

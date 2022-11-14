@@ -25,7 +25,7 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
@@ -89,7 +89,7 @@ public class VcsRootRequest {
                              @Context HttpServletRequest request) {
     final PagedSearchResult<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(locatorText);
     return new VcsRoots(vcsRoots.myEntries,
-                        new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRoots, locatorText, "locator"),
+                        new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRoots, locatorText, "locator"),
                         new Fields(fields),
                         myBeanContext);
   }

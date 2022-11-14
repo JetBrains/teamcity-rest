@@ -35,6 +35,7 @@ import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.build.BuildCancelRequest;
@@ -107,7 +108,7 @@ public class  BuildQueueRequest {
       }
     });
     return Builds.createFromBuildPromotions(builds,
-                      new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator"),
+                      new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator"),
                       new Fields(fields),
                       myBeanContext);
   }

@@ -21,6 +21,7 @@ import jetbrains.buildServer.server.rest.data.HealthItemFinder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.health.HealthCategories;
 import jetbrains.buildServer.server.rest.model.health.HealthCategory;
 import jetbrains.buildServer.server.rest.model.health.HealthItem;
@@ -63,7 +64,7 @@ public class HealthRequest {
                                         @Context @NotNull final UriInfo uriInfo,
                                         @Context @NotNull final HttpServletRequest request) {
     final PagedSearchResult<ItemCategory> pagedItems = myHealthItemFinder.getCategories(locator);
-    final PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedItems, locator, "locator");
+    final PagerData pagerData = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedItems, locator, "locator");
     return new HealthCategories(pagedItems.myEntries, pagerData, new Fields(fields), myBeanContext);
   }
 
@@ -83,7 +84,7 @@ public class HealthRequest {
                                     @Context @NotNull final UriInfo uriInfo,
                                     @Context @NotNull final HttpServletRequest request) {
     final PagedSearchResult<jetbrains.buildServer.serverSide.healthStatus.HealthStatusItem> pagedItems = myHealthItemFinder.getItems(locator);
-    final PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedItems, locator, "locator");
+    final PagerData pagerData = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedItems, locator, "locator");
     return new HealthItems(pagedItems.myEntries, pagerData, new Fields(fields), myBeanContext);
   }
 

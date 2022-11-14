@@ -24,7 +24,7 @@ import javax.xml.bind.annotation.XmlType;
 
 import jetbrains.buildServer.server.rest.data.CloudUtil;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.CloudRequest;
@@ -99,7 +99,7 @@ public class CloudProfile {
     return ValueWithDefault.decideDefault(myFields.isIncluded("images", false, true),
                                           () -> new CloudImages(
                                             CachingValue.simple(() -> new ArrayList<>(myBeanContext.getSingletonService(CloudUtil.class).getImages(myCloudProfile))),
-                                            new PagerData(CloudRequest.getImagesHref(myCloudProfile)),
+                                            new PagerDataImpl(CloudRequest.getImagesHref(myCloudProfile)),
                                             myFields.getNestedField("images", Fields.NONE, Fields.LONG), myBeanContext));
   }
 }

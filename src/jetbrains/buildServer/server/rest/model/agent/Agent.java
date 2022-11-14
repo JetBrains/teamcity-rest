@@ -276,7 +276,7 @@ public class Agent {
                                                                                LocatorUtil.setDimension(BuildPromotionFinder.getLocator(agent), PagerData.COUNT, "1"));
                                                 return Builds.createFromBuildPromotions(
                                                   beanContext.getServiceLocator().getSingletonService(BuildPromotionFinder.class).getItems(locator).myEntries,
-                                                  new PagerData(BuildRequest.getHref(locator)), fields, beanContext);
+                                                  new PagerDataImpl(BuildRequest.getHref(locator)), fields, beanContext);
                                               });
 
       if (!unknownAgent) {

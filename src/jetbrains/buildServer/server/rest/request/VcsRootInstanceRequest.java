@@ -86,7 +86,7 @@ public class VcsRootInstanceRequest {
                                          @Context HttpServletRequest request) {
     final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstanceLocator);
     return new VcsRootInstances(CachingValue.simple(((Collection<jetbrains.buildServer.vcs.VcsRootInstance>)vcsRootInstances.myEntries)),
-                                new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances, vcsRootInstanceLocator, "locator"),
+                                new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances, vcsRootInstanceLocator, "locator"),
                                 new Fields(fields),
                                 myBeanContext);
   }
@@ -269,7 +269,7 @@ public class VcsRootInstanceRequest {
     //todo: check whether permission checks are necessary
     final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
     myDataProvider.getChangesCheckingService().forceCheckingFor(vcsRootInstances.myEntries, getRequestor(requestor));
-    PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances, vcsRootInstancesLocator, "locator");
+    PagerData pagerData = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances, vcsRootInstancesLocator, "locator");
 
     //return 202 Accepted
     //return something which can be used to track progress (like get list of instances which has not yet compleed since the queuing

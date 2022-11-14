@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.cloud.*;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
@@ -112,7 +113,7 @@ public class CloudRequest {
                                        @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<CloudInstanceData> result = myCloudInstanceFinder.getItems(locator);
 
-    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
+    final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
     return new CloudInstances(CachingValue.simple(() -> result.myEntries), pager,  new Fields(fields), myBeanContext);
   }
 
@@ -164,7 +165,7 @@ public class CloudRequest {
                                  @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<jetbrains.buildServer.clouds.CloudImage> result = myCloudImageFinder.getItems(locator);
 
-    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
+    final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
     return new CloudImages(CachingValue.simple(() -> result.myEntries), pager, new Fields(fields), myBeanContext);
   }
 
@@ -189,7 +190,7 @@ public class CloudRequest {
                                      @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<jetbrains.buildServer.clouds.CloudProfile> result = myCloudProfileFinder.getItems(locator);
 
-    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
+    final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
     return new CloudProfiles(result.myEntries, pager,  new Fields(fields), myBeanContext);
   }
 

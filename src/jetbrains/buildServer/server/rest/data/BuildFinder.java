@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
@@ -155,7 +156,7 @@ public class BuildFinder {
     }
 
     final PagedSearchResult<BuildPromotion> pagedResult = getBuilds(buildType, resultingLocatorText);
-    final PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult,
+    final PagerData pagerData = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult,
                                               locatorText == null ? null : resultingLocatorText,
                                               locatorParameterName);
     return Builds.createFromBuildPromotions(pagedResult.myEntries, pagerData, fields, beanContext);

@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.agent.*;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
@@ -118,7 +119,7 @@ public class AgentRequest {
 
     final PagedSearchResult<SBuildAgent> result = myAgentFinder.getItems(locatorToUse);
 
-    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorToUse, "locator");
+    final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorToUse, "locator");
     return new Agents(result.myEntries, pager, new Fields(fields), myBeanContext);
   }
 

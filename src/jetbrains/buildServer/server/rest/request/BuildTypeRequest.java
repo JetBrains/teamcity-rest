@@ -172,7 +172,7 @@ public class BuildTypeRequest {
     }
     final PagedSearchResult<BuildTypeOrTemplate> result = myBuildTypeFinder.getItems(actualLocator);
 
-    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
+    final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
     return new BuildTypes(result.myEntries, pager, new Fields(fields), myBeanContext);
   }
 
@@ -1436,7 +1436,7 @@ public class BuildTypeRequest {
                                           @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
     return new Investigations(myInvestigationFinder.getInvestigationWrappersForBuildType(buildType),
-                              new PagerData(InvestigationRequest.getHref(buildType)), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+                              new PagerDataImpl(InvestigationRequest.getHref(buildType)), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
   }
 
   /**
@@ -1558,7 +1558,7 @@ public class BuildTypeRequest {
     Fields fields = new Fields(fieldsSpec);
 
     return new Branches(myBranchFinder.getItems(buildType, branchesLocator).myEntries,
-                        new PagerData(BuildTypeRequest.getBranchesHref(buildType, branchesLocator)), fields, myBeanContext);
+                        new PagerDataImpl(BuildTypeRequest.getBranchesHref(buildType, branchesLocator)), fields, myBeanContext);
   }
 
   /**

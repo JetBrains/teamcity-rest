@@ -25,7 +25,7 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.problem.Problem;
 import jetbrains.buildServer.server.rest.model.problem.Problems;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
@@ -77,7 +77,7 @@ public class ProblemRequest {
     final PagedSearchResult<ProblemWrapper> result = myProblemFinder.getItems(locatorText);
 
     return new Problems(result.myEntries,
-                        new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
+                        new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
                         new Fields(fields),
                         myBeanContext);
   }

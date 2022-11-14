@@ -27,7 +27,7 @@ import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrappe
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.buildType.Investigation;
 import jetbrains.buildServer.server.rest.model.buildType.Investigations;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
@@ -96,7 +96,7 @@ public class InvestigationRequest {
     final PagedSearchResult<InvestigationWrapper> result = myInvestigationFinder.getItems(locatorText);
 
     return new Investigations(result.myEntries,
-                              new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
+                              new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
                               new Fields(fields),
                               myBeanContext
     );

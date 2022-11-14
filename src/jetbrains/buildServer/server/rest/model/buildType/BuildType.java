@@ -437,10 +437,10 @@ public class BuildType {
         if (locator != null) {
           result = myBeanContext.getSingletonService(BranchFinder.class).getItems(myBuildType.getBuildType(), locator).myEntries;
           href = BuildTypeRequest.getBranchesHref(myBuildType.getBuildType(), locator);
-          return new Branches(result, new PagerData(href), nestedFields, myBeanContext);
+          return new Branches(result, new PagerDataImpl(href), nestedFields, myBeanContext);
         }
         href = BuildTypeRequest.getBranchesHref(myBuildType.getBuildType(), null);
-        return new Branches(null, new PagerData(href), nestedFields, myBeanContext);
+        return new Branches(null, new PagerDataImpl(href), nestedFields, myBeanContext);
       }
     });
   }
@@ -468,7 +468,7 @@ public class BuildType {
         }else{
           buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType());
         }
-        return Builds.createFromBuildPromotions(builds, new PagerData(buildsHref), buildsFields, myBeanContext);
+        return Builds.createFromBuildPromotions(builds, new PagerDataImpl(buildsHref), buildsFields, myBeanContext);
       }
     });
   }
@@ -582,7 +582,7 @@ public class BuildType {
         final InvestigationFinder finder = myBeanContext.getSingletonService(InvestigationFinder.class);
         final String actualLocatorText = Locator.merge(nestedFields.getLocator(), InvestigationFinder.getLocator(myBuildType.getBuildType()));
         final List<InvestigationWrapper> result = Investigations.isDataNecessary(nestedFields) ? finder.getItems(actualLocatorText).myEntries : null;
-        return new Investigations(result, new PagerData(InvestigationRequest.getHref(actualLocatorText)), nestedFields, myBeanContext);
+        return new Investigations(result, new PagerDataImpl(InvestigationRequest.getHref(actualLocatorText)), nestedFields, myBeanContext);
       }
     });
   }
@@ -597,7 +597,7 @@ public class BuildType {
       public Agents get() {
         final Fields nestedFields = myFields.getNestedField("compatibleAgents");
         String  actualLocatorText = Locator.merge(nestedFields.getLocator(), AgentFinder.getCompatibleAgentsLocator(myBuildType.getBuildType()));
-        return new Agents(actualLocatorText, new PagerData(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
+        return new Agents(actualLocatorText, new PagerDataImpl(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
       }
     });
   }

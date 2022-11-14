@@ -35,7 +35,7 @@ import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Items;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRootInstances;
 import jetbrains.buildServer.server.rest.model.project.Project;
@@ -174,7 +174,7 @@ public class VcsRoot {
             protected Collection<VcsRootInstance> doGet() {
               return beanContext.getSingletonService(VcsRootInstanceFinder.class).getItems(VcsRootInstanceFinder.getLocatorByVcsRoot(root)).myEntries;
             }
-          }, new PagerData(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
+          }, new PagerDataImpl(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
         }
       });
       repositoryIdStrings = ValueWithDefault.decideDefault(fields.isIncluded("repositoryIdStrings", false, false), new ValueWithDefault.Value<Items>() {

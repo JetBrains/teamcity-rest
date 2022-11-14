@@ -42,6 +42,7 @@ import jetbrains.buildServer.server.rest.model.Entries;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Items;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.change.*;
@@ -137,7 +138,7 @@ public class ChangeRequest {
     requestUriBuilder.replaceQueryParam("count" , null);
     requestUriBuilder.replaceQueryParam("start", null);
     return new Changes(buildModifications.myEntries,
-                       new PagerData(requestUriBuilder, request.getContextPath(), buildModifications, locatorText, "locator"),
+                       new PagerDataImpl(requestUriBuilder, request.getContextPath(), buildModifications, locatorText, "locator"),
                        new Fields(fields),
                        myBeanContext);
   }

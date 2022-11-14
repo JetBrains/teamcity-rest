@@ -30,7 +30,7 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrencesCachedInfo;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
@@ -109,7 +109,7 @@ public class TestOccurrenceRequest {
 
         return new TestOccurrences(pagedResult.myEntries, null,
                                    uriInfo == null ? null : uriInfo.getRequestUri().toString(),
-                                   uriInfo == null ? null : new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult, locatorText, "locator"),
+                                   uriInfo == null ? null : new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult, locatorText, "locator"),
                                    new Fields(fields), myBeanContext);
       }
 
@@ -121,7 +121,7 @@ public class TestOccurrenceRequest {
     return new TestOccurrences(result.myEntries,
                                null,
                                uriInfo == null ? null : uriInfo.getRequestUri().toString(),
-                               uriInfo == null ? null : new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
+                               uriInfo == null ? null : new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
                                new Fields(fields),
                                myBeanContext
     );

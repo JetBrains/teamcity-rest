@@ -32,6 +32,7 @@ import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.agent.AgentPool;
 import jetbrains.buildServer.server.rest.model.agent.AgentPools;
 import jetbrains.buildServer.server.rest.model.build.Branches;
@@ -132,7 +133,7 @@ public class ProjectRequest {
   public Projects serveProjects(@QueryParam("locator") String locator, @QueryParam("fields") String fields,
                                 @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<SProject> result = myProjectFinder.getItems(locator);
-    final PagerData pager = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
+    final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
     return new Projects(result.myEntries, pager, new Fields(fields), myBeanContext);
   }
 

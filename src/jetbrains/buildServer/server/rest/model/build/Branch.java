@@ -24,7 +24,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.BranchData;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.PagerData;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
@@ -117,7 +117,7 @@ public class Branch {
                                               buildsHref = BuildRequest.getBuildsHref(myBranch, null);
                                             }
                                             if (builds == null && buildsHref == null) return null;
-                                            return Builds.createFromBuildPromotions(builds == null ? null : builds.myEntries, buildsHref == null ? null : new PagerData(buildsHref), buildsFields, myBeanContext);
+                                            return Builds.createFromBuildPromotions(builds == null ? null : builds.myEntries, buildsHref == null ? null : new PagerDataImpl(buildsHref), buildsFields, myBeanContext);
                                           });
   }
 }
