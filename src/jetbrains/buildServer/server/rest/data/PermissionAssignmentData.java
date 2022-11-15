@@ -26,11 +26,16 @@ import org.jetbrains.annotations.Nullable;
  * Date: 18/09/2017
  */
 public class PermissionAssignmentData implements Loggable {
-  @NotNull private final Permission myPermission;
-  @Nullable private final String myInternalProjectId;
+
+  @NotNull
+  private final Permission myPermission;
+
+  @Nullable
+  private final String myInternalProjectId;
 
   /**
    * Creates global permission assignment (for project-related permission means that the permission is granted for all the projects)
+   *
    * @param permission
    */
   public PermissionAssignmentData(@NotNull final Permission permission) {
