@@ -18,6 +18,10 @@ package jetbrains.buildServer.server.rest.data;
 
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * @author Andrey Kokorev
+ * @date 17.02.2022
+ */
 public interface ExistenceAwareFinder {
   boolean itemsExist(@NotNull Locator locator);
 }
