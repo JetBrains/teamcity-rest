@@ -23,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
+ * @see ParameterCondition
  * @author Yegor.Yarko
  *         Date: 17.01.12
  */
