@@ -30,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Note: this works with RESOLVED permissions, so no projects hierarchy should be considered: a permission to a project does not cause the permission granted for sub-projects
+ *
  * @author Yegor.Yarko
  * Date: 18/09/2017
  */
@@ -39,23 +40,24 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
   private static final TypedFinderBuilder.Dimension<Permission> PERMISSION = new TypedFinderBuilder.Dimension<>("permission"); //todo: support List
 
   public PermissionAssignmentFinder(@NotNull final AuthorityHolder authorityHolder, @NotNull final ServiceLocator serviceLocator) {
-    TypedFinderBuilder<PermissionAssignmentData> builder = new TypedFinderBuilder<PermissionAssignmentData>();
+    TypedFinderBuilder<PermissionAssignmentData> builder = new TypedFinderBuilder<>();
     builder.name("PermissionAssignmentFinder");
 
-    builder.dimensionBoolean(GLOBAL).description("return only globally assigned permissions").withDefault("any").
-      valueForDefaultFilter(permissionAssignment -> permissionAssignment.getInternalProjectId() == null);
+    builder.dimensionBoolean(GLOBAL).description("return only globally assigned permissions").withDefault("any")
+           .valueForDefaultFilter(permissionAssignment -> permissionAssignment.getInternalProjectId() == null);
 
     //todo: support not found project with internal id
-    builder.dimensionProjects(PROJECT, serviceLocator).description("project the permission is granted for, note that a permission granted for a project might not be granted to it's sub-projects").
-      filter((projects, permissionA) -> {
-        String internalProjectId = permissionA.getInternalProjectId();
-        if (internalProjectId == null && permissionA.getPermission().isProjectAssociationSupported()) return true;
-        return projects.stream().map(project -> project.getProjectId()).anyMatch(id -> id.equals(internalProjectId));
-      }); //can improve performance by remembering set of projects for the entire run - might need improvement in TypedFinderBuilder
+    builder.dimensionProjects(PROJECT, serviceLocator)
+           .description("project the permission is granted for, note that a permission granted for a project might not be granted to it's sub-projects")
+           .filter((projects, permissionA) -> {
+             String internalProjectId = permissionA.getInternalProjectId();
+             if (internalProjectId == null && permissionA.getPermission().isProjectAssociationSupported()) return true;
+             return projects.stream().map(project -> project.getProjectId()).anyMatch(id -> id.equals(internalProjectId));
+           }); //can improve performance by remembering set of projects for the entire run - might need improvement in TypedFinderBuilder
     //todo: filter projects by those user can see
 
-    builder.dimensionEnum(PERMISSION, Permission.class).description("id of the permission to filter the results by").
-      valueForDefaultFilter(p -> p.getPermission());
+    builder.dimensionEnum(PERMISSION, Permission.class).description("id of the permission to filter the results by")
+           .valueForDefaultFilter(p -> p.getPermission());
 
     builder.multipleConvertToItemHolder(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> getPermissions(dimensions, authorityHolder, serviceLocator));
 
@@ -78,9 +80,11 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
   }
 
   @NotNull
-  private FinderDataBinding.ItemHolder<PermissionAssignmentData> getPermissions(@NotNull final TypedFinderBuilder.DimensionObjects dimensions,
-                                                                                @NotNull final AuthorityHolder authorityHolder,
-                                                                                @NotNull final ServiceLocator serviceLocator) {
+  private FinderDataBinding.ItemHolder<PermissionAssignmentData> getPermissions(
+    @NotNull final TypedFinderBuilder.DimensionObjects dimensions,
+    @NotNull final AuthorityHolder authorityHolder,
+    @NotNull final ServiceLocator serviceLocator
+  ) {
     /* The rest of the code in this method is mostly performance optimization producing the same results (with possibly changed sorting).
     if (true) {
       List<Permission> globalPermissions = authorityHolder.getGlobalPermissions().toList();
@@ -106,11 +110,11 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     List<Permission> permissions = permissions_raw; // permissions_raw is ANDed, permissions is ORed, but so far it is not supported: todo implement
 
     Stream<PermissionAssignmentData> result = Stream.empty();
-     List<Boolean> global_raw = dimensions.get(GLOBAL);
-     if (global_raw != null && !global_raw.isEmpty() && global_raw.size() > 1) {
-       throw new BadRequestException("Multiple global dimensions are not supported");
-     }
-     Boolean global = global_raw == null ? null : global_raw.get(0);
+    List<Boolean> global_raw = dimensions.get(GLOBAL);
+    if (global_raw != null && !global_raw.isEmpty() && global_raw.size() > 1) {
+      throw new BadRequestException("Multiple global dimensions are not supported");
+    }
+    Boolean global = global_raw == null ? null : global_raw.get(0);
 
     if ((permissions == null || permissions.isEmpty())) {
        if (projects == null) {
