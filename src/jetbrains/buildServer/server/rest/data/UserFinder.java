@@ -72,40 +72,54 @@ public class UserFinder extends DelegatingFinder<SUser> {
   private static final Logger LOG = Logger.getInstance(jetbrains.buildServer.serverSide.impl.audit.finders.UserFinder.class.getName());
   public static final String REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS = "rest.request.checkAdditionalPermissionsForUsersAndGroups";
 
-  @LocatorDimension("id") private static final Dimension<Long> ID = new Dimension<>("id");
-  @LocatorDimension("username") private static final Dimension<String> USERNAME = new Dimension<>("username");
+  @LocatorDimension("id")
+  private static final Dimension<Long> ID = new Dimension<>("id");
+  @LocatorDimension("username")
+  private static final Dimension<String> USERNAME = new Dimension<>("username");
   @LocatorDimension(value = "group", format = LocatorName.USER_GROUP, notes = "User group (direct parent) locator.")
   private static final Dimension<SUserGroup> GROUP = new Dimension<>("group");
   @LocatorDimension(value = "affectedGroup", format = LocatorName.USER_GROUP, notes = "User group (direct or indirect parent) locator.")
   private static final Dimension<SUserGroup> AFFECTED_GROUP = new Dimension<>("affectedGroup");
   private static final Dimension<ParameterCondition> PROPERTY = new Dimension<>("property");
-  @LocatorDimension("email") private static final Dimension<ValueCondition> EMAIL = new Dimension<>("email");
-  @LocatorDimension("name") private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
+  @LocatorDimension("email")
+  private static final Dimension<ValueCondition> EMAIL = new Dimension<>("email");
+  @LocatorDimension("name")
+  private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
   private static final Dimension<Boolean> HAS_PASSWORD = new Dimension<>("hasPassword");
   private static final Dimension<String> PASSWORD = new Dimension<>("password");
-  @LocatorDimension(value = "lastLogin", dataType = LocatorDimensionDataType.TIMESTAMP, format = "yyyyMMddTHHmmss+ZZZZ") private static final Dimension<TimeCondition.ParsedTimeCondition>
-    LAST_LOGIN_TIME = new Dimension<>("lastLogin");
+  @LocatorDimension(value = "lastLogin", dataType = LocatorDimensionDataType.TIMESTAMP, format = "yyyyMMddTHHmmss+ZZZZ")
+  private static final Dimension<TimeCondition.ParsedTimeCondition> LAST_LOGIN_TIME = new Dimension<>("lastLogin");
   @LocatorDimension(value = "role", format = LocatorName.ROLE, notes = "Role locator.")
   private static final Dimension<RoleEntryDatas> ROLE = new Dimension<>("role");
   private static final Dimension<ItemFilter<SUser>> PERMISSION = new Dimension<>("permission");
   //todo: add filtering by changes (authors), builds (triggering), audit events, etc?
-  @NotNull private final UserModel myUserModel;
-  @NotNull private final UserGroupFinder myGroupFinder;
-  @NotNull private final ProjectFinder myProjectFinder;
-  @NotNull private final TimeCondition myTimeCondition;
-  @NotNull private final RolesManager myRolesManager;
-  @NotNull private final PermissionChecker myPermissionChecker;
-  @NotNull private final SecurityContext mySecurityContext;
-  @NotNull private final ServiceLocator myServiceLocator;
+  @NotNull
+  private final UserModel myUserModel;
+  @NotNull
+  private final UserGroupFinder myGroupFinder;
+  @NotNull
+  private final ProjectFinder myProjectFinder;
+  @NotNull
+  private final TimeCondition myTimeCondition;
+  @NotNull
+  private final RolesManager myRolesManager;
+  @NotNull
+  private final PermissionChecker myPermissionChecker;
+  @NotNull
+  private final SecurityContext mySecurityContext;
+  @NotNull
+  private final ServiceLocator myServiceLocator;
 
-  public UserFinder(@NotNull final UserModel userModel,
-                    @NotNull final UserGroupFinder groupFinder,
-                    @NotNull final ProjectFinder projectFinder,
-                    @NotNull final TimeCondition timeCondition,
-                    @NotNull final RolesManager rolesManager,
-                    @NotNull final PermissionChecker permissionChecker,
-                    @NotNull final SecurityContext securityContext,
-                    @NotNull final ServiceLocator serviceLocator) {
+  public UserFinder(
+    @NotNull final UserModel userModel,
+    @NotNull final UserGroupFinder groupFinder,
+    @NotNull final ProjectFinder projectFinder,
+    @NotNull final TimeCondition timeCondition,
+    @NotNull final RolesManager rolesManager,
+    @NotNull final PermissionChecker permissionChecker,
+    @NotNull final SecurityContext securityContext,
+    @NotNull final ServiceLocator serviceLocator
+  ) {
     myUserModel = userModel;
     myGroupFinder = groupFinder;
     myProjectFinder = projectFinder;
@@ -131,13 +145,13 @@ public class UserFinder extends DelegatingFinder<SUser> {
     if (user == null) return;
 
     final jetbrains.buildServer.users.User currentUser = getCurrentUser();
-      if (currentUser != null && currentUser.getId() == user.getId()) {
-        return;
+    if (currentUser != null && currentUser.getId() == user.getId()) {
+      return;
     }
 
-      if (!ServerAuthUtil.canViewUser(mySecurityContext.getAuthorityHolder(), user)) {
-        throw new AuthorizationFailedException("No permission to view user");
-      }
+    if (!ServerAuthUtil.canViewUser(mySecurityContext.getAuthorityHolder(), user)) {
+      throw new AuthorizationFailedException("No permission to view user");
+    }
   }
 
   @Nullable
