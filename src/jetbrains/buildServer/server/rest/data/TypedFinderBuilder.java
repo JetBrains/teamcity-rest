@@ -298,7 +298,7 @@ public class TypedFinderBuilder<ITEM> {
   /**
    * Defines a dimension, which supplies intermediate items for purpouses of filtering or further extracting final ITEMs. <br/>
    * <br/>
-   * Use with caution: should be able to find items in Set!
+   * @implNote Use with caution: should be able to find items in Set!
    */
   public <FINDER_TYPE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>> dimensionWithFinder(
     @NotNull final Dimension<List<FINDER_TYPE>> dimension,
