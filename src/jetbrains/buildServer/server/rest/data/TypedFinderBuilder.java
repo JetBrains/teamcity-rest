@@ -601,6 +601,17 @@ public class TypedFinderBuilder<ITEM> {
     @Nullable
     <TYPE> List<TYPE> get(@NotNull Dimension<TYPE> dimension);
 
+    default <TYPE> Optional<TYPE> single(@NotNull Dimension<TYPE> dimension) {
+      List<TYPE> values = get(dimension);
+      if (values == null || values.isEmpty()) return Optional.empty();
+
+      if (values.size() > 1) {
+        throw new BadRequestException("Multiple '" + dimension.name + "' dimensions are not supported");
+      }
+
+      return Optional.ofNullable(values.get(0));
+    }
+
     /**
      * Same as get, but does not mark the dimension as used
      */

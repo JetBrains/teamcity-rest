@@ -16,10 +16,13 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
@@ -59,7 +62,10 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     builder.dimensionEnum(PERMISSION, Permission.class).description("id of the permission to filter the results by")
            .valueForDefaultFilter(p -> p.getPermission());
 
-    builder.multipleConvertToItemHolder(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> getPermissions(dimensions, authorityHolder, serviceLocator));
+    builder.multipleConvertToItemHolder(
+      TypedFinderBuilder.DimensionCondition.ALWAYS,
+      dimensions -> getPermissions(dimensions, authorityHolder, serviceLocator)
+    );
 
     PermissionChecker permissionChecker = serviceLocator.getSingletonService(PermissionChecker.class);
 
@@ -96,49 +102,76 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     }
     */
 
-    List<Permission> permissions_raw = dimensions.get(PERMISSION);
-    List<List<SProject>> projects_raw = dimensions.get(PROJECT);
-
-    if (projects_raw != null && !projects_raw.isEmpty() && projects_raw.size() > 1) {
-      throw new BadRequestException("Multiple projects dimensions are not supported");
-    }
-    @Nullable List<SProject> projects = projects_raw == null || projects_raw.isEmpty() ? null : projects_raw.get(0);
-
-    if (permissions_raw != null && !permissions_raw.isEmpty() && permissions_raw.size() > 1) {
-      throw new BadRequestException("Multiple permissions dimensions are not supported");
-    }
-    List<Permission> permissions = permissions_raw; // permissions_raw is ANDed, permissions is ORed, but so far it is not supported: todo implement
+    // dimensions.get(PERMISSION) is ANDed, permissions is ORed, but so far multivalue is not supported: todo implement
+    @Nullable Set<Permission> permissions = dimensions.single(PERMISSION).map(Arrays::asList).map(HashSet::new).orElse(null);
+    @Nullable List<SProject> projects = dimensions.single(PROJECT).orElse(null);
 
     Stream<PermissionAssignmentData> result = Stream.empty();
-    List<Boolean> global_raw = dimensions.get(GLOBAL);
-    if (global_raw != null && !global_raw.isEmpty() && global_raw.size() > 1) {
-      throw new BadRequestException("Multiple global dimensions are not supported");
-    }
-    Boolean global = global_raw == null ? null : global_raw.get(0);
+
+    Boolean global = dimensions.single(GLOBAL).orElse(null);
 
     if ((permissions == null || permissions.isEmpty())) {
-       if (projects == null) {
-        if (global == null || global) {
-          result = Stream.concat(result, authorityHolder.getGlobalPermissions().toList().stream().map(p -> new PermissionAssignmentData(p)));
-        }
-        if (global == null || !global) {
-          result = Stream.concat(result, authorityHolder.getProjectsPermissions().entrySet().stream().flatMap(entry -> entry.getValue().toList().stream().filter(p -> p.isProjectAssociationSupported()).map(p -> new PermissionAssignmentData(p, entry.getKey()))));
-        }
-        return FinderDataBinding.getItemHolder(result);
-      }
+      return getPermissionsAny(authorityHolder, projects, result, global);
+    }
 
+    return getPermissionsSelected(authorityHolder, serviceLocator, projects, permissions, result, global);
+  }
+
+  @NotNull
+  private static FinderDataBinding.ItemHolder<PermissionAssignmentData> getPermissionsAny(
+    @NotNull AuthorityHolder authorityHolder,
+    @Nullable List<SProject> projects,
+    Stream<PermissionAssignmentData> result,
+    Boolean global
+  ) {
+    if (projects == null) {
       if (global == null || global) {
-        result = Stream.concat(result, authorityHolder.getGlobalPermissions().toList().stream().filter(p -> p.isProjectAssociationSupported()).map(p -> new PermissionAssignmentData(p)));
+        result = Stream.concat(result, authorityHolder.getGlobalPermissions().toList().stream().map(p -> new PermissionAssignmentData(p)));
       }
       if (global == null || !global) {
-        result = Stream.concat(result, projects.stream().flatMap(project -> {
-          Permissions projectPermissions = authorityHolder.getProjectsPermissions().get(project.getProjectId());
-          return projectPermissions == null ? Stream.empty() : projectPermissions.toList().stream().filter(p -> p.isProjectAssociationSupported()).map(p -> new PermissionAssignmentData(p, project.getProjectId()));
-        }));
+        result = Stream.concat(result, authorityHolder.getProjectsPermissions().entrySet().stream().flatMap(
+          entry -> entry.getValue().toList().stream().filter(p -> p.isProjectAssociationSupported()).map(p -> new PermissionAssignmentData(p, entry.getKey()))));
       }
       return FinderDataBinding.getItemHolder(result);
-     }
+    }
 
+    if (global == null || global) {
+      List<PermissionAssignmentData> collect = authorityHolder
+        .getGlobalPermissions().toList().stream()
+        .filter(p -> p.isProjectAssociationSupported())
+        .map(p -> new PermissionAssignmentData(p))
+        .collect(Collectors.toList());
+      result = Stream.concat(
+        result,
+        collect.stream()
+      );
+    }
+    if (global == null || !global) {
+      List<PermissionAssignmentData> collect = projects.stream().flatMap(project -> {
+        Permissions projectPermissions = authorityHolder.getProjectsPermissions().get(project.getProjectId());
+        return projectPermissions == null
+               ? Stream.empty()
+               : projectPermissions
+                 .toList()
+                 .stream()
+                 .filter(p -> p.isProjectAssociationSupported())
+                 .map(p -> new PermissionAssignmentData(p, project.getProjectId()));
+      }).collect(Collectors.toList());
+      result = Stream.concat(result, collect.stream());
+    }
+    List<PermissionAssignmentData> collect = result.collect(Collectors.toList());
+    return FinderDataBinding.getItemHolder(collect.stream());
+  }
+
+  @NotNull
+  private static FinderDataBinding.ItemHolder<PermissionAssignmentData> getPermissionsSelected(
+    @NotNull AuthorityHolder authorityHolder,
+    @NotNull ServiceLocator serviceLocator,
+    @Nullable List<SProject> projects,
+    @NotNull Set<Permission> permissions,
+    Stream<PermissionAssignmentData> result,
+    Boolean global
+  ) {
     if (projects == null) {
       if (global == null || global) {
         result = Stream.concat(result, permissions.stream().filter(p -> authorityHolder.isPermissionGrantedGlobally(p)).map(p -> new PermissionAssignmentData(p)));
@@ -154,13 +187,14 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     }
 
     if (global == null || global) {
-      result = Stream.concat(result, permissions.stream().filter(p -> p.isProjectAssociationSupported()).filter(p -> authorityHolder.isPermissionGrantedGlobally(p)).map(p -> new PermissionAssignmentData(p)));
+      result = Stream.concat(result, permissions.stream().filter(p -> p.isProjectAssociationSupported()).filter(p -> authorityHolder.isPermissionGrantedGlobally(p))
+                                                .map(p -> new PermissionAssignmentData(p)));
     }
     if (global == null || !global) {
       result = Stream.concat(result, projects.stream().flatMap(project -> permissions.stream().filter(p -> p.isProjectAssociationSupported()).filter(p -> {
-                Permissions projectPermissions = authorityHolder.getProjectsPermissions().get(project.getProjectId());
-                return projectPermissions != null && projectPermissions.contains(p);
-              }).map(p -> new PermissionAssignmentData(p, project.getProjectId()))));
+        Permissions projectPermissions = authorityHolder.getProjectsPermissions().get(project.getProjectId());
+        return projectPermissions != null && projectPermissions.contains(p);
+      }).map(p -> new PermissionAssignmentData(p, project.getProjectId()))));
     }
     return FinderDataBinding.getItemHolder(result);
   }
