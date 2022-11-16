@@ -46,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
- *         Date: 27/04/2016
+ * @date 27/04/2016
  */
 @SuppressWarnings("WeakerAccess")
 public class TypedFinderBuilder<ITEM> {
@@ -274,7 +274,7 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, List<SVcsRoot>, Set<SVcsRoot>> dimensionVcsRoots(@NotNull final Dimension<List<SVcsRoot>> dimension,
-                                                                                                      @NotNull final ServiceLocator serviceLocator) {
+                                                                                                       @NotNull final ServiceLocator serviceLocator) {
     return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(VcsRootFinder.class), "vcs root locator");
   }
 
