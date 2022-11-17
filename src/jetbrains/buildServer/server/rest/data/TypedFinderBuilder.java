@@ -601,7 +601,7 @@ public class TypedFinderBuilder<ITEM> {
     @Nullable
     <TYPE> List<TYPE> get(@NotNull Dimension<TYPE> dimension);
 
-    default <TYPE> Optional<TYPE> single(@NotNull Dimension<TYPE> dimension) {
+    default <TYPE> Optional<TYPE> getSingleValue(@NotNull Dimension<TYPE> dimension) {
       List<TYPE> values = get(dimension);
       if (values == null || values.isEmpty()) return Optional.empty();
 

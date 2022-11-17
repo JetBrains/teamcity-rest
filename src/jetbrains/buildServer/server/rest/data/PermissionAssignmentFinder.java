@@ -103,12 +103,12 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     */
 
     // dimensions.get(PERMISSION) is ANDed, permissions is ORed, but so far multivalue is not supported: todo implement
-    @Nullable Set<Permission> permissions = dimensions.single(PERMISSION).map(Arrays::asList).map(HashSet::new).orElse(null);
-    @Nullable List<SProject> projects = dimensions.single(PROJECT).orElse(null);
+    @Nullable Set<Permission> permissions = dimensions.getSingleValue(PERMISSION).map(Arrays::asList).map(HashSet::new).orElse(null);
+    @Nullable List<SProject> projects = dimensions.getSingleValue(PROJECT).orElse(null);
 
     Stream<PermissionAssignmentData> result = Stream.empty();
 
-    Boolean global = dimensions.single(GLOBAL).orElse(null);
+    Boolean global = dimensions.getSingleValue(GLOBAL).orElse(null);
 
     if ((permissions == null || permissions.isEmpty())) {
       return getPermissionsAny(authorityHolder, projects, result, global);
