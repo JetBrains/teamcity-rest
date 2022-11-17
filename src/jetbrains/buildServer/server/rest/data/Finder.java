@@ -25,10 +25,11 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface Finder<ITEM> {
   /**
+   * Reverse opertion to {@link #getItem(String)}.
    * @return string "canonical" representation for a locator for the item passed
    */
   @NotNull
-  public String getCanonicalLocator(@NotNull ITEM item);
+  String getCanonicalLocator(@NotNull ITEM item);
 
   /**
    * @param locatorText if null, BadRequestException is thrown
