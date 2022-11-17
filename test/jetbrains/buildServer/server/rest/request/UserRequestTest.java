@@ -20,6 +20,7 @@ import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -30,6 +31,7 @@ import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Build;
+import jetbrains.buildServer.server.rest.model.user.PermissionAssignment;
 import jetbrains.buildServer.server.rest.model.user.PermissionAssignments;
 import jetbrains.buildServer.server.rest.model.user.User;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
@@ -47,7 +49,7 @@ import org.testng.annotations.Test;
 
 /**
  * @author Yegor.Yarko
- *         Date: 05/04/2016
+ * @date 05/04/2016
  */
 public class UserRequestTest extends BaseFinderTest<UserGroup> {
   private UserRequest myRequest;
@@ -327,6 +329,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     });
   }
 
+  @SuppressWarnings("ConstantConditions")
   @Test
   public void testPermissionsSecurity() throws Throwable {
     myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
@@ -351,37 +354,61 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
 
     myFixture.getSecurityContext().runAs(user3, () -> {
       PermissionAssignments permissions = myRequest.getPermissions("id:" + user2.getId(), null, null);
+      List<PermissionAssignment> permissionAssignments = permissions.myPermissionAssignments;
 
       String message = describe(permissions);
-      assertTrue(message, permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.AUTHORIZE_AGENT.name().toLowerCase().toLowerCase().equals(pa.permission.id) && pa.project == null));
-      assertTrue(message, permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.REORDER_BUILD_QUEUE.name().toLowerCase().equals(pa.permission.id) && pa.project == null));
-      assertTrue(message, permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.RUN_BUILD.name().toLowerCase().equals(pa.permission.id) && pa.project == null));
-      assertTrue(message, permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.VIEW_PROJECT.name().toLowerCase().equals(pa.permission.id) && project2.getExternalId().equals(pa.project.id)));
-      assertTrue(message, permissions.myPermissionAssignments.stream().noneMatch(pa -> Permission.VIEW_PROJECT.name().toLowerCase().equals(pa.permission.id) && project1.getExternalId().equals(pa.project.id)));
+      assertContains(message, permissionAssignments,
+                     pa -> permissionEquals(pa, Permission.AUTHORIZE_AGENT) && pa.project == null && pa.isGlobalScope);
+      assertContains(message, permissionAssignments,
+                     pa -> permissionEquals(pa, Permission.REORDER_BUILD_QUEUE) && pa.project == null && pa.isGlobalScope);
+      assertContains(message, permissionAssignments,
+                     pa -> permissionEquals(pa, Permission.RUN_BUILD) && pa.project == null && pa.isGlobalScope);
+      assertContains(message, permissionAssignments,
+                     pa -> permissionEquals(pa, Permission.VIEW_PROJECT) && project2.getExternalId().equals(pa.project.id) && !pa.isGlobalScope);
+      assertNotContains(message, permissionAssignments,
+                        pa -> permissionEquals(pa, Permission.VIEW_PROJECT) && project1.getExternalId().equals(pa.project.id));
     });
 
     getUserModelEx().getGuestUser().addRole(RoleScope.projectScope(project2.getProjectId()), getTestRoles().createRole(Permission.RUN_BUILD));
 
     myFixture.getSecurityContext().runAs(getUserModelEx().getGuestUser(), () -> {
       PermissionAssignments permissions = myRequest.getPermissions("current", null, null);
-      assertTrue(describe(permissions), permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.RUN_BUILD.name().toLowerCase().equals(pa.permission.id) && project2.getExternalId().equals(pa.project.id)));
+      assertContains(describe(permissions), permissions.myPermissionAssignments,
+                        pa -> permissionEquals(pa, Permission.RUN_BUILD) && project2.getExternalId().equals(pa.project.id));
 
       checkException(AuthorizationFailedException.class, () -> myRequest.getPermissions("id:" + user2.getId(), null, null), "getting permissions of another user");
     });
 
     myFixture.getSecurityContext().runAs(getUserModelEx().getSuperUser(), () -> {
       PermissionAssignments permissions = myRequest.getPermissions("current", null, null);
-      assertTrue(describe(permissions), permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.EDIT_PROJECT.name().toLowerCase().equals(pa.permission.id) && pa.project == null));
+      assertContains(describe(permissions), permissions.myPermissionAssignments,
+        pa -> permissionEquals(pa, Permission.EDIT_PROJECT) && pa.project == null);
 
       permissions = myRequest.getPermissions("id:" + user2.getId(), null, null);
-      assertTrue(describe(permissions), permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.VIEW_PROJECT.name().toLowerCase().equals(pa.permission.id) && project1.getExternalId().equals(pa.project.id)));
-      assertTrue(describe(permissions), permissions.myPermissionAssignments.stream().anyMatch(pa -> Permission.AUTHORIZE_AGENT.name().toLowerCase().equals(pa.permission.id) && pa.project == null));
+      assertContains(describe(permissions), permissions.myPermissionAssignments,
+                        pa -> permissionEquals(pa, Permission.VIEW_PROJECT) && project1.getExternalId().equals(pa.project.id));
+      assertContains(describe(permissions), permissions.myPermissionAssignments,
+                        pa -> permissionEquals(pa, Permission.AUTHORIZE_AGENT) && pa.project == null);
     });
   }
 
+  private static <T> void assertContains(String message, List<T> elements, Predicate<T> predicate) {
+    assertTrue(message, elements.stream().anyMatch(predicate));
+  }
+
+  private static <T> void assertNotContains(String message, List<T> elements, Predicate<T> predicate) {
+    assertTrue(message, elements.stream().noneMatch(predicate));
+  }
+
+  private static boolean permissionEquals(PermissionAssignment permissionAssignment, Permission authorizeAgent) {
+    return authorizeAgent.name().toLowerCase().equals(permissionAssignment.permission.id);
+  }
+
   private String describe(final PermissionAssignments permissionAssignments) {
-    return permissionAssignments.myPermissionAssignments.stream().map(pa -> pa.permission.id + " - " + (pa.project == null ? "global" : pa.project.id)).collect(
-      Collectors.joining(", "));
+    return permissionAssignments.myPermissionAssignments
+      .stream()
+      .map(pa -> pa.permission.id + " - " + (pa.project == null ? "global" : pa.project.id) + " - isGlobalScope:" + pa.isGlobalScope)
+      .collect(Collectors.joining(", "));
   }
 
 
