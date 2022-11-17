@@ -20,24 +20,42 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * @author Yegor.Yarko
- *         Date: 06/06/2016
+ * Main purpose of Finder is to retrieve data for REST API from TeamCity core.
+ * <p/>
+ * This class allows to search data using {@link Locator} - TeamCity internal query language.
+ * <p/>
+ * Finder is similar to DAO/Repository pattern.
+ *
+ * @param <ITEM> the type of items, handled by this finder.
+ * @author Yegor Yarko
+ * @date 06.06.2016
+ * @see Locator Locator - data query object
+ * @see FinderDataBinding
  */
 public interface Finder<ITEM> {
+
   /**
    * Reverse opertion to {@link #getItem(String)}.
+   *
    * @return string "canonical" representation for a locator for the item passed
    */
   @NotNull
   String getCanonicalLocator(@NotNull ITEM item);
 
   /**
-   * @param locatorText if null, BadRequestException is thrown
-   * @return
+   * @param locatorText locator of the item.
+   * @return single item found by locator.
+   * @throws jetbrains.buildServer.server.rest.errors.BadRequestException if {@code locatorText} is null.
+   * @see {@link Locator#Locator(String)}
    */
   @NotNull
   ITEM getItem(@Nullable String locatorText);
 
+  /**
+   * @param locatorText locator of the group of items.
+   * @return items, matched by this locator.
+   * @see {@link Locator#Locator(String)}
+   */
   @NotNull
   PagedSearchResult<ITEM> getItems(@Nullable String locatorText);
 
@@ -52,5 +70,7 @@ public interface Finder<ITEM> {
   ItemFilter<ITEM> getFilter(@NotNull String locatorText);
 
   @NotNull
-  default String getName(){ return getClass().getSimpleName();}
+  default String getName() {
+    return getClass().getSimpleName();
+  }
 }
