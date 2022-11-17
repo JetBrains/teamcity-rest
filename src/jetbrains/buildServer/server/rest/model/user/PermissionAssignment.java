@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.user;
 
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -29,15 +30,21 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
- * Date: 18/09/2017
+ * @date 18/09/2017
+ * @see PermissionRestriction DTO with the same structure and behaviour, but with another semantics.
  */
 @XmlRootElement(name = "permissionAssignment")
 @XmlType(name = "permissionAssignment")
 @ModelDescription("Represents a relation between the specific permission and a project.")
 public class PermissionAssignment {
+  @Nullable
+  @XmlAttribute
+  public Boolean isGlobalScope;
+
   @XmlElement
   public Permission permission;
 
@@ -54,14 +61,35 @@ public class PermissionAssignment {
   /**
    * Creates global permission
    */
-  public PermissionAssignment(@NotNull final PermissionAssignmentData permissionAssignment, @NotNull final Fields fields, @NotNull BeanContext beanContext) {
-    permission = ValueWithDefault.decideDefault(fields.isIncluded("permission"), () -> new Permission(permissionAssignment.getPermission(), fields.getNestedField("permission", Fields.LONG, Fields.LONG)));
-
+  public PermissionAssignment(
+    @NotNull final PermissionAssignmentData permissionAssignment,
+    @NotNull final Fields fields,
+    @NotNull final BeanContext beanContext
+  ) {
     String internalProjectId = permissionAssignment.getInternalProjectId();
+    permission = ValueWithDefault.decideDefault(
+      fields.isIncluded("permission"),
+      () -> new Permission(
+        permissionAssignment.getPermission(),
+        fields.getNestedField("permission", Fields.LONG, Fields.LONG)
+      )
+    );
+
     if (internalProjectId != null) {
-      project = ValueWithDefault.decideDefault(fields.isIncluded("project", true, true),
-                                               () -> getProject(internalProjectId, fields.getNestedField("project", Fields.SHORT, Fields.SHORT), beanContext));
+      project = ValueWithDefault.decideDefault(
+        fields.isIncluded("project", true, true),
+        () -> getProject(
+          internalProjectId,
+          fields.getNestedField("project", Fields.SHORT, Fields.SHORT),
+          beanContext
+        )
+      );
     }
+
+    isGlobalScope = ValueWithDefault.decideDefault(
+      fields.isIncluded("isGlobalScope", true, true),
+      () -> internalProjectId == null
+    );
   }
 
   @NotNull

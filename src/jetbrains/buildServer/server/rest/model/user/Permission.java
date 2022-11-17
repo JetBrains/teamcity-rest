@@ -24,6 +24,7 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -33,9 +34,9 @@ import org.jetbrains.annotations.NotNull;
 @XmlRootElement(name = "permission")
 @XmlType(name = "permission")
 @ModelDescription(
-    value = "Represents a permission.",
-    externalArticleLink = "https://www.jetbrains.com/help/teamcity/role-and-permission.html",
-    externalArticleName = "Roles"
+  value = "Represents a permission.",
+  externalArticleLink = "https://www.jetbrains.com/help/teamcity/role-and-permission.html",
+  externalArticleName = "Roles"
 )
 public class Permission {
   @XmlAttribute
@@ -44,13 +45,21 @@ public class Permission {
   @XmlAttribute
   public String name;
 
+  /**
+   * True, if this permission could be assigned only globally.
+   * False, if permission could be assigned to specific project.
+   * This field does not mean if permission is assigned to project or globally.
+   */
   @XmlAttribute
   public Boolean global;
 
   public Permission() {
   }
 
-  public Permission(@NotNull jetbrains.buildServer.serverSide.auth.Permission permission, @NotNull final Fields fields) {
+  public Permission(
+    @NotNull jetbrains.buildServer.serverSide.auth.Permission permission,
+    @NotNull final Fields fields
+  ) {
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), () -> permission.name().toLowerCase());
     name = ValueWithDefault.decideDefault(fields.isIncluded("name"), () -> permission.getDescription());
     global = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("global"), () -> !permission.isProjectAssociationSupported());

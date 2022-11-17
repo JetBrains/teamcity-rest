@@ -65,9 +65,10 @@ public class PermissionAssignments {
       fields.isIncluded("permissionAssignment"),
       () -> {
         Fields assignmentFields = fields.getNestedField("permissionAssignment");
-        return permissionAssignmentFinder.getItems(finalLocator).myEntries.stream()
-                                                                          .map(p -> new PermissionAssignment(p, assignmentFields, beanContext))
-                                                                          .collect(Collectors.toList());
+        return permissionAssignmentFinder.getItems(finalLocator).myEntries
+          .stream()
+          .map(p -> new PermissionAssignment(p, assignmentFields, beanContext))
+          .collect(Collectors.toList());
       }
     );
 

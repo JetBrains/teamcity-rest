@@ -54,6 +54,9 @@ public class PermissionRestriction {
     this.isGlobalScope = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("isGlobalScope", true, true), () -> project == null);
     this.project =
       ValueWithDefault.decideDefault(fields.isIncluded("project", false, true), () -> project != null ? new Project(project, fields.getNestedField("project"), beanContext) : null);
-    this.permission = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("permission", true, true), () -> new Permission(permission, fields.getNestedField("permission")));
+    this.permission = ValueWithDefault.decideIncludeByDefault(
+      fields.isIncluded("permission", true, true),
+      () -> new Permission(permission, fields.getNestedField("permission"))
+    );
   }
 }
