@@ -1647,6 +1647,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     public SUser getOwner() {
       return myOwner;
     }
+
+    @Override
+    public String toString() {
+      if(!myIncludePersonal) {
+        return "Do not include any personal builds.";
+      }
+
+      if(myOwner == null) {
+        return "Include personal builds of *all* users.";
+      }
+      return "Only include personal builds of user=" + myOwner.getUsername();
+    }
   }
 
   private HashSet<SBuildType> getBuildTypes(final @NotNull Locator locator) {
