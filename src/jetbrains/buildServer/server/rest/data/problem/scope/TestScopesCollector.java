@@ -108,11 +108,11 @@ public class TestScopesCollector {
     }
 
     if(locator.isAnyPresent(SPLIT_BY_BUILD_TYPE)) {
-      boolean split = locator.getSingleDimensionValueAsBoolean(SPLIT_BY_BUILD_TYPE, false);
-      if(split) {
+      Boolean split = locator.getSingleDimensionValueAsBoolean(SPLIT_BY_BUILD_TYPE, false);
+      if(split != null && split) {
         boolean isGroupByDefault = TeamCityProperties.getBooleanOrTrue(SPLIT_TESTS_GROUP_BY_DEFAULT_TOGGLE);
-        boolean groupParallelTests = locator.getSingleDimensionValueAsBoolean(GROUP_PARALLEL_TESTS, isGroupByDefault);
-        scopes = splitByBuildType(scopes, groupParallelTests, null);
+        Boolean groupParallelTests = locator.getSingleDimensionValueAsBoolean(GROUP_PARALLEL_TESTS, isGroupByDefault);
+        scopes = splitByBuildType(scopes, groupParallelTests != null && groupParallelTests, null);
       }
     }
 

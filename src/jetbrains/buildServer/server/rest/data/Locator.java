@@ -710,12 +710,11 @@ public class Locator {
 
   /**
    * @param dimensionName name of the dimension
-   * @param defaultValue  default value to use if no dimension with the name is found
+   * @param defaultValue default value to use if dimension is not found
    * @return value specified by the dimension with name "dimensionName" (one of the possible values can be "null") or
    * "defaultValue" if such dimension is not present
    */
   @Nullable
-  @Contract("_,!null -> !null")
   public Boolean getSingleDimensionValueAsBoolean(@NotNull final String dimensionName, @Nullable Boolean defaultValue) {
     final String value = getSingleDimensionValue(dimensionName);
     if (value == null) {

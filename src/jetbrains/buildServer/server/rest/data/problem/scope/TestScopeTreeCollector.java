@@ -119,7 +119,7 @@ public class TestScopeTreeCollector {
                                    + (treeLocator.isAnyPresent(NEW_FAILURE) ? ",newFailure:" + treeLocator.getSingleDimensionValue(NEW_FAILURE) : "");
 
     boolean isGroupByDefault = TeamCityProperties.getBooleanOrTrue(TestScopesCollector.SPLIT_TESTS_GROUP_BY_DEFAULT_TOGGLE);
-    boolean groupSplitTests = treeLocator.getSingleDimensionValueAsBoolean(TestScopesCollector.GROUP_PARALLEL_TESTS, isGroupByDefault);
+    Boolean groupSplitTests = treeLocator.getSingleDimensionValueAsBoolean(TestScopesCollector.GROUP_PARALLEL_TESTS, isGroupByDefault);
 
     List<TestScope> scopes = promotions
       .filter(promotion -> promotion.getAssociatedBuildId() != null)
@@ -133,7 +133,7 @@ public class TestScopeTreeCollector {
 
         Stream<TestScope> scopeStream = myScopeCollector.groupByClass(testRunStream, new TestScopeFilterImpl(Collections.emptyList(), ""));
 
-        return myScopeCollector.splitByBuildType(scopeStream, groupSplitTests, promotion);
+        return myScopeCollector.splitByBuildType(scopeStream, groupSplitTests != null && groupSplitTests, promotion);
       }).collect(Collectors.toList());
 
     ScopeTree<STestRun, TestCountersData> tree = new ScopeTree<STestRun, TestCountersData>(TestScopeInfo.ROOT, new TestCountersData(), scopes);
