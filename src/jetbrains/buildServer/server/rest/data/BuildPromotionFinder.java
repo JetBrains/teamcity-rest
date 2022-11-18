@@ -272,7 +272,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     myServiceLocator = serviceLocator;
 
     myTriggerByFinder = getTriggeredByFinder(myTimeCondition, myServiceLocator);
-    mySnapshotDepProblemsTraverser = new SnapshotDepProblemsTraverser(myBuildPromotionManager);
+    mySnapshotDepProblemsTraverser = new SnapshotDepProblemsTraverser(this);
   }
 
   @NotNull
@@ -330,7 +330,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID_ALIAS); //support TeamCity 8.0 dimension
     }
     if (promotionId != null) {
-      return BuildFinder.getBuildPromotion(promotionId, myBuildPromotionManager);
+      return getBuildPromotion(promotionId);
     }
 
     Long buildId = locator.getSingleDimensionValueAsLong(BUILD_ID);
@@ -394,7 +394,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final Long promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID);
     if (promotionId != null) {
       try {
-        long foundPromotionId = BuildFinder.getBuildPromotion(promotionId, myBuildPromotionManager).getId();
+        long foundPromotionId = getBuildPromotion(promotionId).getId();
         result.add(item -> foundPromotionId == item.getId());
       } catch (NotFoundException e) {
         result.add(item -> false);
@@ -403,7 +403,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final Long promotionIdAlias = locator.getSingleDimensionValueAsLong(PROMOTION_ID_ALIAS);
     if (promotionIdAlias != null) {
       try {
-        long foundPromotionId = BuildFinder.getBuildPromotion(promotionIdAlias, myBuildPromotionManager).getId();
+        long foundPromotionId = getBuildPromotion(promotionIdAlias).getId();
         result.add(item -> foundPromotionId == item.getId());
       } catch (NotFoundException e) {
         result.add(item -> false);
@@ -1137,23 +1137,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return result;
   }
 
-  @NotNull
-  public static BuildPromotion getBuildPromotionById(@NotNull final Long id,
-                                                     @NotNull final BuildPromotionManager buildPromotionManager,
-                                                     @NotNull final BuildsManager buildsManager) {
-    //the logic should match that of getBuildId(String)
-    final BuildPromotion buildPromotion = buildPromotionManager.findPromotionOrReplacement(id);
-    if (buildPromotion != null && (getBuildId(buildPromotion) == buildPromotion.getId())) {
-      ensureCanView(buildPromotion);
-      return buildPromotion;
-    }
-    final SBuild build = buildsManager.findBuildInstanceById(id);
-    if (build != null) {
-      return build.getBuildPromotion();
-    }
-    throw new NotFoundException("No build found by id '" + id + "'.");
-  }
-
   public static void ensureCanView(@NotNull final BuildPromotion buildPromotion) {
     //checking permissions to view - workaround for TW-45544
     try {
@@ -1807,6 +1790,34 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   }
 
   @NotNull
+  public BuildPromotion getBuildPromotion(final long promotionId) {
+    final BuildPromotion buildPromotion = myBuildPromotionManager.findPromotionOrReplacement(promotionId);
+    if (buildPromotion == null) {
+      throw new NotFoundException("No build promotion can be found by promotion id " + promotionId);
+    }
+    ensureCanView(buildPromotion);
+
+    return buildPromotion;
+  }
+
+  @NotNull
+  public static BuildPromotion getBuildPromotionById(@NotNull final Long id,
+                                                     @NotNull final BuildPromotionManager buildPromotionManager,
+                                                     @NotNull final BuildsManager buildsManager) {
+    //the logic should match that of getBuildId(String)
+    final BuildPromotion buildPromotion = buildPromotionManager.findPromotionOrReplacement(id);
+    if (buildPromotion != null && (getBuildId(buildPromotion) == buildPromotion.getId())) {
+      ensureCanView(buildPromotion);
+      return buildPromotion;
+    }
+    final SBuild build = buildsManager.findBuildInstanceById(id);
+    if (build != null) {
+      return build.getBuildPromotion();
+    }
+    throw new NotFoundException("No build found by id '" + id + "'.");
+  }
+
+  @NotNull
   public PagedSearchResult<BuildPromotion> getBuildPromotions(final @Nullable SBuildType buildType, final @Nullable String locatorText) {
     if (buildType == null) {
       return getItems(locatorText);
@@ -1990,16 +2001,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   }
 
   private static class SnapshotDepProblemsTraverser implements GraphFinder.Traverser<BuildPromotion> {
-    @NotNull private final BuildPromotionManager myBuildPromotionManager;
+    @NotNull private final BuildPromotionFinder myBuildPromotionFinder;
 
-    public SnapshotDepProblemsTraverser(@NotNull final BuildPromotionManager buildPromotionManager) {
-      myBuildPromotionManager = buildPromotionManager;
+    public SnapshotDepProblemsTraverser(@NotNull final BuildPromotionFinder buildPromotionFinder) {
+      myBuildPromotionFinder = buildPromotionFinder;
     }
 
     @NotNull
     public GraphFinder.LinkRetriever<BuildPromotion> getChildren() {
-      return item -> getFailedDepsIdsStream(item).map(BuildPromotionFinder::getLong).filter(Objects::nonNull)
-                                             .map(promotionId -> BuildFinder.getBuildPromotion(promotionId, myBuildPromotionManager)).collect(Collectors.toList());
+      return parentPromotion -> getFailedDepsIdsStream(parentPromotion).map(SnapshotDepProblemsTraverser::getLong)
+                                                                       .filter(Objects::nonNull)
+                                                                       .map(myBuildPromotionFinder::getBuildPromotion)
+                                                                       .collect(Collectors.toList());
     }
 
     @NotNull
@@ -2015,15 +2028,15 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return ((BuildPromotionEx)item).getBuildProblems().stream().filter(bp -> ErrorData.isSnapshotDependencyError(bp.getBuildProblemData().getType()) && !bp.isMutedInBuild())
                  .map(bp -> bp.getBuildProblemData().getAdditionalData());
     }
-  }
 
-  @Nullable
-  private static Long getLong(@Nullable String text) {
-    if (StringUtil.isEmpty(text)) return null;
-    try {
-      return Long.parseLong(text);
-    } catch (NumberFormatException e) {
-      return null;
+    @Nullable
+    private static Long getLong(@Nullable String text) {
+      if (StringUtil.isEmpty(text)) return null;
+      try {
+        return Long.parseLong(text);
+      } catch (NumberFormatException e) {
+        return null;
+      }
     }
   }
 

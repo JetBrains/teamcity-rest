@@ -23,7 +23,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.BuildFinder;
 import jetbrains.buildServer.server.rest.data.BuildPromotionFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -137,7 +136,7 @@ public class TriggeredBy {
     String buildId = triggeredByParams.get(TriggeredByBuilder.BUILD_ID_PARAM_NAME);
     if (buildId != null) {
       try {
-        result.build = serviceLocator.getSingletonService(BuildFinder.class).getBuildByPromotionId(Long.valueOf(buildId));
+        result.build = serviceLocator.getSingletonService(BuildPromotionFinder.class).getBuildPromotion(Long.parseLong(buildId));
       } catch (Exception ignore) {
       }
     }

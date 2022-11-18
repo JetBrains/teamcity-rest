@@ -68,13 +68,16 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   private final AgentPoolFinder myAgentPoolFinder;
   private final BuildPromotionManager myBuildPromotionManager;
   private final BuildsManager myBuildsManager;
+  private final BuildPromotionFinder myBuildPromotionFinder;
 
   public QueuedBuildFinder(final BuildQueue buildQueue,
                            final ProjectFinder projectFinder,
                            final BuildTypeFinder buildTypeFinder,
                            final UserFinder userFinder,
                            final AgentFinder agentFinder,
-                           AgentPoolFinder agentPoolFinder, final BuildPromotionManager buildPromotionManager,
+                           final AgentPoolFinder agentPoolFinder,
+                           final BuildPromotionManager buildPromotionManager,
+                           final BuildPromotionFinder buildPromotionFinder,
                            final BuildsManager buildsManager) {
     super(DIMENSION_ID, PROMOTION_ID, PROJECT, POOL, BUILD_TYPE, AGENT, USER, PERSONAL, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     setHiddenDimensions(DIMENSION_LOOKUP_LIMIT, "compatibleAgent", "compatibleAgentsCount");
@@ -85,6 +88,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
     myAgentPoolFinder = agentPoolFinder;
     myAgentFinder = agentFinder;
     myBuildPromotionManager = buildPromotionManager;
+    myBuildPromotionFinder = buildPromotionFinder;
     myBuildsManager = buildsManager;
   }
 
@@ -137,7 +141,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   }
 
   private SQueuedBuild getQueuedBuildByPromotionId(final Long id) {
-    final BuildPromotion buildPromotion = BuildFinder.getBuildPromotion(id, myBuildPromotionManager);
+    final BuildPromotion buildPromotion = myBuildPromotionFinder.getBuildPromotion(id);
     final SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
     if (queuedBuild == null){
       throw new NotFoundException("No queued build with id '" + buildPromotion.getId() + "' can be found (build already started or finished?).");
@@ -236,14 +240,15 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
 
     final Locator locator = new Locator(buildQueueLocator);
 
-    if (locator.isSingleValue()) { // assume it's promotion id
-      @SuppressWarnings("ConstantConditions") @NotNull final Long singleValueAsLong = locator.getSingleValueAsLong();
-      return BuildFinder.getBuildPromotion(singleValueAsLong, myBuildPromotionManager);
+    if (locator.isSingleValue()) { // assume it's a promotion id
+      final Long singleValueAsLong = locator.getSingleValueAsLong();
+      //noinspection ConstantConditions
+      return myBuildPromotionFinder.getBuildPromotion(singleValueAsLong);
     }
 
     Long promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID);
     if (promotionId != null) {
-      return BuildFinder.getBuildPromotion(promotionId, myBuildPromotionManager);
+      return myBuildPromotionFinder.getBuildPromotion(promotionId);
     }
 
     Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);

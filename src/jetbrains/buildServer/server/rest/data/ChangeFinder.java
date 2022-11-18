@@ -329,7 +329,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
       final Long promotionLocator = locator.getSingleDimensionValueAsLong(PROMOTION);
       if (promotionLocator != null) {
         @SuppressWarnings("ConstantConditions") final Set<Long> buildChanges =
-          getBuildChangeDescriptors(BuildFinder.getBuildPromotion(promotionLocator, myServiceLocator.findSingletonService(BuildPromotionManager.class)), null)
+          getBuildChangeDescriptors(myBuildPromotionFinder.getBuildPromotion(promotionLocator), null)
             .map(mord -> mord.getRelatedVcsChange().getId()).collect(Collectors.toSet());
         result.add(item -> buildChanges.contains(item.getId()));
       }
@@ -536,11 +536,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     //pre-9.0 compatibility
     final Long promotionLocator = locator.getSingleDimensionValueAsLong(PROMOTION);
     if (promotionLocator != null) {
-      //noinspection ConstantConditions
-      return wrapDescriptors(getBuildChangeDescriptors(
-        BuildFinder.getBuildPromotion(promotionLocator, myServiceLocator.findSingletonService(BuildPromotionManager.class)),
-        locator
-      ));
+      return wrapDescriptors(getBuildChangeDescriptors(myBuildPromotionFinder.getBuildPromotion(promotionLocator), locator));
     }
 
     final String parentChangeLocator = locator.getSingleDimensionValue(CHILD_CHANGE);

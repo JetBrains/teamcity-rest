@@ -81,6 +81,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final BuildFinder myBuildFinder;
+  @NotNull private final BuildPromotionFinder myBuildPromotionFinder;
   @NotNull private final ProblemFinder myProblemFinder;
 
   @NotNull private final BuildProblemManager myBuildProblemManager;
@@ -89,6 +90,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   public ProblemOccurrenceFinder(@NotNull final ProjectFinder projectFinder,
                                  @NotNull final BuildFinder buildFinder,
+                                 @NotNull final BuildPromotionFinder buildPromotionFinder,
                                  @NotNull final ProblemFinder problemFinder,
                                  @NotNull final BuildProblemManager buildProblemManager,
                                  @NotNull final ProjectManager projectManager,
@@ -96,6 +98,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     super(PROBLEM, IDENTITY, TYPE, BUILD, AFFECTED_PROJECT, CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
     myProjectFinder = projectFinder;
     myBuildFinder = buildFinder;
+    myBuildPromotionFinder = buildPromotionFinder;
     myProblemFinder = problemFinder;
     myBuildProblemManager = buildProblemManager;
     myProjectManager = projectManager;
@@ -142,7 +145,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
-      List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+      List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotions(null, buildDimension).myEntries;
       if (builds.size() != 1) {
         return null;
       }
@@ -210,7 +213,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   private ItemHolder<BuildProblem> getProblemOccurrences(@NotNull final Iterable<ProblemWrapper> problems) {
     final AggregatingItemHolder<BuildProblem> result = new AggregatingItemHolder<BuildProblem>();
     for (ProblemWrapper problem : problems) {
-      result.add(getProblemOccurrences(problem.getId(), myServiceLocator, myBuildFinder));
+      result.add(getProblemOccurrences(problem.getId(), myServiceLocator, myBuildPromotionFinder));
     }
     return result;
   }
@@ -334,7 +337,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   }
 
   @NotNull
-  private static ItemHolder<BuildProblem> getProblemOccurrences(@NotNull final Long problemId, @NotNull final ServiceLocator serviceLocator, @NotNull final BuildFinder buildFinder) {
+  private static ItemHolder<BuildProblem> getProblemOccurrences(@NotNull final Long problemId, @NotNull final ServiceLocator serviceLocator, @NotNull final BuildPromotionFinder buildPromotionFinder) {
     //todo: TeamCity API (VB): how to do this?
     final ArrayList<Long> buildIds = new ArrayList<Long>();
     try {
@@ -365,7 +368,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       public void process(@NotNull final ItemProcessor<BuildProblem> processor) {
         for (Long buildId : buildIds) {
           try {
-            final BuildPromotion buildByPromotionId = buildFinder.getBuildByPromotionId(Long.valueOf(buildId));
+            final BuildPromotion buildByPromotionId = buildPromotionFinder.getBuildPromotion(Long.valueOf(buildId));
             if (buildByPromotionId.getBuildType() == null) {
               //missing build type, skip. Workaround for http://youtrack.jetbrains.com/issue/TW-34733
             } else {
@@ -378,8 +381,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
             //addressing TW-41636
             LOG.infoAndDebugDetails("Error getting problems for build promotion with id " + buildId + ", problemId: " + problemId + ", ignoring. Cause", e);
           }
-          }
         }
+      }
     };
   }
 

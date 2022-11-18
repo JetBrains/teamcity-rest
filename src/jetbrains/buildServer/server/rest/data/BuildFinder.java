@@ -308,7 +308,7 @@ public class BuildFinder {
       promotionId = locator.getSingleDimensionValueAsLong("promotionId"); //support TeamCity 8.0 dimension
     }
     if (promotionId != null) {
-      BuildPromotion build = getBuildByPromotionId(promotionId);
+      BuildPromotion build = myBuildPromotionFinder.getBuildPromotion(promotionId);
       if (buildType != null && !buildType.getBuildTypeId().equals(build.getBuildTypeId())) {
         throw new NotFoundException("No build can be found by " + PROMOTION_ID + " '" + promotionId + "' in build type '" + buildType + "'.");
       }
@@ -460,20 +460,5 @@ public class BuildFinder {
       result.addAll(BuildsFilterProcessor.getMatchingFinishedBuilds(patchedBuildsFilter, myServiceLocator.getSingletonService(BuildHistory.class)));
     }
     return result;
-  }
-
-  @NotNull
-  public static BuildPromotion getBuildPromotion(final long promotionId, @NotNull final BuildPromotionManager promotionManager) {
-    final BuildPromotion buildPromotion = promotionManager.findPromotionOrReplacement(promotionId);
-    if (buildPromotion == null) {
-      throw new NotFoundException("No build promotion can be found by promotion id " + promotionId);
-    }
-    BuildPromotionFinder.ensureCanView(buildPromotion);
-    return buildPromotion;
-  }
-
-  @NotNull
-  public BuildPromotion getBuildByPromotionId(@NotNull final Long promotionId) {
-    return getBuildPromotion(promotionId, myServiceLocator.getSingletonService(BuildPromotionManager.class));
   }
 }
