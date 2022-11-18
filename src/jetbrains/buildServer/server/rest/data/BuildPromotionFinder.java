@@ -199,7 +199,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   protected static final String STROB_BUILD_LOCATOR = "locator";
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
   public static final SnapshotDepsTraverser SNAPSHOT_DEPENDENCIES_TRAVERSER = new SnapshotDepsTraverser();
-  public final SnapshotDepProblemsTraverser mySnapshotDepProblemsTraverser;
+  private final SnapshotDepProblemsTraverser mySnapshotDepProblemsTraverser;
   private final Finder<TriggeredBy> myTriggerByFinder;
 
   private final BuildPromotionManager myBuildPromotionManager;
@@ -314,15 +314,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @Override
   public BuildPromotion findSingleItem(@NotNull final Locator locator) {
     if (locator.isSingleValue()) {
-      @NotNull final Long singleValueAsLong;
-      try {
-        //noinspection ConstantConditions
-        singleValueAsLong = locator.getSingleValueAsLong();
-      } catch (LocatorProcessException e) {
-        throw new BadRequestException("Invalid single value: '" + locator.getSingleValue() + "'. Should be a numeric build id", e);
-      }
+      final Long singleValueAsLong = locator.getSingleValueAsLong();
       // difference from 9.0 behavior where we never searched by promotion id in case of single value locators
-      return getBuildPromotionById(singleValueAsLong, myBuildPromotionManager, myBuildsManager);
+      assert singleValueAsLong != null;
+      return getBuildPromotionByIdOrByBuildId(singleValueAsLong);
     }
 
     Long promotionId = locator.getSingleDimensionValueAsLong(PROMOTION_ID);
@@ -344,7 +339,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
-      return getBuildPromotionById(id, myBuildPromotionManager, myBuildsManager);
+      return getBuildPromotionByIdOrByBuildId(id);
     }
 
     return null;
@@ -367,7 +362,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     if (locator.isSingleValue()) {
       try {
-        long foundPromotionId = getBuildPromotionById(locator.getSingleValueAsLong(), myBuildPromotionManager, myBuildsManager).getId();
+        long foundPromotionId = getBuildPromotionByIdOrByBuildId(locator.getSingleValueAsLong()).getId();
         result.add(item -> foundPromotionId == item.getId());
       } catch (NotFoundException e) {
         result.add(item -> false);
@@ -385,7 +380,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final Long id = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
     if (id != null) {
       try {
-        long foundPromotionId = getBuildPromotionById(id, myBuildPromotionManager, myBuildsManager).getId();
+        long foundPromotionId = getBuildPromotionByIdOrByBuildId(id).getId();
         result.add(item -> foundPromotionId == item.getId());
       } catch (NotFoundException e) {
         result.add(item -> false);
@@ -1800,17 +1795,22 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return buildPromotion;
   }
 
+  /**
+   * First try to find promotion interpreting {@code id} as promotion id, then in a case of a fail interpret {@code id} as build id.
+   * <br/>
+   * See also: {@link BuildPromotionFinder#getBuildPromotion(long)}
+   * @throws NotFoundException
+   * @throws AccessDeniedException
+   */
   @NotNull
-  public static BuildPromotion getBuildPromotionById(@NotNull final Long id,
-                                                     @NotNull final BuildPromotionManager buildPromotionManager,
-                                                     @NotNull final BuildsManager buildsManager) {
+  public BuildPromotion getBuildPromotionByIdOrByBuildId(@NotNull final Long id) {
     //the logic should match that of getBuildId(String)
-    final BuildPromotion buildPromotion = buildPromotionManager.findPromotionOrReplacement(id);
+    final BuildPromotion buildPromotion = myBuildPromotionManager.findPromotionOrReplacement(id);
     if (buildPromotion != null && (getBuildId(buildPromotion) == buildPromotion.getId())) {
       ensureCanView(buildPromotion);
       return buildPromotion;
     }
-    final SBuild build = buildsManager.findBuildInstanceById(id);
+    final SBuild build = myBuildsManager.findBuildInstanceById(id);
     if (build != null) {
       return build.getBuildPromotion();
     }

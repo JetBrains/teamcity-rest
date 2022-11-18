@@ -175,7 +175,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     final BuildProblemManager buildProblemManager = myFixture.getSingletonService(BuildProblemManager.class);
     myProblemFinder = new ProblemFinder(myProjectFinder, myBuildPromotionFinder, buildProblemManager, myProjectManager, myFixture, problemMutingService);
     myFixture.addService(myProblemFinder);
-    myProblemOccurrenceFinder = new ProblemOccurrenceFinder(myProjectFinder, myBuildFinder, myProblemFinder, buildProblemManager, myProjectManager, myFixture);
+    myProblemOccurrenceFinder = new ProblemOccurrenceFinder(myProjectFinder, myBuildFinder, myBuildPromotionFinder, myProblemFinder, buildProblemManager, myProjectManager, myFixture);
     myFixture.addService(myProblemOccurrenceFinder);
 
     final ResponsibilityFacadeEx responsibilityFacade = myFixture.getResponsibilityFacadeEx();
@@ -188,7 +188,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myFixture.addService(myMuteFinder);
 
     myQueuedBuildFinder =
-      new QueuedBuildFinder(myServer.getQueue(), myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myAgentPoolFinder, myFixture.getBuildPromotionManager(), myServer);
+      new QueuedBuildFinder(myServer.getQueue(), myProjectFinder, myBuildTypeFinder, myUserFinder, myAgentFinder, myAgentPoolFinder, myBuildPromotionFinder);
     myFixture.addService(myQueuedBuildFinder);
 
     myChangeFinder = new ChangeFinder(myProjectFinder, myBuildFinder, myBuildPromotionFinder, myBuildTypeFinder, myVcsRootFinder, myVcsRootInstanceFinder, myUserFinder,
