@@ -1323,7 +1323,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, buildTypeLocator);
         final Set<BuildPromotion> builds = new TreeSet<BuildPromotion>(BUILD_PROMOTIONS_COMPARATOR);
         for (SBuildType buildType : buildTypes) {
-          builds.addAll(BuildFinder.toBuildPromotions(myBuildsManager.findBuildInstancesByBuildNumber(buildType.getBuildTypeId(), number))); //todo: ensure due builds sorting
+          List<SBuild> buildByNumber = myBuildsManager.findBuildInstancesByBuildNumber(buildType.getBuildTypeId(), number);
+          builds.addAll(CollectionsUtil.convertCollection(buildByNumber, SBuild::getBuildPromotion)); //todo: ensure due builds sorting
         }
         return getItemHolder(builds);
       } else{
@@ -1774,7 +1775,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     locator.setDimensionIfNotPresent(FAILED_TO_START, "false");
     if (defaultFiltering != null || !locator.isAnyPresent(SNAPSHOT_DEP, EQUIVALENT, ORDERED)) {
       //do not force branch to default for some locators
-      locator.setDimensionIfNotPresent(BRANCH, myBranchFinder.getDefaultBranchLocator());
+      locator.setDimensionIfNotPresent(BRANCH, BranchFinder.getDefaultBranchLocator());
     }
   }
 

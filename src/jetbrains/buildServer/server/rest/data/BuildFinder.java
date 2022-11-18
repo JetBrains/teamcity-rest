@@ -35,7 +35,6 @@ import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -189,7 +188,8 @@ public class BuildFinder {
       buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.getDefaultPageItemsCount());
     }
 
-    return new PagedSearchResult<BuildPromotion>(toBuildPromotions(getBuilds(buildsFilter)), buildsFilter.getStart(), buildsFilter.getCount());
+    List<SBuild> builds = getBuilds(buildsFilter);
+    return new PagedSearchResult<>(CollectionsUtil.convertCollection(builds, SBuild::getBuildPromotion), buildsFilter.getStart(), buildsFilter.getCount());
   }
 
   private boolean useByPromotionFiltering(@NotNull final Locator locator) {
@@ -210,14 +210,6 @@ public class BuildFinder {
       buildsFilter.setCount(jetbrains.buildServer.server.rest.request.Constants.getDefaultPageItemsCount());
     }
     return buildsFilter;
-  }
-
-  public static List<BuildPromotion> toBuildPromotions(final Collection<SBuild> buildsList) {
-    return CollectionsUtil.convertCollection(buildsList, new Converter<BuildPromotion, SBuild>() {
-      public BuildPromotion createFrom(@NotNull final SBuild source) {
-        return source.getBuildPromotion();
-      }
-    });
   }
 
   @NotNull
