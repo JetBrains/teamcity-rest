@@ -47,6 +47,10 @@ import static jetbrains.buildServer.server.rest.request.Constants.CACHE_CONTROL_
 import static jetbrains.buildServer.server.rest.request.Constants.CACHE_CONTROL_NEVER_EXPIRES;
 import static jetbrains.buildServer.users.UserAvatarsManager.AVATAR_HASH;
 
+/**
+ * @author Vladislav Golubinov
+ * @date 24.09.2021
+ */
 @Api("Avatar")
 @Path(API_AVATARS_URL)
 public class AvatarRequest {
