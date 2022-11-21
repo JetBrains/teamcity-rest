@@ -34,20 +34,24 @@ import org.jetbrains.annotations.Nullable;
  * Locator is a string with single value or several named "dimensions".
  * text enclosed into matching parentheses "()" is excluded from parsing and the parentheses are omitted
  * "$any" text (when not enclosed into parentheses) means "no value" to force dimension use, but treat the value as "null"
+ * <p/>
  * Example:
- * <tt>31</tt> - locator wth single value "31"
- * <tt>name:Frodo</tt> - locator wth single dimension "name" which has value "Frodo"
- * <tt>name:Frodo,age:14</tt> - locator with two dimensions "name" which has value "Frodo" and "age", which has value "14"
- * <tt>text:(Freaking symbols:,name)</tt> - locator with single dimension "text" which has value "Freaking symbols:,name"
+ * <ul>
+ * <li><tt>31</tt> - locator wth single value "31"</li>
+ * <li><tt>name:Frodo</tt> - locator wth single dimension "name" which has value "Frodo"</li>
+ * <li><tt>name:Frodo,age:14</tt> - locator with two dimensions "name" which has value "Frodo" and "age", which has value "14"</li>
+ * <li><tt>text:(Freaking symbols:,name)</tt> - locator with single dimension "text" which has value "Freaking symbols:,name"</li>
+ * </ul>
  * <p/>
  * Dimension name contain only alpha-numeric symbols in usual mode. Extended mode allows in addition to use any non-empty known dimensions name which contain no ":", ",", "(", symbols)
- *<p/> Dimension value should not contain symbol "," if not enclosed in "(" and ")" or
+ * <p/>
+ * Dimension value should not contain symbol "," if not enclosed in "(" and ")" or
  * should contain properly paired parentheses ("(" and ")") if enclosed in "(" and ")"
- *
+ * <p/>
  * Usual mode supports single value locators. In extended mode, those will result in single dimension with value as name and empty value.
  *
  * @author Yegor.Yarko
- *         Date: 13.08.2010
+ * @date 13.08.2010
  */
 public class Locator {
   private static final Logger LOG = Logger.getInstance(Locator.class.getName());
@@ -138,7 +142,7 @@ public class Locator {
     mySupportedDimensions = supportedDimensions;
     myUsedDimensions = new HashSet<String>(mySupportedDimensions == null ? 10 : Math.max(mySupportedDimensions.length, 10));
     String escapedValue = getUnescapedSingleValue(locator, myMetadata);
-    
+
     if (escapedValue != null) {
       mySingleValue = escapedValue;
       myDimensions = new HashMap<>();
@@ -185,7 +189,7 @@ public class Locator {
       return getBase64UnescapedSingleValue(text, metadata.extendedMode);
     }
   }
-    
+
   @Nullable
   private static String getBase64UnescapedSingleValue(final @NotNull String text, final boolean extendedMode) {
     if (!TeamCityProperties.getBooleanOrTrue("rest.locator.allowBase64")) return null;
@@ -213,11 +217,11 @@ public class Locator {
 
     byte[] decoded;
     try {
-       decoded = Base64.getUrlDecoder().decode(base64EncodedValue.getBytes(StandardCharsets.UTF_8));
-    } catch(IllegalArgumentException first){
+      decoded = Base64.getUrlDecoder().decode(base64EncodedValue.getBytes(StandardCharsets.UTF_8));
+    } catch (IllegalArgumentException first) {
       try {
-         decoded = Base64.getDecoder().decode(base64EncodedValue.getBytes(StandardCharsets.UTF_8));
-      } catch(IllegalArgumentException second){
+        decoded = Base64.getDecoder().decode(base64EncodedValue.getBytes(StandardCharsets.UTF_8));
+      } catch (IllegalArgumentException second) {
         throw new LocatorProcessException("Invalid Base64url character sequence: '" + base64EncodedValue + "'", first);
       }
     }
@@ -263,10 +267,10 @@ public class Locator {
         List<String> values = defaults.getDimensionValue(dimensionName);
         if (!values.isEmpty()) {
           result.setDimensionIfNotPresent(dimensionName, values);
-          if (defaults.myHiddenSupportedDimensions.contains(dimensionName)){
+          if (defaults.myHiddenSupportedDimensions.contains(dimensionName)) {
             result.myHiddenSupportedDimensions.add(dimensionName);
           }
-          if (defaults.myIgnoreUnusedDimensions.contains(dimensionName)){
+          if (defaults.myIgnoreUnusedDimensions.contains(dimensionName)) {
             result.myIgnoreUnusedDimensions.add(dimensionName);
           }
         }
@@ -310,7 +314,7 @@ public class Locator {
   public void addSupportedDimensions(final String... dimensions) {
     if (mySupportedDimensions == null) {
       mySupportedDimensions = dimensions;
-    } else{
+    } else {
       mySupportedDimensions = CollectionsUtil.join(Arrays.asList(mySupportedDimensions), Arrays.asList(dimensions)).toArray(mySupportedDimensions);
     }
   }
@@ -428,7 +432,7 @@ public class Locator {
       currentDimensionName = stringPool.reuse(currentDimensionName);
       final List<String> currentList = result.get(currentDimensionName);
       final List<String> newList;
-      if(currentList == null) {
+      if (currentList == null) {
         // Dimension with an empy string value is a frequent case in a Fields, so let's reuse a special list for that list.
         newList = currentDimensionValue.equals("") ? LIST_WITH_EMPTY_STRING : Arrays.asList(currentDimensionValue);
       } else {
@@ -535,8 +539,9 @@ public class Locator {
           }
         }
         if (mySupportedDimensions != null && mySupportedDimensions.length > 0) {
-          if (message.length() > 0)
+          if (message.length() > 0) {
             message.append(" ");
+          }
           message.append(getLocatorDescription(reportKindString.contains("includeHidden")));
         }
         if (reportKindString.contains("log")) {
@@ -564,19 +569,20 @@ public class Locator {
   }
 
   public void processHelpRequest() {
-    if (isHelpRequested()){
+    if (isHelpRequested()) {
       throw new LocatorProcessException("Locator help requested: " + getLocatorDescription(helpOptions().getSingleDimensionValueAsStrictBoolean("hidden", false)));
     }
   }
 
   public static void processHelpRequest(@Nullable final String singleValue, @NotNull final String helpMessage) {
-    if (HELP_DIMENSION.equals(singleValue)){
+    if (HELP_DIMENSION.equals(singleValue)) {
       throw new LocatorProcessException("Locator help requested: " + helpMessage);
     }
   }
 
   public interface DescriptionProvider {
-    @NotNull String get(@NotNull Locator locator, boolean includeHidden);
+    @NotNull
+    String get(@NotNull Locator locator, boolean includeHidden);
   }
 
   public void setDescriptionProvider(@NotNull final DescriptionProvider descriptionProvider) {
@@ -679,7 +685,6 @@ public class Locator {
   }
 
   /**
-   *
    * @return "null" if not defined or set to "any"
    */
   @Nullable
@@ -986,7 +991,8 @@ public class Locator {
     LevelData nestingData = getNestingData(value);
     if (nestingData.getCurrentLevel() != 0 || nestingData.getMinLevel() < 0) {
       return DIMENSION_COMPLEX_VALUE_START_DELIMITER
-             + BASE64_ESCAPE_FAKE_DIMENSION + DIMENSION_NAME_VALUE_DELIMITER + new String(Base64.getUrlEncoder().encode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8)
+             + BASE64_ESCAPE_FAKE_DIMENSION + DIMENSION_NAME_VALUE_DELIMITER +
+             new String(Base64.getUrlEncoder().encode(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8)
              + DIMENSION_COMPLEX_VALUE_END_DELIMITER;
     }
     if (nestingData.getMaxLevel() > 0 || value.contains(DIMENSIONS_DELIMITER) || value.contains(DIMENSION_NAME_VALUE_DELIMITER)) {
