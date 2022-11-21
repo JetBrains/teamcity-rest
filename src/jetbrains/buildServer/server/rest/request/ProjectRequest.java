@@ -74,9 +74,9 @@ import java.util.*;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 
-/*
- * User: Yegor Yarko
- * Date: 11.04.2009
+/**
+ * @author Yegor Yarko
+ * @date 11.04.2009
  */
 @Path(ProjectRequest.API_PROJECTS_URL)
 @Api("Project")
@@ -84,19 +84,58 @@ public class ProjectRequest {
   private static final Logger LOG = Logger.getInstance(ProjectRequest.class.getName());
   public static final boolean ID_GENERATION_FLAG = true;
 
+  @Context @NotNull private BeanContext myBeanContext;
+  @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
   @Context @NotNull private ProjectFinder myProjectFinder;
   @Context @NotNull private AgentPoolFinder myAgentPoolFinder;
   @Context @NotNull private BranchFinder myBranchFinder;
-
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
-  @Context @NotNull private ServiceLocator myServiceLocator;
-  @Context @NotNull private BeanContext myBeanContext;
+
   @Context @NotNull private PermissionChecker myPermissionChecker;
-  @Autowired @NotNull private ConfigActionFactory myConfigActionFactory;
-  @Autowired @NotNull private ServerSshKeyManager myServerSshKeyManager;
+  @Context @NotNull private ConfigActionFactory myConfigActionFactory;
+  @Context @NotNull private ServerSshKeyManager myServerSshKeyManager;
+
+  public ProjectRequest(
+    BeanContext beanContext,
+    ServiceLocator serviceLocator,
+    DataProvider dataProvider,
+    BuildFinder buildFinder,
+    BuildTypeFinder buildTypeFinder,
+    ProjectFinder projectFinder,
+    AgentPoolFinder agentPoolFinder,
+    BranchFinder branchFinder,
+    ApiUrlBuilder apiUrlBuilder,
+    PermissionChecker permissionChecker,
+    ConfigActionFactory configActionFactory,
+    ServerSshKeyManager serverSshKeyManager
+  ) {
+    myBeanContext = beanContext;
+    myDataProvider = dataProvider;
+    myServiceLocator = firstNonNull(serviceLocator, beanContext.getServiceLocator());
+    myBuildFinder = firstNonNull(buildFinder, myServiceLocator.findSingletonService(BuildFinder.class));
+    myBuildTypeFinder = firstNonNull(buildTypeFinder, myServiceLocator.findSingletonService(BuildTypeFinder.class));
+    myProjectFinder = firstNonNull(projectFinder, myServiceLocator.findSingletonService(ProjectFinder.class));
+    myAgentPoolFinder = firstNonNull(agentPoolFinder, myServiceLocator.findSingletonService(AgentPoolFinder.class));
+    myBranchFinder = firstNonNull(branchFinder, myServiceLocator.findSingletonService(BranchFinder.class));
+    myApiUrlBuilder = firstNonNull(apiUrlBuilder, myServiceLocator.findSingletonService(ApiUrlBuilder.class));
+    myPermissionChecker = firstNonNull(permissionChecker, myServiceLocator.findSingletonService(PermissionChecker.class));
+    myConfigActionFactory = firstNonNull(configActionFactory, myServiceLocator.findSingletonService(ConfigActionFactory.class));
+    myServerSshKeyManager = firstNonNull(serverSshKeyManager, myServiceLocator.findSingletonService(ServerSshKeyManager.class));
+  }
+
+  public ProjectRequest(@NotNull BeanContext beanContext) {
+    this(beanContext, null, null, null, null, null, null, null, null, null, null, null);
+  }
+
+  /**
+   * For dependency injection frameworks only
+   */
+  @Deprecated
+  public ProjectRequest() {
+  }
 
   public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
   protected static final String PARAMETERS = BuildTypeRequest.PARAMETERS;
@@ -1042,30 +1081,14 @@ public class ProjectRequest {
     }
   }
 
-  public static ProjectRequest createForTests(final BeanContext beanContext) {
-    ProjectRequest result = new ProjectRequest();
-    result.myBeanContext = beanContext;
-    result.myServiceLocator = beanContext.getServiceLocator();
-    result.myAgentPoolFinder = beanContext.getSingletonService(AgentPoolFinder.class);
-    result.myProjectFinder = beanContext.getSingletonService(ProjectFinder.class);
-    result.myBuildTypeFinder = beanContext.getSingletonService(BuildTypeFinder.class);
-    result.myBuildFinder = beanContext.getSingletonService(BuildFinder.class);
-    result.myPermissionChecker = beanContext.getSingletonService(PermissionChecker.class);
-    result.myApiUrlBuilder = beanContext.getApiUrlBuilder();
-    //myDataProvider
-    return result;
-  }
 
-  protected void setInTests(
-    @NotNull ProjectFinder projectFinder,
-    @NotNull BranchFinder branchFinder,
-    @NotNull BeanContext beanContext,
-    ConfigActionFactory configActionFactory,
-    ServerSshKeyManager serverSshKeyManager) {
-    myProjectFinder = projectFinder;
-    myBranchFinder = branchFinder;
-    myBeanContext = beanContext;
-    myConfigActionFactory = configActionFactory;
-    myServerSshKeyManager = serverSshKeyManager;
+  @NotNull
+  private static <T> T firstNonNull(T... values) {
+    for (T value : values) {
+      if (value != null) {
+        return value;
+      }
+    }
+    throw new NoSuchElementException("All values were null");
   }
 }

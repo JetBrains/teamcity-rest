@@ -22,10 +22,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Predicate;
-import jetbrains.buildServer.server.rest.data.BaseFinderTest;
-import jetbrains.buildServer.server.rest.data.BuildFinderTestBase;
-import jetbrains.buildServer.server.rest.data.PagedSearchResult;
-import jetbrains.buildServer.server.rest.data.RestContext;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.Branches;
@@ -64,17 +63,22 @@ import static jetbrains.buildServer.vcs.RepositoryStateData.createVersionState;
 public class ProjectRequestTest extends BaseFinderTest<SProject> {
   private ProjectRequest myRequest;
   private BeanContext myBeanContext;
-  private ServerSshKeyManager myServerSshKeyManager;
-  private ConfigActionFactory myConfigActionFactory = Mockito.mock(ConfigActionFactory.class);
+  private ServerSshKeyManager myServerSshKeyManagerMock;
+  private ConfigActionFactory myConfigActionFactoryMock;
+  private DataProvider myDataProviderMock;
+  private ApiUrlBuilder myApiUrlBuilderMock;
+  private ServiceLocator myServiceLocator;
 
   @Override
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    myRequest = ProjectRequest.createForTests(BaseFinderTest.getBeanContext(myFixture));
+    myRequest = new ProjectRequest(BaseFinderTest.getBeanContext(myFixture));
     myBeanContext = getBeanContext(myServer);
-    myServerSshKeyManager = Mockito.mock(ServerSshKeyManager.class);
-    myConfigActionFactory = Mockito.mock(ConfigActionFactory.class);
+    myServerSshKeyManagerMock = Mockito.mock(ServerSshKeyManager.class);
+    myConfigActionFactoryMock = Mockito.mock(ConfigActionFactory.class);
+    myDataProviderMock = Mockito.mock(DataProvider.class);
+    myApiUrlBuilderMock = Mockito.mock(ApiUrlBuilder.class);
   }
 
   @Test
@@ -121,8 +125,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     final BuildTypeEx bt1 = project1.createBuildType(bt1Id, "My test build type 1");
     final BuildTypeEx bt2 = project1.createBuildType(bt2Id, "My test build type 2");
 
-    final ProjectRequest request = new ProjectRequest();
-    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext, myConfigActionFactory, myServerSshKeyManager);
+    final ProjectRequest request = createProjectRequest();
 
     Branches branches = request.getBranches("id:" + prjId, null, null);
     assertBranchesEquals(branches.branches, "<default>", true, null);
@@ -300,7 +303,6 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
                          "branch30", null, null);
   }
 
-
   @Test
   public void testBranchesDiffInCaseOnly() {
     String prjId = "Project1";
@@ -310,8 +312,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     final BuildTypeEx bt1 = project1.createBuildType(bt1Id, "My test build type 1");
     final BuildTypeEx bt2 = project1.createBuildType(bt2Id, "My test build type 2");
 
-    final ProjectRequest request = new ProjectRequest();
-    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext, myConfigActionFactory, myServerSshKeyManager);
+    final ProjectRequest request = createProjectRequest();
 
     MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
 
@@ -336,15 +337,14 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
   public void testAddSshKey() throws IOException {
     String prjId = "Project1";
     ProjectEx project1 = getRootProject().createProject(prjId, "Project test 1");
-    final ProjectRequest request = new ProjectRequest();
-    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext, myConfigActionFactory, myServerSshKeyManager);
+    final ProjectRequest request = createProjectRequest();
 
     Path keyFilePath = ResourceUtils.getFile("classpath:rest/sshKeys/id_rsa").toPath();
     MockMultipartHttpServletRequest mockRequest = multipartRequest(keyFilePath, "application/zip", "file:fileToUpload");
 
     request.addSshKey("id:" + prjId, "testprivatekey", mockRequest);
 
-    Mockito.verify(myServerSshKeyManager).addKey(
+    Mockito.verify(myServerSshKeyManagerMock).addKey(
       Mockito.argThat(predicate(it -> it.getExternalId().equals(prjId))),
       Mockito.same("testprivatekey"),
       AdditionalMatchers.aryEq(Files.readAllBytes(keyFilePath)),
@@ -404,8 +404,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
 
   //@Test
   public void memoryTest() throws InterruptedException {
-    final ProjectRequest request = new ProjectRequest();
-    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext, myConfigActionFactory, myServerSshKeyManager);
+    final ProjectRequest request = createProjectRequest();
 
     final String locator = "archived:false,affectedProject:_Root";
     final String fields =
@@ -464,6 +463,12 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     }
 
     for (Thread t : ts) t.join();
+  }
+
+  @NotNull
+  private ProjectRequest createProjectRequest() {
+    return new ProjectRequest(myBeanContext, myServiceLocator, myDataProviderMock, myBuildFinder, myBuildTypeFinder, myProjectFinder, myAgentPoolFinder, myBranchFinder,
+                              myApiUrlBuilderMock, myPermissionChecker, myConfigActionFactoryMock, myServerSshKeyManagerMock);
   }
 
   private void setCurrentBranches(final BuildTypeEx bt,
