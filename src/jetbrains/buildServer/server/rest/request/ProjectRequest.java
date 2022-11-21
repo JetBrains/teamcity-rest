@@ -20,7 +20,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
-import javax.ws.rs.core.Response;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -55,15 +54,21 @@ import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
 import jetbrains.buildServer.serverSide.impl.xml.XmlConstants;
+import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import static java.util.Collections.emptyList;
@@ -89,18 +94,13 @@ public class ProjectRequest {
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
   @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private BeanContext myBeanContext;
-  @Context @NotNull public PermissionChecker myPermissionChecker;
+  @Context @NotNull private PermissionChecker myPermissionChecker;
+  @Autowired @NotNull private ConfigActionFactory myConfigActionFactory;
+  @Autowired @NotNull private ServerSshKeyManager myServerSshKeyManager;
 
   public static final String API_PROJECTS_URL = Constants.API_URL + "/projects";
   protected static final String PARAMETERS = BuildTypeRequest.PARAMETERS;
   protected static final String FEATURES = "/projectFeatures";
-
-
-  public void setInTests(@NotNull ProjectFinder projectFinder, @NotNull BranchFinder branchFinder, @NotNull BeanContext beanContext){
-    myProjectFinder = projectFinder;
-    myBranchFinder = branchFinder;
-    myBeanContext = beanContext;
-  }
 
   @NotNull
   public static String getHref() {
@@ -934,15 +934,58 @@ public class ProjectRequest {
   }
 
   /**
+   * Adds new SSH key to the specific project.
+   *
+   * @since 2022
+   */
+  @POST
+  @Path("/{projectLocator}/sshKeys")
+  @Consumes({"multipart/form-data" /* TODO check mime type */})
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value = "Upload ssh key", hidden = false)
+  public void addSshKey(
+    @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator")
+    String projectLocator,
+    @ApiParam @QueryParam("fileName")
+    String fileName,
+    @Context
+    HttpServletRequest request
+  ) throws IOException {
+    ConfigAction configAction = myConfigActionFactory.createAction("New SSH key uploaded");
+
+    MultipartFile privateKey = getMultipartFileOrFail(request, "file:fileToUpload");
+
+    if (privateKey == null) {
+      throw new BadRequestException("No private key file in request");
+    }
+    // TODO @vshefer validate key file
+
+    SProject project = myProjectFinder.getItem(projectLocator);
+
+    myServerSshKeyManager.addKey(project, fileName, privateKey.getBytes(), configAction);
+  }
+
+  @Nullable
+  protected static MultipartFile getMultipartFileOrFail(HttpServletRequest request, String name) throws IllegalStateException {
+    if (request instanceof MultipartHttpServletRequest) {
+      MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest)request;
+      return multipartRequest.getFile(name);
+    }
+    throw new IllegalStateException("Received non-multipart request from " + WebUtil.getRemoteAddress(request));
+  }
+
+  /**
    * Experimental use only!
    */
   //until @Path("/{projectLocator}/loadingErrors") is implemented
   @GET
   @Path("/{projectLocator}/latest")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="reloadSettingsFile",hidden=true)
-  public Project reloadSettingsFile (@ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
-                                     @QueryParam("fields") String fields) {
+  @ApiOperation(value = "reloadSettingsFile", hidden = true)
+  public Project reloadSettingsFile(
+    @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+    @QueryParam("fields") String fields
+  ) {
     myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
 
     try {
@@ -964,11 +1007,11 @@ public class ProjectRequest {
   }
 
   @Nullable
-  private Map<String, String> getNullOrCollection(final @NotNull Map<String, String> map) {
+  private static Map<String, String> getNullOrCollection(final @NotNull Map<String, String> map) {
     return map.size() > 0 ? map : null;
   }
 
-  private class ProjectFeatureDescriptionUserParametersHolder extends MapBackedEntityWithModifiableParameters implements ParametersPersistableEntity {
+  private static class ProjectFeatureDescriptionUserParametersHolder extends MapBackedEntityWithModifiableParameters implements ParametersPersistableEntity {
     @NotNull private final SProject myProject;
 
     public ProjectFeatureDescriptionUserParametersHolder(@NotNull final SProject project, @NotNull final String featureLocator) {
@@ -1011,5 +1054,18 @@ public class ProjectRequest {
     result.myApiUrlBuilder = beanContext.getApiUrlBuilder();
     //myDataProvider
     return result;
+  }
+
+  protected void setInTests(
+    @NotNull ProjectFinder projectFinder,
+    @NotNull BranchFinder branchFinder,
+    @NotNull BeanContext beanContext,
+    ConfigActionFactory configActionFactory,
+    ServerSshKeyManager serverSshKeyManager) {
+    myProjectFinder = projectFinder;
+    myBranchFinder = branchFinder;
+    myBeanContext = beanContext;
+    myConfigActionFactory = configActionFactory;
+    myServerSshKeyManager = serverSshKeyManager;
   }
 }

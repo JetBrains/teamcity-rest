@@ -17,7 +17,11 @@
 package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.util.Pair;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Predicate;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.BuildFinderTestBase;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
@@ -27,31 +31,41 @@ import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.BuildTypeEx;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.SProjectFeatureDescriptor;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.ProjectFeatureDescriptorFactory;
+import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Option;
 import jetbrains.buildServer.vcs.OperationRequestor;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.mockito.AdditionalMatchers;
+import org.mockito.ArgumentMatcher;
+import org.mockito.Mockito;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.mock.web.MockMultipartHttpServletRequest;
+import org.springframework.util.ResourceUtils;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static jetbrains.buildServer.server.rest.request.ProjectRequestTest.PredicateMatcher.predicate;
 import static jetbrains.buildServer.util.Util.map;
 import static jetbrains.buildServer.vcs.RepositoryStateData.createVersionState;
 
 /**
  * @author Yegor.Yarko
- *         Date: 22/07/2016
+ * Date: 22/07/2016
  */
 public class ProjectRequestTest extends BaseFinderTest<SProject> {
   private ProjectRequest myRequest;
   private BeanContext myBeanContext;
+  private ServerSshKeyManager myServerSshKeyManager;
+  private ConfigActionFactory myConfigActionFactory = Mockito.mock(ConfigActionFactory.class);
 
   @Override
   @BeforeMethod
@@ -59,6 +73,8 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     super.setUp();
     myRequest = ProjectRequest.createForTests(BaseFinderTest.getBeanContext(myFixture));
     myBeanContext = getBeanContext(myServer);
+    myServerSshKeyManager = Mockito.mock(ServerSshKeyManager.class);
+    myConfigActionFactory = Mockito.mock(ConfigActionFactory.class);
   }
 
   @Test
@@ -91,7 +107,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
       myRequest.getFeatures("id:" + project10.getExternalId()).getParametersSubResource("id:" + feature10.getId(), "$long").deleteParameter("b");
       assertEquals(1, project10.getAvailableFeatures().size());
       assertEquals(1, project10.findFeatureById(feature10.getId()).getParameters().size());
-      assertEquals(null , project10.findFeatureById(feature10.getId()).getParameters().get("b"));
+      assertEquals(null, project10.findFeatureById(feature10.getId()).getParameters().get("b"));
       assertEquals("X", project10.findFeatureById(feature10.getId()).getParameters().get("a"));
     }
   }
@@ -106,7 +122,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     final BuildTypeEx bt2 = project1.createBuildType(bt2Id, "My test build type 2");
 
     final ProjectRequest request = new ProjectRequest();
-    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext);
+    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext, myConfigActionFactory, myServerSshKeyManager);
 
     Branches branches = request.getBranches("id:" + prjId, null, null);
     assertBranchesEquals(branches.branches, "<default>", true, null);
@@ -171,7 +187,6 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     //revert
     bt1.setOption(Option.fromKey("branchFilter"), "+:*");
     bt2.setOption(Option.fromKey("branchFilter"), "+:*");
-
 
 
     branches = request.getBranches("id:" + prjId, "policy:ALL_BRANCHES,default:true", null);
@@ -296,7 +311,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     final BuildTypeEx bt2 = project1.createBuildType(bt2Id, "My test build type 2");
 
     final ProjectRequest request = new ProjectRequest();
-    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext);
+    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext, myConfigActionFactory, myServerSshKeyManager);
 
     MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
 
@@ -317,13 +332,84 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
                          "ccc", null, null);
   }
 
+  @Test
+  public void testAddSshKey() throws IOException {
+    String prjId = "Project1";
+    ProjectEx project1 = getRootProject().createProject(prjId, "Project test 1");
+    final ProjectRequest request = new ProjectRequest();
+    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext, myConfigActionFactory, myServerSshKeyManager);
+
+    Path keyFilePath = ResourceUtils.getFile("classpath:rest/sshKeys/id_rsa").toPath();
+    MockMultipartHttpServletRequest mockRequest = multipartRequest(keyFilePath, "application/zip", "file:fileToUpload");
+
+    request.addSshKey("id:" + prjId, "testprivatekey", mockRequest);
+
+    Mockito.verify(myServerSshKeyManager).addKey(
+      Mockito.argThat(predicate(it -> it.getExternalId().equals(prjId))),
+      Mockito.same("testprivatekey"),
+      AdditionalMatchers.aryEq(Files.readAllBytes(keyFilePath)),
+      Mockito.isNull(ConfigAction.class)
+    );
+  }
+
+  @NotNull
+  private static MockMultipartHttpServletRequest multipartRequest(
+    Path keyFilePath,
+    String contentType,
+    String partFileName
+  ) throws IOException {
+    byte[] keyFileBytes = Files.readAllBytes(keyFilePath);
+    String filename = keyFilePath.getFileName().toString();
+    MockMultipartFile keyFileMultipartFile = new MockMultipartFile(partFileName, filename, contentType, Files.newInputStream(keyFilePath));
+
+    MockMultipartHttpServletRequest mockRequest = new MockMultipartHttpServletRequest();
+    mockRequest.setMethod("POST");
+    String boundary = "q1w2e3r4t5y6u7i8o9";
+    mockRequest.setContentType("multipart/form-data; boundary=" + boundary);
+    //mockRequest.setContent(createFileContent(keyFileBytes, boundary, contentType, filename));
+    mockRequest.addFile(keyFileMultipartFile);
+    return mockRequest;
+  }
+
+  private static byte[] createFileContent(byte[] data, String boundary, String contentType, String fileName) {
+    String start = "--" + boundary + "\r\n Content-Disposition: form-data; name=\"file\"; filename=\"" + fileName + "\"\r\n"
+                   + "Content-type: " + contentType + "\r\n\r\n";
+    ;
+
+    String end = "\r\n--" + boundary + "--"; // correction suggested @butfly
+    return ArrayUtils.addAll(start.getBytes(), ArrayUtils.addAll(data, end.getBytes()));
+  }
+
+
+  static class PredicateMatcher<T> extends ArgumentMatcher<T> {
+
+
+    private final Predicate<T> predicate;
+
+    PredicateMatcher(Predicate<T> predicate) {
+      this.predicate = predicate;
+    }
+
+    @Override
+    public boolean matches(Object argument) {
+      //noinspection unchecked
+      return predicate.test((T)argument);
+    }
+
+    public static <T1> PredicateMatcher<T1> predicate(Predicate<T1> predicate) {
+      return new PredicateMatcher<>(predicate);
+    }
+
+  }
+
   //@Test
   public void memoryTest() throws InterruptedException {
     final ProjectRequest request = new ProjectRequest();
-    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext);
+    request.setInTests(myProjectFinder, myBranchFinder, myBeanContext, myConfigActionFactory, myServerSshKeyManager);
 
     final String locator = "archived:false,affectedProject:_Root";
-    final String fields = "count,project(id,internalId,name,parentProjectId,archived,readOnlyUI,buildTypes(buildType(id,paused,internalId,projectId,name,type,description)),description)";
+    final String fields =
+      "count,project(id,internalId,name,parentProjectId,archived,readOnlyUI,buildTypes(buildType(id,paused,internalId,projectId,name,type,description)),description)";
 
     Queue<Pair<Integer, ProjectEx>> q = new ArrayDeque<>();
     q.add(new Pair<>(0, myProject));
@@ -341,8 +427,9 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
           q.add(new Pair<>(p.first + 1, c));
         }
 
-        for (int j = 0; j < children * 4; j++)
+        for (int j = 0; j < children * 4; j++) {
           c.createBuildType(prefix + j);
+        }
       }
     }
 
@@ -409,9 +496,9 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
         fail("Less branches are returned than expected: " + actualBranches);
       }
       Branch branch = branchIt.next();
-      assertEquals("Name does not match for branch #" + i +": "+ actualBranches, (String)it.next(), branch.getName());
-      assertEquals("isDefault does not match for branch " +  branch.getName() +": "+ actualBranches, (Boolean)it.next(), branch.isDefault());
-      assertEquals("isUnspecified does not match for branch " +  branch.getName() +": "+ actualBranches, (Boolean)it.next(), branch.isUnspecified());
+      assertEquals("Name does not match for branch #" + i + ": " + actualBranches, (String)it.next(), branch.getName());
+      assertEquals("isDefault does not match for branch " + branch.getName() + ": " + actualBranches, (Boolean)it.next(), branch.isDefault());
+      assertEquals("isUnspecified does not match for branch " + branch.getName() + ": " + actualBranches, (Boolean)it.next(), branch.isUnspecified());
       i++;
     }
     assertFalse("More branches are returned than expected: " + actualBranches, branchIt.hasNext());
