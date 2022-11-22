@@ -544,7 +544,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     }
 
 
-    checkExceptionOnBuildsSearch(BadRequestException.class, "sinceBuild:(xxx)");
+    checkExceptionOnBuildsSearch(LocatorProcessException.class, "sinceBuild:(xxx)");
     checkExceptionOnBuildsSearch(BadRequestException.class, "sinceBuild:(buildType:(" + buildConf1.getId() + "),status:FAILURE)");
 
     //documenting current behavior: extra ")" does not produce an error
@@ -2594,6 +2594,12 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       ruling.isIncludePersonal()
     );
     assertEquals(secondUser, ruling.getOwner());
+  }
+
+  @Test
+  public void test_getBuildPromotionsWithLegacyFallback_LegacyFilteringDisabled() {
+    PagedSearchResult<BuildPromotion> result = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(myBuildType, null);
+
   }
 
   @NotNull

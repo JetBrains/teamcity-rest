@@ -85,7 +85,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
     checkBuild("number:" + runningBuild5Number + ",state:any", runningBuild5);
 
 //    checkBuild(build1Number, build1); // difference from BuildFinder
-    checkExceptionOnBuildSearch(BadRequestException.class, build1Number);
+    checkExceptionOnBuildSearch(LocatorProcessException.class, build1Number);
     checkBuild("id:" + build1.getId() + ",number:" + build1Number, build1);
 
     checkBuild("buildType:(id:" + buildConf.getExternalId() + "),number:" + build1Number, build1);
@@ -230,7 +230,7 @@ public class BuildFinderByPromotionTest extends BuildFinderTestBase {
   public void testWrongLocator() throws Exception {
     checkExceptionOnBuildSearch(BadRequestException.class, "");
     checkExceptionOnBuildSearch(LocatorProcessException.class, ",:,");
-    checkExceptionOnBuildSearch(BadRequestException.class, "xxx");
+    checkExceptionOnBuildSearch(LocatorProcessException.class, "xxx");
 //    checkExceptionOnBuildSearch(NotFoundException.class, "xxx"); //is not treated as build number for performance reasons
     checkExceptionOnBuildSearch(LocatorProcessException.class, "xxx:yyy");
     checkExceptionOnBuildSearch(LocatorProcessException.class, "pinned:any,xxx:yyy");
