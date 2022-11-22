@@ -482,12 +482,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final String branchLocatorValue = locator.getSingleDimensionValue(BRANCH);
     if (branchLocatorValue != null) {
       PagedSearchResult<? extends Branch> branches = null;
-      BadRequestException exceptinoOnFullSearch = null;
+      BadRequestException exceptionOnFullSearch = null;
       try {
         branches = myBranchFinder.getItemsIfValidBranchListLocator(locator.lookupSingleDimensionValue(BUILD_TYPE), branchLocatorValue);
       } catch (BadRequestException e) {
         // not a valid branches listing locator
-        exceptinoOnFullSearch = e;
+        exceptionOnFullSearch = e;
       }
       if (branches != null) {
         //branches found - use them
@@ -507,7 +507,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           branchFilterDetails = myBranchFinder.getBranchFilterDetails(branchLocatorValue);
         } catch (LocatorProcessException locatorException) {
           throw new BadRequestException("Invalid sub-locator '" + BRANCH + "': Cannot" +
-                                        (exceptinoOnFullSearch != null ? " find branches: " + exceptinoOnFullSearch.getMessage() +"; and cannot " : "") +
+                                        (exceptionOnFullSearch != null ? " find branches: " + exceptionOnFullSearch.getMessage() +"; and cannot" : "") +
                                         " create filter: " + locatorException.getMessage(), locatorException);
         }
         if (!branchFilterDetails.isAnyBranch()) {
