@@ -128,7 +128,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @NotNull
   private final TestFinder myTestFinder;
   @NotNull
-  private final BuildFinder myBuildFinder;
+  private final BuildPromotionFinder myBuildPromotionFinder;
   @NotNull
   private final BuildTypeFinder myBuildTypeFinder;
   @NotNull
@@ -148,7 +148,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   public TestOccurrenceFinder(
     @NotNull final SecurityContext securityContext,
     @NotNull final TestFinder testFinder,
-    @NotNull final BuildFinder buildFinder,
+    @NotNull final BuildPromotionFinder buildPromotionFinder,
     @NotNull final BuildTypeFinder buildTypeFinder,
     @NotNull final ProjectFinder projectFinder,
     @NotNull final TestHistory testHistory,
@@ -162,7 +162,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     setHiddenDimensions(INCLUDE_ALL_PERSONAL);
 
     myTestFinder = testFinder;
-    myBuildFinder = buildFinder;
+    myBuildPromotionFinder = buildPromotionFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProjectFinder = projectFinder;
     myTestHistory = testHistory;
@@ -233,7 +233,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
       String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
-        List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+        List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
         if (builds.size() != 1) {
           return null;
         }
@@ -394,7 +394,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       locator.setDimension(INCLUDE_PERSONAL, Locator.BOOLEAN_TRUE);
       locator.setDimension(INCLUDE_ALL_PERSONAL, Locator.BOOLEAN_TRUE);
 
-      List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+      List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
 
       Boolean expandInvocations = locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS);  //getting the dimension early in order not to get "dimension is unknown" for it in case of early exit
       String testDimension = locator.getSingleDimensionValue(TEST);
@@ -566,7 +566,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         boolean searchByBuildId = new Locator(buildDimension).isAnyPresent(BuildFinder.DIMENSION_ID);
         locator.setDimensionIfNotPresent(INCLUDE_PERSONAL, Boolean.toString(searchByBuildId));
 
-        List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries; //todo: use buildPromotionFinder, use filter; drop personal builds filtering in test history
+        //todo: use buildPromotionFinder, use filter; drop personal builds filtering in test history
+        List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
         result.add(item -> builds.contains(item.getBuild().getBuildPromotion()));
       }
     }
@@ -720,7 +721,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       return TestOccurrencesCachedInfo.empty();
     }
 
-    List<BuildPromotion> buildPromotions = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+    List<BuildPromotion> buildPromotions = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
     if(buildPromotions.size() != 1) {
       // If there is not a single build to the criteria,
       return TestOccurrencesCachedInfo.empty();

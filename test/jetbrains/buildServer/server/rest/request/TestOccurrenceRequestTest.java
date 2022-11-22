@@ -250,7 +250,7 @@ public class TestOccurrenceRequestTest extends BaseFinderTest<STestRun> {
     public TestOccurrenceFinderDenyingItemsFetch() {
       super(myServer.getSecurityContext(),
             myTestFinder,
-            myBuildFinder,
+            myBuildPromotionFinder,
             myBuildTypeFinder,
             myProjectFinder,
             myFixture.getTestsHistory(),

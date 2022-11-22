@@ -162,7 +162,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myTestOccurrenceFinder = new TestOccurrenceFinder(
       myServer.getSecurityContext(),
       myTestFinder,
-      myBuildFinder,
+      myBuildPromotionFinder,
       myBuildTypeFinder,
       myProjectFinder,
       myFixture.getTestsHistory(),
@@ -175,7 +175,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     final BuildProblemManager buildProblemManager = myFixture.getSingletonService(BuildProblemManager.class);
     myProblemFinder = new ProblemFinder(myProjectFinder, myBuildPromotionFinder, buildProblemManager, myProjectManager, myFixture, problemMutingService);
     myFixture.addService(myProblemFinder);
-    myProblemOccurrenceFinder = new ProblemOccurrenceFinder(myProjectFinder, myBuildFinder, myBuildPromotionFinder, myProblemFinder, buildProblemManager, myProjectManager, myFixture);
+    myProblemOccurrenceFinder = new ProblemOccurrenceFinder(myProjectFinder, myBuildPromotionFinder, myProblemFinder, buildProblemManager, myProjectManager, myFixture);
     myFixture.addService(myProblemOccurrenceFinder);
 
     final ResponsibilityFacadeEx responsibilityFacade = myFixture.getResponsibilityFacadeEx();

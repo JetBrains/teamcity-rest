@@ -35,7 +35,6 @@ public class BaseTestScopesCollectorTest extends BaseServerTestCase {
   private ProjectFinder myProjectFinder;
   private AgentFinder myAgentFinder;
   private BuildTypeFinder myBuildTypeFinder;
-  private BuildFinder myBuildFinder;
   protected TestOccurrenceFinder myTestOccurrenceFinder;
   private TestFinder myTestFinder;
   private BranchFinder myBranchFinder;
@@ -83,8 +82,6 @@ public class BaseTestScopesCollectorTest extends BaseServerTestCase {
                                                       myBuildTypeFinder, myUserFinder, myAgentFinder, myBranchFinder, myTimeCondition, myPermissionChecker, null, myFixture);
     myFixture.addService(myBuildPromotionFinder);
 
-    myBuildFinder = new BuildFinder(myFixture, myBuildTypeFinder, myProjectFinder, myUserFinder, myBuildPromotionFinder, myAgentFinder);
-
 
     final TestName2Index testName2Index = myFixture.getSingletonService(TestName2Index.class);
     final ProblemMutingService problemMutingService = myFixture.getSingletonService(ProblemMutingService.class);
@@ -97,7 +94,7 @@ public class BaseTestScopesCollectorTest extends BaseServerTestCase {
     myTestOccurrenceFinder = new TestOccurrenceFinder(
       myServer.getSecurityContext(),
       myTestFinder,
-      myBuildFinder,
+      myBuildPromotionFinder,
       myBuildTypeFinder,
       myProjectFinder,
       myFixture.getTestsHistory(),

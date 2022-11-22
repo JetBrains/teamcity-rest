@@ -197,6 +197,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   //todo: filter by modId/chainModId (including null) - before(up to)/after filtering
 
   protected static final String STROB_BUILD_LOCATOR = "locator";
+  protected static final String LEGACY_BUILDS_FILTERING = "rest.request.builds.useLegacyBuildsFiltering";
+  protected static final String LEGACY_BUILDS_FILTERING_FORCED = "rest.request.builds.useLegacyBuildsFiltering.forced"; //Since 2018.1
   public static final BuildPromotionComparator BUILD_PROMOTIONS_COMPARATOR = new BuildPromotionComparator();
   public static final SnapshotDepsTraverser SNAPSHOT_DEPENDENCIES_TRAVERSER = new SnapshotDepsTraverser();
   private final SnapshotDepProblemsTraverser mySnapshotDepProblemsTraverser;
@@ -1830,6 +1832,32 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     //single value
     return new PagedSearchResult<BuildPromotion>(Collections.singletonList(getBuildPromotion(buildType, locatorText)), null, null);
+  }
+
+  @NotNull
+  public PagedSearchResult<BuildPromotion> getBuildPromotionsWithLegacyFallback(@Nullable final SBuildType buildType, @Nullable final String locatorText) {
+    if (!TeamCityProperties.getBoolean(LEGACY_BUILDS_FILTERING_FORCED)) {
+      return getBuildPromotions(buildType, locatorText);
+    }
+
+    Locator locator;
+    try {
+      locator = locatorText != null ? new Locator(locatorText) : Locator.createEmptyLocator();
+    } catch (LocatorProcessException e) {
+      //error creating locator - some special dimensions used? process by default
+      return getBuildPromotions(buildType, locatorText);
+    }
+    if (useByPromotionFiltering(locator)) {
+      return getBuildPromotions(buildType, locatorText);
+    }
+
+    BuildFinder legacyFinder = myServiceLocator.getSingletonService(BuildFinder.class);
+    return legacyFinder.getBuildsLegacy(buildType, locator);
+  }
+
+  private boolean useByPromotionFiltering(@NotNull final Locator locator) {
+    final Boolean byPromotion = locator.getSingleDimensionValueAsBoolean(BuildPromotionFinder.BY_PROMOTION, !TeamCityProperties.getBoolean(LEGACY_BUILDS_FILTERING));
+    return byPromotion != null && byPromotion;
   }
 
   @NotNull

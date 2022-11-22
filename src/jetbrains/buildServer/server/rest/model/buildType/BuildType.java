@@ -462,10 +462,10 @@ public class BuildType {
         List<BuildPromotion> builds = null;
         final Fields buildsFields = myFields.getNestedField("builds");
         final String buildsLocator = buildsFields.getLocator();
-        if (buildsLocator != null){
-          builds = myBeanContext.getSingletonService(BuildFinder.class).getBuilds(myBuildType.getBuildType(), buildsLocator).myEntries;
+        if (buildsLocator != null) {
+          builds = myBeanContext.getSingletonService(BuildPromotionFinder.class).getBuildPromotionsWithLegacyFallback(myBuildType.getBuildType(), buildsLocator).myEntries;
           buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType(), buildsLocator);
-        }else{
+        } else {
           buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType());
         }
         return Builds.createFromBuildPromotions(builds, new PagerDataImpl(buildsHref), buildsFields, myBeanContext);

@@ -213,7 +213,7 @@ public class BuildRequest {
     if (locator == null) {
       throw new BadRequestException("Empty 'locator' parameter specified.");
     }
-    final List<BuildPromotion> builds = myBuildFinder.getBuilds(null, locator).myEntries;
+    final List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, locator).myEntries;
     final int deleteLimit = TeamCityProperties.getInteger(REST_BUILD_REQUEST_DELETE_LIMIT, 10);
     if (builds.size() > deleteLimit) {
       throw new BadRequestException("Refusing to delete more than " + deleteLimit + " builds as a precaution measure." +

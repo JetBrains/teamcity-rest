@@ -80,7 +80,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   public static final String SNAPSHOT_DEPENDENCY_PROBLEM = "snapshotDependencyProblem";
 
   @NotNull private final ProjectFinder myProjectFinder;
-  @NotNull private final BuildFinder myBuildFinder;
   @NotNull private final BuildPromotionFinder myBuildPromotionFinder;
   @NotNull private final ProblemFinder myProblemFinder;
 
@@ -89,7 +88,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull private final jetbrains.buildServer.ServiceLocator myServiceLocator;
 
   public ProblemOccurrenceFinder(@NotNull final ProjectFinder projectFinder,
-                                 @NotNull final BuildFinder buildFinder,
                                  @NotNull final BuildPromotionFinder buildPromotionFinder,
                                  @NotNull final ProblemFinder problemFinder,
                                  @NotNull final BuildProblemManager buildProblemManager,
@@ -97,7 +95,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
                                  @NotNull final ServiceLocator serviceLocator) {
     super(PROBLEM, IDENTITY, TYPE, BUILD, AFFECTED_PROJECT, CURRENT, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED);
     myProjectFinder = projectFinder;
-    myBuildFinder = buildFinder;
     myBuildPromotionFinder = buildPromotionFinder;
     myProblemFinder = problemFinder;
     myBuildProblemManager = buildProblemManager;
@@ -173,7 +170,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   public ItemHolder<BuildProblem> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
-      List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+      List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
       AggregatingItemHolder<BuildProblem> result = new AggregatingItemHolder<>();
       for (BuildPromotion build : builds) {
         List<BuildProblem> buildProblemOccurrences = getProblemOccurrences(build);
@@ -251,7 +248,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     if (locator.isUnused(BUILD)) {
       String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
-        List<BuildPromotion> builds = myBuildFinder.getBuilds(null, buildDimension).myEntries;
+        List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
         result.add(item -> builds.contains(item.getBuildPromotion()));
       }
     }

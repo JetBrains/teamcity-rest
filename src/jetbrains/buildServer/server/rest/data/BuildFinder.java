@@ -154,7 +154,7 @@ public class BuildFinder {
                                     "Set \"" + SUPPORT_NON_LOCATOR_FILTERS + "=true\" server internal property to allow such legacy queries until next TeamCity upgrade.");
     }
 
-    final PagedSearchResult<BuildPromotion> pagedResult = getBuilds(buildType, resultingLocatorText);
+    final PagedSearchResult<BuildPromotion> pagedResult = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(buildType, resultingLocatorText);
     final PagerData pagerData = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult,
                                               locatorText == null ? null : resultingLocatorText,
                                               locatorParameterName);
@@ -178,6 +178,11 @@ public class BuildFinder {
       return myBuildPromotionFinder.getBuildPromotions(buildType, locatorText);
     }
 
+    return getBuildsLegacy(buildType, locator);
+  }
+
+  @NotNull
+  public PagedSearchResult<BuildPromotion> getBuildsLegacy(@Nullable final SBuildType buildType, @NotNull final Locator locator) {
     BuildsFilter buildsFilter = getBuildsFilter(locator, buildType);
     locator.checkLocatorFullyProcessed();
 
@@ -363,8 +368,9 @@ public class BuildFinder {
     return associatedBuild;
   }
 
+  @Deprecated
   @NotNull
-  private BuildsFilter getBuildsFilter(@NotNull final Locator buildLocator, @Nullable final SBuildType buildType) {
+  public BuildsFilter getBuildsFilter(@NotNull final Locator buildLocator, @Nullable final SBuildType buildType) {
     //todo: report unknown locator dimensions
     final SBuildType actualBuildType = myBuildTypeFinder.deriveBuildTypeFromLocator(buildType, buildLocator.getSingleDimensionValue("buildType"));
     final String projectFromLocator = buildLocator.getSingleDimensionValue("project");
@@ -447,7 +453,8 @@ public class BuildFinder {
    * @param buildsFilter the filter for the builds to find
    * @return the builds found
    */
-  private List<SBuild> getBuilds(@NotNull final BuildsFilter buildsFilter) {
+  @Deprecated
+  public List<SBuild> getBuilds(@NotNull final BuildsFilter buildsFilter) {
     final ArrayList<SBuild> result = new ArrayList<SBuild>();
     //todo: sort and ensure there are no duplicates
     result.addAll(BuildsFilterProcessor.getMatchingRunningBuilds(buildsFilter, myServiceLocator.getSingletonService(BuildsManager.class)));
