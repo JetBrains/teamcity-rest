@@ -73,12 +73,12 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    myRequest = new ProjectRequest(BaseFinderTest.getBeanContext(myFixture));
     myBeanContext = getBeanContext(myServer);
     myServerSshKeyManagerMock = Mockito.mock(ServerSshKeyManager.class);
     myConfigActionFactoryMock = Mockito.mock(ConfigActionFactory.class);
     myDataProviderMock = Mockito.mock(DataProvider.class);
     myApiUrlBuilderMock = Mockito.mock(ApiUrlBuilder.class);
+    myRequest = createProjectRequest();
   }
 
   @Test
@@ -125,7 +125,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     final BuildTypeEx bt1 = project1.createBuildType(bt1Id, "My test build type 1");
     final BuildTypeEx bt2 = project1.createBuildType(bt2Id, "My test build type 2");
 
-    final ProjectRequest request = createProjectRequest();
+    final ProjectRequest request = myRequest;
 
     Branches branches = request.getBranches("id:" + prjId, null, null);
     assertBranchesEquals(branches.branches, "<default>", true, null);
@@ -312,7 +312,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     final BuildTypeEx bt1 = project1.createBuildType(bt1Id, "My test build type 1");
     final BuildTypeEx bt2 = project1.createBuildType(bt2Id, "My test build type 2");
 
-    final ProjectRequest request = createProjectRequest();
+    final ProjectRequest request = myRequest;
 
     MockVcsSupport vcs = vcsSupport().withName("vcs").dagBased(true).register();
 
@@ -337,7 +337,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
   public void testAddSshKey() throws IOException {
     String prjId = "Project1";
     ProjectEx project1 = getRootProject().createProject(prjId, "Project test 1");
-    final ProjectRequest request = createProjectRequest();
+    final ProjectRequest request = myRequest;
 
     Path keyFilePath = ResourceUtils.getFile("classpath:rest/sshKeys/id_rsa").toPath();
     MockMultipartHttpServletRequest mockRequest = multipartRequest(keyFilePath, "application/zip", "file:fileToUpload");
@@ -404,7 +404,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
 
   //@Test
   public void memoryTest() throws InterruptedException {
-    final ProjectRequest request = createProjectRequest();
+    final ProjectRequest request = myRequest;
 
     final String locator = "archived:false,affectedProject:_Root";
     final String fields =
