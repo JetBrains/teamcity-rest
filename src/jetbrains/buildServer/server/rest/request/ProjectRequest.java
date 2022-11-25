@@ -86,8 +86,14 @@ public class ProjectRequest {
   private static final Logger LOG = Logger.getInstance(ProjectRequest.class.getName());
   public static final boolean ID_GENERATION_FLAG = true;
 
+  @SuppressWarnings("NotNullFieldNotInitialized") // initialized by dependency injection via setter.
+  @NotNull private ServiceLocator myServiceLocator;
+  @SuppressWarnings("NotNullFieldNotInitialized") // initialized by dependency injection via serviceLocator setter.
+  @NotNull private ConfigActionFactory myConfigActionFactory;
+  @SuppressWarnings("NotNullFieldNotInitialized") // initialized by dependency injection via serviceLocator setter.
+  @NotNull private ServerSshKeyManager myServerSshKeyManager;
+
   @Context @NotNull private BeanContext myBeanContext;
-  @Context @NotNull private ServiceLocator myServiceLocator;
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
@@ -97,13 +103,34 @@ public class ProjectRequest {
   @Context @NotNull private ApiUrlBuilder myApiUrlBuilder;
 
   @Context @NotNull private PermissionChecker myPermissionChecker;
-  @Context @NotNull private ConfigActionFactory myConfigActionFactory;
-  @Context @NotNull private ServerSshKeyManager myServerSshKeyManager;
+
+  @Context
+  public void setServiceLocator(@NotNull ServiceLocator serviceLocator) {
+    myServiceLocator = serviceLocator;
+
+    {
+      /*
+       * This is the workaround to make these fields be injected.
+       * Since injection of beans from ServiceLocator is not supported
+       * (except for beans explicitly defined using Jersey's Provider)
+       * you can not inject this bean directly and workaround is required.
+       * TODO inject using @Autowired or @Context
+       */
+      //noinspection ConstantConditions
+      if (myConfigActionFactory == null) {
+        myConfigActionFactory = serviceLocator.findSingletonService(ConfigActionFactory.class);
+      }
+      //noinspection ConstantConditions
+      if (myServerSshKeyManager == null) {
+        myServerSshKeyManager = serviceLocator.findSingletonService(ServerSshKeyManager.class);
+      }
+    }
+  }
 
   public ProjectRequest(
-    BeanContext beanContext,
+    @NotNull BeanContext beanContext,
     ServiceLocator serviceLocator,
-    DataProvider dataProvider,
+    @NotNull DataProvider dataProvider,
     BuildFinder buildFinder,
     BuildTypeFinder buildTypeFinder,
     ProjectFinder projectFinder,
@@ -116,7 +143,7 @@ public class ProjectRequest {
   ) {
     myBeanContext = beanContext;
     myDataProvider = dataProvider;
-    myServiceLocator = firstNonNull(serviceLocator, beanContext.getServiceLocator());
+    setServiceLocator(firstNonNull(serviceLocator, beanContext.getServiceLocator()));
     myBuildFinder = firstNonNull(buildFinder, myServiceLocator.findSingletonService(BuildFinder.class));
     myBuildTypeFinder = firstNonNull(buildTypeFinder, myServiceLocator.findSingletonService(BuildTypeFinder.class));
     myProjectFinder = firstNonNull(projectFinder, myServiceLocator.findSingletonService(ProjectFinder.class));
@@ -126,10 +153,6 @@ public class ProjectRequest {
     myPermissionChecker = firstNonNull(permissionChecker, myServiceLocator.findSingletonService(PermissionChecker.class));
     myConfigActionFactory = firstNonNull(configActionFactory, myServiceLocator.findSingletonService(ConfigActionFactory.class));
     myServerSshKeyManager = firstNonNull(serverSshKeyManager, myServiceLocator.findSingletonService(ServerSshKeyManager.class));
-  }
-
-  public ProjectRequest(@NotNull BeanContext beanContext) {
-    this(beanContext, null, null, null, null, null, null, null, null, null, null, null);
   }
 
   /**
