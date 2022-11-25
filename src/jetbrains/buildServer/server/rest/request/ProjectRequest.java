@@ -55,6 +55,7 @@ import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
 import jetbrains.buildServer.serverSide.impl.xml.XmlConstants;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
+import jetbrains.buildServer.ssh.TeamCitySshKey;
 import jetbrains.buildServer.util.StringUtil;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
@@ -71,7 +72,7 @@ import javax.ws.rs.core.UriInfo;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-
+import java.util.stream.Collectors;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 
@@ -1010,6 +1011,43 @@ public class ProjectRequest {
     SProject project = myProjectFinder.getItem(projectLocator);
 
     myServerSshKeyManager.addKey(project, fileName, privateKey, configAction);
+  }
+
+  /**
+   * Adds new SSH key to the specific project.
+   *
+   * @since 2022
+   */
+  @GET
+  @Path("/{projectLocator}/sshKeys")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value = "Upload ssh key")
+  public SshKeys getSshKeys(
+    @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator")
+    String projectLocator,
+    @ApiParam @QueryParam("fileName")
+    String fileName, // TODO remove?
+    @Context
+    HttpServletRequest request
+  ) {
+    SProject project = myProjectFinder.getItem(projectLocator);
+
+    List<TeamCitySshKey> keys = myServerSshKeyManager.getKeys(project);
+
+    if (keys == null) {
+      return new SshKeys();
+    }
+
+    List<SshKey> sshKeys = keys.stream().map(key -> {
+      SshKey sshKey = new SshKey();
+      sshKey.setName(key.getName());
+      sshKey.setEncrypted(key.isEncrypted());
+      return sshKey;
+    }).collect(Collectors.toList());
+
+    SshKeys result = new SshKeys();
+    result.setSshKeys(sshKeys);
+    return result;
   }
 
   @Nullable
