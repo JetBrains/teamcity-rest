@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data.investigations;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.BuildProject;
@@ -211,12 +212,22 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
   private int compareDetails(@NotNull final ResponsibilityEntry a, @NotNull final ResponsibilityEntry b) {
     if (a == b) return 0;
 
-    if (!a.getComment().equals(b.getComment())) return a.getComment().compareTo(b.getComment());
-    if (a.getRemoveMethod() != b.getRemoveMethod()) return a.getRemoveMethod().compareTo(b.getRemoveMethod());
-    if (a.getReporterUser() != null) {
-      if (!a.getReporterUser().equals(b.getReporterUser())) return b.getReporterUser() != null ? (int)(a.getReporterUser().getId() - b.getReporterUser().getId()) : 1;
+    if (!a.getComment().equals(b.getComment())) {
+      return a.getComment().compareTo(b.getComment());
+    }
+    if (a.getRemoveMethod() != b.getRemoveMethod()) {
+      return a.getRemoveMethod().compareTo(b.getRemoveMethod());
+    }
+    final User reportedUserA = a.getReporterUser();
+    final User reportedUserB = b.getReporterUser();
+    if (reportedUserA != null) {
+      if (!reportedUserA.equals(reportedUserB)) {
+        return reportedUserB != null ? (int)(reportedUserA.getId() - reportedUserB.getId()) : 1;
+      }
     } else {
-      if (b.getReporterUser() != null) return (int)(a.getReporterUser().getId() - b.getReporterUser().getId());
+      if (reportedUserB != null) {
+        return 1; // "b" comes after "a"
+      }
     }
     if (!a.getResponsibleUser().equals(b.getResponsibleUser())) return (int)(a.getResponsibleUser().getId() - b.getResponsibleUser().getId());
     if (a.getState() != b.getState()) return a.getState().compareTo(b.getState());
