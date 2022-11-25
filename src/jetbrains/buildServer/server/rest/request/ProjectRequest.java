@@ -56,14 +56,15 @@ import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
 import jetbrains.buildServer.serverSide.impl.xml.XmlConstants;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.web.util.WebUtil;
+import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
+import org.springframework.web.multipart.support.StandardServletPartUtils;
 
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.Part;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -992,7 +993,14 @@ public class ProjectRequest {
   ) throws IOException {
     ConfigAction configAction = myConfigActionFactory.createAction("New SSH key uploaded");
 
-    MultipartFile privateKey = getMultipartFileOrFail(request, "file:fileToUpload");
+    StandardServletPartUtils.getParts(request);
+
+    byte[] privateKey;
+    try {
+      privateKey = getPartOrFail(request, "file:fileToUpload");
+    } catch (Exception e) {
+      throw new BadRequestException("Could not extract private key from request. Cause: " + e.getMessage(), e);
+    }
 
     if (privateKey == null) {
       throw new BadRequestException("No private key file in request");
@@ -1001,16 +1009,21 @@ public class ProjectRequest {
 
     SProject project = myProjectFinder.getItem(projectLocator);
 
-    myServerSshKeyManager.addKey(project, fileName, privateKey.getBytes(), configAction);
+    myServerSshKeyManager.addKey(project, fileName, privateKey, configAction);
   }
 
   @Nullable
-  protected static MultipartFile getMultipartFileOrFail(HttpServletRequest request, String name) throws IllegalStateException {
-    if (request instanceof MultipartHttpServletRequest) {
-      MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest)request;
-      return multipartRequest.getFile(name);
+  protected static byte[] getPartOrFail(HttpServletRequest request, String name) throws IllegalStateException {
+    try {
+      if (request instanceof MultipartHttpServletRequest) {
+        MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest)request;
+        return Objects.requireNonNull(multipartRequest.getFile(name), "Request had no file part named '" + name + "'").getBytes();
+      }
+      Part part = Objects.requireNonNull(request.getPart(name), "Request had no part named '" + name + "'");
+      return IOUtils.toByteArray(part.getInputStream());
+    } catch (IOException | ServletException e) {
+      throw new RuntimeException(e);
     }
-    throw new IllegalStateException("Received non-multipart request from " + WebUtil.getRemoteAddress(request));
   }
 
   /**
