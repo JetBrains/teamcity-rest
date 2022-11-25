@@ -16,10 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
@@ -103,12 +100,12 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     */
 
     // dimensions.get(PERMISSION) is ANDed, permissions is ORed, but so far multivalue is not supported: todo implement
-    @Nullable Set<Permission> permissions = dimensions.getSingleValue(PERMISSION).map(Arrays::asList).map(HashSet::new).orElse(null);
-    @Nullable List<SProject> projects = dimensions.getSingleValue(PROJECT).orElse(null);
+    @Nullable Set<Permission> permissions = Optional.ofNullable(dimensions.getSingleValue(PERMISSION)).map(Arrays::asList).map(HashSet::new).orElse(null);
+    @Nullable List<SProject> projects = dimensions.getSingleValue(PROJECT);
 
     Stream<PermissionAssignmentData> result = Stream.empty();
 
-    Boolean global = dimensions.getSingleValue(GLOBAL).orElse(null);
+    Boolean global = dimensions.getSingleValue(GLOBAL);
 
     if ((permissions == null || permissions.isEmpty())) {
       return getPermissionsAny(authorityHolder, projects, result, global);
@@ -122,7 +119,7 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     @NotNull AuthorityHolder authorityHolder,
     @Nullable List<SProject> projects,
     Stream<PermissionAssignmentData> result,
-    Boolean global
+    @Nullable Boolean global
   ) {
     if (projects == null) {
       if (global == null || global) {
@@ -170,7 +167,7 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     @Nullable List<SProject> projects,
     @NotNull Set<Permission> permissions,
     Stream<PermissionAssignmentData> result,
-    Boolean global
+    @Nullable Boolean global
   ) {
     if (projects == null) {
       if (global == null || global) {
