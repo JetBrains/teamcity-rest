@@ -301,7 +301,7 @@ public class ChangeRequest {
                                                              .filter(Objects::nonNull)
                                                              .collect(Collectors.toList());
 
-    return Builds.createFromBuildPromotions(firstBuildsPromotions, null,  new Fields(fields), myBeanContext);
+    return Builds.createFromBuildPromotions(firstBuildsPromotions, new Fields(fields), myBeanContext);
   }
 
   /**
@@ -335,7 +335,7 @@ public class ChangeRequest {
     ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
 
     List<BuildPromotion> promotions = changeStatus.getDeploymentStatus().values().stream().filter(Objects::nonNull).collect(Collectors.toList());
-    return Builds.createFromBuildPromotions(promotions, null, new Fields(fields), myBeanContext);
+    return Builds.createFromBuildPromotions(promotions, new Fields(fields), myBeanContext);
   }
 
   /**

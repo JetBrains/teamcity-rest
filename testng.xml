@@ -53,6 +53,7 @@
       <class name="jetbrains.buildServer.server.rest.model.ChangeStatusTest" />
       <class name="jetbrains.buildServer.server.rest.model.ProjectTest" />
       <class name="jetbrains.buildServer.server.rest.model.BuildTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.BuildsTest"/>
       <class name="jetbrains.buildServer.server.rest.model.BuildTypeTest"/>
       <class name="jetbrains.buildServer.server.rest.model.AgentTest"/>
       <class name="jetbrains.buildServer.server.rest.model.PagerDataTest"/>

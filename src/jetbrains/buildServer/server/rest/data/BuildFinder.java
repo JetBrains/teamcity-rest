@@ -158,7 +158,7 @@ public class BuildFinder {
     final PagerData pagerData = new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult,
                                               locatorText == null ? null : resultingLocatorText,
                                               locatorParameterName);
-    return Builds.createFromBuildPromotions(pagedResult.myEntries, pagerData, fields, beanContext);
+    return Builds.createFromPrefilteredBuildPromotions(pagedResult.myEntries, pagerData, fields, beanContext);
   }
 
   @NotNull

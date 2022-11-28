@@ -369,7 +369,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     Builds builds1 = new Builds();
     Build build1 = new Build();
     build1.setLocator("buildType:(id:" + buildType3.getExternalId() + "),number:" + build3_2.getBuildNumber());
-    builds1.builds = Arrays.asList(build1);
+    builds1.setBuilds(Arrays.asList(build1));
     build.setBuildArtifactDependencies(builds1);
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
     assertEquals(1, result.getBuildPromotion().getArtifactDependencies().size());
@@ -379,7 +379,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     Builds builds2 = new Builds();
     Build build2 = new Build();
     build2.setLocator("buildType:(id:" + buildType4.getExternalId() + "),number:" + build4_1.getBuildNumber());
-    builds2.builds = Arrays.asList(build2);
+    builds2.setBuilds(Arrays.asList(build2));
     build.setBuildArtifactDependencies(builds2);
     checkException(BadRequestException.class, new Runnable() {
       public void run() {
@@ -717,7 +717,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     Builds builds1 = new Builds();
     Build build1 = new Build();
     build1.setLocator("id:" + build3_1.getBuildId());
-    builds1.builds = Arrays.asList(build1);
+    builds1.setBuilds(Arrays.asList(build1));
     build.setBuildArtifactDependencies(builds1);
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
 
@@ -728,7 +728,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     builds1 = new Builds();
     build1 = new Build();
     build1.setLocator("id:" + build2_1.getBuildId());
-    builds1.builds = Arrays.asList(build1);
+    builds1.setBuilds(Arrays.asList(build1));
     build.setBuildArtifactDependencies(builds1);
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
 
@@ -739,10 +739,10 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     builds1 = new Builds();
     build1 = new Build();
     build1.setLocator("id:" + build2_1.getBuildId());
-    builds1.builds = Arrays.asList(build1);
+    builds1.setBuilds(Arrays.asList(build1));
     Build build2 = new Build();
     build2.setLocator("id:" + build2_2.getBuildId());
-    builds1.builds = Arrays.asList(build1, build2);
+    builds1.setBuilds(Arrays.asList(build1, build2));
     build.setBuildArtifactDependencies(builds1);
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
 
@@ -754,10 +754,10 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     builds1 = new Builds();
     build1 = new Build();
     build1.setLocator("id:" + build2_1.getBuildId());
-    builds1.builds = Arrays.asList(build1);
+    builds1.setBuilds(Arrays.asList(build1));
     build2 = new Build();
     build2.setLocator("id:" + build2_2.getBuildId());
-    builds1.builds = Arrays.asList(build2, build1);
+    builds1.setBuilds(Arrays.asList(build2, build1));
     build.setBuildArtifactDependencies(builds1);
 
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
@@ -770,12 +770,12 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     builds1 = new Builds();
     build1 = new Build();
     build1.setLocator("id:" + build2_1.getBuildId());
-    builds1.builds = Arrays.asList(build1);
+    builds1.setBuilds(Arrays.asList(build1));
     build2 = new Build();
     build2.setLocator("id:" + build2_2.getBuildId());
     Build build3 = new Build();
     build3.setLocator("id:" + build2_3.getBuildId());
-    builds1.builds = Arrays.asList(build2, build3, build1);
+    builds1.setBuilds(Arrays.asList(build2, build3, build1));
     build.setBuildArtifactDependencies(builds1);
 
     checkException(BadRequestException.class, new Runnable() {
@@ -788,12 +788,12 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     builds1 = new Builds();
     build1 = new Build();
     build1.setLocator("id:" + build2_1.getBuildId());
-    builds1.builds = Arrays.asList(build1);
+    builds1.setBuilds(Arrays.asList(build1));
     build2 = new Build();
     build2.setLocator("id:" + build2_2.getBuildId());
     build3 = new Build();
     build3.setLocator("id:" + build2_1.getBuildId());
-    builds1.builds = Arrays.asList(build2, build3, build1);
+    builds1.setBuilds(Arrays.asList(build2, build3, build1));
     build.setBuildArtifactDependencies(builds1);
 
     PropEntitiesArtifactDep customDeps = new PropEntitiesArtifactDep();
@@ -816,10 +816,10 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     builds1 = new Builds();
     build1 = new Build();
     build1.setLocator("id:" + build2_1.getBuildId());
-    builds1.builds = Arrays.asList(build1);
+    builds1.setBuilds(Arrays.asList(build1));
     build2 = new Build();
     build2.setLocator("id:" + build2_2.getBuildId());
-    builds1.builds = Arrays.asList(build1, build2);
+    builds1.setBuilds(Arrays.asList(build1, build2));
     build.setBuildArtifactDependencies(builds1);
 
     customDeps = new PropEntitiesArtifactDep();
@@ -838,12 +838,12 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     builds1 = new Builds();
     build1 = new Build();
     build1.setLocator("id:" + build2_1.getBuildId());
-    builds1.builds = Arrays.asList(build1);
+    builds1.setBuilds(Arrays.asList(build1));
     build2 = new Build();
     build2.setLocator("id:" + build2_2.getBuildId());
     build3 = new Build();
     build3.setLocator("id:" + build2_1.getBuildId());
-    builds1.builds = Arrays.asList(build2, build3, build1);
+    builds1.setBuilds(Arrays.asList(build2, build3, build1));
     build.setBuildArtifactDependencies(builds1);
 
     customDeps = new PropEntitiesArtifactDep();

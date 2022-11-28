@@ -42,13 +42,14 @@ public class Related {
   }
 
   public Related(@NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    final @NotNull ItemsProviders.LocatorAware<ItemsProviders.ItemsRetriever<BuildPromotion>> buildsData =
-      new ItemsProviders.LocatorAwareItemsRetriever<BuildPromotion>(beanContext.getSingletonService(BuildPromotionFinder.class).getLazyResult(), null);
+    final BuildPromotionFinder promotionFinder = beanContext.getSingletonService(BuildPromotionFinder.class);
 
-    builds = ValueWithDefault.decideDefault(fields.isIncluded("builds", true, true),
-                                            () -> {
-                                              Fields nestedFields = fields.getNestedField("builds", Fields.SHORT, Fields.LONG);
-                                              return nestedFields.getLocator() == null ? null : new Builds(buildsData, nestedFields, beanContext);
-                                            });
+    builds = ValueWithDefault.decideDefault(
+      fields.isIncluded("builds", true, true),
+      () -> {
+        Fields nestedFields = fields.getNestedField("builds", Fields.SHORT, Fields.LONG);
+        return Builds.createFromPrefilteredBuildPromotions(promotionFinder.getLazyResult(), nestedFields, beanContext);
+      }
+    );
   }
 }
