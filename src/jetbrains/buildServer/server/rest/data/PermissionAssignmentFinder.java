@@ -103,24 +103,22 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     @Nullable Set<Permission> permissions = Optional.ofNullable(dimensions.getSingleValue(PERMISSION)).map(Arrays::asList).map(HashSet::new).orElse(null);
     @Nullable List<SProject> projects = dimensions.getSingleValue(PROJECT);
 
-    Stream<PermissionAssignmentData> result = Stream.empty();
-
     Boolean global = dimensions.getSingleValue(GLOBAL);
 
     if ((permissions == null || permissions.isEmpty())) {
-      return getPermissionsAny(authorityHolder, projects, result, global);
+      return getPermissionsAny(authorityHolder, projects, global);
     }
 
-    return getPermissionsSelected(authorityHolder, serviceLocator, projects, permissions, result, global);
+    return getPermissionsSelected(authorityHolder, serviceLocator, projects, permissions, global);
   }
 
   @NotNull
   private static FinderDataBinding.ItemHolder<PermissionAssignmentData> getPermissionsAny(
     @NotNull AuthorityHolder authorityHolder,
     @Nullable List<SProject> projects,
-    Stream<PermissionAssignmentData> result,
     @Nullable Boolean global
   ) {
+    Stream<PermissionAssignmentData> result = Stream.empty();
     if (projects == null) {
       if (global == null || global) {
         result = Stream.concat(result, authorityHolder.getGlobalPermissions().toList().stream().map(p -> new PermissionAssignmentData(p)));
@@ -166,9 +164,9 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     @NotNull ServiceLocator serviceLocator,
     @Nullable List<SProject> projects,
     @NotNull Set<Permission> permissions,
-    Stream<PermissionAssignmentData> result,
     @Nullable Boolean global
   ) {
+    Stream<PermissionAssignmentData> result = Stream.empty();
     if (projects == null) {
       if (global == null || global) {
         result = Stream.concat(result, permissions.stream().filter(p -> authorityHolder.isPermissionGrantedGlobally(p)).map(p -> new PermissionAssignmentData(p)));
