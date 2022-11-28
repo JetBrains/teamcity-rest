@@ -1015,9 +1015,7 @@ public class ProjectRequest {
     @Context
     HttpServletRequest request
   ) throws IOException {
-    ConfigAction configAction = myConfigActionFactory.createAction("New SSH key uploaded");
-
-    StandardServletPartUtils.getParts(request);
+    Objects.requireNonNull(fileName);
 
     byte[] privateKey = IOUtils.toByteArray(request.getInputStream());
 
@@ -1031,8 +1029,8 @@ public class ProjectRequest {
       throw new BadRequestException("Invalid key file: " + e.getCause(), e);
     }
 
+    ConfigAction configAction = myConfigActionFactory.createAction("New SSH key uploaded");
     SProject project = myProjectFinder.getItem(projectLocator);
-
     myServerSshKeyManager.addKey(project, fileName, privateKey, configAction);
   }
 
