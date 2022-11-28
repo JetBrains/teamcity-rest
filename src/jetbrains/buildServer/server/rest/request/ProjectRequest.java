@@ -1000,7 +1000,7 @@ public class ProjectRequest {
   @Path("/{projectLocator}/sshKeys")
   @Consumes({"text/plain" /* TODO check mime type */})
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value = "Upload ssh key", hidden = false)
+  @ApiOperation(value = "Upload ssh key", hidden = true)
   public void addSshKey(
     @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator")
     String projectLocator,
@@ -1046,7 +1046,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/sshKeys")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value = "List ssh keys")
+  @ApiOperation(value = "List ssh keys", hidden = true)
   public SshKeys getSshKeys(
     @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator")
     String projectLocator,
