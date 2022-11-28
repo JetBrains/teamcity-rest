@@ -1044,7 +1044,7 @@ public class ProjectRequest {
   @GET
   @Path("/{projectLocator}/sshKeys")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value = "Upload ssh key")
+  @ApiOperation(value = "List ssh keys")
   public SshKeys getSshKeys(
     @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator")
     String projectLocator,
