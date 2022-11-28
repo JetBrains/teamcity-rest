@@ -468,7 +468,7 @@ public class BuildType {
         } else {
           buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType());
         }
-        return Builds.createFromBuildPromotions(builds, new PagerDataImpl(buildsHref), buildsFields, myBeanContext);
+        return Builds.createFromPrefilteredBuildPromotions(builds, new PagerDataImpl(buildsHref), buildsFields, myBeanContext);
       }
     });
   }

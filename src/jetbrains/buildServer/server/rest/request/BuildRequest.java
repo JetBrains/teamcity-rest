@@ -1152,7 +1152,7 @@ public class BuildRequest {
     UriBuilder uriBuilder = uriInfo.getRequestUriBuilder();
     UriBuilder mainRequestUriBuilder = uriBuilder.replacePath(uriBuilder.build().getPath().replace("/multiple/" + buildLocator, "")).queryParam("locator", buildLocator);
     final PagerData pagerData = new PagerDataImpl(mainRequestUriBuilder, request.getContextPath(), pagedResult, buildLocator, "locator");
-    return Builds.createFromBuildPromotions(pagedResult.myEntries, pagerData, new Fields(fields), myBeanContext);
+    return Builds.createFromPrefilteredBuildPromotions(pagedResult.myEntries, pagerData, new Fields(fields), myBeanContext);
   }
 
   /**

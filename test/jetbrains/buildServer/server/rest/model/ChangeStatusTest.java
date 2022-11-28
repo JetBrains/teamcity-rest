@@ -22,6 +22,7 @@ import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.BuildProblemTypes;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
+import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.BuildFinderTestBase;
 import jetbrains.buildServer.server.rest.model.change.ChangeStatus;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -44,7 +45,7 @@ import org.testng.annotations.Test;
 import static jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder.modification;
 
 @Test
-public class ChangeStatusTest extends BaseServerTestCase {
+public class ChangeStatusTest extends BaseFinderTest {
   private MockVcsSupport myVcs;
   private SUser myUser;
   private SUser myAnotherUser;
@@ -268,8 +269,8 @@ public class ChangeStatusTest extends BaseServerTestCase {
     assertEquals(1, (int) status.getFinished());
     assertEquals(0, (int) status.getSuccessful());
     assertEquals(1, (int) status.getFailed());
-    assertEquals(1, (int) status.getCompilationErrorBuilds().count);
-    assertEquals(finishedBuild.getBuildId(), (long) status.getCompilationErrorBuilds().builds.get(0).getId());
+    assertEquals(1, (int) status.getCompilationErrorBuilds().getCount());
+    assertEquals(finishedBuild.getBuildId(), (long) status.getCompilationErrorBuilds().getBuilds().get(0).getId());
   }
 
   public void testCriticalErrorBuilds() {
@@ -291,8 +292,8 @@ public class ChangeStatusTest extends BaseServerTestCase {
     assertEquals(1, (int) status.getFinished());
     assertEquals(0, (int) status.getSuccessful());
     assertEquals(1, (int) status.getFailed());
-    assertEquals(1, (int) status.getCriticalBuilds().count);
-    assertEquals(finishedBuild.getBuildId(), (long) status.getCriticalBuilds().builds.get(0).getId());
+    assertEquals(1, (int) status.getCriticalBuilds().getCount());
+    assertEquals(finishedBuild.getBuildId(), (long) status.getCriticalBuilds().getBuilds().get(0).getId());
   }
 
   public void testNonCriticalErrorBuilds() {
@@ -316,9 +317,9 @@ public class ChangeStatusTest extends BaseServerTestCase {
     assertEquals(1, (int) status.getFinished());
     assertEquals(0, (int) status.getSuccessful());
     assertEquals(1, (int) status.getFailed());
-    assertEquals(0, (int) status.getCriticalBuilds().count);
-    assertEquals(1, (int) status.getNonCriticalBuilds().count);
-    assertEquals(finishedBuild.getBuildId(), (long) status.getNonCriticalBuilds().builds.get(0).getId());
+    assertEquals(0, (int) status.getCriticalBuilds().getCount());
+    assertEquals(1, (int) status.getNonCriticalBuilds().getCount());
+    assertEquals(finishedBuild.getBuildId(), (long) status.getNonCriticalBuilds().getBuilds().get(0).getId());
   }
 
   public void testNewTestsFailedBuilds() {
@@ -340,10 +341,10 @@ public class ChangeStatusTest extends BaseServerTestCase {
     assertEquals(1, (int) status.getFinished());
     assertEquals(0, (int) status.getSuccessful());
     assertEquals(1, (int) status.getFailed());
-    assertEquals(0, (int) status.getCriticalBuilds().count);
-    assertEquals(0, (int) status.getNonCriticalBuilds().count);
-    assertEquals(1, (int) status.getNewTestsFailedBuilds().count);
-    assertEquals(finishedBuild.getBuildId(), (long) status.getNewTestsFailedBuilds().builds.get(0).getId());
+    assertEquals(0, (int) status.getCriticalBuilds().getCount());
+    assertEquals(0, (int) status.getNonCriticalBuilds().getCount());
+    assertEquals(1, (int) status.getNewTestsFailedBuilds().getCount());
+    assertEquals(finishedBuild.getBuildId(), (long) status.getNewTestsFailedBuilds().getBuilds().get(0).getId());
   }
 
   public void testNewFailedTests() {
@@ -364,7 +365,7 @@ public class ChangeStatusTest extends BaseServerTestCase {
     assertEquals(0, (int) status.getSuccessful());
     assertEquals(1, (int) status.getFailed());
     assertEquals(2, (int) status.getNewFailedTests());
-    assertEquals(1, (int) status.getNewTestsFailedBuilds().count);
+    assertEquals(1, (int) status.getNewTestsFailedBuilds().getCount());
   }
 
   public void testNoNewFailedTests() {
@@ -388,7 +389,7 @@ public class ChangeStatusTest extends BaseServerTestCase {
     assertEquals(1, (int) status.getFailed());
     assertEquals(0, (int) status.getNewFailedTests());
     assertEquals(1, (int) status.getOtherFailedTests());
-    assertEquals(0, (int) status.getNewTestsFailedBuilds().count);
+    assertEquals(0, (int) status.getNewTestsFailedBuilds().getCount());
   }
 
   public void testSomeNewFailedTests() {
@@ -412,7 +413,7 @@ public class ChangeStatusTest extends BaseServerTestCase {
     assertEquals(1, (int) status.getFailed());
     assertEquals(1, (int) status.getNewFailedTests());
     assertEquals(1, (int) status.getOtherFailedTests());
-    assertEquals(1, (int) status.getNewTestsFailedBuilds().count);
+    assertEquals(1, (int) status.getNewTestsFailedBuilds().getCount());
   }
 
   public void testPendingConfiguration() {

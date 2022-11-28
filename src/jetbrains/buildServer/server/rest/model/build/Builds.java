@@ -16,25 +16,15 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
-import io.swagger.annotations.ExtensionProperty;
-import java.util.ArrayList;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.BuildPromotionFinder;
-import jetbrains.buildServer.server.rest.data.ItemFilter;
-import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.model.Fields;
-import jetbrains.buildServer.server.rest.model.ItemsProviders;
-import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.DefaultValueAware;
-import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.server.rest.util.*;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,7 +35,6 @@ import javax.xml.bind.annotation.XmlType;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * User: Yegor Yarko
@@ -55,114 +44,171 @@ import java.util.stream.Collectors;
 @XmlType(name = "builds")
 @ModelBaseType(ObjectType.PAGINATED)
 public class Builds implements DefaultValueAware {
-  @XmlElement(name = "build")
-  public List<Build> builds;
-
-  @XmlAttribute
-  public Integer count;
-
-  @XmlAttribute(required = false)
-  @Nullable
-  public String href;
-
-  @XmlAttribute(required = false)
-  @Nullable
-  public String nextHref;
-
-  @XmlAttribute(required = false)
-  @Nullable
-  public String prevHref;
+  private BeanContext myBeanContext;
+  private Fields myFields;
+  private ItemsProviders.ItemsRetriever<BuildPromotion> myBuildDataRetriever;
 
   public Builds() {
   }
 
-  public Builds(@NotNull final ItemsProviders.LocatorAware<ItemsProviders.ItemsRetriever<BuildPromotion>> buildsData,
-                @NotNull final Fields fields,
-                @NotNull final BeanContext beanContext) {
-    this(buildsData.get(fields.getLocator()), fields, beanContext);
+  private Builds(@NotNull final ItemsProviders.ItemsRetriever<BuildPromotion> buildPromotionsRetriever,
+                 @NotNull final Fields fields,
+                 @NotNull final BeanContext beanContext) {
+    myFields = fields;
+    myBeanContext = beanContext;
+    myBuildDataRetriever = buildPromotionsRetriever;
   }
 
-  public Builds(final @NotNull ItemsProviders.ItemsRetriever<BuildPromotion> data,
-                final @NotNull Fields fields,
-                final @NotNull BeanContext beanContext) {
-    final String locator = fields.getLocator();
-
-    if(locator == null) {
-      builds = ValueWithDefault.decideDefault(
-        fields.isIncluded("build", false, true),
-        () -> {
-          final Fields buildFields = fields.getNestedField("build");
-          return Util.resolveNull(data.getItems(), (items) -> items.stream().map(b -> new Build(b, buildFields, beanContext)).collect(Collectors.toList()));
+  @XmlElement(name = "build")
+  public List<Build> getBuilds() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("build", false, true),
+      () -> {
+        List<BuildPromotion> promotions = myBuildDataRetriever.getItems();
+        if(promotions == null) {
+          return Collections.emptyList();
         }
-      );
-      count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", data.isCountCheap(), data.isCountCheap(), true), () -> data.getCount());
-    } else {
-      List<Build> filteredBuilds = calculateFilteredBuilds(data, fields, locator, beanContext);
-      builds = ValueWithDefault.decideDefault(fields.isIncluded("build", false, true), filteredBuilds);
-      count = ValueWithDefault.decideIncludeByDefault(
-        fields.isIncluded("count", true, true),
-        () -> Util.resolveNull(filteredBuilds, builds -> builds.size())
-      );
-    }
 
-    PagerData pagerData = data.getPagerData();
-    if (pagerData != null) {
-      href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
-      nextHref = ValueWithDefault
-        .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
-      prevHref = ValueWithDefault
-        .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
-    }
+        Fields nestedFields = myFields.getNestedField("build");
+        return promotions.stream().map(bp -> new Build(bp, nestedFields, myBeanContext)).collect(Collectors.toList());
+      }
+    );
   }
 
+  @XmlAttribute(name = "count")
+  public Integer getCount() {
+    return ValueWithDefault.decideIncludeByDefault(
+      myFields.isIncluded("count", myBuildDataRetriever.isCountCheap(), myBuildDataRetriever.isCountCheap(), true),
+      () -> myBuildDataRetriever.getCount()
+    );
+  }
+
+  @XmlAttribute(required = false)
   @Nullable
-  private List<Build> calculateFilteredBuilds(@NotNull final ItemsProviders.ItemsRetriever<BuildPromotion> data,
-                                              @NotNull final Fields fields,
-                                              @NotNull final String locator,
-                                              @NotNull final BeanContext beanContext) {
-    Fields buildFields = fields.getNestedField("build");
+  public String getHref() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("href"),
+      () -> {
+        PagerData pager = myBuildDataRetriever.getPagerData();
+        if(pager == null) {
+          return null;
+        }
+        return myBeanContext.getApiUrlBuilder().transformRelativePath(pager.getHref());
+      }
+    );
+  }
 
-    List<BuildPromotion> computedItems = data.getItems();
-    if (computedItems == null) {
-      return null;
-    }
+  @XmlAttribute(required = false)
+  @Nullable
+  public String getNextHref() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("nextHref"),
+      () -> {
+        PagerData pager = myBuildDataRetriever.getPagerData();
+        if(pager == null || pager.getNextHref() == null) {
+          return null;
+        }
+        return myBeanContext.getApiUrlBuilder().transformRelativePath(pager.getNextHref());
+      }
+    );
+  }
 
-    List<Build> filteredBuilds = new ArrayList<>();
-    ItemFilter<BuildPromotion> filter = beanContext.getSingletonService(BuildPromotionFinder.class).getFilter(Locator.locator(locator));
-    for (BuildPromotion promo : computedItems) {
-      if (filter.shouldStop(promo))
-        break;
-
-      if (filter.isIncluded(promo))
-        filteredBuilds.add(new Build(promo, buildFields, beanContext));
-    }
-    return filteredBuilds;
+  @XmlAttribute(required = false)
+  @Nullable
+  public String getPrevHref() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("prevHref"),
+      () -> {
+        PagerData pager = myBuildDataRetriever.getPagerData();
+        if(pager == null || pager.getPrevHref() == null) {
+          return null;
+        }
+        return myBeanContext.getApiUrlBuilder().transformRelativePath(pager.getPrevHref());
+      }
+    );
   }
 
   @Override
   public boolean isDefault() {
-    return ValueWithDefault.isAllDefault(builds, count, href);
+    if(myBuildDataRetriever.isCountCheap()) {
+      return ValueWithDefault.isAllDefault(myBuildDataRetriever.getCount(), getHref());
+    }
+
+    // it may not actually be false, but it requires calculation, which is not always necessary
+    return false;
+  }
+
+  @Nullable
+  private List<Build> mySubmittedBuilds;
+
+  public void setBuilds(@Nullable List<Build> builds) {
+    mySubmittedBuilds = builds;
+  }
+
+  // this should be ignored when serializing
+  @Nullable
+  public List<Build> getSubmittedBuilds() {
+    return mySubmittedBuilds;
   }
 
   @NotNull
   public List<BuildPromotion> getFromPosted(@NotNull final ServiceLocator serviceLocator, @NotNull final Map<Long, Long> buildPromotionIdReplacements) {
-    if (builds == null){
+    if (mySubmittedBuilds == null) {
       return Collections.emptyList();
     }
-    final BuildPromotionFinder buildFinder = serviceLocator.getSingletonService(BuildPromotionFinder.class);
-    return CollectionsUtil.convertCollection(builds, new Converter<BuildPromotion, Build>() {
-      @Override
-      public BuildPromotion createFrom(@NotNull final Build source) {
-        return source.getFromPosted(buildFinder, buildPromotionIdReplacements);
-      }
-    });
+    final BuildPromotionFinder buildPromotionFinder = serviceLocator.getSingletonService(BuildPromotionFinder.class);
+    return CollectionsUtil.convertCollection(mySubmittedBuilds, submittedBuild -> submittedBuild.getFromPosted(buildPromotionFinder, buildPromotionIdReplacements));
   }
 
+  /**
+   * Considers given list of promotions raw and <b>supports post filtering</b> with {@code fields.getLocator()} in case it is present.
+   */
   @NotNull
-  public static Builds createFromBuildPromotions(@Nullable final List<BuildPromotion> buildObjects,
-                                                 @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    return new Builds(
-      new ItemsProviders.LocatorAwareItemsRetriever<BuildPromotion>(Util.resolveNull(buildObjects, b -> ItemsProviders.ItemsProvider.items(b)), () -> pagerData),
-      fields, beanContext);
+  public static Builds createFromBuildPromotions(@Nullable final List<BuildPromotion> promotions,
+                                                 @NotNull final Fields fields,
+                                                 @NotNull final BeanContext beanContext) {
+    if(promotions == null) {
+      return new Builds(new ListBasedItemsRetriever<>(Collections.emptyList()), fields, beanContext);
+    }
+    final BuildPromotionFinder finder = beanContext.getSingletonService(BuildPromotionFinder.class);
+    return new Builds(new FilteringItemsRetriever<>(new ListBasedItemsRetriever<>(promotions), fields.getLocator(), finder), fields, beanContext);
   }
+
+  /**
+   * Considers promotions from given retriever raw and <b>supports post filtering</b> with {@code fields.getLocator()} in case it is present.
+   */
+  @NotNull
+  public static Builds createFromBuildPromotions(@NotNull final ItemsProviders.ItemsRetriever<BuildPromotion> promotionsRetriever,
+                                                 @NotNull final Fields fields,
+                                                 @NotNull final BeanContext beanContext) {
+    final BuildPromotionFinder finder = beanContext.getSingletonService(BuildPromotionFinder.class);
+    return new Builds(new FilteringItemsRetriever<>(promotionsRetriever, fields.getLocator(), finder), fields, beanContext);
+  }
+
+
+  /**
+   * Considered given list of promotions <b>pre-filtered</b> with {@code fields.getLocator()} in case it is present in {@code fields}.
+   */
+  @NotNull
+  public static Builds createFromPrefilteredBuildPromotions(@Nullable final List<BuildPromotion> prefilteredPromotions,
+                                                            @Nullable final PagerData pagerData,
+                                                            @NotNull final Fields fields,
+                                                            @NotNull final BeanContext beanContext) {
+    if(prefilteredPromotions == null) {
+      return new Builds(new ListBasedItemsRetriever<>(Collections.emptyList()), fields, beanContext);
+    }
+
+    return new Builds(new ListBasedItemsRetriever<>(prefilteredPromotions, pagerData), fields, beanContext);
+  }
+
+  /**
+   * Considered given list of promotions <b>pre-filtered</b> with {@code fields.getLocator()} in case it is present in {@code fields}.
+   */
+  @NotNull
+  public static Builds createFromPrefilteredBuildPromotions(@NotNull final ItemsProviders.ItemsProvider<BuildPromotion> prefilteredPromotions,
+                                                            @NotNull final Fields fields,
+                                                            @NotNull final BeanContext beanContext) {
+    return new Builds(new ItemProviderBasedItemsRetriever<>(prefilteredPromotions, fields.getLocator()), fields, beanContext);
+  }
+
 }

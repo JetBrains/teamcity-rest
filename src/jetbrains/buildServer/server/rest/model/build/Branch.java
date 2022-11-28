@@ -104,20 +104,21 @@ public class Branch {
    */
   @XmlElement(name = "builds")
   public Builds getBuilds() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("builds", false),
-                                          () -> {
-                                            String buildsHref = null;
-                                            PagedSearchResult<BuildPromotion> builds = null;
-                                            final Fields buildsFields = myFields.getNestedField("builds");
-                                            final String buildsLocator = buildsFields.getLocator();
-                                            if (buildsLocator != null) {
-                                              builds = myBranch.getBuilds(buildsFields.getLocator());
-                                              buildsHref = BuildRequest.getBuildsHref(myBranch, buildsLocator);
-                                            } else {
-                                              buildsHref = BuildRequest.getBuildsHref(myBranch, null);
-                                            }
-                                            if (builds == null && buildsHref == null) return null;
-                                            return Builds.createFromBuildPromotions(builds == null ? null : builds.myEntries, buildsHref == null ? null : new PagerDataImpl(buildsHref), buildsFields, myBeanContext);
-                                          });
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("builds", false),
+      () -> {
+        String buildsHref = null;
+        PagedSearchResult<BuildPromotion> builds = null;
+        final Fields buildsFields = myFields.getNestedField("builds");
+        final String buildsLocator = buildsFields.getLocator();
+        if (buildsLocator != null) {
+          builds = myBranch.getBuilds(buildsFields.getLocator());
+          buildsHref = BuildRequest.getBuildsHref(myBranch, buildsLocator);
+        } else {
+          buildsHref = BuildRequest.getBuildsHref(myBranch, null);
+        }
+        if (builds == null && buildsHref == null) return null;
+        return Builds.createFromPrefilteredBuildPromotions(builds == null ? null : builds.myEntries, buildsHref == null ? null : new PagerDataImpl(buildsHref), buildsFields, myBeanContext);
+      });
   }
 }

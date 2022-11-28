@@ -274,7 +274,7 @@ public class Agent {
                                                 Fields nestedFields = fields.getNestedField("builds", Fields.NONE, Fields.SHORT);
                                                 String locator = Locator.merge(nestedFields.getLocator(),
                                                                                LocatorUtil.setDimension(BuildPromotionFinder.getLocator(agent), PagerData.COUNT, "1"));
-                                                return Builds.createFromBuildPromotions(
+                                                return Builds.createFromPrefilteredBuildPromotions(
                                                   beanContext.getServiceLocator().getSingletonService(BuildPromotionFinder.class).getItems(locator).myEntries,
                                                   new PagerDataImpl(BuildRequest.getHref(locator)), fields, beanContext);
                                               });

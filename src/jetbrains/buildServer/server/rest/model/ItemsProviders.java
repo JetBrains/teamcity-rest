@@ -28,12 +28,6 @@ import org.jetbrains.annotations.Nullable;
  */
 
 public interface ItemsProviders {
-
-  interface LocatorAware<T> {
-    @NotNull
-    T get(@Nullable final String locator);
-  }
-
   interface ItemsRetriever<T> {
     @Nullable
     List<T> getItems();
@@ -46,9 +40,7 @@ public interface ItemsProviders {
     PagerData getPagerData();
   }
 
-
-
-  static abstract class ItemsProvider<T> {
+  abstract class ItemsProvider<T> {
     @NotNull
     public abstract List<T> getItems(@Nullable final String locator);
 
@@ -56,7 +48,6 @@ public interface ItemsProviders {
     public Integer getCheapCount(@Nullable final String locator) {
       return null;
     }
-
 
     @NotNull
     public static <S> ItemsProvider<S> items(@NotNull Function<String, List<S>> getItems) {
@@ -83,87 +74,6 @@ public interface ItemsProviders {
           return items.size();
         }
       };
-    }
-  }
-
-
-
-  class LocatorAwareItemsRetriever<T> implements LocatorAware<ItemsRetriever<T>> {
-    @Nullable private final ItemsProvider<T> myItemsProvider;
-    @Nullable private final Supplier<PagerData> myPagerData;
-
-    public LocatorAwareItemsRetriever(@Nullable final ItemsProvider<T> itemsProvider, @Nullable final Supplier<PagerData> pagerData) {
-      myItemsProvider = itemsProvider;
-      myPagerData = pagerData;
-    }
-
-    @NotNull
-    @Override
-    public ItemsRetriever<T> get(@Nullable final String locator) {
-      return new ItemsRetrieverImpl(locator);
-    }
-
-
-    class ItemsRetrieverImpl implements ItemsRetriever<T> {
-      @Nullable private final String myLocator;
-
-      @Nullable private List<T> myCachedItems = null;
-      private Integer myCachedCheapCount = null;
-      private boolean myCheapCountIsCalculated = false;
-
-
-      ItemsRetrieverImpl(@Nullable final String locator) {
-        myLocator = locator;
-      }
-
-      @Nullable
-      @Override
-      public PagerData getPagerData() {
-        return myPagerData == null ? null : myPagerData.get();
-      }
-
-
-      @Nullable
-      @Override
-      public List<T> getItems() {
-        if (myItemsProvider == null) return null;
-        if (myCachedItems == null) {
-          myCachedItems = myItemsProvider.getItems(myLocator);
-        }
-        return myCachedItems;
-      }
-
-
-      @Override
-      public Integer getCount() {
-        if (myItemsProvider == null) return null;
-        Integer cheapCount = getCheapCount();
-        if (cheapCount != null) {
-          return cheapCount;
-        }
-        //noinspection ConstantConditions
-        return getItems().size();
-      }
-
-      @Override
-      public boolean isCountCheap() {
-        if (myItemsProvider == null) return true;
-        return getCheapCount() != null;
-      }
-
-
-      @Nullable
-      Integer getCheapCount() {
-        if (myCachedItems != null) {
-          return myCachedItems.size();
-        }
-        if (!myCheapCountIsCalculated) {
-          //noinspection ConstantConditions
-          myCachedCheapCount = myItemsProvider.getCheapCount(myLocator);
-          myCheapCountIsCalculated = true;
-        }
-        return myCachedCheapCount;
-      }
     }
   }
 }

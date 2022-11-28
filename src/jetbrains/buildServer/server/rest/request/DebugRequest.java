@@ -846,7 +846,7 @@ public class DebugRequest {
   @Produces({"application/xml", "application/json"})
   public Builds getCachedBuildPromotions(@QueryParam("buildTypeLocator") final String buildTypeLocator, @QueryParam("fields") final String fields) {
     myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
-    ItemsProviders.LocatorAwareItemsRetriever<BuildPromotion> itemsRetriever = new ItemsProviders.LocatorAwareItemsRetriever<>(new ItemsProviders.ItemsProvider<BuildPromotion>() {
+    ItemsProviders.ItemsProvider<BuildPromotion> itemsProvider = new ItemsProviders.ItemsProvider<BuildPromotion>() {
       @NotNull
       @Override
       public List<BuildPromotion> getItems(@Nullable final String locator) {
@@ -857,8 +857,8 @@ public class DebugRequest {
         myServiceLocator.getSingletonService(BuildPromotionManagerImpl.class).traverseCachedBuildTypePromotions(buildTypeIds, item -> buildPromotions.add(item));
         return buildPromotions;
       }
-    }, null);
-    return new Builds(itemsRetriever, new Fields(fields), myBeanContext);
+    };
+    return Builds.createFromPrefilteredBuildPromotions(itemsProvider, new Fields(fields), myBeanContext);
   }
 
   /* relies on making several cache methods public

@@ -148,7 +148,7 @@ public class ChangeStatus {
   public Builds getCriticalBuilds() {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded(CRITICAL_BUILDS_FIELD),
-      new Builds(myCriticalCollector, myFields.getNestedField(CRITICAL_BUILDS_FIELD), myBeanContext)
+      Builds.createFromBuildPromotions(myCriticalCollector, myFields.getNestedField(CRITICAL_BUILDS_FIELD), myBeanContext)
     );
   }
 
@@ -156,7 +156,7 @@ public class ChangeStatus {
   public Builds getNonCriticalBuilds() {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded(NON_CRITICAL_BUILDS_FIELD),
-      new Builds(myNotCriticalCollector, myFields.getNestedField(NON_CRITICAL_BUILDS_FIELD), myBeanContext)
+      Builds.createFromBuildPromotions(myNotCriticalCollector, myFields.getNestedField(NON_CRITICAL_BUILDS_FIELD), myBeanContext)
     );
   }
 
@@ -164,7 +164,7 @@ public class ChangeStatus {
   public Builds getNewTestsFailedBuilds() {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded(NEW_TESTS_FAILED_BUILDS_FIELD),
-      new Builds(myNewTestsFailedCollector, myFields.getNestedField(NEW_TESTS_FAILED_BUILDS_FIELD), myBeanContext)
+      Builds.createFromBuildPromotions(myNewTestsFailedCollector, myFields.getNestedField(NEW_TESTS_FAILED_BUILDS_FIELD), myBeanContext)
     );
   }
 
@@ -172,7 +172,7 @@ public class ChangeStatus {
   public Builds getCompilationErrorBuilds() {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded(COMPILATION_ERROR_BUILDS_FIELD),
-      new Builds(myCompilationErrorCollector, myFields.getNestedField(COMPILATION_ERROR_BUILDS_FIELD), myBeanContext)
+      Builds.createFromBuildPromotions(myCompilationErrorCollector, myFields.getNestedField(COMPILATION_ERROR_BUILDS_FIELD), myBeanContext)
     );
   }
 
