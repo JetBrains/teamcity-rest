@@ -375,16 +375,6 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     return mockHttpServletRequest;
   }
 
-  private static byte[] createFileContent(byte[] data, String boundary, String contentType, String fileName) {
-    String start = "--" + boundary + "\r\n Content-Disposition: form-data; name=\"file\"; filename=\"" + fileName + "\"\r\n"
-                   + "Content-type: " + contentType + "\r\n\r\n";
-    ;
-
-    String end = "\r\n--" + boundary + "--"; // correction suggested @butfly
-    return ArrayUtils.addAll(start.getBytes(), ArrayUtils.addAll(data, end.getBytes()));
-  }
-
-
   static class PredicateMatcher<T> extends ArgumentMatcher<T> {
 
 
