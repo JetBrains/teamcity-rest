@@ -20,6 +20,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import java.io.*;
+import java.nio.ByteBuffer;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
@@ -69,8 +71,6 @@ import javax.servlet.http.Part;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import static java.util.Collections.emptyList;
@@ -1017,11 +1017,7 @@ public class ProjectRequest {
   ) throws IOException {
     Objects.requireNonNull(fileName);
 
-    byte[] privateKey = IOUtils.toByteArray(request.getInputStream());
-
-    if (privateKey == null) {
-      throw new BadRequestException("No private key file in request");
-    }
+    byte[] privateKey = toByteArray(request.getInputStream());
 
     try {
       validateKey(privateKey);
@@ -1032,6 +1028,20 @@ public class ProjectRequest {
     ConfigAction configAction = myConfigActionFactory.createAction("New SSH key uploaded");
     SProject project = myProjectFinder.getItem(projectLocator);
     myServerSshKeyManager.addKey(project, fileName, privateKey, configAction);
+  }
+
+  private static byte[] toByteArray(InputStream inputStream) throws IOException {
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    copy(inputStream, outputStream);
+    return outputStream.toByteArray();
+  }
+
+  static void copy(InputStream source, OutputStream target) throws IOException {
+    byte[] buf = new byte[8192];
+    int length;
+    while ((length = source.read(buf)) != -1) {
+      target.write(buf, 0, length);
+    }
   }
 
   /**
