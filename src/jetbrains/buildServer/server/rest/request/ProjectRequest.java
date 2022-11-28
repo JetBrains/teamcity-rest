@@ -1019,17 +1019,17 @@ public class ProjectRequest {
 
     StandardServletPartUtils.getParts(request);
 
-    byte[] privateKey;
-    try {
-      privateKey = getPartOrFail(request, "file:fileToUpload");
-    } catch (Exception e) {
-      throw new BadRequestException("Could not extract private key from request. Cause: " + e.getMessage(), e);
-    }
+    byte[] privateKey = IOUtils.toByteArray(request.getInputStream());
 
     if (privateKey == null) {
       throw new BadRequestException("No private key file in request");
     }
-    // TODO @vshefer validate key file
+
+    try {
+      validateKey(privateKey);
+    } catch (Exception e) {
+      throw new BadRequestException("Invalid key file: " + e.getCause(), e);
+    }
 
     SProject project = myProjectFinder.getItem(projectLocator);
 
@@ -1073,18 +1073,11 @@ public class ProjectRequest {
     return result;
   }
 
-  @Nullable
-  protected static byte[] getPartOrFail(HttpServletRequest request, String name) throws IllegalStateException {
-    try {
-      if (request instanceof MultipartHttpServletRequest) {
-        MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest)request;
-        return Objects.requireNonNull(multipartRequest.getFile(name), "Request had no file part named '" + name + "'").getBytes();
-      }
-      Part part = Objects.requireNonNull(request.getPart(name), "Request had no part named '" + name + "'");
-      return IOUtils.toByteArray(part.getInputStream());
-    } catch (IOException | ServletException e) {
-      throw new RuntimeException(e);
+  private void validateKey(byte[] privateKey) {
+    if (privateKey == null || privateKey.length == 0) {
+      throw new IllegalArgumentException("Empty key file");
     }
+    // TODO @vshefer validate key file
   }
 
   /**

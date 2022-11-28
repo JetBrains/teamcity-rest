@@ -22,9 +22,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Predicate;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.MediaType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.Branches;
@@ -46,8 +49,8 @@ import org.jetbrains.annotations.NotNull;
 import org.mockito.AdditionalMatchers;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
-import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.mock.web.MockMultipartHttpServletRequest;
+import org.springframework.http.HttpMethod;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.util.ResourceUtils;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -336,13 +339,12 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
   @Test
   public void testAddSshKey() throws IOException {
     String prjId = "Project1";
-    ProjectEx project1 = getRootProject().createProject(prjId, "Project test 1");
-    final ProjectRequest request = myRequest;
+    getRootProject().createProject(prjId, "Project test 1");
 
     Path keyFilePath = ResourceUtils.getFile("classpath:rest/sshKeys/id_rsa").toPath();
-    MockMultipartHttpServletRequest mockRequest = multipartRequest(keyFilePath, "application/zip", "file:fileToUpload");
+    HttpServletRequest mockRequest = createRequest(keyFilePath, MediaType.TEXT_PLAIN);
 
-    request.addSshKey("id:" + prjId, "testprivatekey", mockRequest);
+    myRequest.addSshKey("id:" + prjId, "testprivatekey", mockRequest);
 
     Mockito.verify(myServerSshKeyManagerMock).addKey(
       Mockito.argThat(predicate(it -> it.getExternalId().equals(prjId))),
@@ -352,23 +354,25 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     );
   }
 
-  @NotNull
-  private static MockMultipartHttpServletRequest multipartRequest(
-    Path keyFilePath,
-    String contentType,
-    String partFileName
-  ) throws IOException {
-    byte[] keyFileBytes = Files.readAllBytes(keyFilePath);
-    String filename = keyFilePath.getFileName().toString();
-    MockMultipartFile keyFileMultipartFile = new MockMultipartFile(partFileName, filename, contentType, Files.newInputStream(keyFilePath));
+  @Test
+  public void testAddSshKey_empty() {
+    String prjId = "Project1";
+    getRootProject().createProject(prjId, "Project test 1");
 
-    MockMultipartHttpServletRequest mockRequest = new MockMultipartHttpServletRequest();
-    mockRequest.setMethod("POST");
-    String boundary = "q1w2e3r4t5y6u7i8o9";
-    mockRequest.setContentType("multipart/form-data; boundary=" + boundary);
-    //mockRequest.setContent(createFileContent(keyFileBytes, boundary, contentType, filename));
-    mockRequest.addFile(keyFileMultipartFile);
-    return mockRequest;
+    HttpServletRequest mockRequest = new MockHttpServletRequest();
+
+    assertExceptionThrown(() -> myRequest.addSshKey("id:" + prjId, "testprivatekey", mockRequest), BadRequestException.class);
+  }
+
+  @NotNull
+  private static HttpServletRequest createRequest(
+    Path bodyPath,
+    String contentType
+  ) throws IOException {
+    MockHttpServletRequest mockHttpServletRequest = new MockHttpServletRequest(HttpMethod.POST.name(), null);
+    mockHttpServletRequest.setContent(Files.readAllBytes(bodyPath));
+    mockHttpServletRequest.setContentType(contentType);
+    return mockHttpServletRequest;
   }
 
   private static byte[] createFileContent(byte[] data, String boundary, String contentType, String fileName) {
