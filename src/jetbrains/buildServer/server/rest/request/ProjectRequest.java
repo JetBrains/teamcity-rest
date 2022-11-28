@@ -1004,7 +1004,7 @@ public class ProjectRequest {
    */
   @POST
   @Path("/{projectLocator}/sshKeys")
-  @Consumes({"multipart/form-data" /* TODO check mime type */})
+  @Consumes({"text/plain" /* TODO check mime type */})
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value = "Upload ssh key", hidden = false)
   public void addSshKey(
