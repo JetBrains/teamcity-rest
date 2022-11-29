@@ -106,7 +106,7 @@ public class  BuildQueueRequest {
         return source.getBuildPromotion();
       }
     });
-    return Builds.createFromBuildPromotions(builds,
+    return Builds.createFromPrefilteredBuildPromotions(builds,
                       new PagerData(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator"),
                       new Fields(fields),
                       myBeanContext);
@@ -164,7 +164,7 @@ public class  BuildQueueRequest {
     if (builds == null){
       throw new BadRequestException("List of builds should be posted.");
     }
-    if (builds.builds == null){
+    if (builds.getSubmittedBuilds() == null) {
       throw new BadRequestException("Posted element should contain 'builds' sub-element.");
     }
 
@@ -199,7 +199,7 @@ public class  BuildQueueRequest {
 
     final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     final Map<Long, Long> buildPromotionIdReplacements = new HashMap<Long, Long>();
-    List<Build> buildsToTrigger = builds.builds;
+    List<Build> buildsToTrigger = builds.getSubmittedBuilds();
     Map<Build, Exception> buildsWithErrors;
     while (true) {
       buildsWithErrors = triggerBuilds(buildsToTrigger, user, buildPromotionIdReplacements);
@@ -222,7 +222,7 @@ public class  BuildQueueRequest {
         buildListDetails.append("\n");
       }
 
-      throw new BadRequestException("Error triggering " + buildsWithErrors.size() + " out of " + builds.builds.size() + " builds: \n" +
+      throw new BadRequestException("Error triggering " + buildsWithErrors.size() + " out of " + builds.getSubmittedBuilds().size() + " builds: \n" +
                                     buildListDetails.substring(0, buildListDetails.length() - "\n".length()));
     }
     return getBuilds(null, fields, uriInfo, request);
@@ -456,11 +456,11 @@ public class  BuildQueueRequest {
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value="Update the build queue order.",nickname="setQueuedBuildsOrder")
   public Builds setBuildQueueOrder(Builds builds, @QueryParam("fields") String fields) {
-    if (builds.builds == null){
+    if (builds.getSubmittedBuilds() == null){
       throw new BadRequestException("No new builds order specified. Should post a collection of builds, each with id or locator");
     }
     LinkedHashSet<String> ids = new LinkedHashSet<>();
-    for (Build build : builds.builds) {
+    for (Build build : builds.getSubmittedBuilds()) {
       try {
         List<BuildPromotion> items = myBuildPromotionFinder.getItems(build.getLocatorFromPosted(Collections.emptyMap()), new Locator(getBuildPromotionLocatorDefaults())).myEntries;
         for (BuildPromotion buildPromotion : items) {
@@ -476,7 +476,7 @@ public class  BuildQueueRequest {
     buildQueue.applyOrder(CollectionsUtil.toArray(ids, String.class));
 
     //see getBuilds()
-    return Builds.createFromBuildPromotions(myBuildPromotionFinder.getItems(getBuildPromotionLocatorDefaults().getStringRepresentation()).myEntries,
+    return Builds.createFromPrefilteredBuildPromotions(myBuildPromotionFinder.getItems(getBuildPromotionLocatorDefaults().getStringRepresentation()).myEntries,
                                             null, new Fields(fields), myBeanContext);
   }
 

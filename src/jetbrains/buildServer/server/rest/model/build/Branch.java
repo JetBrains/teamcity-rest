@@ -117,7 +117,7 @@ public class Branch {
                                               buildsHref = BuildRequest.getBuildsHref(myBranch, null);
                                             }
                                             if (builds == null && buildsHref == null) return null;
-                                            return Builds.createFromBuildPromotions(builds == null ? null : builds.myEntries, buildsHref == null ? null : new PagerData(buildsHref), buildsFields, myBeanContext);
+                                            return Builds.createFromPrefilteredBuildPromotions(builds == null ? null : builds.myEntries, buildsHref == null ? null : new PagerData(buildsHref), buildsFields, myBeanContext);
                                           });
   }
 }
