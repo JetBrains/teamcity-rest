@@ -168,6 +168,49 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
   }
 
   @Test
+  public void testOrderByName() {
+    final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
+    final SFinishedBuild build10 = build().in(buildType)
+                                          .withTest("bbb", true)
+                                          .withTest("(bbb)", true)
+                                          .withTest("((bbb))", true)
+                                          .withTest("ccc(ddd)", true)
+                                          .withTest("ccc(ddd)", true)
+                                          .withTest("(aaa(bbb))", true)
+                                          .withTest("(aaa)(bbb)", true)
+                                          .withTest("aaa:bbb", true)
+                                          .withTest("(aaa:bbb)", true)
+                                          .withTest("((::,,", true)
+                                          .withTest("::,,", true)
+                                          .withTest("(::,,)", true)
+                                          .withTest("((::,,))", true)
+                                          .withTest("my.package.TestClass.testMethod", true)
+                                          .withTest("my.package.TestClass.anotherMethod", true)
+                                          .withTest("my.package.AnotherTestClass.testMethod", true)
+                                          .finish();
+
+    int idx = 1;
+    check("build:(id:" + build10.getBuildId() + "),expandInvocations:true,orderBy:name", TEST_MATCHER,
+          t("((::,,", Status.NORMAL, idx++),
+          t("((::,,))", Status.NORMAL, idx++),
+          t("((bbb))", Status.NORMAL, idx++),
+          t("(::,,)", Status.NORMAL, idx++),
+          t("(aaa(bbb))", Status.NORMAL, idx++),
+          t("(aaa)(bbb)", Status.NORMAL, idx++),
+          t("(aaa:bbb)", Status.NORMAL, idx++),
+          t("(bbb)", Status.NORMAL, idx++),
+          t("::,,", Status.NORMAL, idx++),
+          t("aaa:bbb", Status.NORMAL, idx++),
+          t("my.package.AnotherTestClass.testMethod", Status.NORMAL, idx++),
+          t("bbb", Status.NORMAL, idx++),
+          t("ccc(ddd)", Status.NORMAL, idx++),
+          t("ccc(ddd)", Status.NORMAL, idx++),
+          t("my.package.TestClass.anotherMethod", Status.NORMAL, idx++),
+          t("my.package.TestClass.testMethod", Status.NORMAL, idx++)
+    );
+  }
+
+  @Test
   public void testByTestNameCondition() throws Exception {
     final BuildTypeImpl buildType = registerBuildType("buildConf1", "project");
     final SFinishedBuild build10 = build().in(buildType)
