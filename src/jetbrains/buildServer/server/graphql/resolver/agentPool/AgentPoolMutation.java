@@ -292,23 +292,10 @@ public class AgentPoolMutation implements GraphQLMutationResolver {
 
     AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
     boolean canRemoveThisProject = AuthUtil.hasPermissionToManageAgentPoolsWithProject(authorityHolder, project.getProjectId());
-    boolean thereAreOtherAssociatedPools = false;
 
-    if(canRemoveThisProject) {
-      // let's count other pools iff we are sure that we can potentially remove given project.
-      thereAreOtherAssociatedPools = myAgentPoolManager.getAgentPoolsWithProject(project.getProjectId()).stream()
-                                                       .map(poolId -> myAgentPoolManager.findAgentPoolById(poolId))
-                                                       .filter(Objects::nonNull)
-                                                       .filter(pool -> !pool.isProjectPool()) // We can't leave a project assign with a project pools only, see TW-70087
-                                                       .count() > 1;
-    }
 
-    if(!canRemoveThisProject || !thereAreOtherAssociatedPools) {
-      if(!canRemoveThisProject) {
-        return result.error(new OperationFailedGraphQLError("Can't unassign project, not enough permissions.")).build();
-      }
-
-      return result.error(new OperationFailedGraphQLError("Can't unassign project, there are no other pools associated with this project.")).build();
+    if(!canRemoveThisProject) {
+      return result.error(new OperationFailedGraphQLError("Can't unassign project, not enough permissions.")).build();
     }
 
     Set<String> projectsToDisassociate;
