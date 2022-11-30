@@ -886,7 +886,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   private static final Orders<STestRun> SUPPORTED_ORDERS = new Orders<STestRun>() //see TestOccurrence for names
-      .add("name", Comparator.comparing(tr -> tr.getTest().getName().getAsString(), String.CASE_INSENSITIVE_ORDER))
+      .add("name", Comparator.comparing(tr -> tr.getTest().getName().getShortName(), String.CASE_INSENSITIVE_ORDER))
       .add("duration", Comparator.comparingInt(STestRun::getDuration))
       .add("runOrder", Comparator.comparingInt(STestRun::getOrderId))
       .add("status", Comparator.comparing(tr -> tr.getStatus().getPriority()))
