@@ -51,6 +51,7 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.cleanup.ServerCleanupManager;
+import jetbrains.buildServer.serverSide.impl.MainConfigManager;
 import jetbrains.buildServer.serverSide.maintenance.BackupConfig;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcess;
 import jetbrains.buildServer.serverSide.maintenance.BackupProcessManager;
@@ -355,6 +356,7 @@ public class ServerRequest {
       serverCleanupManager.setMaxCleanupDuration(maxCleanupDuration);
     }
 
+    myBeanContext.getSingletonService(MainConfigManager.class).persistConfiguration();
     return new CleanupSettings(myBeanContext.getSingletonService(ServerCleanupManager.class));
   }
 
