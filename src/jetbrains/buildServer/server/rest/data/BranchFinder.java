@@ -317,7 +317,7 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
           Boolean locatorComputeTimestamps = locator.getSingleDimensionValueAsBoolean(COMPUTE_TIMESTAMPS);
           boolean finalComputeTimestamps = locatorComputeTimestamps != null ? locatorComputeTimestamps : TeamCityProperties.getBoolean("rest.beans.branch.defaultComputeTimestamp");
           Stream<BranchData> branchStream = getBranches(buildType, searchOptions, finalComputeTimestamps, dependenciesFilter);
-          resultAccumulator.addAll(branchStream.collect(Collectors.toList()));
+          resultAccumulator.addAll(branchStream);
         }
 
         result.add(FinderDataBinding.getItemHolder(resultAccumulator.get()));
@@ -523,8 +523,8 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
     //de-duplicate by name, ordering is not important here
     private final Map<String, BranchData> myMap = new HashMap<String, BranchData>();
 
-    void addAll(@NotNull final List<BranchData> buildTypeBranches) {
-      for (BranchData branch : buildTypeBranches) {
+    void addAll(@NotNull final Stream<BranchData> buildTypeBranches) {
+      buildTypeBranches.forEach(branch -> {
         //assuming that branch.isDefaultBranch() means Branch.DEFAULT_BRANCH_NAME.equals(name)
 
         BranchData previousData = myMap.get(branch.getName());
@@ -533,7 +533,7 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
         } else {
           myMap.put(branch.getName(), BranchData.mergeSameNamed(branch, previousData));
         }
-      }
+      });
     }
 
     @NotNull
