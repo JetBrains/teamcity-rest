@@ -131,18 +131,14 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     }
 
     if (global == null || global) {
-      List<PermissionAssignmentData> collect = authorityHolder
+      Stream<PermissionAssignmentData> permissionAssignments = authorityHolder
         .getGlobalPermissions().toList().stream()
         .filter(p -> p.isProjectAssociationSupported())
-        .map(p -> new PermissionAssignmentData(p))
-        .collect(Collectors.toList());
-      result = Stream.concat(
-        result,
-        collect.stream()
-      );
+        .map(p -> new PermissionAssignmentData(p));
+      result = Stream.concat(result, permissionAssignments);
     }
     if (global == null || !global) {
-      List<PermissionAssignmentData> collect = projects.stream().flatMap(project -> {
+      Stream<PermissionAssignmentData> permissionAssignments = projects.stream().flatMap(project -> {
         Permissions projectPermissions = authorityHolder.getProjectsPermissions().get(project.getProjectId());
         return projectPermissions == null
                ? Stream.empty()
@@ -151,11 +147,10 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
                  .stream()
                  .filter(p -> p.isProjectAssociationSupported())
                  .map(p -> new PermissionAssignmentData(p, project.getProjectId()));
-      }).collect(Collectors.toList());
-      result = Stream.concat(result, collect.stream());
+      });
+      result = Stream.concat(result, permissionAssignments);
     }
-    List<PermissionAssignmentData> collect = result.collect(Collectors.toList());
-    return FinderDataBinding.getItemHolder(collect.stream());
+    return FinderDataBinding.getItemHolder(result);
   }
 
   @NotNull
