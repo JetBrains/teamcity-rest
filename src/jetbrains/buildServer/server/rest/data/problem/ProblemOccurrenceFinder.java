@@ -21,7 +21,7 @@ import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.data.util.AggregatingItemHolder;
+import jetbrains.buildServer.server.rest.data.util.FlatteningItemHolder;
 import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
@@ -171,7 +171,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
-      AggregatingItemHolder<BuildProblem> result = new AggregatingItemHolder<>();
+      FlatteningItemHolder<BuildProblem> result = new FlatteningItemHolder<>();
       for (BuildPromotion build : builds) {
         List<BuildProblem> buildProblemOccurrences = getProblemOccurrences(build);
         if (!buildProblemOccurrences.isEmpty()) result.add(getItemHolder(buildProblemOccurrences));
@@ -208,7 +208,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   @NotNull
   private ItemHolder<BuildProblem> getProblemOccurrences(@NotNull final Iterable<ProblemWrapper> problems) {
-    final AggregatingItemHolder<BuildProblem> result = new AggregatingItemHolder<BuildProblem>();
+    final FlatteningItemHolder<BuildProblem> result = new FlatteningItemHolder<BuildProblem>();
     for (ProblemWrapper problem : problems) {
       result.add(getProblemOccurrences(problem.getId(), myServiceLocator, myBuildPromotionFinder));
     }

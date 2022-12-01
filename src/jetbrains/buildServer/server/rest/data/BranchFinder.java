@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.util.AggregatingItemHolder;
+import jetbrains.buildServer.server.rest.data.util.FlatteningItemHolder;
 import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
 import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -239,7 +239,7 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
     }
     final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, buildTypeLocator);
 
-    AggregatingItemHolder<BranchData> result = new AggregatingItemHolder<>();
+    FlatteningItemHolder<BranchData> result = new FlatteningItemHolder<>();
 
     final String groupsInclude = locator.getSingleDimensionValue(GROUP_INCLUDE);
     if (groupsInclude != null) {

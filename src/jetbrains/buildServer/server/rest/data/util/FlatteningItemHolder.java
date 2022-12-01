@@ -25,7 +25,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Passes items from each of the given item holders in the order they were added.
  */
-public class AggregatingItemHolder<P> implements FinderDataBinding.ItemHolder<P> {
+public class FlatteningItemHolder<P> implements FinderDataBinding.ItemHolder<P> {
   @NotNull final private List<FinderDataBinding.ItemHolder<P>> myItemHolders = new ArrayList<>();
 
   public void add(FinderDataBinding.ItemHolder<P> holder) {

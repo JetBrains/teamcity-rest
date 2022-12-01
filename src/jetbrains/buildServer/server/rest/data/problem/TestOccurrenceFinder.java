@@ -26,7 +26,7 @@ import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilter;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer;
-import jetbrains.buildServer.server.rest.data.util.AggregatingItemHolder;
+import jetbrains.buildServer.server.rest.data.util.FlatteningItemHolder;
 import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
 import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -402,7 +402,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       Boolean expandInvocations = locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS);  //getting the dimension early in order not to get "dimension is unknown" for it in case of early exit
       String testDimension = locator.getSingleDimensionValue(TEST);
       if (testDimension == null) {
-        AggregatingItemHolder<STestRun> result = new AggregatingItemHolder<>();
+        FlatteningItemHolder<STestRun> result = new FlatteningItemHolder<>();
         for (BuildPromotion build : builds) {
           SBuild associatedBuild = build.getAssociatedBuild();
           if (associatedBuild != null) {
@@ -431,24 +431,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     String testDimension = locator.getSingleDimensionValue(TEST);
     if (testDimension != null) {
-      final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
+      PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
 
-      String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
-      if (buildTypeDimension != null) {
-        final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension, false);
-        final ArrayList<STestRun> result = new ArrayList<>();
-        for (STest test : tests.myEntries) {
-          result.addAll(getTestHistory(test, buildType, locator));
-        }
-        return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+      if (locator.isAnyPresent(BUILD_TYPE)) {
+        return getTestRunsByBuildType(tests.myEntries, locator);
       }
-
-      final ArrayList<STestRun> result = new ArrayList<>();
       final SProject affectedProject = getAffectedProject(locator);
-      for (STest test : tests.myEntries) {
-        result.addAll(getTestHistory(test, affectedProject, locator));
-      }
-      return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+      return getItemsByAffectedProject(affectedProject, tests.myEntries, locator);
     }
 
     Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
@@ -462,11 +451,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     if (currentlyMutedDimension != null && currentlyMutedDimension) {
       final SProject affectedProject = getAffectedProject(locator);
       final Set<STest> currentlyMutedTests = myTestFinder.getCurrentlyMutedTests(affectedProject);
-      final ArrayList<STestRun> result = new ArrayList<>();
-      for (STest test : currentlyMutedTests) {
-        result.addAll(getTestHistory(test, affectedProject, locator));
-      }
-      return getPossibleExpandedTestsHolder(result, locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+      return getItemsByAffectedProject(affectedProject, currentlyMutedTests, locator);
     }
 
     ArrayList<String> exampleLocators = new ArrayList<>();
@@ -480,6 +465,49 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
+  private ItemHolder<STestRun> getItemsByAffectedProject(@NotNull final SProject affectedProject,
+                                                         @NotNull final Iterable<STest> tests,
+                                                         @NotNull final Locator locator) {
+    Filter<STestRun> branchFilter = getBranchFilter(locator.getSingleDimensionValue(BRANCH));
+    boolean expandInvocations = FilterUtil.isTrue(locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+    if(expandInvocations) {
+      final FlatteningItemHolder<STestRun> result = new FlatteningItemHolder<>();
+      for (STest test : tests) {
+        result.add(processTestHistoryWithoutMerging(test, affectedProject, branchFilter));
+      }
+      return result;
+    }
+
+    final ArrayList<STestRun> result = new ArrayList<>();
+    for (STest test : tests) {
+      result.addAll(getTestHistory(test, affectedProject, branchFilter));
+    }
+    return FinderDataBinding.getItemHolder(result);
+  }
+
+  @NotNull
+  private ItemHolder<STestRun> getTestRunsByBuildType(@NotNull final Iterable<STest> tests, @NotNull final Locator locator) {
+    boolean expandInvocations = FilterUtil.isTrue(locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS));
+    String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
+    final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension, false);
+    final Filter<STestRun> branchFilter = getBranchFilter(locator.getSingleDimensionValue(BRANCH));
+
+    if (expandInvocations) {
+      final FlatteningItemHolder<STestRun> result = new FlatteningItemHolder<>();
+      for (STest test : tests) {
+        result.add(processTestHistoryWithoutMerging(test, buildType, branchFilter));
+      }
+      return result;
+    }
+
+    final ArrayList<STestRun> result = new ArrayList<>();
+    for (STest test : tests) {
+      result.addAll(getTestHistory(test, buildType, branchFilter));
+    }
+    return FinderDataBinding.getItemHolder(result);
+  }
+
+  @NotNull
   private SProject getAffectedProject(@NotNull final Locator locator) {
     String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
@@ -490,20 +518,46 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  private List<STestRun> getTestHistory(@NotNull final STest test, @NotNull final SProject affectedProject, @NotNull final Locator locator) {
-    return MultiTestRun.mergeByTestName(myTestHistory.getTestHistory(test.getTestNameId(), affectedProject, getBranchFilter(locator.getSingleDimensionValue(BRANCH))));
+  private List<STestRun> getTestHistory(@NotNull final STest test, @NotNull final SProject affectedProject, @NotNull final Filter<STestRun> branchFilter) {
+    return MultiTestRun.mergeByTestName(myTestHistory.getTestHistory(test.getTestNameId(), affectedProject, branchFilter));
     //consider reporting not found if no tests found and the branch does not exist
   }
 
   @NotNull
-  private List<STestRun> getTestHistory(@NotNull final STest test, @NotNull final SBuildType buildType, @NotNull final Locator locator) {
-    return MultiTestRun.mergeByTestName(myTestHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), getBranchFilter(locator.getSingleDimensionValue(BRANCH))));
+  private List<STestRun> getTestHistory(@NotNull final STest test, @NotNull final SBuildType buildType, @NotNull final Filter<STestRun> branchFilter) {
+    return MultiTestRun.mergeByTestName(myTestHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), branchFilter));
     //consider reporting not found if no tests found and the branch does not exist
+  }
+
+  @NotNull
+  private ItemHolder<STestRun> processTestHistoryWithoutMerging(@NotNull final STest test,
+                                                                @NotNull final SBuildType buildType,
+                                                                @NotNull final Filter<STestRun> branchFilter) {
+    return processor -> {
+      List<STestRun> testRuns = myTestHistory.getTestHistory(test.getTestNameId(), buildType.getBuildTypeId(), branchFilter);
+
+      for (STestRun testRun : testRuns) {
+        if(!processor.processItem(testRun)) break;
+      }
+    };
+  }
+
+  @NotNull
+  private ItemHolder<STestRun> processTestHistoryWithoutMerging(@NotNull final STest test,
+                                                                @NotNull final SProject affectedProject,
+                                                                @NotNull final Filter<STestRun> branchFilter) {
+    return processor -> {
+      List<STestRun> testRuns = myTestHistory.getTestHistory(test.getTestNameId(), affectedProject, branchFilter);
+
+      for (STestRun testRun : testRuns) {
+        if(!processor.processItem(testRun)) break;
+      }
+    };
   }
 
   @NotNull
   private ItemHolder<STestRun> getPossibleExpandedTestsHolder(@NotNull final Iterable<STestRun> tests, @Nullable final Boolean expandInvocations) {
-    if (expandInvocations == null || !expandInvocations) {
+    if (!FilterUtil.isTrue(expandInvocations)) {
       return getItemHolder(tests);
     }
     return processor -> {

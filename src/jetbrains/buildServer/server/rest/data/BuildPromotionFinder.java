@@ -1236,7 +1236,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
       final String strobBuildLocator = strobLocator.getSingleDimensionValue(STROB_BUILD_LOCATOR);
 
-      final AggregatingItemHolder<BuildPromotion> strobResult = new AggregatingItemHolder<>();
+      final FlatteningItemHolder<BuildPromotion> strobResult = new FlatteningItemHolder<>();
       for (Locator partialLocator : partialLocators) {
         partialLocator.setDimensionIfNotPresent(PagerData.COUNT, "1");  //limit to single item per strob item by default
         final String finalBuildLocator = Locator.createLocator(strobBuildLocator, partialLocator, new String[]{}).getStringRepresentation();

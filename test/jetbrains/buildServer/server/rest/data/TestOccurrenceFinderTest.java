@@ -23,7 +23,6 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
-import jetbrains.buildServer.controllers.fakes.FakeHttpServletRequest;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.messages.TestMetadata;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
@@ -33,13 +32,11 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrence;
-import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
 import jetbrains.buildServer.server.rest.model.problem.TypedValue;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
-import jetbrains.buildServer.serverSide.impl.auth.TestRoles;
 import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.StandardProperties;
@@ -843,7 +840,87 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     );
   }
 
-  private SFinishedBuild createBuildWithSuccessFailedIgnoredTests(BuildTypeImpl buildType) {
+  @Test
+  public void testByBuildTypeExpandInvocations() {
+    BuildTypeEx bt1 = myFixture.createBuildType("bt1", "Ant");
+    build().in(bt1).withFailedTests("failed", "failed").run();
+    SFinishedBuild build = finishBuild();
+
+    STestRun testRun1 = build.getShortStatistics().getFailedTests().get(0);
+    long testNameId = testRun1.getTest().getTestNameId();
+
+    String locator = String.format("test:%d,buildType:%s,expandInvocations:true", testNameId, bt1.getExternalId());
+
+    PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locator);
+    assertEquals(
+      "Test invocations must be expanded.",
+      2,
+      result.myEntries.size()
+    );
+  }
+
+  @Test
+  public void testByBuildTypeDoNotExpandInvocations() {
+    BuildTypeEx bt1 = myFixture.createBuildType("bt1", "Ant");
+    build().in(bt1).withFailedTests("failed", "failed").run();
+    SFinishedBuild build = finishBuild();
+
+    STestRun testRun1 = build.getShortStatistics().getFailedTests().get(0);
+    long testNameId = testRun1.getTest().getTestNameId();
+
+    String locator = String.format("test:%d,buildType:%s,expandInvocations:false", testNameId, bt1.getExternalId());
+
+    PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locator);
+    assertEquals(1, result.myEntries.size());
+    assertEquals("Test runs must be merged", MultiTestRun.class, result.myEntries.get(0).getClass());
+    assertEquals(
+      "Merged test run must contain 2 invocations",
+      2,
+      ((MultiTestRun) result.myEntries.get(0)).getTestRuns().size()
+    );
+  }
+
+  @Test
+  public void testByProjectExpandInvocations() {
+    BuildTypeEx bt1 = myFixture.createBuildType("bt1", "Ant");
+    build().in(bt1).withFailedTests("failed", "failed").run();
+    SFinishedBuild build = finishBuild();
+
+    STestRun testRun1 = build.getShortStatistics().getFailedTests().get(0);
+    long testNameId = testRun1.getTest().getTestNameId();
+
+    String locator = String.format("test:%d,affectedProject:%s,expandInvocations:true", testNameId, bt1.getProject().getExternalId());
+
+    PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locator);
+    assertEquals(
+      "Test invocations must be expanded.",
+      2,
+      result.myEntries.size()
+    );
+  }
+
+  @Test
+  public void testByProjectDoNotExpandInvocations() {
+    BuildTypeEx bt1 = myFixture.createBuildType("bt1", "Ant");
+    build().in(bt1).withFailedTests("failed", "failed").run();
+    SFinishedBuild build = finishBuild();
+
+    STestRun testRun1 = build.getShortStatistics().getFailedTests().get(0);
+    long testNameId = testRun1.getTest().getTestNameId();
+
+    String locator = String.format("test:%d,affectedProject:%s,expandInvocations:false", testNameId, bt1.getProject().getExternalId());
+
+    PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locator);
+    assertEquals(1, result.myEntries.size());
+    assertEquals("Test runs must be merged", MultiTestRun.class, result.myEntries.get(0).getClass());
+    assertEquals(
+      "Merged test run must contain 2 invocations",
+      2,
+      ((MultiTestRun) result.myEntries.get(0)).getTestRuns().size()
+    );
+  }
+
+  private SFinishedBuild createBuildWithSuccessFailedIgnoredTests(SBuildType buildType) {
     return build().in(buildType)
                   .withTest(BuildBuilder.TestData.test("aaa"))
                   .withTest(BuildBuilder.TestData.test("bbb").failed())

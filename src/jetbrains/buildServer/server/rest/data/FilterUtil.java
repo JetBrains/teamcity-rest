@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -27,10 +28,12 @@ public class FilterUtil {
     return filterValue == null || actualValue == null || (!(filterValue ^ actualValue));
   }
 
+  @Contract("true -> true; null -> true; false -> false")
   public static boolean isIncludingBooleanFilter(@Nullable final Boolean value) {
     return value == null || value;
   }
 
+  @Contract("true -> true; null -> false; false -> false")
   public static boolean isTrue(@Nullable final Boolean value) {
     return value != null && value;
   }
