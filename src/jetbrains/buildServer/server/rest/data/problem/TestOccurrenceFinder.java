@@ -156,10 +156,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     @NotNull final BranchFinder branchFinder,
     @NotNull final TestScopeFilterProducer testScopeFilterProducer) {
     super(DIMENSION_ID, TEST, NAME, BUILD_TYPE, BUILD, AFFECTED_PROJECT, CURRENT, STATUS, BRANCH, IGNORED, MUTED, CURRENTLY_MUTED, CURRENTLY_INVESTIGATED, NEW_FAILURE, INCLUDE_PERSONAL);
-    setHiddenDimensions(EXPAND_INVOCATIONS, INVOCATIONS);
-    setHiddenDimensions(ORDER); //highly experiemntal
-    setHiddenDimensions(INVESTIGATION_STATE); // highly experimental
-    setHiddenDimensions(INCLUDE_ALL_PERSONAL);
+    setHiddenDimensions(
+      EXPAND_INVOCATIONS,
+      INVOCATIONS,
+      ORDER, //highly experiemntal
+      INVESTIGATION_STATE, // highly experimental
+      INCLUDE_ALL_PERSONAL
+    );
 
     myTestFinder = testFinder;
     myBuildPromotionFinder = buildPromotionFinder;
