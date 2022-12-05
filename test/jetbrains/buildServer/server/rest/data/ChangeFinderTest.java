@@ -951,7 +951,54 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     assertEquals("Change from VcsRoot root in parent project should be visible.", 1, result.size());
 
     result = myChangeFinder.getItems("user:(id:" + user1.getId() + "),project:" + subproject.getExternalId()).myEntries;
-    assertEquals("Change from VcsRoot root in parent projectshould be visible.", 1, result.size());
+    assertEquals("Change from VcsRoot root in parent project should be visible.", 1, result.size());
+  }
+
+  @Test
+  public void changesFromDependenciesAreIncludedWhenFilteringByUsername() {
+    createUser("user1");
+    ProjectEx project = createProject("project1");
+    BuildTypeEx btHead = project.createBuildType("btHead");
+    BuildTypeEx btDep = project.createBuildType("btDep");
+    addDependency(btHead, btDep);
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRoot root = project.createVcsRoot("vcs", "vcs_external_id", "vcs");
+    btDep.addVcsRoot(root);
+    btDep.setCheckoutRules(root, new CheckoutRules(""));
+    btDep.persist();
+
+
+    myFixture.addModification(modification().in(root).by("user1").version("12345"));
+
+
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("username:user1,buildType:" + btHead.getExternalId()+ ",pending:true,changesFromDependencies:true").myEntries;
+    assertEquals("Change from VcsRoot in dependent buildType should be visible.", 1, result.size());
+  }
+
+  @Test
+  public void changesFromDependenciesAreIncludedWhenFilteringByUser() {
+    SUser user = createUser("user1");
+    ProjectEx project = createProject("project1");
+    BuildTypeEx btHead = project.createBuildType("btHead");
+    BuildTypeEx btDep = project.createBuildType("btDep");
+    addDependency(btHead, btDep);
+
+    MockVcsSupport vcs = new MockVcsSupport("vcs");
+    myFixture.getVcsManager().registerVcsSupport(vcs);
+    SVcsRoot root = project.createVcsRoot("vcs", "vcs_external_id", "vcs");
+    btDep.addVcsRoot(root);
+    btDep.setCheckoutRules(root, new CheckoutRules(""));
+    btDep.persist();
+
+
+    myFixture.addModification(modification().in(root).by("user1").version("12345"));
+
+
+    String locator = String.format("user:(id:%d),buildType:%s,pending:true,changesFromDependencies:true", user.getId(), btHead.getExternalId());
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems(locator).myEntries;
+    assertEquals("Change from VcsRoot in dependent buildType should be visible.", 1, result.size());
   }
 
   @NotNull

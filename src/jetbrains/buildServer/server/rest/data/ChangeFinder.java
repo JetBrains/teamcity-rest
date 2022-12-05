@@ -286,7 +286,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
       }
     }
 
-    if (locator.getUnusedDimensions().contains(USER)) {
+    if (locator.isUnused(USER)) {
       final String userLocator = locator.getSingleDimensionValue(USER);
       if (userLocator != null) {
         final SUser user = myUserFinder.getItem(userLocator);
@@ -510,7 +510,6 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
 
     Boolean personal = locator.lookupSingleDimensionValueAsBoolean(PERSONAL);
     if (personal != null && personal) {
-
       if (locator.lookupSingleDimensionValue(BUILD) == null && locator.lookupSingleDimensionValue(USER) == null) {
         throw new BadRequestException("Filtering personal changes is supported only when '" + DIMENSION_ID + "', '" + USER + "' or '" + BUILD + "' dimensions are specified");
       }
@@ -564,41 +563,10 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
       return wrapModifications(graphFinder.getItems(graphLocator).myEntries);
     }
 
-    final String userLocator = locator.getSingleDimensionValue(USER);
-    if (userLocator != null) {
-      final SUser user = myUserFinder.getItem(userLocator);
-      Stream<SVcsModification> modifications = myServiceLocator.getSingletonService(UserChangesFacade.class)
-                                                               .getAllVcsModifications(user).stream()
-                                                               .flatMap(this::modificationWithDuplicates)
-                                                               .filter(myPermissionChecker::checkCanView);
-      return wrapModifications(modifications);
-    }
-
-    final String username = locator.getSingleDimensionValue(USERNAME);
-    if (username != null) {
-      Stream<SVcsModification> modifications = myServiceLocator.getSingletonService(VcsModificationsStorage.class)
-                                                               .findModificationsByUsername(username).stream()
-                                                               .flatMap(this::modificationWithDuplicates)
-                                                               .filter(myPermissionChecker::checkCanView);
-      return wrapModifications(modifications);
-    }
-
     Long sinceChangeId = null;
     final String sinceChangeLocator = locator.getSingleDimensionValue(SINCE_CHANGE);
     if (sinceChangeLocator != null) {
       sinceChangeId = getChangeIdBySinceChangeLocator(sinceChangeLocator);
-    }
-
-    final String vcsRootInstanceLocator = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE);
-    if (vcsRootInstanceLocator != null) {
-      final VcsRootInstance vcsRootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
-      if (sinceChangeId != null) {
-        //todo: use lookupLimit here or otherwise limit processing
-        return wrapModifications(myVcsModificationHistory.getModificationsInRange(vcsRootInstance, sinceChangeId, null));
-      } else {
-        //todo: highly inefficient!
-        return wrapModifications(myVcsModificationHistory.getAllModifications(vcsRootInstance));
-      }
     }
 
     SBuildType buildType = null;
@@ -634,6 +602,37 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectLocator != null) {
       return wrapModifications(getProjectChanges(myProjectFinder.getItem(affectedProjectLocator), sinceChangeId, true));
+    }
+
+    final String userLocator = locator.getSingleDimensionValue(USER);
+    if (userLocator != null) {
+      final SUser user = myUserFinder.getItem(userLocator);
+      Stream<SVcsModification> modifications = myServiceLocator.getSingletonService(UserChangesFacade.class)
+                                                               .getAllVcsModifications(user).stream()
+                                                               .flatMap(this::modificationWithDuplicates)
+                                                               .filter(myPermissionChecker::checkCanView);
+      return wrapModifications(modifications);
+    }
+
+    final String username = locator.getSingleDimensionValue(USERNAME);
+    if (username != null) {
+      Stream<SVcsModification> modifications = myServiceLocator.getSingletonService(VcsModificationsStorage.class)
+                                                               .findModificationsByUsername(username).stream()
+                                                               .flatMap(this::modificationWithDuplicates)
+                                                               .filter(myPermissionChecker::checkCanView);
+      return wrapModifications(modifications);
+    }
+
+    final String vcsRootInstanceLocator = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE);
+    if (vcsRootInstanceLocator != null) {
+      final VcsRootInstance vcsRootInstance = myVcsRootInstanceFinder.getItem(vcsRootInstanceLocator);
+      if (sinceChangeId != null) {
+        //todo: use lookupLimit here or otherwise limit processing
+        return wrapModifications(myVcsModificationHistory.getModificationsInRange(vcsRootInstance, sinceChangeId, null));
+      } else {
+        //todo: highly inefficient!
+        return wrapModifications(myVcsModificationHistory.getAllModifications(vcsRootInstance));
+      }
     }
 
     if (sinceChangeId != null) {
