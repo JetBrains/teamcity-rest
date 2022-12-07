@@ -74,8 +74,10 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
   public void setUp() throws Exception {
     super.setUp();
     myBeanContext = getBeanContext(myServer);
+    /*
     myServerSshKeyManagerMock = Mockito.mock(ServerSshKeyManager.class);
     myConfigActionFactoryMock = Mockito.mock(ConfigActionFactory.class);
+     */
     myDataProviderMock = Mockito.mock(DataProvider.class);
     myApiUrlBuilderMock = Mockito.mock(ApiUrlBuilder.class);
     myRequest = createProjectRequest();
@@ -334,6 +336,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
   }
 
   // TODO @vshefer
+  /*
   @Test
   public void testAddSshKey() throws IOException {
     String prjId = "Project1";
@@ -344,14 +347,12 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
 
     myRequest.addSshKey("id:" + prjId, "testprivatekey", mockRequest);
 
-    /*
     Mockito.verify(myServerSshKeyManagerMock).addKey(
       Mockito.argThat(predicate(it -> it.getExternalId().equals(prjId))),
       Mockito.same("testprivatekey"),
       AdditionalMatchers.aryEq(Files.readAllBytes(keyFilePath)),
       Mockito.isNull(ConfigAction.class)
     );
-     */
   }
 
   @Test
@@ -379,6 +380,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
     //return mockHttpServletRequest;
     return null;
   }
+  */
 
   static class PredicateMatcher<T> extends ArgumentMatcher<T> {
 

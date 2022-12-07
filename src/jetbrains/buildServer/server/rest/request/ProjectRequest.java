@@ -77,6 +77,7 @@ import static java.util.Collections.singleton;
 @Path(ProjectRequest.API_PROJECTS_URL)
 @Api("Project")
 public class ProjectRequest {
+  private static final String SSH_KEY_UPLOAD_ENABLED_PROP = "rest.project.sshKeysManagement.enabled";
   private static final Logger LOG = Logger.getInstance(ProjectRequest.class.getName());
   public static final boolean ID_GENERATION_FLAG = true;
 
@@ -146,7 +147,7 @@ public class ProjectRequest {
     myApiUrlBuilder = firstNonNull(apiUrlBuilder, myServiceLocator.findSingletonService(ApiUrlBuilder.class));
     myPermissionChecker = firstNonNull(permissionChecker, myServiceLocator.findSingletonService(PermissionChecker.class));
     myConfigActionFactory = firstNonNull(configActionFactory, myServiceLocator.findSingletonService(ConfigActionFactory.class));
-    myServerSshKeyManager = firstNonNull(serverSshKeyManager, myServiceLocator.findSingletonService(ServerSshKeyManager.class));
+    //myServerSshKeyManager = firstNonNull(serverSshKeyManager, myServiceLocator.findSingletonService(ServerSshKeyManager.class));
   }
 
   /**
@@ -1009,6 +1010,9 @@ public class ProjectRequest {
     @Context
     HttpServletRequest request
   ) throws IOException {
+    if(!TeamCityProperties.getBoolean(SSH_KEY_UPLOAD_ENABLED_PROP)) {
+      throw new NotFoundException("");
+    }
     Objects.requireNonNull(fileName);
 
     byte[] privateKey = toByteArray(request.getInputStream());
@@ -1055,6 +1059,9 @@ public class ProjectRequest {
     @Context
     HttpServletRequest request
   ) {
+    if(!TeamCityProperties.getBoolean(SSH_KEY_UPLOAD_ENABLED_PROP)) {
+      throw new NotFoundException("");
+    }
     SProject project = myProjectFinder.getItem(projectLocator);
 
     List<TeamCitySshKey> keys = myServerSshKeyManager.getKeys(project);
