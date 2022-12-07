@@ -209,6 +209,10 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     check(locator, getEqualsMatcher(), myFinder, items);
   }
 
+  public void checkWithMessage(@NotNull String checkTitleMessage, @Nullable final String locator, T... items) {
+    checkWithMessage(checkTitleMessage, locator, getEqualsMatcher(), myFinder, items);
+  }
+
   @NotNull
   public<S> Matcher<S, S> getEqualsMatcher() {
     return Object::equals;
@@ -220,6 +224,10 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     if (result.myActuallyProcessedCount != null && result.myActuallyProcessedCount > maxProcessedCounts) {
       fail("Wrong number of processed items: " + result.myActuallyProcessedCount + ", while not more than " + maxProcessedCounts + " is expected");
     }
+  }
+
+  public <S> void checkWithMessage(@NotNull final String checkTitleMessage, @Nullable final String locator, @NotNull Matcher<S, T> matcher, S... items) {
+    checkWithMessage(checkTitleMessage, locator, matcher, getFinder(), items);
   }
 
   public <S> void check(@Nullable final String locator, @NotNull Matcher<S, T> matcher, S... items) {
@@ -234,19 +242,60 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     check(locator, matcher, BaseFinderTest::getDescription, BaseFinderTest::getDescription, finder, items);
   }
 
-  public <S, R> void check(@Nullable final String locator, @NotNull Matcher<S, R> matcher,
+  public <S, R> void checkWithMessage(@NotNull final String checkTitleMessage, @Nullable final String locator, @NotNull Matcher<S, R> matcher, @NotNull final Finder<R> finder, S... items) {
+    checkWithMessage(checkTitleMessage, locator, matcher, BaseFinderTest::getDescription, BaseFinderTest::getDescription, finder, items);
+  }
+
+  public <S, R> void check(@Nullable final String locator,
+                           @NotNull final Matcher<S, R> matcher,
                            @NotNull DescriptionProvider <R> loggerActual, @NotNull DescriptionProvider <S> loggerExpected, @NotNull final Finder<R> finder, S... items) {
     check(locator, loggerActual, loggerExpected, finder, getDefaultMatchStrategy(locator, matcher, items), items);
   }
 
-  public <S, R> void check(@Nullable final String locator, @NotNull DescriptionProvider<R> loggerActual, @NotNull DescriptionProvider<S> loggerExpected,
-                           @NotNull final Finder<R> finder, @NotNull final CollectionsMatchStrategy<S, R> strategy, S... items) {
+  public <S, R> void checkWithMessage(@Nullable final String checkTitleMessage,
+                                      @Nullable final String locator,
+                                      @NotNull final Matcher<S, R> matcher,
+                                      @NotNull final DescriptionProvider <R> loggerActual,
+                                      @NotNull final DescriptionProvider <S> loggerExpected,
+                                      @NotNull final Finder<R> finder,
+                                      S... items) {
+    checkWithMessage(checkTitleMessage, locator, loggerActual, loggerExpected, finder, getDefaultMatchStrategy(locator, matcher, items), items);
+  }
+
+  public <S, R> void check(@Nullable final String locator,
+                           @NotNull final DescriptionProvider<R> loggerActual,
+                           @NotNull final DescriptionProvider<S> loggerExpected,
+                           @NotNull final Finder<R> finder,
+                           @NotNull final CollectionsMatchStrategy<S, R> strategy,
+                           S... items) {
+    checkWithMessage(null, locator, loggerActual, loggerExpected, finder, strategy, items);
+  }
+
+  public <S, R> void checkWithMessage(@Nullable final String checkTitleMessage,
+                                      @Nullable final String locator,
+                                      @NotNull final DescriptionProvider<R> loggerActual,
+                                      @NotNull final DescriptionProvider<S> loggerExpected,
+                                      @NotNull final Finder<R> finder,
+                                      @NotNull final CollectionsMatchStrategy<S, R> strategy,
+                                      S... items) {
     final List<R> result = finder.getItems(locator).myEntries;
     final String expected = getDescription(Arrays.asList(items), loggerExpected);
     final String actual = getDescription(result, loggerActual);
-    assertEquals("For itemS locator \"" + locator + "\"\n" +
-                 "Expected:\n" + expected + "\n\n" +
-                 "Actual:\n" + actual, items.length, result.size());
+
+    String assertMessage = "";
+    if(checkTitleMessage != null) {
+      assertMessage = checkTitleMessage + "\n";
+    }
+    assertMessage = assertMessage + String.format(
+      "For itemS locator '%s'\n" +
+      "Expected:\n" +
+      "%s\n\n" +
+      "Actual:\n" +
+      "%s",
+      locator, expected, actual
+    );
+
+    assertEquals(assertMessage, items.length, result.size());
 
     strategy.matchCollection(items, result);
 
