@@ -1258,21 +1258,8 @@ public class Build {
       return null;
     }
 
-    Function<Map.Entry<String, String>, String> getPrettyReasonName = entry -> {
-      String rawReason = entry.getKey();
-      StringBuilder resultBuilder = new StringBuilder(rawReason.length() - QUEUE_WAIT_REASON_STAT_PREFIX.length());
-      rawReason.codePoints()
-               .skip(QUEUE_WAIT_REASON_STAT_PREFIX.length()) // Prefix is not needed in UI
-               .map(cp -> cp == '_' ? ' ' : cp)              // Replace _ with ' ', so we can display text in UI in user-friendly way, not snake case.
-               .forEach(resultBuilder::appendCodePoint);
-
-      return resultBuilder.toString();
-    };
-
-    Map<String, String> reasons = getBuildStatisticsValues(myBuild).entrySet().stream()
-      .filter(e -> e.getKey().startsWith(QUEUE_WAIT_REASON_STAT_PREFIX))
-      .collect(Collectors.toMap(getPrettyReasonName, e -> e.getValue()));
-
+    Map<String, String> reasons = new HashMap<>();
+    myBuild.getWaitReasons().forEach((name, val) -> reasons.put(name, Long.toString(val)));
     return new Properties(reasons, null, nestedField, myBeanContext);
   }
 
