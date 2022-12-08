@@ -128,7 +128,7 @@ import org.jetbrains.annotations.Nullable;
     "agent", "compatibleAgents"/*q*/,
     "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
     "artifacts"/*rf*/, "issues"/*rf*/,
-    "properties", "resultingProperties", "attributes", "statistics", "metadata"/*rf*/,
+    "properties", "resultingProperties", "originalProperties", "attributes", "statistics", "metadata"/*rf*/,
     "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
     "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId", "replacementIds",
     "related", /*experimental*/
@@ -545,6 +545,15 @@ public class Build {
       checkCanViewRuntimeData();
       return new Properties(Properties.createEntity(myBuildPromotion.getParameters(), myBuildPromotion.getCustomParameters()), null,
                             null, myFields.getNestedField("properties", Fields.NONE, Fields.LONG), myBeanContext);
+    });
+  }
+
+  @XmlElement
+  public Properties getOriginalProperties() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("originalProperties", false), () -> {
+      checkCanViewRuntimeData();
+      return new Properties(Properties.createEntity(myBuildPromotion.getDefaultParameters(), null), null,
+                            null, myFields.getNestedField("originalProperties", Fields.NONE, Fields.LONG), myBeanContext);
     });
   }
 
