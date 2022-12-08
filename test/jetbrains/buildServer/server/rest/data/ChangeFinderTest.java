@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
-import jetbrains.VcsFixtureUtil;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -38,6 +37,7 @@ import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -96,44 +96,165 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     myFixture.getVcsModificationChecker().checkForModifications(buildConf.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
-    check(null, m70, m60, m50, m40, m30, m20);
-    String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
-    check(btLocator, m70, m60, m50, m40, m30, m20); //documenting current behavior, should be check(btLocator, m30, m20);
-    check(btLocator + ",branch:<any>", m70, m60, m50, m40, m30, m20);
-    check(btLocator + ",branch:(default:any)", m70, m60, m50, m40, m30, m20);
+    /* Repository state, root1
+
+                    #
+    <-- Uknown time # Known time, commits pending -->
+     Unseen commits #
+                    #
+             15 ....#------------------------------------------------ 60 (branch3)
+             10 ....#-- 20 -- 30 (master)
+              \\    #
+               \+...#------------------- 40 (branch1) -- 50 (branch2)
+                \   #
+                 +..#----------------------------------------------------------- 70 (prefix/aaa)
+             100    #
+         (branch10) #
+                    #
+     */
+
+    checkWithMessage(
+      "When locator is empty, all changes known to TC should be returned, sorted from the newest to the oldest",
+      null,
+      m70, m60, m50, m40, m30, m20
+    );
+    setInternalProperty("rest.request.changes.legacyChangesInAllBranches", "true");
+
+    final String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
+    checkWithMessage(
+      "When locator has no branch set we are treating it as if branch:(default:any), all changes known to TC should be returned, sorted from the newest to the oldest.\n" +
+      "Logically, we should return changes from default branch only",
+      btLocator,
+      m70, m60, m50, m40, m30, m20
+    ); //documenting current behavior, should be check(btLocator, m30, m20);
+
+    checkWithMessage(
+      "When branch set to any, all changes known to TC should be returned, sorted from the newest to the oldest.",
+      btLocator + ",branch:(default:any)",
+      m70, m60, m50, m40, m30, m20
+    );
+
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(aaa:bbb)");
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(default:true)"); //no buildType is not supported
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(name:branch1)");
     checkExceptionOnItemsSearch(BadRequestException.class, btLocator + ",branch:(name:master,aaa:bbb)");
-    check(btLocator + ",branch:(name:master,default:false)");  //no branches match here
-    check(btLocator + ",branch:(name:master)", m30, m20);
-    check(btLocator + ",branch:(name:<default>)", m30, m20);
+
+    checkWithMessage(
+      "Branch master is default, so no branches match => no changes.",
+      btLocator + ",branch:(name:master,default:false)",
+      new SVcsModificationOrChangeDescriptor[0]
+    );
+    checkWithMessage(
+      "Changes from the master branch are expected.",
+      btLocator + ",branch:(name:master)",
+      m30, m20
+    );
+    checkWithMessage(
+      "Changes from the master branch are expected.",
+      btLocator + ",branch:(name:<default>)",
+      m30, m20
+    );
+    checkWithMessage(
+      "Changes from the branch are expected, prefix in a branch name should be ignored according to a branch spec.",
+      btLocator + ",branch:(name:aaa)",
+      m70
+    );
+    checkWithMessage(
+      "Only changes from the branchwith specified name are expected.",
+      btLocator + ",branch:(name:branch1)",
+      m40
+    );
+    checkWithMessage(
+      "No changes shoud be found in the non existing branch.",
+      btLocator + ",branch:(name:bbb)",
+      new SVcsModificationOrChangeDescriptor[0]
+    );
+    checkWithMessage(
+      "All changes are expected when wildcard branch name specified.",
+      btLocator + ",branch:(name:<any>)",
+      m70, m60, m50, m40, m30, m20
+    );
+
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(branch1)");
-    check(btLocator + ",branch:(master)", m30, m20);
-    check(btLocator + ",branch:(<default>)", m30, m20);
-    check(btLocator + ",branch:(name:aaa)", m70);
-    check(btLocator + ",branch:(aaa)", m70);
-    check(btLocator + ",branch:(name:<any>)", m70, m60, m50, m40, m30, m20);
-    check(btLocator + ",branch:(default:any)", m70, m60, m50, m40, m30, m20);
-    check(btLocator + ",branch:(<any>)", m70, m60, m50, m40, m30, m20);
-    check(btLocator + ",branch:(name:bbb)");
-    check(btLocator + ",branch:(prefix/aaa)");
-    check(btLocator + ",branch:(name:branch1)", m40);
 
-    check(btLocator + ",branch:(default:true)", m30, m20);
-    check(btLocator + ",branch:(default:false)", m70, m60, m50, m40);
-
-    check(btLocator + ",branch:(default:false),unique:true", m70, m60, m50, m40);
+    checkWithMessage(
+      "All changes are expected when wildcard branch name specified, singleValue branch locator.",
+      btLocator + ",branch:(<any>)",
+      m70, m60, m50, m40, m30, m20
+    );
+    checkWithMessage(
+      "Changes from the master branch are expected, singleValue branch locator.",
+      btLocator + ",branch:(master)",
+      m30, m20
+    );
+    checkWithMessage(
+      "Changes from the master branch are expected, singleValue branch locator.",
+      btLocator + ",branch:(<default>)",
+      m30, m20
+    );
+    checkWithMessage(
+      "Changes from the branch with specified name are expected, singleValue branch locator, prefix in a branch name should be ignored according to a branch spec.",
+      btLocator + ",branch:(aaa)",
+      m70
+    );
+    checkWithMessage(
+      "Prefix in a branch name should be ignored according to a branch spec, so TC doesn't know about prefix in the branch name.",
+      btLocator + ",branch:(prefix/aaa)",
+      new SVcsModificationOrChangeDescriptor[0]
+    );
+    checkWithMessage(
+      "Only changes from the default branch are expected.",
+      btLocator + ",branch:(default:true)",
+      m30, m20
+    );
+    checkWithMessage(
+      "Only changes NOT from the default branch are expected.",
+      btLocator + ",branch:(default:false)",
+      m70, m60, m50, m40
+    );
+    checkWithMessage(
+      "Only changes NOT from the default branch are expected, all of them are unique, no duplicates should be filtered out.",
+      btLocator + ",branch:(default:false),unique:true",
+      m70, m60, m50, m40
+    );
 
     //test pending
 
-    check(btLocator + ",branch:(name:master),pending:true", m30, m20);
-    check(btLocator + ",branch:(name:<default>),pending:true", m30, m20);
-    check(btLocator + ",branch:(name:branch1),pending:true", m40);
-    check(btLocator + ",branch:(name:master),pending:false");
-    check(btLocator + ",branch:(name:<default>),pending:false");
-    check(btLocator + ",branch:(name:branch1),pending:false");
-    check(btLocator + ",branch:(name:branch1),pending:any", m40);
+    checkWithMessage(
+      "Before any build was run, all changes are considered pending in default branch",
+      btLocator + ",branch:(name:<default>),pending:true",
+      m30, m20
+    );
+    checkWithMessage(
+      "Before any build was run, all changes are considered pending in a branch with specific name",
+      btLocator + ",branch:(name:master),pending:true",
+      m30, m20
+    );
+    checkWithMessage(
+      "Pending changes in a branch should not include changes that are not in that branch (m50 should not be present)",
+      btLocator + ",branch:(name:branch1),pending:true",
+      m40
+    );
+    checkWithMessage(
+      "All changes in master should be considred pending if there was no build.",
+      btLocator + ",branch:(name:master),pending:false",
+      new SVcsModificationOrChangeDescriptor[0]
+    );
+    checkWithMessage(
+      "All changes in default branch should be considred pending if there was no build.",
+      btLocator + ",branch:(name:<default>),pending:false",
+      new SVcsModificationOrChangeDescriptor[0]
+    );
+    checkWithMessage(
+      "All changes are pending in a branch1.",
+      btLocator + ",branch:(name:branch1),pending:false",
+      new SVcsModificationOrChangeDescriptor[0]
+    );
+    checkWithMessage(
+      "Both pending and non-pending changes should be returned.",
+      btLocator + ",branch:(name:branch1),pending:any",
+      m40
+    );
 
     changesPolicy.setCurrentState(root2, RepositoryStateData.createVersionState("master", Util.map("master", "11")));
     build().in(buildConf).withDefaultBranch().finish();
@@ -151,18 +272,78 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     myFixture.getVcsModificationChecker().checkForModifications(buildConf.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
-    check(null,  m90, m80, m70, m60, m50, m40, m30, m20);
-    check(btLocator + ",branch:(name:master)", m80, m30, m20);
-    check(btLocator + ",branch:(name:<default>)", m80, m30, m20);
-    check(btLocator + ",branch:(name:branch1)", m90, m40);
+    /* Repository state, root1
 
-    check(btLocator + ",branch:(name:master),pending:true", m80);
-    check(btLocator + ",branch:(name:<default>),pending:true", m80);
-    check(btLocator + ",branch:(name:branch1),pending:true", m90);
-    check(btLocator + ",branch:(name:master),pending:false", m30, m20);
-    check(btLocator + ",branch:(name:<default>),pending:false", m30, m20);
-    check(btLocator + ",branch:(name:branch1),pending:false", m40);
-    check(btLocator + ",branch:(name:branch1),pending:any", m90, m40);
+                    #
+    <-- Uknown time # Known time, commits seen -->                                 builds in master, branch1
+     Unseen commits #                                                                    #
+                    #                                                                    #
+             15 ....#-------------------------------------- 60 (branch3) ----------------#
+             10 ....#-- 20 -- 30 --------------------------------------------------------#-- 80 (master)
+              \\    #                                                                    #
+               \+...#------------------- 40 -- 50 (branch2) -----------------------------#-- 90 (branch1)
+                \   #                                                                    #
+                 +..#------------------------------------------------- 70 (prefix/aaa) --#
+             100    #                                                                    #
+         (branch10) #                                                                    #
+                    #                                                                    #
+     */
+
+    checkWithMessage(
+      "All changes are expected when empty locator is given, including new ones.",
+      null,
+      m90, m80, m70, m60, m50, m40, m30, m20
+    );
+    checkWithMessage(
+      "All changes in master are expected, including new ones.",
+      btLocator + ",branch:(name:master)",
+      m80, m30, m20
+    );
+    checkWithMessage(
+      "All changes in default branch are expected, including new ones.",
+      btLocator + ",branch:(name:<default>)",
+      m80, m30, m20
+    );
+    checkWithMessage(
+      "All changes in specified branch are expected, including new ones.",
+      btLocator + ",branch:(name:branch1)",
+      m90, m40
+    );
+    checkWithMessage(
+      "There is only one pending change in a master after build.",
+      btLocator + ",branch:(name:master),pending:true",
+      m80
+    );
+    checkWithMessage(
+      "There is only one pening change in default branch after build.",
+      btLocator + ",branch:(name:<default>),pending:true",
+      m80
+    );
+    checkWithMessage(
+      "There is only one pending change in a branch1 after build.",
+      btLocator + ",branch:(name:branch1),pending:true",
+      m90
+    );
+    checkWithMessage(
+      "Changes in a master included in a build are not pending.",
+      btLocator + ",branch:(name:master),pending:false",
+      m30, m20
+    );
+    checkWithMessage(
+      "Changes in default branch included in a build are not pending.",
+      btLocator + ",branch:(name:<default>),pending:false",
+      m30, m20
+    );
+    checkWithMessage(
+      "Changes in branch1 included in a build are not pending.",
+      btLocator + ",branch:(name:branch1),pending:false",
+      m40
+    );
+    checkWithMessage(
+      "All changes in specified branch are expected, including new ones.",
+      btLocator + ",branch:(name:branch1),pending:any",
+      m90, m40
+    );
   }
 
   @Test
@@ -1025,12 +1206,24 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     check(locator, new SVcsModificationOrChangeDescriptor[0]);
   }
 
-  private void check(String locator, SVcsModification... modifications) {
+  private void check(@Nullable final String locator,
+                     @NotNull final SVcsModification... modifications) {
     SVcsModificationOrChangeDescriptor[] wrapped = new SVcsModificationOrChangeDescriptor[modifications.length];
     for(int i = 0; i < modifications.length; i++) {
       wrapped[i] = new SVcsModificationOrChangeDescriptor(modifications[i]);
     }
 
     check(locator, (m1, m2) -> m1.getSVcsModification().equals(m2.getSVcsModification()), wrapped);
+  }
+
+  private void checkWithMessage(@NotNull final String message,
+                                @Nullable final String locator,
+                                @NotNull final SVcsModification... modifications) {
+    SVcsModificationOrChangeDescriptor[] wrapped = new SVcsModificationOrChangeDescriptor[modifications.length];
+    for(int i = 0; i < modifications.length; i++) {
+      wrapped[i] = new SVcsModificationOrChangeDescriptor(modifications[i]);
+    }
+
+    checkWithMessage(message, locator, (m1, m2) -> m1.getSVcsModification().equals(m2.getSVcsModification()), wrapped);
   }
 }

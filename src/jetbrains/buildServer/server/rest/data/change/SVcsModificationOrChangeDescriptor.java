@@ -52,4 +52,12 @@ public class SVcsModificationOrChangeDescriptor {
   public ChangeDescriptor getChangeDescriptor() {
     return myChangeDescriptor;
   }
+
+  @Override
+  public String toString() {
+    if(myChangeDescriptor != null) {
+      return "SVMOCD{descriptor= " + myChangeDescriptor + " }";
+    }
+    return "SVMOCD{mod= " + myModification + " }";
+  }
 }
