@@ -45,8 +45,8 @@ import java.util.Map;
 @ModelBaseType(ObjectType.PAGINATED)
 public class Builds implements DefaultValueAware {
   private BeanContext myBeanContext;
-  private Fields myFields;
-  private ItemsProviders.ItemsRetriever<BuildPromotion> myBuildDataRetriever;
+  private Fields myFields = Fields.NONE;
+  private ItemsProviders.ItemsRetriever<BuildPromotion> myBuildDataRetriever = new ListBasedItemsRetriever<>(Collections.emptyList());
 
   public Builds() {
   }
@@ -130,6 +130,10 @@ public class Builds implements DefaultValueAware {
 
   @Override
   public boolean isDefault() {
+    if(myBuildDataRetriever == null) {
+      return true;
+    }
+
     if(myBuildDataRetriever.isCountCheap()) {
       return ValueWithDefault.isAllDefault(myBuildDataRetriever.getCount(), getHref());
     }
