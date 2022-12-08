@@ -98,18 +98,18 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     /* Repository state, root1
 
+    Invisible to TC # Visible to TC
                     #
-    <-- Uknown time # Known time, commits pending -->
-     Unseen commits #
+             15 ----#-- 60 (branch3)
+             10 ----#-- 20 -- 30 (master)
+              |     #
+              +-----#-- 40 (branch1)
+              |     #   |
+              |     #   +---- 50 (branch2)
+              |     #
+              +-----#-------- 70 (prefix/aaa)
                     #
-             15 ....#------------------------------------------------ 60 (branch3)
-             10 ....#-- 20 -- 30 (master)
-              \\    #
-               \+...#------------------- 40 (branch1) -- 50 (branch2)
-                \   #
-                 +..#----------------------------------------------------------- 70 (prefix/aaa)
-             100    #
-         (branch10) #
+                    #        100 (branch10)
                     #
      */
 
@@ -122,8 +122,8 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     final String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
     checkWithMessage(
-      "When locator has no branch set we are treating it as if branch:(default:any), all changes known to TC should be returned, sorted from the newest to the oldest.\n" +
-      "Logically, we should return changes from default branch only",
+      "When locator has no branch set all changes known to TC should be returned, sorted from the newest to the oldest (current behaviour).\n" +
+      "Logically, we should return changes from default branch instead (m30, m20).",
       btLocator,
       m70, m60, m50, m40, m30, m20
     ); //documenting current behavior, should be check(btLocator, m30, m20);
@@ -274,19 +274,19 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     /* Repository state, root1
 
+    Invisible to TC # Visible to TC
                     #
-    <-- Uknown time # Known time, commits seen -->                                 builds in master, branch1
-     Unseen commits #                                                                    #
-                    #                                                                    #
-             15 ....#-------------------------------------- 60 (branch3) ----------------#
-             10 ....#-- 20 -- 30 --------------------------------------------------------#-- 80 (master)
-              \\    #                                                                    #
-               \+...#------------------- 40 -- 50 (branch2) -----------------------------#-- 90 (branch1)
-                \   #                                                                    #
-                 +..#------------------------------------------------- 70 (prefix/aaa) --#
-             100    #                                                                    #
-         (branch10) #                                                                    #
-                    #                                                                    #
+             15 ----#-- 60 (branch3)
+             10 ----#-- 20 --- 30 [build] --- 80 (master)
+              |     #
+              +-----#-- 40 [build] ---------- 90 (branch1)
+              |     #   |
+              |     #   +----- 50 (branch2)
+              |     #
+              +-----#--------- 70 (prefix/aaa)
+                    #
+                    #         100 (branch10)
+                    #
      */
 
     checkWithMessage(
@@ -377,16 +377,56 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     myFixture.getVcsModificationChecker().checkForModifications(buildConf.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
-    check(null, m60, m45, m40, m30, m20);
-    String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
+    /* Repository state
 
-    check(btLocator, m60, m45, m40, m30, m20); //documenting current behavior, should be check(btLocator, m60, m20);
-    check(btLocator + ",branch:(default:any)", m60, m45, m40, m30, m20);
+    Invisible to TC # Visible to TC
+                    #
+               10 --#-- 20 [build] -- 60 (master)
+                    #    |
+                    #    +--- 30 --- 40 (branch1)
+                    #         |
+                    #         +----- 45 (branch2)
+                    #
+    */
 
-    check(btLocator + ",pending:true", m60);
-    check(btLocator + ",pending:true,branch:branch1", m40, m30);
-    check(btLocator + ",pending:true,branch:(default:false)", m45, m40, m30);
-    check(btLocator + ",pending:true,branch:(default:any)", m60, m45, m40, m30);
+    checkWithMessage(
+      "Empty locator should return all changes.",
+      null,
+      m60, m45, m40, m30, m20
+    );
+
+    final String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
+    checkWithMessage(
+      "Locator without branch should return all changes as of now (current behaviour).\n" +
+      "Logically, only changes from default branch should be included (m60, m20)",
+      btLocator,
+      m60, m45, m40, m30, m20
+    );
+    checkWithMessage(
+      "All branches are selected by locator, so we should return all changes.",
+      btLocator + ",branch:(default:any)",
+      m60, m45, m40, m30, m20
+    );
+    checkWithMessage(
+      "When pending:true and branch locator is not specified, only pending changes from default branch should be included.",
+      btLocator + ",pending:true",
+      m60
+    );
+    checkWithMessage(
+      "When pending:true and branch is given, only pending changes from given branch should be included.",
+      btLocator + ",pending:true,branch:branch1",
+      m40, m30
+    );
+    checkWithMessage(
+      "When pending:false and non default branch, pending changes from all branches except default should be included.",
+      btLocator + ",pending:true,branch:(default:false)",
+      m45, m40, m30
+    );
+    checkWithMessage(
+      "When pending:true and all branches are selected, pending changes from all branches should be included.",
+      btLocator + ",pending:true,branch:(default:any)",
+      m60, m45, m40, m30
+    );
   }
 
   @Test
@@ -406,7 +446,6 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     vcs.setCollectChangesPolicy(changesPolicy);
 
     SVcsModification m20 = myFixture.addModification(modification().in(root1).version("20").parentVersions("10"));
-
     SVcsModification m30 = myFixture.addModification(modification().in(root1).version("30").parentVersions("20"));
     SVcsModification m40 = myFixture.addModification(modification().in(root1).version("40").parentVersions("10"));
     SVcsModification m45 = myFixture.addModification(modification().in(root1).version("45").parentVersions("40"));
@@ -422,16 +461,58 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     build().in(buildConf).onModifications(m20).finish();
     build().in(buildConf).withBranch("branch1").onModifications(m40).finish();
 
-    String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
+    /* Repository state, root1
 
-    check(null, m60, m50, m45, m40, m30, m20);
-    check(btLocator, m60, m50, m45, m40, m30, m20); //documenting current behavior should be check(btLocator, m30, m20);
-    check(btLocator + ",branch:(default:any)", m60, m50, m45, m40, m30, m20);
+    Invisible to TC # Visible to TC
+                    #
+               10 --#-- 20 [build] --- 30 (master)
+                |   #        |
+                |   #        +-------- 60 (branch3)
+                |   #
+                +---#-- 40 [build] --- 45 (branch1)
+                |   #
+                +---#-- 50 (branch2)
 
-    check(btLocator + ",pending:true", m30);
-    check(btLocator + ",pending:true,branch:branch1", m45);
-    check(btLocator + ",pending:true,branch:(default:false)", m60, m50, m45);
-    check(btLocator + ",pending:true,branch:(default:any)", m60, m50, m45, m30);
+    */
+
+    checkWithMessage(
+      "Empty locator should return all changes.",
+      null,
+      m60, m50, m45, m40, m30, m20
+    );
+
+    final String btLocator = "buildType:(id:" + buildConf.getExternalId() + ")";
+    checkWithMessage(
+      "As of now, all changes are returned when no branch is specified.\n" +
+      "Logically, we should return only changes coming from default branch instead (m30, m20).",
+      btLocator,
+      m60, m50, m45, m40, m30, m20
+    ); //documenting current behavior should be check(btLocator, m30, m20);
+    checkWithMessage(
+      "Locator matching any branch should return all changes.",
+      btLocator + ",branch:(default:any)",
+      m60, m50, m45, m40, m30, m20
+    );
+    checkWithMessage(
+      "When pending:true and branch is not specified, only pending changes from default branch should be returned.",
+      btLocator + ",pending:true",
+      m30
+    );
+    checkWithMessage(
+      "When pending:true and branch is specified, return pending changes from specified branch.",
+      btLocator + ",pending:true,branch:branch1",
+      m45
+    );
+    checkWithMessage(
+      "When pending:true and all non-default branches are specified, return pending changes from all branches except default.",
+      btLocator + ",pending:true,branch:(default:false)",
+      m60, m50, m45
+    );
+    checkWithMessage(
+      "When pending:true and all branches are specified, return all pending changes.",
+      btLocator + ",pending:true,branch:(default:any)",
+      m60, m50, m45, m30
+    );
 
     buildConf.removeVcsRoot(parentRoot1);
     SVcsRootEx parentRoot2 = myFixture.addVcsRoot(vcs.getName(), "", buildConf);
@@ -447,17 +528,57 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
                                                                                                    "branch1", "200")));
     myFixture.getVcsModificationChecker().checkForModifications(buildConf.getVcsRootInstances(), OperationRequestor.UNKNOWN);
 
+    /* Repository state, root2
 
-    check(null, m210, m200, m60, m50, m45, m40, m30, m20);
+    Invisible to TC # Visible to TC
+                    #
+              199 --#-- 210 (master)
+                |   #
+                + --#-- 200 (branch1)
 
-    check(btLocator, m210, m200, m60, m50, m45, m40, m30, m20);
-    check(btLocator + ",branch:(default:any)", m210, m200, m60, m50, m45, m40, m30, m20);
+    */
 
-    check(btLocator + ",pending:true", m210);
-    check(btLocator + ",pending:true,branch:branch1", m200);
-    check(btLocator + ",pending:true,branch:(default:true)", m210);
-    check(btLocator + ",pending:true,branch:(default:false)", m200);
-    check(btLocator + ",pending:true,branch:(default:any)", m210, m200);
+    checkWithMessage(
+      "When locator is not specififed, we should return all changes from old and new vcs roots.",
+      null,
+      m210, m200, m60, m50, m45, m40, m30, m20
+    );
+    checkWithMessage(
+      "As of now, all changes are returned when no branch is specified.\n" +
+      "Logically, we should return only changes coming from default branch instead (m210, m30, m20).",
+      btLocator,
+      m210, m200, m60, m50, m45, m40, m30, m20
+    );
+    checkWithMessage(
+      "When locator specififes all branches, we should return all changes from old and new vcs roots.",
+      btLocator + ",branch:(default:any)",
+      m210, m200, m60, m50, m45, m40, m30, m20
+    );
+    checkWithMessage(
+      "When pending:true and no branch specified, we should return pending changes from default branch only. 'Pending' changes from old vcsRoot shpuld be ignored.",
+      btLocator + ",pending:true",
+      m210
+    );
+    checkWithMessage(
+      "When pending:true and branch is specified specified, we should return pending changes from specified branch only. 'Pending' changes from old vcsRoot shpuld be ignored.",
+      btLocator + ",pending:true,branch:branch1",
+      m200
+    );
+    checkWithMessage(
+      "When pending:true and only default branch is specified, we should return pending changes from default branch only. 'Pending' changes from old vcsRoot shpuld be ignored.",
+      btLocator + ",pending:true,branch:(default:true)",
+      m210
+    );
+    checkWithMessage(
+      "When pending:true and only non-default branches are specified, we should return pending changes from non-default branches only. 'Pending' changes from old vcsRoot shpuld be ignored.",
+      btLocator + ",pending:true,branch:(default:false)",
+      m200
+    );
+    checkWithMessage(
+      "When pending:true and all branches are specified, we should return all pending changes. 'Pending' changes from old vcsRoot shpuld be ignored.",
+      btLocator + ",pending:true,branch:(default:any)",
+      m210, m200
+    );
   }
 
   @Test
