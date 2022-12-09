@@ -157,12 +157,12 @@ public class Build {
   public static final String REST_BEANS_BUILD_INCLUDE_ALL_ATTRIBUTES = "rest.beans.build.includeAllAttributes";
   public static final String QUEUE_WAIT_REASON_STAT_PREFIX = "queueWaitReason:";
 
-  @NotNull final protected BuildPromotion myBuildPromotion;
-  @Nullable final protected SBuild myBuild;
-  @Nullable final private SQueuedBuild myQueuedBuild;
+  @NotNull protected final BuildPromotion myBuildPromotion;
+  @Nullable protected final SBuild myBuild;
+  @Nullable private final SQueuedBuild myQueuedBuild;
 
-  @NotNull final protected Fields myFields;
-  @NotNull final private BeanContext myBeanContext;
+  @NotNull protected final Fields myFields;
+  @NotNull private final BeanContext myBeanContext;
   @NotNull private final ServiceLocator myServiceLocator;
 
   @SuppressWarnings("ConstantConditions")
