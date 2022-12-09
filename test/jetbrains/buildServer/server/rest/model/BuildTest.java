@@ -1402,7 +1402,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       Changes changes = build.getChanges();
       assertEquals("/app/rest/changes?locator=build:(id:" + build2.getBuildId() + ")", changes.getHref());
       assertEquals(Integer.valueOf(2), changes.getCount()); //changes are cached
-      assertEquals(null, changes.getChanges());
+      assertNull(changes.getChanges());
       assertNull(changes.getNextHref());
     }
     {
@@ -1410,8 +1410,8 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       Build build = new Build(build2, Fields.LONG, getBeanContext(myFixture));
       Changes changes = build.getChanges();
       assertEquals("/app/rest/changes?locator=build:(id:" + build2.getBuildId() + ")", changes.getHref());
-      assertEquals(null, changes.getCount()); //changes are cached
-      assertEquals(null, changes.getChanges());
+      assertNull(changes.getCount()); //changes are cached
+      assertNull(changes.getChanges());
       assertNull(changes.getNextHref());
     }
     {
@@ -1463,44 +1463,44 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       Build build = new Build(build1, new Fields("changes"), getBeanContext(myFixture));
       Changes changes = build.getChanges();
       assertEquals("/app/rest/changes?locator=build:(id:" + build1.getBuildId() + ")", changes.getHref());
-      assertEquals(null, changes.getCount());
-      assertEquals(null, changes.getChanges());
+      assertNull(changes.getCount());
+      assertNull(changes.getChanges());
     }
     {
       Build build = new Build(build1, new Fields("changes(change($optional))"), getBeanContext(myFixture));
       Changes changes = build.getChanges();
-      assertEquals(null, changes.getCount());
-      assertEquals(null, changes.getChanges());
+      assertNull(changes.getCount());
+      assertNull(changes.getChanges());
     }
     {
       Build build = new Build(build1, new Fields("changes(change($optional),count($optional))"), getBeanContext(myFixture));
       Changes changes = build.getChanges();
-      assertEquals(null, changes.getCount());
-      assertEquals(null, changes.getChanges());
+      assertNull(changes.getCount());
+      assertNull(changes.getChanges());
     }
     {
       Build build = new Build(build1, new Fields("changes(count($optional))"), getBeanContext(myFixture));
       Changes changes = build.getChanges();
-      assertEquals(null, changes.getCount());
-      assertEquals(null, changes.getChanges());
+      assertNull(changes.getCount());
+      assertNull(changes.getChanges());
     }
     {
       Build build = new Build(build1, new Fields("changes($locator(count:2),count($optional))"), getBeanContext(myFixture));
       Changes changes = build.getChanges();
-      assertEquals(null, changes.getCount());
-      assertEquals(null, changes.getChanges());
+      assertNull(changes.getCount());
+      assertNull(changes.getChanges());
     }
     {
       Build build = new Build(build1, new Fields("changes($locator(count:2))"), getBeanContext(myFixture)); //no fields requested
       Changes changes = build.getChanges();
-      assertEquals(null, changes.getChanges());
-      assertEquals(null, changes.getCount());
+      assertNull(changes.getChanges());
+      assertNull(changes.getCount());
     }
     assertFalse(myChangeFinder.isCheap(build1.getBuildPromotion(), null)); //still not calculated
     {
       Build build = new Build(build1, new Fields("changes($locator(count:2),count)"), getBeanContext(myFixture));
       Changes changes = build.getChanges();
-      assertEquals(null, changes.getChanges());
+      assertNull(changes.getChanges());
       assertEquals(Integer.valueOf(2), changes.getCount());
     }
     assertFalse(myChangeFinder.isCheap(build1.getBuildPromotion(), null));
@@ -1518,7 +1518,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     {
       Build build = new Build(build1, new Fields("changes($locator(count:3),count($optional))"), getBeanContext(myFixture));  //morethan cached
       Changes changes = build.getChanges();
-      assertEquals(null, changes.getCount());
+      assertNull(changes.getCount());
     }
     assertFalse(myChangeFinder.isCheap(build1.getBuildPromotion(), "count:3")); //still not calculated
 
