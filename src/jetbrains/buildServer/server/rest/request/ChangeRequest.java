@@ -289,7 +289,7 @@ public class ChangeRequest {
   @GET
   @Path("/{changeLocator}/firstBuilds")
   @Produces({"application/xml", "application/json"})
-  @ApiOperation(value="Get first builds of the matching change.", nickname="getChangeFirstBuilds", hidden = true)
+  @ApiOperation(value="Get first builds of the matching change.", nickname="getChangeFirstBuilds")
   public Builds getChangeFirstBuilds(@ApiParam(format = LocatorName.CHANGE) @PathParam("changeLocator") String changeLocator,
                                      @QueryParam("fields") String fields) {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();

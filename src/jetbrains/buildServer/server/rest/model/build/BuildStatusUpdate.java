@@ -18,8 +18,10 @@ package jetbrains.buildServer.server.rest.model.build;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 
 @XmlRootElement
+@ModelDescription("Represents a build status update.")
 public class BuildStatusUpdate {
   @XmlAttribute
   public String status;

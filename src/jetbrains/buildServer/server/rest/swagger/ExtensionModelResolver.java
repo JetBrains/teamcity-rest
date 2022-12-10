@@ -115,8 +115,8 @@ public class ExtensionModelResolver extends ModelResolver {
     if (fullyQualifiedName.startsWith(MODEL_PACKAGE)) {
       String packageName = fullyQualifiedName.
           replace(MODEL_PACKAGE, "").
-          replace(shortName, "").
-          replace(".", "");
+          replace(shortName, "");
+      StringUtils.strip(packageName, "."); // remove leading and trailing dots
       if (!packageName.isEmpty()) {
         model.setVendorExtension(ExtensionType.X_SUBPACKAGE, packageName);
       }
