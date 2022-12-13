@@ -73,67 +73,6 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     return child;
   }
 
-  public void merge(@NotNull ScopeTree<DATA, COUNTERS> other) {
-    if(!myRoot.getScope().equals(other.myRoot.getScope())) {
-      throw new UnsupportedOperationException(
-        String.format("Can't merge scope trees with different root nodes %s and %s.", myRoot, other.myRoot)
-      );
-    }
-
-    // merge starting from the root
-    mergeSubtree(myRoot, other.myRoot);
-  }
-
-  /**
-   * Merges two subtrees recursively.
-   * @param target - one of the nodes of this tree.
-   * @param toBeMerged - node of the tree that is getting merged into this one.
-   */
-  private void mergeSubtree(@NotNull Node<DATA, COUNTERS> target, @NotNull Node<DATA, COUNTERS> toBeMerged) {
-    if(target.getScope().isLeaf()) {
-      assert toBeMerged.getScope().isLeaf();
-      target.mergeCountersAndData(toBeMerged.getCounters(), toBeMerged.getData());
-      return;
-    }
-
-    // Merge children one by one, then merge total counters
-    for(Node<DATA, COUNTERS> mergingChild : toBeMerged.getChildren()) {
-      Node<DATA, COUNTERS> myChild = myIdToNodesMap.get(mergingChild.getId());
-      if(myChild == null) {
-        // there is no such child in our tree, so let's create one
-        target.putChild(mergingChild);
-        memoizeFullSubTree(mergingChild);
-        continue;
-      }
-
-      if(myChild.getId().equals(myRoot.getId())) {
-        throw new InvalidStateException("Added subtree contains our root as a child node.");
-      }
-
-      assert myChild.getParent() != null;      // that is true for all non-root nodes which we've already checked.
-      assert mergingChild.getParent() != null; // that is true because it's a child node
-      if(!myChild.getParent().getId().equals(mergingChild.getParent().getId())) {
-        throw new InvalidStateException("Added subtree has different nodes structure.");
-      }
-
-      mergeSubtree(myChild, mergingChild);
-    }
-
-    target.mergeCounters(toBeMerged.getCounters());
-  }
-
-  private void memoizeFullSubTree(@NotNull Node<DATA, COUNTERS> head) {
-    Deque<Node<DATA, COUNTERS>> deque = new ArrayDeque<>();
-    deque.add(head);
-
-    while(!deque.isEmpty()) {
-      Node<DATA, COUNTERS> current = deque.poll();
-      myIdToNodesMap.put(current.getId(), current);
-
-      current.getChildren().forEach(deque::add);
-    }
-  }
-
   /**
    * Get all tree nodes, from top to bottom, parents before children in a breadth-first fashion.
    */
