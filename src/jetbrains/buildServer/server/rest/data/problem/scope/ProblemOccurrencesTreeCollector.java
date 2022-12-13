@@ -184,7 +184,7 @@ public class ProblemOccurrencesTreeCollector {
     return result.toString();
   }
 
-  public class GroupedProblems implements LeafInfo<BuildProblem, ProblemCounters> {
+  public static class GroupedProblems implements LeafInfo<BuildProblem, ProblemCounters> {
     private final Collection<BuildProblem> myProblems;
     private final ProblemCounters myCounters;
 
@@ -253,7 +253,7 @@ public class ProblemOccurrencesTreeCollector {
     }
   }
 
-  public class ProblemScope implements Scope {
+  public static class ProblemScope implements Scope {
     private final String myId;
     private final String myName;
     private final ProblemScopeType myType;
