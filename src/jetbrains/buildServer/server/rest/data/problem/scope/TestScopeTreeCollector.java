@@ -99,7 +99,7 @@ public class TestScopeTreeCollector {
     String maxChildrenDim = locator.getSingleDimensionValue(MAX_CHILDREN);
     int maxChildren = maxChildrenDim == null ? DEFAULT_MAX_CHILDREN : Integer.parseInt(maxChildrenDim);
 
-    TreeSlicingOptions<STestRun, TestCountersData> slicingOptions = new TreeSlicingOptions<STestRun, TestCountersData>(maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order);
+    TreeSlicingOptions<STestRun, TestCountersData> slicingOptions = new TreeSlicingOptions<>(maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order);
     String maxTotalNodesStr = locator.getSingleDimensionValue(TREE_MAX_TOTAL_NODES);
     if(maxTotalNodesStr != null) {
       try {
