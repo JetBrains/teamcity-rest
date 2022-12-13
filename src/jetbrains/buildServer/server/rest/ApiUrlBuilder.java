@@ -22,7 +22,6 @@ import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
-import jetbrains.buildServer.serverSide.auth.Role;
 import jetbrains.buildServer.serverSide.auth.RoleEntry;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
@@ -92,10 +91,6 @@ public class ApiUrlBuilder {
 
   public String getHref(final RoleEntry roleEntry, final SUser user, @Nullable final String scopeParam) {
     return myPathTransformer.transform(UserRequest.getRoleAssignmentHref(user, roleEntry, scopeParam));
-  }
-
-  public String getHref(final Role role) {
-    return myPathTransformer.transform(RoleRequest.getRoleHref(role));
   }
 
   public String getHref(final SProject project) {
