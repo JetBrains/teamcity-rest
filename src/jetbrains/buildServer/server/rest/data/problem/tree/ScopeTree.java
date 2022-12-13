@@ -296,11 +296,6 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
       myCountersData = myCountersData.combinedWith(counters);
     }
 
-    public void mergeCountersAndData(@NotNull COUNTERS counters, @NotNull Collection<DATA> newData) {
-      myCountersData = myCountersData.combinedWith(counters);
-      myTestRuns.addAll(newData);
-    }
-
     public void putChild(@NotNull Node<DATA, COUNTERS> child) {
       myChildren.put(child.getId(), child);
     }
