@@ -50,11 +50,6 @@ public class TreeSlicingOptions<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     return new TreeSlicingOptions<DATA, COUNTERS>(maxChildren, myDataComparator, myNodeComparator, myMaxTotalNodes);
   }
 
-  @NotNull
-  public TreeSlicingOptions<DATA, COUNTERS> withNodeComparator(@NotNull Comparator<ScopeTree.Node<DATA, COUNTERS>> nodeComparator) {
-    return new TreeSlicingOptions<DATA, COUNTERS>(myMaxChildren, myDataComparator, nodeComparator, myMaxTotalNodes);
-  }
-
   public TreeSlicingOptions<DATA, COUNTERS> withMaxNodes(int maxTotalNodes) {
     return new TreeSlicingOptions<DATA, COUNTERS>(myMaxChildren, myDataComparator, myNodeComparator, maxTotalNodes);
   }
