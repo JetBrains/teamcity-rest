@@ -101,23 +101,20 @@ public class BuildRequest {
   private static final Logger LOG = Logger.getInstance(BuildRequest.class.getName());
   private static final String IMG_STATUS_WIDGET_ROOT_DIRECTORY = "/img/statusWidget";
   private static final String IMG_STATUS_WIDGET_DEFAULT_SUFFIX = ".svg";
+  private static final Pattern NON_ALPHA_NUM_PATTERN = Pattern.compile("[^a-zA-Z0-9-#.]+");
+  private static final String REST_BUILD_REQUEST_DELETE_LIMIT = "rest.buildRequest.delete.limit";
+
   public static final String RELATED_ISSUES = "/relatedIssues";
   public static final String TESTS = "testOccurrences";
   public static final String STATISTICS = "/statistics";
-  private static final Pattern NON_ALPHA_NUM_PATTERN = Pattern.compile("[^a-zA-Z0-9-#.]+");
+  public static final String BUILDS_ROOT_REQUEST_PATH = "/builds";
+  public static final String API_BUILDS_URL = Constants.API_URL + BUILDS_ROOT_REQUEST_PATH;
+  public static final String ARTIFACTS = "/artifacts";
 
   @Context @NotNull public BuildFinder myBuildFinder;
   @Context @NotNull public BuildPromotionFinder myBuildPromotionFinder;
   @Context @NotNull public BuildTypeFinder myBuildTypeFinder;
   @Context @NotNull public PermissionChecker myPermissionChecker;
-
-  public static final String BUILDS_ROOT_REQUEST_PATH = "/builds";
-  public static final String API_BUILDS_URL = Constants.API_URL + BUILDS_ROOT_REQUEST_PATH;
-
-  public static final String ARTIFACTS = "/artifacts";
-
-  private static final String REST_BUILD_REQUEST_DELETE_LIMIT = "rest.buildRequest.delete.limit";
-
   @Context @NotNull public BeanContext myBeanContext;
 
   public static String getHref() {
