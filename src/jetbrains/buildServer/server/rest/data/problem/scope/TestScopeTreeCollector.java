@@ -34,10 +34,14 @@ import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Collects test scopes (project path, build type, suite, package, class) according to a given locator and returns sliced scope tree, top nodes coming first, children later.
- * Nodes in a tree are sorted according to ORDER_BY locator dimension before slicing. There are two types of slicing: vertical and horisontal.
- * 1. Vertical slicing: for each tree node recursively only first MAX_CHILDREN nodes are returned.
- * 2. Horizontal slicing: tree nodes are returned up to the level, determined by a given condition.
+ * Collects test scopes (project path, build type, suite, package, class) according to a given
+ * locator and returns sliced scope tree, top nodes coming first, children later. <br/>
+ * Nodes in a tree are sorted according to ORDER_BY locator dimension before slicing. <br/>
+ * There are two types of slicing: vertical and horisontal. <br/>
+ * <ul>
+ * <li>1. Vertical slicing: for each tree node recursively only first MAX_CHILDREN nodes are returned. </li>
+ * <li>2. Horizontal slicing: tree nodes are returned up to the level, determined by a given condition. </li>
+ * </ul>
  */
 public class TestScopeTreeCollector {
   public static final String BUILD = "build";
