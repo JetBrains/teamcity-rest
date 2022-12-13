@@ -312,7 +312,7 @@ public class ProblemOccurrencesTreeCollector {
     PROBLEM_TYPE
   }
 
-  public class ProblemCounters implements TreeCounters<ProblemCounters> {
+  public static class ProblemCounters implements TreeCounters<ProblemCounters> {
     private final int myCount;
     private final int myNewFailed;
 
