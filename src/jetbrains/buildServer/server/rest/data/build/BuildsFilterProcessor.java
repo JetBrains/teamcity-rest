@@ -45,7 +45,7 @@ public class BuildsFilterProcessor {
     }
 
     final FilterItemProcessor<SFinishedBuild> buildsFilterItemProcessor =
-      new FilterItemProcessor<SFinishedBuild>(new PagingItemFilter<SFinishedBuild>(new FinishedBuildsFilter(buildsFilter), buildsFilter.getStart(), buildsFilter.getCount(), null));
+      new FilterItemProcessor<>(new PagingItemFilter<>(new FinishedBuildsFilter(buildsFilter), buildsFilter.getStart(), buildsFilter.getCount(), null));
     if (buildsFilter.getBuildType() != null) {
       //noinspection ConstantConditions
       buildHistory.processEntries(buildsFilter.getBuildType().getBuildTypeId(),
@@ -65,7 +65,7 @@ public class BuildsFilterProcessor {
   public static List<SRunningBuild> getMatchingRunningBuilds(@NotNull final BuildsFilter buildsFilter,
                                                              @NotNull final RunningBuildsManager runningBuildsManager) {
     final FilterItemProcessor<SRunningBuild> buildsFilterItemProcessor =
-      new FilterItemProcessor<SRunningBuild>(new PagingItemFilter<SRunningBuild>(new RunningBuildsFilter(buildsFilter), buildsFilter.getStart(), buildsFilter.getCount(), null));
+      new FilterItemProcessor<>(new PagingItemFilter<>(new RunningBuildsFilter(buildsFilter), buildsFilter.getStart(), buildsFilter.getCount(), null));
     processList(runningBuildsManager.getRunningBuilds(), buildsFilterItemProcessor);
     return buildsFilterItemProcessor.getResult();
   }
@@ -102,7 +102,7 @@ public class BuildsFilterProcessor {
     }
 
     public boolean shouldStop(@NotNull final SFinishedBuild item) {
-      if (myBuildsFilter.getLookupLimit() != null && processedItems >= myBuildsFilter.getLookupLimit()){
+      if (myBuildsFilter.getLookupLimit() != null && processedItems >= myBuildsFilter.getLookupLimit()) {
         return true;
       }
       //assume the builds are processed from most recent to older
@@ -114,7 +114,7 @@ public class BuildsFilterProcessor {
     @NotNull private final BuildsFilter myBuildsFilter;
 
     public RunningBuildsFilter(@NotNull final BuildsFilter buildsFilter) {
-      this.myBuildsFilter = buildsFilter;
+      myBuildsFilter = buildsFilter;
     }
 
     public boolean isIncluded(@NotNull final SRunningBuild item) {
