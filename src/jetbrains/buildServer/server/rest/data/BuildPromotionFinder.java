@@ -309,7 +309,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @NotNull
   @Override
   public DuplicateChecker<BuildPromotion> createDuplicateChecker() {
-    return new KeyDuplicateChecker<BuildPromotion, Long>(BuildPromotion::getId);
+    return new KeyDuplicateChecker<>(BuildPromotion::getId);
   }
 
   @Nullable
@@ -350,7 +350,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @NotNull
   @Override
   public ItemFilter<BuildPromotion> getFilter(@NotNull final Locator locator) {
-    final MultiCheckerFilter<BuildPromotion> result = new MultiCheckerFilter<BuildPromotion>();
+    final MultiCheckerFilter<BuildPromotion> result = new MultiCheckerFilter<>();
 
     //checking permissions to view - workaround for TW-45544
     result.add(item -> {
@@ -414,28 +414,20 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     Locator stateLocator = getStateLocator(locator);
 
     if (!isStateIncluded(stateLocator, STATE_QUEUED)) {
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          return item.getQueuedBuild() == null;
-        }
-      });
+      result.add(item -> item.getQueuedBuild() == null);
     }
 
     if (!isStateIncluded(stateLocator, STATE_RUNNING)) {
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          final SBuild associatedBuild = item.getAssociatedBuild();
-          return associatedBuild == null || associatedBuild.isFinished();
-        }
+      result.add(item -> {
+        final SBuild associatedBuild = item.getAssociatedBuild();
+        return associatedBuild == null || associatedBuild.isFinished();
       });
     }
 
     if (!isStateIncluded(stateLocator, STATE_FINISHED)) {
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          final SBuild associatedBuild = item.getAssociatedBuild();
-          return associatedBuild == null || !associatedBuild.isFinished();
-        }
+      result.add(item -> {
+        final SBuild associatedBuild = item.getAssociatedBuild();
+        return associatedBuild == null || !associatedBuild.isFinished();
       });
     }
 
@@ -471,11 +463,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         if (buildTypes.isEmpty()) {
           throw new NotFoundException("No build types found for locator '" + buildTypeLocator + "'");
         }
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return buildTypes.contains(item.getParentBuildType());
-          }  //todo: use build types Filter instead
-        });
+        //todo: use build types Filter instead
+        result.add(item -> buildTypes.contains(item.getParentBuildType()));
       }
     }
 
@@ -494,11 +483,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         Set<String> branchNames = getBranchNamesSet(branches.myEntries);
         Set<String> branchDisplayNames = getBranchDisplayNamesSet(branches.myEntries);
         boolean defaultBranchIncluded = branches.myEntries.stream().anyMatch(Branch::isDefaultBranch);
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
+        result.add(item -> {
             final Branch buildBranch = BranchData.fromBuild(item);
             return (defaultBranchIncluded && buildBranch.isDefaultBranch()) || branchNames.contains(buildBranch.getName()) || branchDisplayNames.contains(buildBranch.getDisplayName());
-          }
         });
       } else {
         //branches not found by locator - try to use filter
@@ -511,11 +498,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                                         " create filter: " + locatorException.getMessage(), locatorException);
         }
         if (!branchFilterDetails.isAnyBranch()) {
-          result.add(new FilterConditionChecker<BuildPromotion>() {
-            public boolean isIncluded(@NotNull final BuildPromotion item) {
-              return branchFilterDetails.isIncluded(item);
-            }
-          });
+          result.add(item -> branchFilterDetails.isIncluded(item));
         }
       }
     }
