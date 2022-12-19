@@ -36,7 +36,7 @@ public class TimeCondition {
   public static final String DATE_CONDITION_EQUALS = "equals";
   public static final String DATE_CONDITION_BEFORE = "before";
   public static final String DATE_CONDITION_AFTER = "after";
-  static final Map<String, Condition<Date>> ourTimeConditions = new HashMap<String, Condition<Date>>();
+  static final Map<String, Condition<Date>> ourTimeConditions = new HashMap<>();
   protected static final String DATE = "date";
   protected static final String BUILD = "build";
   protected static final String CONDITION = "condition";
@@ -44,26 +44,17 @@ public class TimeCondition {
   protected static final String SHIFT = "shift";
 
   static {
-    ourTimeConditions.put(TimeCondition.DATE_CONDITION_EQUALS, new TimeCondition.Condition<Date>() {
-      @Override
-      public boolean matches(@Nullable final Date refDate, @NotNull final Date tryDate) {
-        //noinspection SimplifiableConditionalExpression
-        return refDate == null ? false : tryDate.equals(refDate);
-      }
+    ourTimeConditions.put(TimeCondition.DATE_CONDITION_EQUALS, (refDate, tryDate) -> {
+      //noinspection SimplifiableConditionalExpression
+      return refDate == null ? false : tryDate.equals(refDate);
     });
-    ourTimeConditions.put(TimeCondition.DATE_CONDITION_AFTER, new TimeCondition.Condition<Date>() {
-      @Override
-      public boolean matches(@Nullable final Date refDate, @NotNull final Date tryDate) {
-        //noinspection SimplifiableConditionalExpression
-        return refDate == null ? false : tryDate.after(refDate);
-      }
+    ourTimeConditions.put(TimeCondition.DATE_CONDITION_AFTER, (refDate, tryDate) -> {
+      //noinspection SimplifiableConditionalExpression
+      return refDate == null ? false : tryDate.after(refDate);
     });
-    ourTimeConditions.put(DATE_CONDITION_BEFORE, new TimeCondition.Condition<Date>() {
-      @Override
-      public boolean matches(@Nullable final Date refDate, @NotNull final Date tryDate) {
-        //noinspection SimplifiableConditionalExpression
-        return refDate == null ? true : tryDate.before(refDate);
-      }
+    ourTimeConditions.put(DATE_CONDITION_BEFORE, (refDate, tryDate) -> {
+      //noinspection SimplifiableConditionalExpression
+      return refDate == null ? true : tryDate.before(refDate);
     });
   }
 
@@ -125,7 +116,7 @@ public class TimeCondition {
         throw new BadRequestException("Error processing '" + locatorDimension + "' locator '" + timeLocator + "': " + e.getMessage(), e);
       }
     }
-    return new FilterAndLimitingDate<T>(resultFilter, resultDate);
+    return new FilterAndLimitingDate<>(resultFilter, resultDate);
   }
 
   /**
@@ -230,26 +221,20 @@ public class TimeCondition {
     if (!includeInitial) {
       resultingCondition = definedCondition;
     } else {
-      resultingCondition = new Condition<Date>() {
-        @Override
-        boolean matches(@Nullable final Date refDate, @NotNull final Date tryDate) {
-          final boolean nestedResult = definedCondition.matches(refDate, tryDate);
-          return refDate == null ? nestedResult : nestedResult || refDate.equals(tryDate);
-        }
+      resultingCondition = (refDate, tryDate) -> {
+        final boolean nestedResult = definedCondition.matches(refDate, tryDate);
+        return refDate == null ? nestedResult : nestedResult || refDate.equals(tryDate);
       };
     }
 
     if (limitingDate.isSecondsPrecision()) {
       final Condition<Date> currentCondition = resultingCondition;
-      resultingCondition = new Condition<Date>() {
-        @Override
-        boolean matches(@Nullable final Date refDate, @NotNull final Date tryDate) {
-          Calendar calendar = Calendar.getInstance();
-          calendar.setTime(tryDate);
-          calendar.set(Calendar.MILLISECOND, 0);
+      resultingCondition = (refDate, tryDate) -> {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(tryDate);
+        calendar.set(Calendar.MILLISECOND, 0);
 
-          return currentCondition.matches(refDate, calendar.getTime());
-        }
+        return currentCondition.matches(refDate, calendar.getTime());
       };
     }
 
@@ -296,34 +281,25 @@ public class TimeCondition {
     return CollectionsUtil.toArray(ourTimeConditions.keySet(), String.class);
   }
 
-  public static interface ValueExtractor<T, V> {
+  public interface ValueExtractor<T, V> {
     @Nullable
-    public V get(@NotNull T t);
+    V get(@NotNull T t);
   }
 
-  abstract static class Condition<T> {
-    abstract boolean matches(@Nullable final T refValue, @NotNull final T tryValue);
+  interface Condition<T> {
+    boolean matches(@Nullable final T refValue, @NotNull final T tryValue);
   }
 
-  public static final ValueExtractor<BuildPromotion, Date> QUEUED_BUILD_TIME = new ValueExtractor<BuildPromotion, Date>() {
-    @Nullable
-    public Date get(@NotNull final BuildPromotion buildPromotion) {
-      return buildPromotion.getQueuedDate();
-    }
+  public static final ValueExtractor<BuildPromotion, Date> QUEUED_BUILD_TIME = buildPromotion -> buildPromotion.getQueuedDate();
+
+  public static final ValueExtractor<BuildPromotion, Date> STARTED_BUILD_TIME = buildPromotion -> {
+    final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
+    return associatedBuild == null ? null : associatedBuild.getStartDate();
   };
-  public static final ValueExtractor<BuildPromotion, Date> STARTED_BUILD_TIME = new ValueExtractor<BuildPromotion, Date>() {
-    @Nullable
-    public Date get(@NotNull final BuildPromotion buildPromotion) {
-      final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-      return associatedBuild == null ? null : associatedBuild.getStartDate();
-    }
-  };
-  public static final ValueExtractor<BuildPromotion, Date> FINISHED_BUILD_TIME = new ValueExtractor<BuildPromotion, Date>() {
-    @Nullable
-    public Date get(@NotNull final BuildPromotion buildPromotion) {
-      final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-      return associatedBuild == null ? null : associatedBuild.getFinishDate();
-    }
+
+  public static final ValueExtractor<BuildPromotion, Date> FINISHED_BUILD_TIME = buildPromotion -> {
+    final SBuild associatedBuild = buildPromotion.getAssociatedBuild();
+    return associatedBuild == null ? null : associatedBuild.getFinishDate();
   };
 
   @Nullable
