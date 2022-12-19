@@ -726,11 +726,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       } catch (NotFoundException e) {
         //build not found by sinceBuild locator, extract id ad filter using it
         final long untilBuildId = getBuildId(untilBuild);
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return !(untilBuildId < getBuildId(item));
-          }
-        });
+        result.add(item -> untilBuildId >= getBuildId(item));
       }
     }
 
@@ -740,6 +736,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     TimeCondition.FilterAndLimitingDate<BuildPromotion> startedFiltering =
       myTimeCondition.processTimeConditions(STARTED_TIME, locator, TimeCondition.STARTED_BUILD_TIME, TimeCondition.STARTED_BUILD_TIME);
+
     @Nullable Date sinceStartDate = null;
     if (startedFiltering != null) {
       result.add(startedFiltering.getFilter());
