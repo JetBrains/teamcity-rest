@@ -210,7 +210,7 @@ public class ParameterCondition {
       };
     }
 
-    final List<ParameterCondition> list = new ArrayList<ParameterCondition>(propertyConditionLocators.size());
+    final List<ParameterCondition> list = new ArrayList<>(propertyConditionLocators.size());
     for (String propertyConditionLocator : propertyConditionLocators) {
       final ParameterCondition condition = create(propertyConditionLocator);
       if (condition != null) list.add(condition);
