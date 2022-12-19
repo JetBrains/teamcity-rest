@@ -549,11 +549,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (tags != null) {
       final List<String> tagsList = Arrays.asList(tags.split(","));
       if (tagsList.size() > 0) {
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return item.getTags().containsAll(tagsList);
-          }
-        });
+        result.add(item -> item.getTags().containsAll(tagsList));
       }
     }
 
@@ -569,41 +565,30 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final Long compatibleAgentsCount = locator.getSingleDimensionValueAsLong(COMPATIBLE_AGENTS_COUNT); //experimental, only for queued builds
     if (compatibleAgentsCount != null) {
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
+      result.add(item -> {
           long count = 0;
           for (SBuildAgent agent : myAgentFinder.getItems(null).myEntries) { //or should process unauthorized as well?
             if (myAgentFinder.canActuallyRun(agent, item)) count++;
             if (count > compatibleAgentsCount) return false;
           }
           return count == compatibleAgentsCount;
-        }
       });
     }
 
     final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
     if (personal != null) {
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          return FilterUtil.isIncludedByBooleanFilter(personal, item.isPersonal());
-        }
-      });
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(personal, item.isPersonal()));
     }
 
     final Boolean history = locator.getSingleDimensionValueAsBoolean(HISTORY);
     if (history != null) {
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
-          return FilterUtil.isIncludedByBooleanFilter(history, item.isOutOfChangesSequence());
-        }
-      });
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(history, item.isOutOfChangesSequence()));
     }
 
     final String userDimension = locator.getSingleDimensionValue(USER);
     if (userDimension != null) {
       final SUser user = myUserFinder.getItem(userDimension);
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
+      result.add(item -> {
           SUser owner = item.getOwner();
           if (owner != null) {
             // if owner is present, consider only it: this is consistent with the builds search in the prefiltering
@@ -611,7 +596,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           }
           SUser actualUser = Util.resolveNull(getTriggeredBy(item), TriggeredBy::getUser);
           return actualUser != null && user.getId() == actualUser.getId();
-        }
       });
     }
 
@@ -668,7 +652,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (locator.getUnusedDimensions().contains(EQUIVALENT)) { //performance optimization: do not filter if already processed
       final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
       if (equivalent != null) {
-        final Set<BuildPromotion> filter = new HashSet<BuildPromotion>(((BuildPromotionEx)getItem(equivalent)).getStartedEquivalentPromotions(-1));
+        final Set<BuildPromotion> filter = new HashSet<>(((BuildPromotionEx)getItem(equivalent)).getStartedEquivalentPromotions(-1));
         result.add(new FilterConditionChecker<BuildPromotion>() {
           public boolean isIncluded(@NotNull final BuildPromotion item) {
             return filter.contains(item);
@@ -699,12 +683,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final String graphLocator = locator.getSingleDimensionValue(ORDERED);
       if (graphLocator != null) {
         final GraphFinder<BuildPromotion> graphFinder = new BuildPromotionOrderedFinder(BuildPromotionFinder.this);
-        final Set<BuildPromotion> filter = new HashSet<BuildPromotion>(graphFinder.getItems(graphLocator).myEntries);
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return filter.contains(item);
-          }
-        });
+        final Set<BuildPromotion> filter = new HashSet<>(graphFinder.getItems(graphLocator).myEntries);
+        result.add(filter::contains);
       }
     }
 
@@ -718,23 +698,17 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         if (queuedBuild != null) {
           //compare queued builds by id (triggering sequence)
           final long buildPromotionId = getBuildId(sinceBuildPromotion);
-          result.add(new FilterConditionChecker<BuildPromotion>() {
-            public boolean isIncluded(@NotNull final BuildPromotion item) {
-              return buildPromotionId < getBuildId(item);
-            }
-          });
+          result.add(item -> buildPromotionId < getBuildId(item));
         } else {
           // for started build, compare by start time
           final SBuild limitingBuild = sinceBuildPromotion.getAssociatedBuild();
           if (limitingBuild != null) {
             final Date startDate = limitingBuild.getStartDate();
-            result.add(new FilterConditionChecker<BuildPromotion>() {
-              public boolean isIncluded(@NotNull final BuildPromotion item) {
+            result.add(item -> {
                 final SBuild build = item.getAssociatedBuild();
                 if (build == null) return true;
                 if (startDate.equals(build.getStartDate()) && limitingBuild.getBuildId() != build.getBuildId()) return true;
                 return startDate.before(build.getStartDate());
-              }
             });
           }
         }
@@ -742,11 +716,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         //build not found by sinceBuild locator, extract id ad filter using it
         sinceBuildId = getBuildId(sinceBuildDimension);
         final long sinceBuildIdFinal = sinceBuildId;
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return sinceBuildIdFinal < getBuildId(item);
-          }
-        });
+        result.add(item -> sinceBuildIdFinal < getBuildId(item));
       }
     }
 
@@ -758,21 +728,15 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         if (queuedBuild != null) {
           //compare queued builds by id (triggering sequence)
           final long buildPromotionId = getBuildId(untilBuildPromotion);
-          result.add(new FilterConditionChecker<BuildPromotion>() {
-            public boolean isIncluded(@NotNull final BuildPromotion item) {
-              return !(buildPromotionId < getBuildId(item));
-            }
-          });
+          result.add(item -> buildPromotionId >= getBuildId(item));
         } else {
           // for started build, compare by start time
           final SBuild limitingBuild = untilBuildPromotion.getAssociatedBuild();
           if (limitingBuild != null) {
             final Date startDate = limitingBuild.getStartDate();
-            result.add(new FilterConditionChecker<BuildPromotion>() {
-              public boolean isIncluded(@NotNull final BuildPromotion item) {
+            result.add(item -> {
                 final SBuild build = item.getAssociatedBuild();
                 return build == null || !startDate.before(build.getStartDate());
-              }
             });
           }
         }
@@ -809,8 +773,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final Locator revisionLocator = new Locator(revisionLocatorText, "version", "internalVersion", "vcsRoot", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
       final String revision = revisionLocator.getSingleValue();
       if (revision != null) {
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
+        result.add(item -> {
             final List<BuildRevision> buildRevisions = item.getRevisions(); //use getAllrevisions map??
             for (BuildRevision rev : buildRevisions) {
               if (revision.equals(rev.getRevisionDisplayName())) {
@@ -818,7 +781,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
               }
             }
             return false;
-          }
         });
       } else {
         final String vcsRootLocator = revisionLocator.getSingleDimensionValue("vcsRoot");
@@ -827,8 +789,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         final ValueCondition internalVersionCondition = ParameterCondition.createValueCondition(revisionLocator.getSingleDimensionValue("internalVersion"));
         revisionLocator.checkLocatorFullyProcessed();
         if (vcsRoot != null || versionCondition != null || internalVersionCondition != null) {
-          result.add(new FilterConditionChecker<BuildPromotion>() {
-            public boolean isIncluded(@NotNull final BuildPromotion item) {
+          result.add(item -> {
               final List<BuildRevision> revisions = item.getRevisions();  //use getAllrevisions map??
               for (BuildRevision rev : revisions) {
                 if ((vcsRoot == null || vcsRoot.getId() == rev.getRoot().getParent().getId()) &&
@@ -838,7 +799,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
                 }
               }
               return false;
-            }
           });
         }
       }
@@ -846,14 +806,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final MultiCheckerFilter<SBuild> buildFilter = getBuildFilter(locator);
     if (buildFilter.getSubFiltersCount() > 0) {
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
+      result.add(item -> {
           final SBuild build = item.getAssociatedBuild();
           if (build == null) {
             return false;
           }
           return buildFilter.isIncluded(build);
-        }
       });
     }
 
@@ -861,21 +819,17 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final Boolean canceled = locator.getSingleDimensionValueAsBoolean(CANCELED);
     if (canceled != null) {
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
+      result.add(item -> {
           final SBuild build = item.getAssociatedBuild();
           return FilterUtil.isIncludedByBooleanFilter(canceled, build != null && build.getCanceledInfo() != null);
-        }
       });
     }
 
     final Boolean failedToStart = locator.getSingleDimensionValueAsBoolean(FAILED_TO_START);
     if (failedToStart != null) {
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
+      result.add(item -> {
           final SBuild build = item.getAssociatedBuild();
           return FilterUtil.isIncludedByBooleanFilter(failedToStart, build != null && build.isInternalError());
-        }
       });
     }
 
@@ -1134,7 +1088,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return result;
   }
 
-  public static void ensureCanView(@NotNull final BuildPromotion buildPromotion) {
+  private static void ensureCanView(@NotNull final BuildPromotion buildPromotion) {
     //checking permissions to view - workaround for TW-45544
     try {
       buildPromotion.getBuildType();
@@ -1301,13 +1255,13 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
       if (buildTypeLocator != null) {
         final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, buildTypeLocator);
-        final Set<BuildPromotion> builds = new TreeSet<BuildPromotion>(BUILD_PROMOTIONS_COMPARATOR);
+        final Set<BuildPromotion> builds = new TreeSet<>(BUILD_PROMOTIONS_COMPARATOR);
         for (SBuildType buildType : buildTypes) {
           List<SBuild> buildByNumber = myBuildsManager.findBuildInstancesByBuildNumber(buildType.getBuildTypeId(), number);
           builds.addAll(CollectionsUtil.convertCollection(buildByNumber, SBuild::getBuildPromotion)); //todo: ensure due builds sorting
         }
         return getItemHolder(builds);
-      } else{
+      } else {
         // if build type is not specified, search by scanning (performance impact)
         locator.markUnused(NUMBER, BUILD_TYPE);
       }
