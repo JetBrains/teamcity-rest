@@ -97,7 +97,7 @@ public class Locator {
 
     myDimensions = new HashMap<>(locator.myDimensions);
     mySingleValue = locator.mySingleValue;
-    myUsedDimensions = new HashSet<String>(locator.myUsedDimensions);
+    myUsedDimensions = new HashSet<>(locator.myUsedDimensions);
     mySupportedDimensions = locator.mySupportedDimensions != null ? locator.mySupportedDimensions.clone() : null;
     myIgnoreUnusedDimensions.addAll(locator.myIgnoreUnusedDimensions);
     myHiddenSupportedDimensions.addAll(locator.myHiddenSupportedDimensions);
@@ -140,7 +140,7 @@ public class Locator {
       throw new LocatorProcessException("Invalid locator. Cannot be empty.");
     }
     mySupportedDimensions = supportedDimensions;
-    myUsedDimensions = new HashSet<String>(mySupportedDimensions == null ? 10 : Math.max(mySupportedDimensions.length, 10));
+    myUsedDimensions = new HashSet<>(mySupportedDimensions == null ? 10 : Math.max(mySupportedDimensions.length, 10));
     String escapedValue = getUnescapedSingleValue(locator, myMetadata);
 
     if (escapedValue != null) {
@@ -166,9 +166,9 @@ public class Locator {
     myDimensions = new HashMap<>();
     mySupportedDimensions = supportedDimensions;
     if (mySupportedDimensions == null) {
-      myUsedDimensions = new HashSet<String>();
+      myUsedDimensions = new HashSet<>();
     } else {
-      myUsedDimensions = new HashSet<String>(mySupportedDimensions.length);
+      myUsedDimensions = new HashSet<>(mySupportedDimensions.length);
     }
     myHiddenSupportedDimensions.add(HELP_DIMENSION);
     myIgnoreUnusedDimensions.add(HELP_DIMENSION);
