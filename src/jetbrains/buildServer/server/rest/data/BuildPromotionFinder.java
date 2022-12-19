@@ -965,38 +965,24 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String buildNumber = locator.getSingleDimensionValue(NUMBER);
     if (buildNumber != null) {
-      result.add(new FilterConditionChecker<SBuild>() {
-        public boolean isIncluded(@NotNull final SBuild item) {
-          return buildNumber.equals(item.getBuildNumber());
-        }
-      });
+      result.add(item -> buildNumber.equals(item.getBuildNumber()));
     }
 
     final String status = locator.getSingleDimensionValue(STATUS);
     if (status != null) {
-      result.add(new FilterConditionChecker<SBuild>() {
-        public boolean isIncluded(@NotNull final SBuild item) {
-          return status.equalsIgnoreCase(item.getStatusDescriptor().getStatus().getText());
-        }
-      });
+      result.add(item -> status.equalsIgnoreCase(item.getStatusDescriptor().getStatus().getText()));
     }
 
     final Boolean pinned = locator.getSingleDimensionValueAsBoolean(PINNED);
     if (pinned != null) {
-      result.add(new FilterConditionChecker<SBuild>() {
-        public boolean isIncluded(@NotNull final SBuild item) {
-          return FilterUtil.isIncludedByBooleanFilter(pinned, item.isPinned());
-        }
-      });
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(pinned, item.isPinned()));
     }
 
     final Boolean hanging = locator.getSingleDimensionValueAsBoolean(HANGING);
     if (hanging != null) {
-      result.add(new FilterConditionChecker<SBuild>() {
-        public boolean isIncluded(@NotNull final SBuild item) {
-          if (item.isFinished()) return !hanging;
-          return FilterUtil.isIncludedByBooleanFilter(hanging, ((SRunningBuild)item).isProbablyHanging());
-        }
+      result.add(item -> {
+        if (item.isFinished()) return !hanging;
+        return FilterUtil.isIncludedByBooleanFilter(hanging, ((SRunningBuild)item).isProbablyHanging());
       });
     }
 
@@ -1017,30 +1003,18 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final Date sinceDate = DataProvider.parseDate(locator.getSingleDimensionValue(SINCE_DATE)); //see also settings cut off date in main filter
     if (sinceDate != null) {
-      result.add(new FilterConditionChecker<SBuild>() {
-        public boolean isIncluded(@NotNull final SBuild item) {
-          return sinceDate.before(item.getStartDate());
-        }
-      });
+      result.add(item -> sinceDate.before(item.getStartDate()));
     }
 
     final Date untilDate = DataProvider.parseDate(locator.getSingleDimensionValue(UNTIL_DATE));
     if (untilDate != null) {
-      result.add(new FilterConditionChecker<SBuild>() {
-        public boolean isIncluded(@NotNull final SBuild item) {
-          return !(untilDate.before(item.getStartDate()));
-        }
-      });
+      result.add(item -> !(untilDate.before(item.getStartDate())));
     }
 
     final List<String> statisticValues = locator.getDimensionValue(STATISTIC_VALUE);
     if (!statisticValues.isEmpty()) {
       final Matcher<ParametersProvider> parameterCondition = ParameterCondition.create(statisticValues);
-      result.add(new FilterConditionChecker<SBuild>() {
-        public boolean isIncluded(@NotNull final SBuild item) {
-          return parameterCondition.matches(new AbstractMapParametersProvider(Build.getBuildStatisticsValues(item)));
-        }
-      });
+      result.add(item -> parameterCondition.matches(new AbstractMapParametersProvider(Build.getBuildStatisticsValues(item))));
     }
 
     if (locator.isUnused(TEST_OCCURRENCE)) {
@@ -1049,22 +1023,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         TestOccurrenceFinder testOccurrenceFinder = myServiceLocator.getSingletonService(TestOccurrenceFinder.class);
         Set<Long> buildPromotionIds =
           testOccurrenceFinder.getItems(testOccurrence).myEntries.stream().map(sTestRun -> sTestRun.getBuild().getBuildPromotion().getId()).collect(Collectors.toSet());
-        result.add(new FilterConditionChecker<SBuild>() {
-          public boolean isIncluded(@NotNull final SBuild item) {
-            return buildPromotionIds.contains(item.getBuildPromotion().getId());
-          }
-        });
+        result.add(item -> buildPromotionIds.contains(item.getBuildPromotion().getId()));
       }
     }
 
     final String test = locator.getSingleDimensionValue(TEST);
     if (test != null) {
       TestFinder testFinder = myServiceLocator.getSingletonService(TestFinder.class);
-      result.add(new FilterConditionChecker<SBuild>() {
-        public boolean isIncluded(@NotNull final SBuild item) {
-          String locator = new Locator(test).setDimension(TestFinder.BUILD, getLocator(item.getBuildPromotion())).setDimension(PagerData.COUNT, "1").getStringRepresentation();
-          return !testFinder.getItems(locator).myEntries.isEmpty();
-        }
+      result.add(item -> {
+        String locator1 = new Locator(test).setDimension(TestFinder.BUILD, getLocator(item.getBuildPromotion())).setDimension(PagerData.COUNT, "1").getStringRepresentation();
+        return !testFinder.getItems(locator1).myEntries.isEmpty();
       });
     }
 
@@ -1514,12 +1482,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     stateLocator.checkLocatorFullyProcessed();
 
     final ItemHolder<BuildPromotion> finishedBuildsFinal = finishedBuilds;
-    return new ItemHolder<BuildPromotion>() {
-      public void process(@NotNull final ItemProcessor<BuildPromotion> processor) {
-        new CollectionItemHolder<BuildPromotion>(result).process(processor);
-        if (finishedBuildsFinal != null) {
-          finishedBuildsFinal.process(processor);
-        }
+    return processor -> {
+      new CollectionItemHolder<>(result).process(processor);
+      if (finishedBuildsFinal != null) {
+        finishedBuildsFinal.process(processor);
       }
     };
   }
