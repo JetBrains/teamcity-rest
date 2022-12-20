@@ -894,9 +894,13 @@ public class Locator {
    */
   @NotNull
   public Set<String> getUsedDimensions() {
-    return new HashSet<String>(myUsedDimensions);
+    return new HashSet<>(myUsedDimensions);
   }
 
+  /**
+   * @param dimensionName the name of the dimention.
+   * @return true if locator contains such dimension, and it is not marked as used. false otherwise.
+   */
   public boolean isUnused(@NotNull final String dimensionName) {
     return myDimensions.containsKey(dimensionName) && !myUsedDimensions.contains(dimensionName);
   }
@@ -986,7 +990,7 @@ public class Locator {
   }
 
   @NotNull
-  public static String getValueForRendering(@NotNull final String value) {
+  private static String getValueForRendering(@NotNull final String value) {
     LevelData nestingData = getNestingData(value);
     if (nestingData.getCurrentLevel() != 0 || nestingData.getMinLevel() < 0) {
       return DIMENSION_COMPLEX_VALUE_START_DELIMITER
