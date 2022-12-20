@@ -78,7 +78,9 @@ public interface FinderDataBinding<ITEM> {
   DuplicateChecker<ITEM> createDuplicateChecker();
 
   /**
-   * Abstraction allowing for possibly lazy item processing. In essence, it supplies given ItemProcessor with items until processor.processItem returns false. <br/>
+   * Abstraction allowing for possibly lazy item processing.
+   * In essence, it supplies given ItemProcessor with items
+   * until processor.processItem returns false. <br/>
    * Supports calling process(..) only once, can't be reused.
    */
   interface ItemHolder<P> {
