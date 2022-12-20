@@ -604,11 +604,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final String snapshotDepDimension = locator.getSingleDimensionValue(SNAPSHOT_DEP);
       if (snapshotDepDimension != null) {
         final Set<BuildPromotion> snapshotRelatedBuilds = new HashSet<>(getSnapshotRelatedBuilds(snapshotDepDimension));
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return snapshotRelatedBuilds.contains(item);
-          }
-        });
+        result.add(item -> snapshotRelatedBuilds.contains(item));
       }
     }
 
@@ -616,11 +612,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final String artifactDepDimension = locator.getSingleDimensionValue(ARTIFACT_DEP);
       if (artifactDepDimension != null) {
         final Set<BuildPromotion> artifactRelatedBuilds = new HashSet<>(getArtifactRelatedBuilds(artifactDepDimension, locator));
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return artifactRelatedBuilds.contains(item);
-          }
-        });
+        result.add(item -> artifactRelatedBuilds.contains(item));
       }
     }
 
@@ -636,11 +628,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
       if (equivalent != null) {
         final Set<BuildPromotion> filter = new HashSet<>(((BuildPromotionEx)getItem(equivalent)).getStartedEquivalentPromotions(-1));
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            return filter.contains(item);
-          }
-        });
+        result.add(item -> filter.contains(item));
       }
     }
 
@@ -648,16 +636,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final String metadata = locator.getSingleDimensionValue(METADATA);
       if (metadata != null) {
         final Iterator<BuildMetadataEntry> metadataEntries = getBuildMetadataEntryIterator(metadata);
-        final Set<Long> buildIds = new HashSet<Long>();
+        final Set<Long> buildIds = new HashSet<>();
         while (metadataEntries.hasNext()) {
           BuildMetadataEntry metadataEntry = metadataEntries.next();
           buildIds.add(metadataEntry.getBuildId());
         }
-        result.add(new FilterConditionChecker<BuildPromotion>() {
-          public boolean isIncluded(@NotNull final BuildPromotion item) {
-            if (!Build.canViewRuntimeData(myPermissionChecker, item)) return false;
-            return buildIds.contains(item.getAssociatedBuildId());
-          }
+        result.add(item -> {
+          if (!Build.canViewRuntimeData(myPermissionChecker, item)) return false;
+          return buildIds.contains(item.getAssociatedBuildId());
         });
       }
     }
@@ -958,7 +944,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @NotNull
   private MultiCheckerFilter<SBuild> getBuildFilter(@NotNull final Locator locator) {
-    final MultiCheckerFilter<SBuild> result = new MultiCheckerFilter<SBuild>();
+    final MultiCheckerFilter<SBuild> result = new MultiCheckerFilter<>();
 
     final String buildNumber = locator.getSingleDimensionValue(NUMBER);
     if (buildNumber != null) {
@@ -1300,7 +1286,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     // process by build states
 
-    final List<BuildPromotion> result = new ArrayList<BuildPromotion>();
+    final List<BuildPromotion> result = new ArrayList<>();
     Set<Long> includedPromotionIds = new HashSet<>();
     @Nullable Set<SBuildType> buildTypes = getBuildTypes(locator);
 
@@ -1454,7 +1440,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
 
       // In a case when we need personal builds there is a twist, hence the following check.
-      // BuildQueryOptions and underlayoing mechanics treats given user as if we are acting at his will. This means that his it will check if the given user can see
+      // BuildQueryOptions and underlayoing mechanics treats given user as if we are acting at his will.
+      // This means that his it will check if the given user can see
       // a specific personal build according to his own permissions and user settings, which is not what we want.
       // Instead, we pretend that we need all personal builds and filter out unwanted ones later.
       final SUser currentUser = (SUser) myServiceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder().getAssociatedUser();
@@ -1464,16 +1451,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         options.setIncludePersonal(personalBuildsRuling.isIncludePersonal(), null);
       }
 
-      finishedBuilds = new ItemHolder<BuildPromotion>() {
-        public void process(@NotNull final ItemProcessor<BuildPromotion> processor) {
-          myBuildsManager.processBuilds(options, new ItemProcessor<SBuild>() {
-            public boolean processItem(SBuild item) {
-              if (includedPromotionIds.contains(item.getBuildPromotion().getId())) return true; // ignore already added builds
-              return processor.processItem(item.getBuildPromotion());
-            }
-          });
-        }
-      };
+      finishedBuilds = processor -> myBuildsManager.processBuilds(options, item -> {
+        if (includedPromotionIds.contains(item.getBuildPromotion().getId())) return true; // ignore already added builds
+        return processor.processItem(item.getBuildPromotion());
+      });
     }
 
     stateLocator.checkLocatorFullyProcessed();
