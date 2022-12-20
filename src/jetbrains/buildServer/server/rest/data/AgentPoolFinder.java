@@ -98,16 +98,13 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
       dimensionString(NAME).description("agent pool name").valueForDefaultFilter(agentPool -> agentPool.getName());
       dimensionBoolean(PROJECT_POOL).description("project pool").hidden().valueForDefaultFilter(agentPool -> agentPool.isProjectPool());  //hidden for now (might want to rethink naming)
       dimensionProjects(OWNER_PROJECT, myServiceLocator).description("project which defines the project pool").hidden(). //hidden for now (might want to rethink naming)
-        valueForDefaultFilter(agentPool -> Util.resolveNull(getPoolOwnerProject(agentPool), ownerProject -> new HashSet<SProject>(CollectionsUtil.setOf(ownerProject.getProject()))));
+        valueForDefaultFilter(agentPool -> Util.resolveNull(getPoolOwnerProject(agentPool), ownerProject -> new HashSet<>(CollectionsUtil.setOf(ownerProject.getProject()))));
       dimensionProjects(PROJECT, myServiceLocator).description("projects associated with the agent pool").
-        valueForDefaultFilter(agentPool -> new HashSet<SProject>(getPoolProjects(agentPool)));
+        valueForDefaultFilter(agentPool -> new HashSet<>(getPoolProjects(agentPool)));
       dimensionAgents(AGENT, myServiceLocator).description("agents associated with the agent pool").
-        valueForDefaultFilter(agentPool -> new HashSet<SBuildAgent>(getPoolAgentsInternal(agentPool)));
+        valueForDefaultFilter(agentPool -> new HashSet<>(getPoolAgentsInternal(agentPool)));
 
-      filter(DimensionCondition.ALWAYS, new ItemFilterFromDimensions<AgentPool>() {
-        @Nullable
-        @Override
-        public ItemFilter<AgentPool> get(@NotNull final DimensionObjects dimensions) {
+      filter(DimensionCondition.ALWAYS, dimensions -> {
           final PermissionChecker permissionChecker = myServiceLocator.getSingletonService(PermissionChecker.class);
           final boolean hasPermission = permissionChecker.hasGlobalPermission(Permission.VIEW_AGENT_DETAILS) || permissionChecker.hasPermissionInAnyProject(Permission.VIEW_AGENT_DETAILS_FOR_PROJECT);
           if (hasPermission) return null;
@@ -122,7 +119,6 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
               return false;
             }
           };
-        }
       });
       multipleConvertToItems(DimensionCondition.ALWAYS, dimensions -> myAgentPoolManager.getAllAgentPools());
 
