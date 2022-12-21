@@ -1199,6 +1199,26 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         // if build type is not specified, search by scanning (performance impact)
         locator.markUnused(NUMBER, BUILD_TYPE);
       }
+
+      /*
+        Search by build number and project id
+       */
+      if (TeamCityProperties.getBoolean("rest.builds.selectByProjectAndBuildNumberOptimization.enabled", true)) {
+        if (locator.isUnused(PROJECT)) {
+          SProject project = getProjectFromDimension(locator, PROJECT);
+          if (project != null) {
+            List<SBuildType> buildTypes = project.getOwnBuildTypes();
+            return getBuildsByBuldTypesAndBuildNumber(buildTypes, number);
+          }
+        }
+        if (locator.isUnused(AFFECTED_PROJECT)) {
+          SProject project = getProjectFromDimension(locator, AFFECTED_PROJECT);
+          if (project != null) {
+            List<SBuildType> buildTypes = project.getBuildTypes();
+            return getBuildsByBuldTypesAndBuildNumber(buildTypes, number);
+          }
+        }
+      }
     }
 
     if (locator.isAnyPresent(TAG) && TeamCityProperties.getBooleanOrTrue("rest.request.builds.prefilterByTag")) {
@@ -1468,11 +1488,22 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     };
   }
 
+  @NotNull
+  private ItemHolder<BuildPromotion> getBuildsByBuldTypesAndBuildNumber(@NotNull List<SBuildType> buildTypes, @NotNull String buildNumber) {
+    return getItemHolder(() -> buildTypes
+      .stream()
+      .flatMap(it -> myBuildsManager.findBuildInstancesByBuildNumber(it.getBuildTypeId(), buildNumber).stream())
+      .map(it -> it.getBuildPromotion())
+      .sorted(BUILD_PROMOTIONS_COMPARATOR)
+      .iterator()
+    );
+  }
+
   // Package-private for tests
   @NotNull
   IncludePersonalBuildsRuling computePersonalBuildsRuling(@NotNull Locator locator) {
     final Boolean personal = locator.lookupSingleDimensionValueAsBoolean(PERSONAL);
-    final SUser currentUser = (SUser) myServiceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder().getAssociatedUser();
+    final SUser currentUser = (SUser)myServiceLocator.getSingletonService(SecurityContext.class).getAuthorityHolder().getAssociatedUser();
     final boolean showAllPersonalBuildsPreferense = currentUser != null && Boolean.parseBoolean(currentUser.getPropertyValue(StandardProperties.SHOW_ALL_PERSONAL_BUILDS));
 
     if (personal == null || personal) {

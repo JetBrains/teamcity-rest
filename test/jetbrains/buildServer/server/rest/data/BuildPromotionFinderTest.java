@@ -1172,6 +1172,32 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
+  @TestFor(issues = "TW-78993")
+  public void testBuildNumberAndProject() {
+    setInternalProperty("rest.builds.selectByProjectAndBuildNumberOptimization.enabled", true);
+    ProjectEx project = myFixture.createProject("project");
+    ProjectEx projectChild = myFixture.createProject("projectChild", project);
+    BuildTypeImpl buildConf11 = registerBuildType("buildConf11", project, "Ant");
+    BuildTypeImpl buildConf12 = registerBuildType("buildConf12", project, "Ant");
+    BuildTypeImpl buildConf111 = registerBuildType("buildConf111", projectChild, "Ant");
+    // unrelatedProject
+    BuildTypeImpl buildConf21 = registerBuildType("buildConf21", "project2");
+
+    SBuild build21_0 = build().in(buildConf21).number("1").finish();
+    SBuild build21_1 = build().in(buildConf21).number("100").finish();
+    SBuild build11_1 = build().in(buildConf11).number("1").finish();
+    SBuild build11_2 = build().in(buildConf11).number("100").finish();
+    SBuild build11_3 = build().in(buildConf11).number("100").finish();
+    SBuild build111_1 = build().in(buildConf111).number("100").finish();
+    SBuild build12_1 = build().in(buildConf12).number("100").finish();
+    SBuild build12_2 = build().in(buildConf11).number("1").finish();
+
+    checkBuilds("number:100,project:project", getBuildPromotions(build12_1, build11_3, build11_2));
+    checkBuilds("number:100,affectedProject:project", getBuildPromotions(build12_1, build111_1, build11_3, build11_2));
+    checkBuilds("number:100,project:project,count:1", getBuildPromotions(build12_1));
+  }
+
+  @Test
   public void testWithProject() {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
 
