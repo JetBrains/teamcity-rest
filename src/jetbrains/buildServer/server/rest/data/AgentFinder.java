@@ -424,7 +424,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     SQueuedBuild queuedBuild = build.getQueuedBuild(); // doing this after  build.getCanRunOnAgents as this does not take agent as argument
     if (queuedBuild != null) {
       if (!isAgentRestrictorAllowed(agent, queuedBuild)) return false;
-      return queuedBuild.getCanRunOnAgents().stream().filter(a -> AGENT_COMPARATOR.compare(a, agent) == 0).findAny().isPresent();
+      return queuedBuild.getCanRunOnAgents().stream().anyMatch(a -> AGENT_COMPARATOR.compare(a, agent) == 0);
     }
 
     SBuildType buildType = build.getBuildType();
@@ -484,7 +484,8 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     AgentDescription agentDescription = compatibility.getAgentDescription();
     if (agentDescription instanceof AgentType) {
       return (AgentType)agentDescription;
-    } else if (agentDescription instanceof BuildAgentEx) {
+    }
+    if (agentDescription instanceof BuildAgentEx) {
       return ((BuildAgentEx)agentDescription).getAgentType();
     }
     throw new OperationException("Unsupported agent details of type: " + agentDescription.getClass());
