@@ -45,16 +45,26 @@ import java.util.List;
 @SuppressWarnings("PublicField")
 public class Agents {
   public static final String COUNT = "count";
+
   @XmlAttribute
   public Integer count;
 
   public static final String AGENT = "agent";
+
   @XmlElement(name = AGENT)
   public List<Agent> agents;
 
-  @XmlAttribute(required = false) @Nullable public String nextHref;
-  @XmlAttribute(required = false) @Nullable public String prevHref;
-  @XmlAttribute(required = false) @Nullable public String href;
+  @XmlAttribute(required = false)
+  @Nullable
+  public String nextHref;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String prevHref;
+
+  @XmlAttribute(required = false)
+  @Nullable
+  public String href;
 
   public Agents() {
   }
@@ -77,16 +87,13 @@ public class Agents {
                     final @NotNull Fields fields,
                     final @NotNull BeanContext beanContext) {
     if (agentObjects != null) {
-      agents = ValueWithDefault.decideDefault(fields.isIncluded(AGENT, false, true), new ValueWithDefault.Value<List<Agent>>() {
-        @Nullable
-        public List<Agent> get() {
+      agents = ValueWithDefault.decideDefault(fields.isIncluded(AGENT, false, true), () -> {
           final ArrayList<Agent> items = new ArrayList<Agent>(agentObjects.size());
           Fields agentFields = fields.getNestedField(AGENT);
           for (SBuildAgent item : agentObjects) {
             items.add(new Agent(item, agentFields, beanContext));
           }
           return items;
-        }
       });
 
       count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded(COUNT), agentObjects.size());
@@ -98,7 +105,6 @@ public class Agents {
         .decideDefault(fields.isIncluded("nextHref"), pagerData.getNextHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()) : null);
       prevHref = ValueWithDefault
         .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
-
     }
   }
 }
