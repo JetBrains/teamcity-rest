@@ -161,6 +161,7 @@ public class BuildType {
   }
 
   @XmlAttribute
+  @SuppressWarnings("unused")
   public String getProjectInternalId() {
     final boolean includeProperty = TeamCityProperties.getBoolean(APIController.INCLUDE_INTERNAL_ID_PROPERTY_NAME);
     return myBuildType == null
@@ -216,6 +217,7 @@ public class BuildType {
   }
 
   @XmlAttribute
+  @SuppressWarnings("unused")
   public Boolean isExternalStatusAllowed() {
     return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("externalStatusAllowed", false, false), () -> myBuildType.getSettingsEx().getOption(BuildTypeOptions.BT_ALLOW_EXTERNAL_STATUS));
   }
@@ -226,6 +228,7 @@ public class BuildType {
   }
 
   @XmlElement
+  @SuppressWarnings("unused")
   public Comment getPauseComment() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("pauseComment", false, false), () -> {
       jetbrains.buildServer.serverSide.comments.Comment pauseComment;
@@ -270,10 +273,7 @@ public class BuildType {
 
   @XmlElement
   public Links getLinks() {
-    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("links", false, false), new ValueWithDefault.Value<Links>() {
-      @Nullable
-      @Override
-      public Links get() {
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("links", false, false), () -> {
         WebLinks webLinks = myBeanContext.getSingletonService(WebLinks.class);
         RelativeWebLinks relativeWebLinks = new RelativeWebLinks();
         Links.LinksBuilder builder = new Links.LinksBuilder();
@@ -299,7 +299,6 @@ public class BuildType {
           }
         }
         return builder.build(myFields.getNestedField("links"));
-      }
     });
   }
 
@@ -310,11 +309,9 @@ public class BuildType {
 
   @XmlElement(name = "project")
   public Project getProject() {
-    return ValueWithDefault.decideDefault(myFields.isIncluded("project", false), new ValueWithDefault.Value<Project>() {
-      public Project get() {
-        return myBuildType == null ? null : new Project(myBuildType.getProject(), myFields.getNestedField("project"), myBeanContext);
-      }
-    });
+    return ValueWithDefault.decideDefault(myFields.isIncluded("project", false),
+        () -> myBuildType == null ? null : new Project(myBuildType.getProject(), myFields.getNestedField("project"), myBeanContext)
+    );
   }
 
   @XmlElement(name = "templates")
@@ -376,8 +373,7 @@ public class BuildType {
     if (myBuildType == null || myBuildType.getBuildType() == null){
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("template", false, false), check(new ValueWithDefault.Value<BuildType>() {
-      public BuildType get() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("template", false, false), check(() -> {
         try {
           final BuildTypeTemplate template = myBuildType.getBuildType().getTemplate();
           return template == null ? null : new BuildType(new BuildTypeOrTemplate(template), myFields.getNestedField("template"), myBeanContext);
@@ -388,7 +384,6 @@ public class BuildType {
           String templateExternalId = getTemplateExternalId(myBuildType.getBuildType());
           return templateId == null || templateExternalId == null ? null : new BuildType(templateExternalId, templateId, myFields.getNestedField("template"), myBeanContext);
         }
-      }
     }));
   }
 
@@ -407,11 +402,9 @@ public class BuildType {
 
   @XmlElement(name = "vcs-root-entries")
   public VcsRootEntries getVcsRootEntries() {
-    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("vcs-root-entries", false), check(new ValueWithDefault.Value<VcsRootEntries>() {
-      public VcsRootEntries get() {
-        return myBuildType == null ? null : new VcsRootEntries(myBuildType, myFields.getNestedField("vcs-root-entries"), myBeanContext);
-      }
-    }));
+    return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("vcs-root-entries", false),
+        check(() -> myBuildType == null ? null : new VcsRootEntries(myBuildType, myFields.getNestedField("vcs-root-entries"), myBeanContext))
+    );
   }
 
   /**
@@ -428,8 +421,7 @@ public class BuildType {
   public Branches getBranches() {
     if (myBuildType == null || myBuildType.getBuildType() == null) return null;
     return ValueWithDefault.decideDefault(myFields.isIncluded("branches", false, false), // do not include until asked as should only include for branched build types
-                                          new ValueWithDefault.Value<Branches>() {
-      public Branches get() {
+      () -> {
         String href;
         List<BranchData> result = null;
         final Fields nestedFields = myFields.getNestedField("branches");
@@ -441,8 +433,7 @@ public class BuildType {
         }
         href = BuildTypeRequest.getBranchesHref(myBuildType.getBuildType(), null);
         return new Branches(null, new PagerDataImpl(href), nestedFields, myBeanContext);
-      }
-    });
+      });
   }
 
   /**
@@ -456,8 +447,7 @@ public class BuildType {
       return null;
     }
 
-    return ValueWithDefault.decideDefault(myFields.isIncluded("builds", false), new ValueWithDefault.Value<Builds>() {
-      public Builds get() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("builds", false), () -> {
         String buildsHref;
         List<BuildPromotion> builds = null;
         final Fields buildsFields = myFields.getNestedField("builds");
@@ -469,58 +459,55 @@ public class BuildType {
           buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType());
         }
         return Builds.createFromPrefilteredBuildPromotions(builds, new PagerDataImpl(buildsHref), buildsFields, myBeanContext);
-      }
     });
   }
 
   @XmlElement
   public Properties getParameters() {
     return myBuildType == null ? null : ValueWithDefault
-      .decideIncludeByDefault(myFields.isIncluded("parameters", false), check(new ValueWithDefault.Value<Properties>() {
-        public Properties get() {
-          return new Properties(createEntity(myBuildType), BuildTypeRequest.getParametersHref(myBuildType), null,
-                                myFields.getNestedField("parameters", Fields.NONE, Fields.LONG), myBeanContext);
-        }
-      }));
+        .decideIncludeByDefault(myFields.isIncluded("parameters", false),
+            check(() -> new Properties(
+                createEntity(myBuildType),
+                BuildTypeRequest.getParametersHref(myBuildType),
+                null,
+                myFields.getNestedField("parameters", Fields.NONE, Fields.LONG),
+                myBeanContext
+            ))
+        );
   }
 
   @XmlElement(name = "steps")
   public PropEntitiesStep getSteps() {
-    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("steps", false), check(new ValueWithDefault.Value<PropEntitiesStep>() {
-      public PropEntitiesStep get() {
+    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("steps", false), check(() -> {
         return new PropEntitiesStep(myBuildType.getSettingsEx(), myFields.getNestedField("steps", Fields.NONE, Fields.LONG), myBeanContext);
-      }
     }));
   }
 
   @XmlElement(name = "features")
   public PropEntitiesFeature getFeatures() {
-    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("features", false), check(new ValueWithDefault.Value<PropEntitiesFeature>() {
-      public PropEntitiesFeature get() {
+    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("features", false), check(() -> {
         return new PropEntitiesFeature(myBuildType.getSettingsEx(), myFields.getNestedField("features", Fields.NONE, Fields.LONG), myBeanContext);
-      }
     }));
   }
 
   @XmlElement(name = "triggers")
   public PropEntitiesTrigger getTriggers() {
-    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("triggers", false), check(new ValueWithDefault.Value<PropEntitiesTrigger>() {
-      public PropEntitiesTrigger get() {
+    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("triggers", false), check(() -> {
         return new PropEntitiesTrigger(myBuildType.getSettingsEx(), myFields.getNestedField("triggers", Fields.NONE, Fields.LONG), myBeanContext);
-      }
     }));
   }
 
 
   @XmlElement(name = "snapshot-dependencies")
   public PropEntitiesSnapshotDep getSnapshotDependencies() {
-    return myBuildType == null ? null : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("snapshot-dependencies", false),
-                                                                                check(new ValueWithDefault.Value<PropEntitiesSnapshotDep>() {
-                                                                                  public PropEntitiesSnapshotDep get() {
-                                                                                    return new PropEntitiesSnapshotDep(myBuildType.getSettingsEx(), myFields
-                                                                                      .getNestedField("snapshot-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
-                                                                                  }
-                                                                                }));
+    return myBuildType == null ? null :
+           ValueWithDefault.decideIncludeByDefault(
+               myFields.isIncluded("snapshot-dependencies", false),
+               check(() -> {
+                 return new PropEntitiesSnapshotDep(myBuildType.getSettingsEx(), myFields
+                     .getNestedField("snapshot-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
+               })
+           );
   }
 
   @XmlElement(name = "artifact-dependencies")
@@ -552,8 +539,7 @@ public class BuildType {
 
   @XmlElement(name="settings")
   public Properties getSettings() {
-    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("settings", false), check(new ValueWithDefault.Value<Properties>() {
-      public Properties get() {
+    return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("settings", false), check(() -> {
         Fields nestedField = myFields.getNestedField("settings", Fields.NONE, Fields.LONG);
         Locator locator = nestedField.getLocator() == null ? null : new Locator(nestedField.getLocator());
         EntityWithParameters entity = Properties.createEntity(BuildTypeUtil.getSettingsParameters(myBuildType, locator, null, false),
@@ -561,7 +547,6 @@ public class BuildType {
         Properties result = new Properties(entity, null, locator, nestedField, myBeanContext);
         if (locator != null) locator.checkLocatorFullyProcessed();
         return result;
-      }
     }));
   }
 
@@ -575,15 +560,12 @@ public class BuildType {
     if (myBuildType == null || myBuildType.getBuildType() == null) {
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("investigations", false, true), new ValueWithDefault.Value<Investigations>() {
-      @Nullable
-      public Investigations get() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("investigations", false, true), () -> {
         final Fields nestedFields = myFields.getNestedField("investigations");
         final InvestigationFinder finder = myBeanContext.getSingletonService(InvestigationFinder.class);
         final String actualLocatorText = Locator.merge(nestedFields.getLocator(), InvestigationFinder.getLocator(myBuildType.getBuildType()));
         final List<InvestigationWrapper> result = Investigations.isDataNecessary(nestedFields) ? finder.getItems(actualLocatorText).myEntries : null;
         return new Investigations(result, new PagerDataImpl(InvestigationRequest.getHref(actualLocatorText)), nestedFields, myBeanContext);
-      }
     });
   }
 
@@ -592,13 +574,10 @@ public class BuildType {
     if (myBuildType == null || myBuildType.getBuildType() == null) {
       return null;
     }
-    return ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false, true), new ValueWithDefault.Value<Agents>() {
-      @Nullable
-      public Agents get() {
+    return ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false, true), () -> {
         final Fields nestedFields = myFields.getNestedField("compatibleAgents");
         String  actualLocatorText = Locator.merge(nestedFields.getLocator(), AgentFinder.getCompatibleAgentsLocator(myBuildType.getBuildType()));
         return new Agents(actualLocatorText, new PagerDataImpl(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
-      }
     });
   }
 
@@ -722,6 +701,7 @@ public class BuildType {
     final BuildTypeOrTemplatePatcher buildTypeOrTemplatePatcher = new BuildTypeOrTemplatePatcher() {
       private BuildTypeOrTemplate myCached = null;
 
+      @Override
       @NotNull
       public BuildTypeOrTemplate getBuildTypeOrTemplate() {
         if (myCached == null) myCached = new BuildTypeOrTemplate(buildType.createEditableCopy(false));  //todo: support "true" value for build type "patching"
@@ -913,12 +893,7 @@ public class BuildType {
     final BuildTypeOrTemplate resultingBuildType = createEmptyBuildTypeOrTemplate(serviceLocator, project, submittedParams.name);
 
     try {
-      fillBuildTypeOrTemplate(new BuildTypeOrTemplatePatcher() {
-        @NotNull
-        public BuildTypeOrTemplate getBuildTypeOrTemplate() {
-          return resultingBuildType;
-        }
-      }, serviceLocator);
+      fillBuildTypeOrTemplate(() -> resultingBuildType, serviceLocator);
     } catch (Exception e) {
       //error on filling the build type, should not preserve the created empty build type
       AuthorityHolder authorityHolder = myBeanContext.getSingletonService(SecurityContext.class).getAuthorityHolder();
@@ -1103,6 +1078,7 @@ public class BuildType {
       myBuildType = buildType;
     }
 
+    @Override
     public void persist(@NotNull String description) {
       myBuildType.persist(description);
     }
@@ -1117,7 +1093,7 @@ public class BuildType {
     }
   }
 
-  private class SubmitedParameters {
+  private static class SubmitedParameters {
     private String id;
     private String internalId;
     private String locator;
