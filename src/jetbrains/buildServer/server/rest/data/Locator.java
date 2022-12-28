@@ -497,64 +497,66 @@ public class Locator {
     if (!TeamCityProperties.getBooleanOrTrue("rest.report.locator.errors")) {
       reportKindString = "off";
     }
-    if (!reportKindString.equals("off")) {
-      if (reportKindString.contains("reportKnownButNotReportedDimensions")) {
-        reportKnownButNotReportedDimensions();
+    if (reportKindString.equals("off")) {
+      return;
+    }
+    if (reportKindString.contains("reportKnownButNotReportedDimensions")) {
+      reportKnownButNotReportedDimensions();
+    }
+    final Set<String> unusedDimensions = getUnusedDimensions();
+    if (unusedDimensions.isEmpty()) {
+      return;
+    }
+    Set<String> ignoredDimensions = mySupportedDimensions == null ? Collections.emptySet() :
+                                    CollectionsUtil.intersect(unusedDimensions, CollectionsUtil.join(Arrays.asList(mySupportedDimensions), myHiddenSupportedDimensions));
+    Set<String> unknownDimensions = CollectionsUtil.minus(unusedDimensions, ignoredDimensions);
+    StringBuilder message = new StringBuilder();
+    if (unknownDimensions.isEmpty() && unusedDimensions.size() == myDimensions.size()) {
+      //nothing is used
+      message.append("Unsupported locator: no dimensions are used, try another combination of the dimensions.");
+    } else if (unusedDimensions.size() > 1) {
+      message.append("Locator dimensions ");
+      if (!ignoredDimensions.isEmpty()) {
+        message.append(ignoredDimensions).append(" ").append(ignoredDimensions.size() == 1 ? "is" : "are").append(" ignored");
       }
-      final Set<String> unusedDimensions = getUnusedDimensions();
-      if (unusedDimensions.size() > 0) {
-        Set<String> ignoredDimensions = mySupportedDimensions == null ? Collections.<String>emptySet() :
-                                        CollectionsUtil.intersect(unusedDimensions, CollectionsUtil.join(Arrays.asList(mySupportedDimensions), myHiddenSupportedDimensions));
-        Set<String> unknownDimensions = CollectionsUtil.minus(unusedDimensions, ignoredDimensions);
-        StringBuilder message = new StringBuilder();
-        if (unknownDimensions.isEmpty() && unusedDimensions.size() == myDimensions.size()) {
-          //nothing is used
-          message.append("Unsupported locator: no dimensions are used, try another combination of the dimensions.");
-        } else if (unusedDimensions.size() > 1) {
-          message.append("Locator dimensions ");
+      if (!unknownDimensions.isEmpty()) {
+        if (!ignoredDimensions.isEmpty()) {
+          message.append(" and ");
+        }
+        message.append(unknownDimensions).append(" ").append(unknownDimensions.size() == 1 ? "is" : "are").append(" unknown");
+      }
+      message.append(".");
+    } else if (unusedDimensions.size() == 1) {
+      if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)) {
+        if (mySupportedDimensions != null) {
+          message.append("Locator dimension ").append(unusedDimensions).append(" is ");
           if (!ignoredDimensions.isEmpty()) {
-            message.append(ignoredDimensions).append(" ").append(ignoredDimensions.size() == 1 ? "is" : "are").append(" ignored");
-          }
-          if (!unknownDimensions.isEmpty()) {
-            if (!ignoredDimensions.isEmpty()) {
-              message.append(" and ");
-            }
-            message.append(unknownDimensions).append(" ").append(unknownDimensions.size() == 1 ? "is" : "are").append(" unknown");
-          }
-          message.append(".");
-        } else if (unusedDimensions.size() == 1) {
-          if (!unusedDimensions.contains(LOCATOR_SINGLE_VALUE_UNUSED_NAME)) {
-            if (mySupportedDimensions != null) {
-              message.append("Locator dimension ").append(unusedDimensions).append(" is ");
-              if (!ignoredDimensions.isEmpty()) {
-                message.append("known but was ignored during processing. Try omitting the dimension.");
-              } else {
-                message.append("unknown.");
-              }
-            } else {
-              message.append("Locator dimension ").append(unusedDimensions).append(" is ignored or unknown.");
-            }
+            message.append("known but was ignored during processing. Try omitting the dimension.");
           } else {
-            message.append("Single value locator '").append(mySingleValue).append("' was ignored.");
+            message.append("unknown.");
           }
+        } else {
+          message.append("Locator dimension ").append(unusedDimensions).append(" is ignored or unknown.");
         }
-        if (mySupportedDimensions != null && mySupportedDimensions.length > 0) {
-          if (message.length() > 0) {
-            message.append(" ");
-          }
-          message.append(getLocatorDescription(reportKindString.contains("includeHidden")));
-        }
-        if (reportKindString.contains("log")) {
-          if (reportKindString.contains("log-warn")) {
-            LOG.warn(message.toString());
-          } else {
-            LOG.debug(message.toString());
-          }
-        }
-        if (reportKindString.contains("error")) {
-          throw new LocatorProcessException(this, message.toString());
-        }
+      } else {
+        message.append("Single value locator '").append(mySingleValue).append("' was ignored.");
       }
+    }
+    if (mySupportedDimensions != null && mySupportedDimensions.length > 0) {
+      if (message.length() > 0) {
+        message.append(" ");
+      }
+      message.append(getLocatorDescription(reportKindString.contains("includeHidden")));
+    }
+    if (reportKindString.contains("log")) {
+      if (reportKindString.contains("log-warn")) {
+        LOG.warn(message.toString());
+      } else {
+        LOG.debug(message.toString());
+      }
+    }
+    if (reportKindString.contains("error")) {
+      throw new LocatorProcessException(this, message.toString());
     }
   }
 
@@ -591,30 +593,30 @@ public class Locator {
 
   @NotNull
   public String getLocatorDescription(boolean includeHidden) {
-    if (myDescriptionProvider == null) {
-      StringBuilder result = new StringBuilder();
-      if (mySupportedDimensions != null) {
-        result.append("Supported dimensions are: [");
-        for (String dimension : mySupportedDimensions) {
-          if (!myHiddenSupportedDimensions.contains(dimension)) {
-            result.append(dimension).append(", ");
-          }
-        }
-        if (mySupportedDimensions.length > 0) result.delete(result.length() - ", ".length(), result.length());
-        result.append("]");
-      }
-      if (includeHidden && !myHiddenSupportedDimensions.isEmpty()) {
-        result.append(" Hidden supported are: [");
-        result.append(StringUtil.join(", ", myHiddenSupportedDimensions));
-        result.append("]");
-      }
-      return result.toString();
+    if (myDescriptionProvider != null) {
+      return myDescriptionProvider.get(this, includeHidden);
     }
-    return myDescriptionProvider.get(this, includeHidden);
+    StringBuilder result = new StringBuilder();
+    if (mySupportedDimensions != null) {
+      result.append("Supported dimensions are: [");
+      for (String dimension : mySupportedDimensions) {
+        if (!myHiddenSupportedDimensions.contains(dimension)) {
+          result.append(dimension).append(", ");
+        }
+      }
+      if (mySupportedDimensions.length > 0) result.delete(result.length() - ", ".length(), result.length());
+      result.append("]");
+    }
+    if (includeHidden && !myHiddenSupportedDimensions.isEmpty()) {
+      result.append(" Hidden supported are: [");
+      result.append(StringUtil.join(", ", myHiddenSupportedDimensions));
+      result.append("]");
+    }
+    return result.toString();
   }
 
   private void reportKnownButNotReportedDimensions() {
-    final Set<String> usedDimensions = new HashSet<String>(myUsedDimensions);
+    final Set<String> usedDimensions = new HashSet<>(myUsedDimensions);
     if (mySupportedDimensions != null) usedDimensions.removeAll(Arrays.asList(mySupportedDimensions));
     usedDimensions.removeAll(myHiddenSupportedDimensions);
     if (usedDimensions.size() > 0) {
