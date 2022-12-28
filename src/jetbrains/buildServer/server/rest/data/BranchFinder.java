@@ -482,8 +482,9 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
 
     AtomicBoolean result = new AtomicBoolean(false);
     ItemProcessor<BranchData> existenceChecker = branchData -> {
-      if(!filter.isIncluded(branchData))
+      if (!filter.isIncluded(branchData)) {
         return true;
+      }
 
       result.compareAndSet(false, true);
       return false;
