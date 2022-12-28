@@ -332,13 +332,8 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
     // this filter disables fetching of branches from dependencies if they present in the buildTypes list
     // since we're going to traverse all build types form the buildTypes it makes sense to fetch branches from them once,
     // without this filter we'd traverse branches of a single build type 1 + as many times as it is accessible via snapshot dependencies
-    return new Filter<SBuildType>() {
-      private final Set<SBuildType> myFilteredBuildTypes = new HashSet<>(buildTypes);
-      @Override
-      public boolean accept(@NotNull SBuildType data) {
-        return !myFilteredBuildTypes.contains(data);
-      }
-    };
+    final Set<SBuildType> myFilteredBuildTypes = new HashSet<>(buildTypes);
+    return data -> !myFilteredBuildTypes.contains(data);
   }
 
   @NotNull
