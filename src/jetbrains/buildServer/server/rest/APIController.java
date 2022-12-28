@@ -119,18 +119,20 @@ public class APIController extends BaseController implements ServletContextAware
 
   private final CorsOrigins myAllowedOrigins = new CorsOrigins();
   private final CachingValues myDisabledRequests = new CachingValues();
-  private String myAuthToken;
+  @Nullable private final String myAuthToken; // null if token auth is disabled.
 
-  public APIController(final SBuildServer server,
-                       WebControllerManager webControllerManager,
-                       final ConfigurableApplicationContext configurableApplicationContext,
-                       final SecurityContextEx securityContext,
-                       final RequestPathTransformInfo requestPathTransformInfo,
-                       final ServerPluginInfo pluginDescriptor,
-                       @NotNull final JerseyWebComponent jerseyWebComponent,
-                       final AuthorizationInterceptor authorizationInterceptor,
-                       @NotNull final HttpAuthenticationManager authManager,
-                       @NotNull final PluginManager pluginManager) {
+  public APIController(
+    final SBuildServer server,
+    WebControllerManager webControllerManager,
+    final ConfigurableApplicationContext configurableApplicationContext,
+    final SecurityContextEx securityContext,
+    final RequestPathTransformInfo requestPathTransformInfo,
+    final ServerPluginInfo pluginDescriptor,
+    @NotNull final JerseyWebComponent jerseyWebComponent,
+    final AuthorizationInterceptor authorizationInterceptor,
+    @NotNull final HttpAuthenticationManager authManager,
+    @NotNull final PluginManager pluginManager
+  ) {
     super(server);
     LOG = Logger.getInstance(APIController.class.getName() + "/" + pluginDescriptor.getPluginName());
     myClassloader = getClass().getClassLoader();
@@ -154,13 +156,17 @@ public class APIController extends BaseController implements ServletContextAware
       }
     });
 
-    if (TeamCityProperties.getBoolean("rest.use.authToken")) {
-      try {
-        myAuthToken = URLEncoder.encode(UUID.randomUUID().toString() + (new Date()).toString().hashCode(), "UTF-8");
-        LOG.info("Authentication token for Super user generated: '" + myAuthToken + "' (" + getPluginIdentifyingText() + ")");
-      } catch (UnsupportedEncodingException e) {
-        LOG.warn(e);
+    {
+      String myAuthTokenCandidate = null;
+      if (TeamCityProperties.getBoolean("rest.use.authToken")) {
+        try {
+          myAuthTokenCandidate = URLEncoder.encode(UUID.randomUUID().toString() + (new Date()).toString().hashCode(), "UTF-8");
+          LOG.info("Authentication token for Super user generated: '" + myAuthTokenCandidate + "' (" + getPluginIdentifyingText() + ")");
+        } catch (UnsupportedEncodingException e) {
+          LOG.warn(e);
+        }
       }
+      myAuthToken = myAuthTokenCandidate;
     }
   }
 
@@ -266,8 +272,7 @@ public class APIController extends BaseController implements ServletContextAware
 
           try {
             // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-            doUnderContextClassLoader(myClassloader, new FuncThrow<Void, Throwable>() {
-              public Void apply() throws Throwable {
+            doUnderContextClassLoader(myClassloader, (FuncThrow<Void, Throwable>)() -> {
                 final Set<ConfigurableApplicationContext> contexts = new HashSet<>();
                 contexts.add(myConfigurableApplicationContext);
                 for (RESTControllerExtension extension : getExtensions()) {
@@ -280,7 +285,6 @@ public class APIController extends BaseController implements ServletContextAware
                 config.onReload();
                 myWebComponent.init(createJerseyConfig());
                 return null;
-              }
             });
 
             myWebComponentInitialized.set(true);
@@ -340,7 +344,7 @@ public class APIController extends BaseController implements ServletContextAware
     return "plugin '" + myPluginDescriptor.getPluginName() + "'";
   }
 
-  private List<String> addPrefix(final List<String> paths, final String prefix) {
+  private static List<String> addPrefix(final List<String> paths, final String prefix) {
     List<String> result = new ArrayList<>(paths.size());
     for (String path : paths) {
       result.add(prefix + path);
@@ -348,7 +352,7 @@ public class APIController extends BaseController implements ServletContextAware
     return result;
   }
 
-  private List<String> addWadlSuffix(final List<String> paths) {
+  private static List<String> addWadlSuffix(final List<String> paths) {
     List<String> result = new ArrayList<>(paths.size());
     for (String path : paths) {
       result.add(path + Constants.EXTERNAL_APPLICATION_WADL_NAME);
@@ -439,6 +443,7 @@ public class APIController extends BaseController implements ServletContextAware
     };
   }
 
+  @Override
   protected ModelAndView doHandle(@NotNull final HttpServletRequest request, @NotNull final HttpServletResponse response) throws Exception {
     if (TeamCityProperties.getBoolean("rest.disable")) {
       final String message = TeamCityProperties.getProperty("rest.disable.message", "REST API is disabled on this TeamCity server with 'rest.disable' internal property.");
@@ -515,9 +520,8 @@ public class APIController extends BaseController implements ServletContextAware
 
       patchThread(() -> WebUtil.getRequestDump(request), requestType, () -> {
         // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-        doUnderContextClassLoader(myClassloader, new FuncThrow<Void, Throwable>() {
-          public Void apply() throws Throwable {
-            return new RestContext(name -> request.getAttribute(CONTEXT_REQUEST_ARGUMENTS_PREFIX + name))
+        doUnderContextClassLoader(myClassloader, (FuncThrow<Void, Throwable>)() ->
+          new RestContext(name -> request.getAttribute(CONTEXT_REQUEST_ARGUMENTS_PREFIX + name))
               .run(() -> {
                 // patching request
                 final HttpServletRequest actualRequest =
@@ -532,9 +536,7 @@ public class APIController extends BaseController implements ServletContextAware
                   myWebComponent.doFilter(actualRequest, response, null);
                 }
                 return null;
-              });
-          }
-        });
+              }));
         return null;
       });
     } catch (Throwable throwable) {
@@ -551,7 +553,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   @NotNull
-  private String getRequestType(@NotNull HttpServletRequest request) {
+  private static String getRequestType(@NotNull HttpServletRequest request) {
     String requestType = "";
     if (RestApiFacade.isInternal(request)) requestType = "internal";
     if (request.getHeader("X-TeamCity-Essential") != null) {
@@ -587,7 +589,7 @@ public class APIController extends BaseController implements ServletContextAware
     reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, null, Level.WARN, request);
   }
 
-  private void patchThread(@NotNull final Supplier<String> requestDump, @NotNull final String requestType,
+  private static void patchThread(@NotNull final Supplier<String> requestDump, @NotNull final String requestType,
                            @NotNull final FuncThrow<Void, Throwable> action) throws Throwable {
     if (TeamCityProperties.getBoolean("rest.debug.APIController.patchThread")) {
       StringBuilder activityName = new StringBuilder();
@@ -604,11 +606,11 @@ public class APIController extends BaseController implements ServletContextAware
     }
   }
 
-  private boolean shouldLogToDebug(@NotNull final HttpServletRequest request) {
+  private static boolean shouldLogToDebug(@NotNull final HttpServletRequest request) {
     return !RestApiFacade.isInternal(request) || TeamCityProperties.getBoolean("rest.log.debug.internalRequests");
   }
 
-  private boolean matches(final String requestURI, final String[] disabledRequests) {
+  private static boolean matches(final String requestURI, final String[] disabledRequests) {
     for (String requestPattern : disabledRequests) {
       if (requestURI.matches(requestPattern)) {
         return true;
@@ -617,7 +619,7 @@ public class APIController extends BaseController implements ServletContextAware
     return false;
   }
 
-  private String getStatus(final HttpServletResponse response) {
+  private static String getStatus(final HttpServletResponse response) {
     String result = "<unknown>";
     try {
       result = String.valueOf(response.getStatus());
@@ -628,7 +630,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   @NotNull
-  public String[] getBasePackages() {
+  public static String[] getBasePackages() {
     return new String[]{
       "org.fasterxml.jackson.jaxrs",
       "jetbrains.buildServer.server.rest.request",
@@ -668,7 +670,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   @NotNull
-  private HttpServletRequest patchRequestWithAcceptHeader(@NotNull final HttpServletRequest request) {
+  private static HttpServletRequest patchRequestWithAcceptHeader(@NotNull final HttpServletRequest request) {
     final String newValue = request.getParameter("overrideAccept");
     if (!StringUtil.isEmpty(newValue)) {
       return modifyAcceptHeader(request, newValue);
@@ -677,7 +679,7 @@ public class APIController extends BaseController implements ServletContextAware
   }
 
   @NotNull
-  private HttpServletRequest modifyAcceptHeader(@NotNull final HttpServletRequest request, @NotNull final String newValue) {
+  private static HttpServletRequest modifyAcceptHeader(@NotNull final HttpServletRequest request, @NotNull final String newValue) {
     return new HttpServletRequestWrapper(request) {
       @Override
       public String getHeader(final String name) {
@@ -701,7 +703,7 @@ public class APIController extends BaseController implements ServletContextAware
     return myAuthToken;
   }
 
-  class CachingValues {
+  static class CachingValues {
     private String myCachedValue;
     private String myCachedDelimiter;
     private String[] myParsedValues;
