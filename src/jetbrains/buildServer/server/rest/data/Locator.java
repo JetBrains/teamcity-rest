@@ -955,6 +955,23 @@ public class Locator {
     return (new Locator(locator)).setDimensionIfNotPresent(dimensionName, value).getStringRepresentation();
   }
 
+  /**
+   * Creates locator text for several dimentions.
+   * <br/>
+   * Example:
+   * <pre>
+   *   ("foo", "bar", "xyz", "buz") -> "foo:bar,xyz:buz"
+   * </pre>
+   * <br/>
+   * The number of arguments must be even.
+   * <br/>
+   *
+   * @param strings each odd arguments is a name of a dimension. each event argument is the locator text.
+   * @return
+   * @throws IllegalArgumentException if odd number of arguments passed.
+   * @implNote If no arguments passed, then undefined behaviour.
+   * If some arguments are null, then undefined behaviour.
+   */
   public static String getStringLocator(final String... strings) {
     final Locator result = createEmptyLocator();
     if (strings.length % 2 != 0) {
