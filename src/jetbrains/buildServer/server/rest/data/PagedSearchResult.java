@@ -61,7 +61,41 @@ public class PagedSearchResult<T> {
     return myLastProcessedItem;
   }
 
+  @NotNull
+  public List<T> getEntries() {
+    return myEntries;
+  }
+
+  public int getActualCount() {
+    return myActualCount;
+  }
+
+  @Nullable
+  public Long getStart() {
+    return myStart;
+  }
+
+  @Nullable
+  public Integer getCount() {
+    return myCount;
+  }
+
+  @Nullable
+  public Long getActuallyProcessedCount() {
+    return myActuallyProcessedCount;
+  }
+
+  public boolean getLookupLimitReached() {
+    return myLookupLimitReached;
+  }
+
+  @Nullable
+  public Long getLookupLimit() {
+    return myLookupLimit;
+  }
+
   public boolean isNextPageAvailable(){
     return myCount != null && myActualCount >= myCount || myLookupLimit != null && myLookupLimitReached;
   }
+
 }
