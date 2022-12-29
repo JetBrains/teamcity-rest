@@ -77,7 +77,7 @@ public class Agents {
     AgentFinder finder = beanContext.getSingletonService(AgentFinder.class);
     List<SBuildAgent> result = null;
     if (fields.isIncluded(AGENT, false, true) || fields.isIncluded(COUNT, false, true)){ //todo: is decision on count OK?
-      result = finder.getItems(agentsLocatorText).myEntries; //todo: make it effective
+      result = finder.getItems(agentsLocatorText).getEntries(); //todo: make it effective
     }
     init(result, pagerData, fields, beanContext);
   }

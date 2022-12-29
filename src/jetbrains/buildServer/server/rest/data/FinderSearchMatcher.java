@@ -49,7 +49,7 @@ public class FinderSearchMatcher<T> {
   public boolean matches(@Nullable final String searchDefaultLocatorText) {
     String mergedSearchLocatorText = Locator.merge(mySearch, searchDefaultLocatorText);
 
-    List<T> found = myFinder.getItems(mergedSearchLocatorText).myEntries;
+    List<T> found = myFinder.getItems(mergedSearchLocatorText).getEntries();
     if (found.isEmpty()) { // nothing found by "search"
       return false;
     }

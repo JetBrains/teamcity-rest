@@ -72,7 +72,7 @@ public class Mutes implements DefaultValueAware{
   static Mutes createMutesWithActualAttributes(@NotNull String problemLocator, @NotNull Fields fields, @NotNull BeanContext beanContext) {
     Fields nestedFields = fields.getNestedField("mutes", Fields.NONE, Fields.LONG);
     final String actualLocatorText = Locator.merge(nestedFields.getLocator(), problemLocator);
-    List<MuteInfo> entries = beanContext.getSingletonService(MuteFinder.class).getItems(actualLocatorText).myEntries;
+    List<MuteInfo> entries = beanContext.getSingletonService(MuteFinder.class).getItems(actualLocatorText).getEntries();
     return new Mutes(entries, null, nestedFields, beanContext);
   }
 

@@ -41,7 +41,7 @@ public class GraphFinder<T> extends AbstractFinder<T> {
   private Long myDefaultLookupLimit;
 
   public GraphFinder(@NotNull Finder<T> finder, @NotNull Traverser<T> traverser) {
-    this(locatorText -> finder.getItems(locatorText).myEntries, traverser);
+    this(locatorText -> finder.getItems(locatorText).getEntries(), traverser);
   }
 
   public GraphFinder(@NotNull LightweightFinder<T> finder, @NotNull Traverser<T> traverser) {

@@ -172,7 +172,7 @@ public class VcsRoot {
             @NotNull
             @Override
             protected Collection<VcsRootInstance> doGet() {
-              return beanContext.getSingletonService(VcsRootInstanceFinder.class).getItems(VcsRootInstanceFinder.getLocatorByVcsRoot(root)).myEntries;
+              return beanContext.getSingletonService(VcsRootInstanceFinder.class).getItems(VcsRootInstanceFinder.getLocatorByVcsRoot(root)).getEntries();
             }
           }, new PagerDataImpl(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
         }

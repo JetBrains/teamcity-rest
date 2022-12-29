@@ -199,19 +199,19 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
       locator.addHiddenDimensions(PagerData.COUNT);
     }
     final PagedSearchResult<ITEM> items = getItemsByLocator(locator, false);
-    final int entriesSize = items.myEntries.size();
+    final int entriesSize = items.getEntries().size();
     if (entriesSize == 0) {
-      if (!items.myLookupLimitReached) {
+      if (!items.getLookupLimitReached()) {
         throw new NotFoundException("Nothing is found by " + getLocatorDetailsForMessage(locator) + ".");
       }
       LOG.debug("Returning \"Not Found\" response because of reaching lookupLimit. Last processed item: " + LogUtil.describe(items.getLastProcessedItem()));
       throw new NotFoundException("Nothing is found by " + getLocatorDetailsForMessage(locator) + " while processing first " +
-                                  items.myLookupLimit + " items. Set " + DIMENSION_LOOKUP_LIMIT + " dimension to larger value to process more items.");
+                                  items.getLookupLimit() + " items. Set " + DIMENSION_LOOKUP_LIMIT + " dimension to larger value to process more items.");
     }
     if (entriesSize != 1) {
       throw new OperationException("Found " + entriesSize + " items for " + getLocatorDetailsForMessage(locator) + " while a single item is expected.");
     }
-    return items.myEntries.get(0);
+    return items.getEntries().get(0);
   }
 
   @NotNull
@@ -540,7 +540,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   private FinderDataBinding.ItemHolder<ITEM> getItemsOr(@NotNull final List<String> itemsDimension) {
     return processor -> {
       for (String itemLocator : itemsDimension) {
-        FinderDataBinding.getItemHolder(getItems(itemLocator).myEntries).process(processor);  //todo: rework APIs to add itemHolders instead of serialized collection
+        FinderDataBinding.getItemHolder(getItems(itemLocator).getEntries()).process(processor);  //todo: rework APIs to add itemHolders instead of serialized collection
       }
     };
   }

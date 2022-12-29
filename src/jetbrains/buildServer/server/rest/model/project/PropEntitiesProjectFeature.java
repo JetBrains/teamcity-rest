@@ -60,7 +60,7 @@ public class PropEntitiesProjectFeature {
   }
 
   public PropEntitiesProjectFeature(@NotNull final SProject project, @Nullable final String featureLocator, @NotNull final Fields fields, final BeanContext beanContext) {
-    final List<SProjectFeatureDescriptor> features = new PropEntityProjectFeature.ProjectFeatureFinder(project).getItems(featureLocator).myEntries;
+    final List<SProjectFeatureDescriptor> features = new PropEntityProjectFeature.ProjectFeatureFinder(project).getItems(featureLocator).getEntries();
     propEntities = ValueWithDefault.decideDefault(fields.isIncluded("projectFeature"), new ValueWithDefault.Value<List<PropEntityProjectFeature>>() {
       @Nullable
       public List<PropEntityProjectFeature> get() {

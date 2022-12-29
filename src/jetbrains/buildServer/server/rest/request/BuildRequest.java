@@ -210,7 +210,7 @@ public class BuildRequest {
     if (locator == null) {
       throw new BadRequestException("Empty 'locator' parameter specified.");
     }
-    final List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, locator).myEntries;
+    final List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, locator).getEntries();
     final int deleteLimit = TeamCityProperties.getInteger(REST_BUILD_REQUEST_DELETE_LIMIT, 10);
     if (builds.size() > deleteLimit) {
       throw new BadRequestException("Refusing to delete more than " + deleteLimit + " builds as a precaution measure." +
@@ -659,7 +659,7 @@ public class BuildRequest {
                                  @ApiParam(format = LocatorName.TAG) @QueryParam("locator") String tagLocator,
                                  @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
-    return new Tags(new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build).getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries,
+    return new Tags(new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build).getItems(tagLocator, TagFinder.getDefaultLocator()).getEntries(),
                     new Fields(fields), myBeanContext);
   }
 
@@ -679,7 +679,7 @@ public class BuildRequest {
     final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build);
     final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
 
-    tagsManager.removeTagDatas(build, tagFinder.getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries);
+    tagsManager.removeTagDatas(build, tagFinder.getItems(tagLocator, TagFinder.getDefaultLocator()).getEntries());
     List<TagData> postedTagDatas = tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class));
     tagsManager.addTagDatas(build, postedTagDatas);
 
@@ -1149,7 +1149,7 @@ public class BuildRequest {
     UriBuilder uriBuilder = uriInfo.getRequestUriBuilder();
     UriBuilder mainRequestUriBuilder = uriBuilder.replacePath(uriBuilder.build().getPath().replace("/multiple/" + buildLocator, "")).queryParam("locator", buildLocator);
     final PagerData pagerData = new PagerDataImpl(mainRequestUriBuilder, request.getContextPath(), pagedResult, buildLocator, "locator");
-    return Builds.createFromPrefilteredBuildPromotions(pagedResult.myEntries, pagerData, new Fields(fields), myBeanContext);
+    return Builds.createFromPrefilteredBuildPromotions(pagedResult.getEntries(), pagerData, new Fields(fields), myBeanContext);
   }
 
   /**
@@ -1166,7 +1166,7 @@ public class BuildRequest {
     if (buildLocator == null) {
       throw new BadRequestException("Empty locator specified.");
     }
-    List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).myEntries;
+    List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).getEntries();
     return new MultipleOperationResult(getResultData(builds, deleteBuilds(builds, SessionUser.getUser(request), null)), new Fields(fields), myBeanContext);
   }
 
@@ -1295,7 +1295,7 @@ public class BuildRequest {
     if (buildLocator == null) {
       throw new BadRequestException("Empty locator specified.");
     }
-    List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).myEntries;
+    List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).getEntries();
     return new MultipleOperationResult(getResultData(builds, cancelBuilds(builds, cancelRequest, SessionUser.getUser(request))), new Fields(fields), myBeanContext);
   }
 
@@ -1335,7 +1335,7 @@ public class BuildRequest {
   public String serveAggregatedBuildStatus(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String locator) {
     final PagedSearchResult<BuildPromotion> builds = myBuildPromotionFinder.getItems(locator);
     Status resultingStatus = Status.UNKNOWN;
-    for (BuildPromotion buildPromotion : builds.myEntries) {
+    for (BuildPromotion buildPromotion : builds.getEntries()) {
       final SBuild build = buildPromotion.getAssociatedBuild();
       if (build != null) {
         final Status status = build.getStatusDescriptor().getStatus();
@@ -1359,13 +1359,13 @@ public class BuildRequest {
       @Override
       @NotNull
       public Element getElement(@NotNull final String path, @NotNull Purpose purpose) {
-        return AggregatedBuildArtifactsElementBuilder.getBuildAggregatedArtifactElement(path, builds.myEntries, myBeanContext.getServiceLocator());
+        return AggregatedBuildArtifactsElementBuilder.getBuildAggregatedArtifactElement(path, builds.getEntries(), myBeanContext.getServiceLocator());
       }
 
       @NotNull
       @Override
       public String getArchiveName(@NotNull final String path) {
-        return "aggregated_" + builds.myEntries.size() + "_builds" + "_artifacts";
+        return "aggregated_" + builds.getEntries().size() + "_builds" + "_artifacts";
       }
 
     }, urlPrefix, myBeanContext, true);
@@ -1570,7 +1570,7 @@ public class BuildRequest {
       public BuildPromotion get() {
         if (myBuilds == null) {
           hasNext[0] = false;
-          myBuilds = myBuildPromotionFinder.getItems(multipleBuildsLocator).myEntries;
+          myBuilds = myBuildPromotionFinder.getItems(multipleBuildsLocator).getEntries();
           if (myBuilds.isEmpty()) {
             throw new NotFoundException("No builds found");
           }

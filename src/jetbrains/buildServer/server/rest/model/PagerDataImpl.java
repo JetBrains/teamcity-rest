@@ -63,9 +63,9 @@ public class PagerDataImpl implements PagerData {
                        @NotNull final PagedSearchResult<?> pagedResult,
                        @Nullable final String locatorText,
                        @Nullable final String locatorQueryParameterName) {
-    final Long start = pagedResult.myStart;
-    final Long count = pagedResult.myCount == null ? null : Long.valueOf(pagedResult.myCount);
-    long currentPageRealCount = pagedResult.myActualCount;
+    final Long start = pagedResult.getStart();
+    final Long count = pagedResult.getCount() == null ? null : Long.valueOf(pagedResult.getCount());
+    long currentPageRealCount = pagedResult.getActualCount();
 
     myHref = getRelativePath(uriBuilder.build(), contextPath); //todo: investigate a way to preserve order of the parameters
     UriModification nextHref;
@@ -97,7 +97,7 @@ public class PagerDataImpl implements PagerData {
       }
     }
 
-    if (pagedResult.myLookupLimit != null && pagedResult.myLookupLimitReached) {
+    if (pagedResult.getLookupLimit() != null && pagedResult.getLookupLimitReached()) {
       if (StringUtil.isEmpty(locatorQueryParameterName)) {
         throw new OperationException("TeamCity REST API implementation error: lookupLimit is passed while no locator parameter name is specified.");
       }
@@ -106,7 +106,7 @@ public class PagerDataImpl implements PagerData {
       } else {
         nextHref = getModifiedBuilder(uriBuilder, (start != null ? start : 0) + currentPageRealCount, (count != null ? count : 0), locatorText, locatorQueryParameterName);
       }
-      final String newLocator = LocatorUtil.setDimension(nextHref.getCurrentLocatorText(), AbstractFinder.DIMENSION_LOOKUP_LIMIT, getNextLookUpLimit(pagedResult.myLookupLimit));
+      final String newLocator = LocatorUtil.setDimension(nextHref.getCurrentLocatorText(), AbstractFinder.DIMENSION_LOOKUP_LIMIT, getNextLookUpLimit(pagedResult.getLookupLimit()));
       nextHref = new UriModification(nextHref.getBuilder().replaceQueryParam(locatorQueryParameterName, Util.encodeUrlParamValue(newLocator)), newLocator);
     }
     myNextHref = nextHref == null ? null : getRelativePath(nextHref.getBuilder().build(), contextPath);

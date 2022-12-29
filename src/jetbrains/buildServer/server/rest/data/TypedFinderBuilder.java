@@ -316,7 +316,7 @@ public class TypedFinderBuilder<ITEM> {
 
   @NotNull
   private <FINDER_TYPE> List<FINDER_TYPE> getNotEmptyItems(final @NotNull Finder<FINDER_TYPE> finder, final @NotNull String dimensionValue) {
-    List<FINDER_TYPE> result = finder.getItems(dimensionValue).myEntries;
+    List<FINDER_TYPE> result = finder.getItems(dimensionValue).getEntries();
     if (result.isEmpty()) throw new LocatorProcessException("Nothing found by locator '" + dimensionValue + "'");
     return result;
   }

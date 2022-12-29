@@ -59,7 +59,7 @@ public class AuditRequest {
     AuthorityHelper.checkGlobalPermission(myBeanContext, Permission.VIEW_AUDIT_LOG);
     PagedSearchResult<AuditLogAction> items = myAuditEventFinder.getItems(locator);
     final PagerData pagerData = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), items, locator, "locator");
-    return new AuditEvents(items.myEntries, pagerData, new Fields(fields), myBeanContext);
+    return new AuditEvents(items.getEntries(), pagerData, new Fields(fields), myBeanContext);
   }
 
   @GET

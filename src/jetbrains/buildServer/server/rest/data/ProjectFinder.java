@@ -318,7 +318,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
             LOG.debug("While filtering projects by " + DIMENSION_PARAMETER + " user does not have enough permissions to see settings. Excluding project: " + item.describe(false));
             return false;
           }
-          return new PropEntityProjectFeature.ProjectFeatureFinder(item).getItems(featureDimension).myEntries.size() > 0;
+          return new PropEntityProjectFeature.ProjectFeatureFinder(item).getItems(featureDimension).getEntries().size() > 0;
         }
       });
     }
@@ -328,7 +328,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       Set<String> defaultTemplateIds = myServiceLocator
         .getSingletonService(BuildTypeFinder.class)
         .getItems(defaultTemplateDimension)
-        .myEntries.stream().map(bt -> bt.getInternalId()).collect(Collectors.toSet());
+        .getEntries().stream().map(bt -> bt.getInternalId()).collect(Collectors.toSet());
       result.add(item -> {
         final boolean canView = !Project.shouldRestrictSettingsViewing(item, myPermissionChecker);
         if (!canView) {
@@ -357,7 +357,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       //}
 
       for (String poolDimension : poolDimensions) {
-        List<AgentPool> pools = agentPoolFinder.getItems(poolDimension).myEntries;
+        List<AgentPool> pools = agentPoolFinder.getItems(poolDimension).getEntries();
         Set<String> filterProjectInternalIds = new HashSet<>();
         for (AgentPool pool : pools) {
           filterProjectInternalIds.addAll(pool.getProjectIds());

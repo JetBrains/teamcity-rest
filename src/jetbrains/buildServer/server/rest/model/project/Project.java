@@ -201,7 +201,7 @@ public class Project {
       public BuildTypes get() {
         final Fields buildTypesFields = fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG);
         final String buildTypesLocator = buildTypesFields.getLocator();
-        final List<BuildTypeOrTemplate> buildTypes = buildTypeFinder.get().getBuildTypesPaged(project, buildTypesLocator, true).myEntries;
+        final List<BuildTypeOrTemplate> buildTypes = buildTypeFinder.get().getBuildTypesPaged(project, buildTypesLocator, true).getEntries();
         return new BuildTypes(buildTypes, null, buildTypesFields, beanContext);
       }
     });
@@ -217,7 +217,7 @@ public class Project {
         if (!canViewSettings.get()) return null;
         final Fields templateFields = fields.getNestedField("templates", Fields.NONE, Fields.LONG);
         final String templatesLocator = templateFields.getLocator();
-        final List<BuildTypeOrTemplate> templates = buildTypeFinder.get().getBuildTypesPaged(project, templatesLocator, false).myEntries;
+        final List<BuildTypeOrTemplate> templates = buildTypeFinder.get().getBuildTypesPaged(project, templatesLocator, false).getEntries();
         return new BuildTypes(templates, null, templateFields, beanContext);
       }
     });
@@ -258,7 +258,7 @@ public class Project {
         final Fields projectsFields = fields.getNestedField("projects", Fields.NONE, Fields.LONG);
         final String projectsLocator = projectsFields.getLocator();
         final ProjectFinder projectFinder = beanContext.getSingletonService(ProjectFinder.class);
-        final List<SProject> projects = projectFinder.getItems(project, projectsLocator).myEntries;
+        final List<SProject> projects = projectFinder.getItems(project, projectsLocator).getEntries();
         return new Projects(projects, null, projectsFields, beanContext);
       }
     });
@@ -268,7 +268,7 @@ public class Project {
       String locator = CloudProfileFinder.getLocator(nestedFields.getLocator(), project);
 
       final CloudProfileFinder finder = beanContext.getSingletonService(CloudProfileFinder.class);
-      final List<CloudProfile> items = finder.getItems(locator).myEntries;
+      final List<CloudProfile> items = finder.getItems(locator).getEntries();
       return new CloudProfiles(items, new PagerDataImpl(CloudRequest.getProfilesHref(nestedFields.getLocator(), project)), nestedFields, beanContext);
     });
 

@@ -102,7 +102,7 @@ public class  BuildQueueRequest {
                           @Context HttpServletRequest request) {
     final PagedSearchResult<SQueuedBuild> result = myQueuedBuildFinder.getItems(locator);
 
-    final List<BuildPromotion> builds = CollectionsUtil.convertCollection(result.myEntries, SQueuedBuild::getBuildPromotion);
+    final List<BuildPromotion> builds = CollectionsUtil.convertCollection(result.getEntries(), SQueuedBuild::getBuildPromotion);
     return Builds.createFromPrefilteredBuildPromotions(
       builds,
       new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator"),
@@ -127,7 +127,7 @@ public class  BuildQueueRequest {
     final List<Throwable> errors = new ArrayList<Throwable>();
 
     final jetbrains.buildServer.serverSide.BuildQueue buildQueue = myServiceLocator.getSingletonService(jetbrains.buildServer.serverSide.BuildQueue.class);
-    final List<String> itemIds = CollectionsUtil.convertCollection(result.myEntries, new Converter<String, SQueuedBuild>() {
+    final List<String> itemIds = CollectionsUtil.convertCollection(result.getEntries(), new Converter<String, SQueuedBuild>() {
       public String createFrom(@NotNull final SQueuedBuild source) {
         return source.getItemId();
       }
@@ -142,7 +142,7 @@ public class  BuildQueueRequest {
     }
 
     //now delete the canceled builds
-    for (SQueuedBuild build : result.myEntries) {
+    for (SQueuedBuild build : result.getEntries()) {
       final SBuild associatedBuild = build.getBuildPromotion().getAssociatedBuild();
       if (associatedBuild == null) {
         errors.add(new OperationException("After canceling a build with promotion id '" + build.getBuildPromotion().getId() + "' , no canceled build found to delete."));
@@ -336,7 +336,7 @@ public class  BuildQueueRequest {
                         @QueryParam("locator") String tagLocator,
                         @QueryParam("fields") String fields) {
     BuildPromotion buildPromotion = myBuildPromotionFinder.getItem(Locator.createLocator(buildLocator, getBuildPromotionLocatorDefaults(), null).getStringRepresentation());
-    return new Tags(new TagFinder(myBeanContext.getSingletonService(UserFinder.class), buildPromotion).getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries,
+    return new Tags(new TagFinder(myBeanContext.getSingletonService(UserFinder.class), buildPromotion).getItems(tagLocator, TagFinder.getDefaultLocator()).getEntries(),
                     new Fields(fields), myBeanContext);
   }
 
@@ -358,10 +358,10 @@ public class  BuildQueueRequest {
     final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), buildPromotion);
     final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
 
-    tagsManager.removeTagDatas(buildPromotion, tagFinder.getItems(tagLocator, TagFinder.getDefaultLocator()).myEntries);
+    tagsManager.removeTagDatas(buildPromotion, tagFinder.getItems(tagLocator, TagFinder.getDefaultLocator()).getEntries());
     tagsManager.addTagDatas(buildPromotion, tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class)));
 
-    return new Tags(tagFinder.getItems(null, TagFinder.getDefaultLocator()).myEntries, new Fields(fields), myBeanContext);
+    return new Tags(tagFinder.getItems(null, TagFinder.getDefaultLocator()).getEntries(), new Fields(fields), myBeanContext);
   }
 
   /**
@@ -461,7 +461,7 @@ public class  BuildQueueRequest {
     LinkedHashSet<String> ids = new LinkedHashSet<>();
     for (Build build : builds.getSubmittedBuilds()) {
       try {
-        List<BuildPromotion> items = myBuildPromotionFinder.getItems(build.getLocatorFromPosted(Collections.emptyMap()), new Locator(getBuildPromotionLocatorDefaults())).myEntries;
+        List<BuildPromotion> items = myBuildPromotionFinder.getItems(build.getLocatorFromPosted(Collections.emptyMap()), new Locator(getBuildPromotionLocatorDefaults())).getEntries();
         for (BuildPromotion buildPromotion : items) {
           SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
           if (queuedBuild == null) continue;
@@ -475,7 +475,7 @@ public class  BuildQueueRequest {
     buildQueue.applyOrder(CollectionsUtil.toArray(ids, String.class));
 
     return Builds.createFromPrefilteredBuildPromotions(
-      myBuildPromotionFinder.getItems(getBuildPromotionLocatorDefaults().getStringRepresentation()).myEntries,
+      myBuildPromotionFinder.getItems(getBuildPromotionLocatorDefaults().getStringRepresentation()).getEntries(),
       null,
       new Fields(fields),
       myBeanContext

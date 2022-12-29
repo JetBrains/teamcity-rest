@@ -201,7 +201,7 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
     if (locator.isUnused(PROJECT)) {
       final String projectLocator = locator.getSingleDimensionValue(PROJECT);
       if (projectLocator != null) {
-        Set<SProject> projects = new HashSet<>(myProjectFinder.getItemsNotEmpty(projectLocator).myEntries);
+        Set<SProject> projects = new HashSet<>(myProjectFinder.getItemsNotEmpty(projectLocator).getEntries());
         result.add(item -> projects.contains(VcsRoot.getProjectByRoot(item)));
       }
     }
@@ -230,14 +230,14 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
   public ItemHolder<SVcsRoot> getPrefilteredItems(@NotNull Locator locator) {
     final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectLocator != null) {
-      List<SProject> projects = myProjectFinder.getItems(affectedProjectLocator).myEntries;
+      List<SProject> projects = myProjectFinder.getItems(affectedProjectLocator).getEntries();
       projects.forEach(project -> myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId()));
       return FinderDataBinding.getItemHolder(projects.stream().flatMap(p -> p.getVcsRoots().stream()).collect(Collectors.toSet()));
     }
 
     final String projectLocator = locator.getSingleDimensionValue(PROJECT);
     if (projectLocator != null) {
-      List<SProject> projects = myProjectFinder.getItemsNotEmpty(projectLocator).myEntries;
+      List<SProject> projects = myProjectFinder.getItemsNotEmpty(projectLocator).getEntries();
       projects.forEach(project -> myPermissionChecker.checkProjectPermission(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project.getProjectId()));
       return FinderDataBinding.getItemHolder(projects.stream().flatMap(p -> p.getOwnVcsRoots().stream())); //consistent with Project.java:183
     }

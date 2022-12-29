@@ -120,7 +120,7 @@ public class AgentRequest {
     final PagedSearchResult<SBuildAgent> result = myAgentFinder.getItems(locatorToUse);
 
     final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorToUse, "locator");
-    return new Agents(result.myEntries, pager, new Fields(fields), myBeanContext);
+    return new Agents(result.getEntries(), pager, new Fields(fields), myBeanContext);
   }
 
   @GET

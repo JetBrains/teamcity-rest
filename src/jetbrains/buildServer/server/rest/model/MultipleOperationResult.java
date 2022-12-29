@@ -79,7 +79,7 @@ public class MultipleOperationResult {
         if (locator == null){
           throw new BadRequestException("Empty locator specified.");
         }
-        List<T> items = finder.getItems(locator).myEntries;
+        List<T> items = finder.getItems(locator).getEntries();
         Data result = new Data(new ArrayList<>(), 0);
         items.forEach(item -> {
           try {

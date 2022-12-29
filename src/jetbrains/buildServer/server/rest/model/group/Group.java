@@ -113,7 +113,7 @@ public class Group {
       public Users get() {
         //improvement: it is better to force the group to the current one (and support several ANDed groups in the userFinder)
         final PagedSearchResult<SUser> items = context.getSingletonService(UserFinder.class).getItems(Locator.merge(fields.getLocator(), UserFinder.getLocatorByGroup(userGroup)));
-        return new Users(items.myEntries, fields.getNestedField("users", Fields.NONE, Fields.LONG), context);
+        return new Users(items.getEntries(), fields.getNestedField("users", Fields.NONE, Fields.LONG), context);
       }
     });
     roleAssignments = ValueWithDefault.decideDefault(fields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {

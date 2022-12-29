@@ -260,7 +260,7 @@ public class Agent {
           compatibleBuildTypes =
             ValueWithDefault.decideDefault(fields.isIncluded(COMPATIBLE_BUILD_TYPES, false, false), () -> {
               BuildTypeFinder buildTypeFinder = beanContext.getSingletonService(BuildTypeFinder.class);
-              return new BuildTypes(buildTypeFinder.getItems(BuildTypeFinder.getLocatorCompatible(agent)).myEntries, null, fields.getNestedField(COMPATIBLE_BUILD_TYPES),
+              return new BuildTypes(buildTypeFinder.getItems(BuildTypeFinder.getLocatorCompatible(agent)).getEntries(), null, fields.getNestedField(COMPATIBLE_BUILD_TYPES),
                                     beanContext);
             });
           incompatibleBuildTypes = ValueWithDefault.decideDefault(fields.isIncluded(INCOMPATIBLE_BUILD_TYPES, false, false),
@@ -275,7 +275,7 @@ public class Agent {
                                                 String locator = Locator.merge(nestedFields.getLocator(),
                                                                                LocatorUtil.setDimension(BuildPromotionFinder.getLocator(agent), PagerData.COUNT, "1"));
                                                 return Builds.createFromPrefilteredBuildPromotions(
-                                                  beanContext.getServiceLocator().getSingletonService(BuildPromotionFinder.class).getItems(locator).myEntries,
+                                                  beanContext.getServiceLocator().getSingletonService(BuildPromotionFinder.class).getItems(locator).getEntries(),
                                                   new PagerDataImpl(BuildRequest.getHref(locator)), fields, beanContext);
                                               });
 

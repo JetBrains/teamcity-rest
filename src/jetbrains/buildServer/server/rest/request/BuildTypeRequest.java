@@ -173,7 +173,7 @@ public class BuildTypeRequest {
     final PagedSearchResult<BuildTypeOrTemplate> result = myBuildTypeFinder.getItems(actualLocator);
 
     final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
-    return new BuildTypes(result.myEntries, pager, new Fields(fields), myBeanContext);
+    return new BuildTypes(result.getEntries(), pager, new Fields(fields), myBeanContext);
   }
 
   @POST
@@ -1557,7 +1557,7 @@ public class BuildTypeRequest {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
     Fields fields = new Fields(fieldsSpec);
 
-    return new Branches(myBranchFinder.getItems(buildType, branchesLocator).myEntries,
+    return new Branches(myBranchFinder.getItems(buildType, branchesLocator).getEntries(),
                         new PagerDataImpl(BuildTypeRequest.getBranchesHref(buildType, branchesLocator)), fields, myBeanContext);
   }
 

@@ -208,7 +208,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     if (locator.isUnused(VCS_ROOT_DIMENSION)) {
       final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
       if (vcsRootLocator != null) {
-        final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(vcsRootLocator).myEntries;
+        final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(vcsRootLocator).getEntries();
         result.add(item -> vcsRoots.contains(item.getParent()));
       }
     }
@@ -332,7 +332,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
   @NotNull
   private Stream<VcsRootInstance> getVcsRootInstancesByBuilds(@NotNull final String buildsLocator) {
-    return myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItemsNotEmpty(buildsLocator).myEntries.stream().
+    return myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItemsNotEmpty(buildsLocator).getEntries().stream().
       flatMap(buildPromotion -> buildPromotion.getVcsRootEntries().stream().map(vcsE -> vcsE.getVcsRoot())).distinct();
   }
 
@@ -351,7 +351,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
   @NotNull
   private List<BuildTypeOrTemplate> getBuildTypeOrTemplates(@NotNull final String buildTypeLocator) {
-    List<BuildTypeOrTemplate> buildTypes = myBuildTypeFinder.getItemsNotEmpty(buildTypeLocator).myEntries;
+    List<BuildTypeOrTemplate> buildTypes = myBuildTypeFinder.getItemsNotEmpty(buildTypeLocator).getEntries();
     buildTypes.forEach(bt -> BuildTypeFinder.check(bt.get(), myPermissionChecker));
     return buildTypes;
   }
@@ -375,7 +375,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
     if (vcsRootLocator != null) {
-      final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItemsNotEmpty(vcsRootLocator).myEntries;
+      final List<SVcsRoot> vcsRoots = myVcsRootFinder.getItemsNotEmpty(vcsRootLocator).getEntries();
       final Set<VcsRootInstance> result = new TreeSet<>(VCS_ROOT_INSTANCE_COMPARATOR);
 
       final String buildTypesLocator = locator.getSingleDimensionValue(BUILD_TYPE);
@@ -390,7 +390,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
         }
 
         if (versionedSettingsUsagesOnly == null || versionedSettingsUsagesOnly) { //is used below in the same condition
-          projects = myBuildTypeFinder.getItemsNotEmpty(buildTypesLocator).myEntries.stream().map(BuildTypeOrTemplate::getProject).collect(Collectors.toSet());
+          projects = myBuildTypeFinder.getItemsNotEmpty(buildTypesLocator).getEntries().stream().map(BuildTypeOrTemplate::getProject).collect(Collectors.toSet());
         } else {
           projects = null;
         }

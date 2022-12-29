@@ -65,7 +65,7 @@ public class PermissionAssignments {
       fields.isIncluded("permissionAssignment"),
       () -> {
         Fields assignmentFields = fields.getNestedField("permissionAssignment");
-        return permissionAssignmentFinder.getItems(finalLocator).myEntries
+        return permissionAssignmentFinder.getItems(finalLocator).getEntries()
           .stream()
           .map(p -> new PermissionAssignment(p, assignmentFields, beanContext))
           .collect(Collectors.toList());
@@ -74,7 +74,7 @@ public class PermissionAssignments {
 
     count = ValueWithDefault.decideIncludeByDefault(
       fields.isIncluded("count"),
-      () -> myPermissionAssignments != null ? myPermissionAssignments.size() : permissionAssignmentFinder.getItems(finalLocator).myEntries.size()
+      () -> myPermissionAssignments != null ? myPermissionAssignments.size() : permissionAssignmentFinder.getItems(finalLocator).getEntries().size()
     );
   }
 }

@@ -427,7 +427,7 @@ public class BuildType {
         final Fields nestedFields = myFields.getNestedField("branches");
         final String locator = nestedFields.getLocator();
         if (locator != null) {
-          result = myBeanContext.getSingletonService(BranchFinder.class).getItems(myBuildType.getBuildType(), locator).myEntries;
+          result = myBeanContext.getSingletonService(BranchFinder.class).getItems(myBuildType.getBuildType(), locator).getEntries();
           href = BuildTypeRequest.getBranchesHref(myBuildType.getBuildType(), locator);
           return new Branches(result, new PagerDataImpl(href), nestedFields, myBeanContext);
         }
@@ -453,7 +453,7 @@ public class BuildType {
         final Fields buildsFields = myFields.getNestedField("builds");
         final String buildsLocator = buildsFields.getLocator();
         if (buildsLocator != null) {
-          builds = myBeanContext.getSingletonService(BuildPromotionFinder.class).getBuildPromotionsWithLegacyFallback(myBuildType.getBuildType(), buildsLocator).myEntries;
+          builds = myBeanContext.getSingletonService(BuildPromotionFinder.class).getBuildPromotionsWithLegacyFallback(myBuildType.getBuildType(), buildsLocator).getEntries();
           buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType(), buildsLocator);
         } else {
           buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType());
@@ -564,7 +564,7 @@ public class BuildType {
         final Fields nestedFields = myFields.getNestedField("investigations");
         final InvestigationFinder finder = myBeanContext.getSingletonService(InvestigationFinder.class);
         final String actualLocatorText = Locator.merge(nestedFields.getLocator(), InvestigationFinder.getLocator(myBuildType.getBuildType()));
-        final List<InvestigationWrapper> result = Investigations.isDataNecessary(nestedFields) ? finder.getItems(actualLocatorText).myEntries : null;
+        final List<InvestigationWrapper> result = Investigations.isDataNecessary(nestedFields) ? finder.getItems(actualLocatorText).getEntries() : null;
         return new Investigations(result, new PagerDataImpl(InvestigationRequest.getHref(actualLocatorText)), nestedFields, myBeanContext);
     });
   }

@@ -81,7 +81,7 @@ public class AgentPoolRequest {
                              @Context HttpServletRequest request) {
     PagedSearchResult<jetbrains.buildServer.serverSide.agentPools.AgentPool> result = myAgentPoolFinder.getItems(locator);
     final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
-    return new AgentPools(result.myEntries, pager, new Fields(fields), myBeanContext);
+    return new AgentPools(result.getEntries(), pager, new Fields(fields), myBeanContext);
   }
 
   @GET

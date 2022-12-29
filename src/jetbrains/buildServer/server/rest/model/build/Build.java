@@ -512,7 +512,7 @@ public class Build {
     return ValueWithDefault.decideDefault(myFields.isIncluded("tags", false), () -> {
       final Fields fields = myFields.getNestedField("tags", Fields.NONE, Fields.LONG);
       final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), myBuildPromotion);
-      return new Tags(tagFinder.getItems(fields.getLocator(), TagFinder.getDefaultLocator()).myEntries, fields, myBeanContext);
+      return new Tags(tagFinder.getItems(fields.getLocator(), TagFinder.getDefaultLocator()).getEntries(), fields, myBeanContext);
     });
   }
 
@@ -913,9 +913,9 @@ public class Build {
       ChangeFinder changeFinder = myBeanContext.getSingletonService(ChangeFinder.class);
       try {
         if (changeFinder.isCheap(myBuildPromotion, finalLocator)) {
-          data = CachingValue.simple(changeFinder.getItems(finalLocator).myEntries);
+          data = CachingValue.simple(changeFinder.getItems(finalLocator).getEntries());
         } else {
-          data = CachingValue.simple(() -> changeFinder.getItems(finalLocator).myEntries);
+          data = CachingValue.simple(() -> changeFinder.getItems(finalLocator).getEntries());
         }
       } catch (Exception e) {
         LOG.warnAndDebugDetails("Failed to get changes (including empty changes) for " + LogUtil.describe(myBuildPromotion), e);
@@ -1063,7 +1063,7 @@ public class Build {
                                                          : TestOccurrenceFinder.getBuildStatistics(myBuild, null).getAllTests();
                                                 }
                                                 String actualLocatorText = Locator.merge(TestOccurrenceFinder.getTestRunLocator(myBuild), testOccurrencesLocator);
-                                                return myServiceLocator.getSingletonService(TestOccurrenceFinder.class).getItems(actualLocatorText).myEntries;
+                                                return myServiceLocator.getSingletonService(TestOccurrenceFinder.class).getItems(actualLocatorText).getEntries();
                                               }
                                             );
                                             return new TestOccurrences(tests, statistics, TestOccurrenceRequest.getHref(myBuild), null, testOccurrencesFields, myBeanContext);
