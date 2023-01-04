@@ -639,7 +639,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
       return wrapModifications(myVcsModificationHistory.getModificationsInRange(null, sinceChangeId, null));  //todo: use lookupLimit here or otherwise limit processing
     }
 
-    return wrapModifications(((VcsModificationHistoryEx)myVcsModificationHistory)::processModifications);  // ItemHolder
+    return wrapModifications(((VcsModificationHistoryEx) myVcsModificationHistory)::processModifications);  // ItemHolder
   }
 
   @NotNull
