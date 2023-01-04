@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.mutes.MuteFinder;
@@ -26,13 +25,11 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,7 +42,7 @@ import java.util.stream.Collectors;
 
 /**
  * @author Yegor.Yarko
- *         Date: 16.11.13
+ * @since 16.11.13
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "mutes")
@@ -76,8 +73,6 @@ public class Mutes implements DefaultValueAware{
     return new Mutes(entries, null, nestedFields, beanContext);
   }
 
-
-
   public Mutes() {
   }
 
@@ -85,15 +80,14 @@ public class Mutes implements DefaultValueAware{
                @Nullable final PagerData pagerData, //todo: not nulls are not yet implemented
                @NotNull final Fields fields,
                @NotNull final BeanContext beanContext) {
-    items = itemsP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("mute", false), new ValueWithDefault.Value<List<Mute>>() {
-      public List<Mute> get() {
-        return CollectionsUtil.convertCollection(itemsP, new Converter<Mute, MuteInfo>() {
-          public Mute createFrom(@NotNull final MuteInfo source) {
-            return new Mute(source, fields.getNestedField("mute", Fields.NONE, Fields.LONG), beanContext);
-          }
-        });
-      }
-    });
+    if (itemsP != null) {
+      items = ValueWithDefault.decideDefault(
+        fields.isIncluded("mute", false), () -> CollectionsUtil.convertCollection(itemsP, source ->
+          new Mute(source, fields.getNestedField("mute", Fields.NONE, Fields.LONG), beanContext)
+        )
+      );
+    }
+
     if (pagerData != null) {
       href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getHref()));
       nextHref = pagerData.getNextHref() == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("nextHref"),
