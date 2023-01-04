@@ -946,10 +946,10 @@ public class Locator {
   @Nullable
   @Contract("_, _, !null -> !null; !null, _, _ -> !null")
   public static String setDimensionIfNotPresent(@Nullable final String locator, @NotNull final String dimensionName, @Nullable final String value) {
-    if (value == null){
+    if (value == null) {
       return locator;
     }
-    if (locator == null){
+    if (locator == null) {
       return Locator.getStringLocator(dimensionName, value);
     }
     return (new Locator(locator)).setDimensionIfNotPresent(dimensionName, value).getStringRepresentation();
