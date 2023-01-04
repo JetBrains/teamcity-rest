@@ -156,7 +156,7 @@ public class AgentResolver extends ModelResolver<Agent> {
       .filter(Objects::nonNull)
       .filter(it -> !((BuildTypeEx)it).isAgentLessBuildType());
 
-    if(compatible == null) {
+    if (compatible == null) {
       return allBuildTypes;
     }
 
