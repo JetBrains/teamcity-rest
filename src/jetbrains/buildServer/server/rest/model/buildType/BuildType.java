@@ -170,10 +170,11 @@ public class BuildType {
   }
 
   /**
-   * @deprecated
    * @return
+   * @deprecated since 01.2014
    */
   @XmlAttribute
+  @Deprecated
   public String getProjectName() {
     return myBuildType == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("projectName"), () -> myBuildType.getProject().getFullName());
   }
@@ -185,7 +186,7 @@ public class BuildType {
 
   @XmlAttribute
   public String getDescription() {
-    if (myBuildType == null){
+    if (myBuildType == null) {
       return null;
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("description"), () -> {
@@ -357,7 +358,7 @@ public class BuildType {
           return new BuildTypeOrTemplate.IdsOnly(template.getExternalId(), id);
         }).collect(Collectors.toList()));
     } catch (Throwable e) {
-      LOG.debug("Error retrieving templates external ids for internal ids: " + templateInternalIds.stream().collect(Collectors.joining(", ")) + " under System: " + e.toString(), e);
+      LOG.debug("Error retrieving templates external ids for internal ids: " + String.join(", ", templateInternalIds) + " under System: " + e, e);
       return Collections.emptyList();
     }
   }
@@ -378,7 +379,7 @@ public class BuildType {
           final BuildTypeTemplate template = myBuildType.getBuildType().getTemplate();
           return template == null ? null : new BuildType(new BuildTypeOrTemplate(template), myFields.getNestedField("template"), myBeanContext);
         } catch (RuntimeException e) {
-          LOG.debug("Error retrieving template for build configuration " + LogUtil.describe(myBuildType.getBuildType()) + ": " + e.toString(), e);
+          LOG.debug("Error retrieving template for build configuration " + LogUtil.describe(myBuildType.getBuildType()) + ": " + e, e);
           String templateId = myBuildType.getBuildType().getTemplateId();
           //still including external id since the user has permission to view settings of the current build configuration
           String templateExternalId = getTemplateExternalId(myBuildType.getBuildType());
@@ -395,7 +396,7 @@ public class BuildType {
         return template == null ? null : template.getExternalId();
       });
     } catch (Throwable e) {
-      LOG.debug("Error retrieving template external id for build configuration " + LogUtil.describe(buildType) + " under System: " + e.toString(), e);
+      LOG.debug("Error retrieving template external id for build configuration " + LogUtil.describe(buildType) + " under System: " + e, e);
       return null;
     }
   }
@@ -423,11 +424,11 @@ public class BuildType {
     return ValueWithDefault.decideDefault(myFields.isIncluded("branches", false, false), // do not include until asked as should only include for branched build types
       () -> {
         String href;
-        List<BranchData> result = null;
         final Fields nestedFields = myFields.getNestedField("branches");
         final String locator = nestedFields.getLocator();
         if (locator != null) {
-          result = myBeanContext.getSingletonService(BranchFinder.class).getItems(myBuildType.getBuildType(), locator).getEntries();
+          BranchFinder branchFinder = myBeanContext.getSingletonService(BranchFinder.class);
+          List<BranchData> result = branchFinder.getItems(myBuildType.getBuildType(), locator).getEntries();
           href = BuildTypeRequest.getBranchesHref(myBuildType.getBuildType(), locator);
           return new Branches(result, new PagerDataImpl(href), nestedFields, myBeanContext);
         }
@@ -527,14 +528,17 @@ public class BuildType {
   //todo: consider exposing implicit requirements as well
   @XmlElement(name = "agent-requirements")
   public PropEntitiesAgentRequirement getAgentRequirements() {
-    return myBuildType == null
-                 ? null
-                 : ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("agent-requirements", false), check(new ValueWithDefault.Value<PropEntitiesAgentRequirement>() {
-                   public PropEntitiesAgentRequirement get() {
-                     return new PropEntitiesAgentRequirement(myBuildType.getSettingsEx(), myFields.getNestedField("agent-requirements", Fields.NONE, Fields.LONG),
-                                                             myBeanContext);
-                   }
-                 }));
+    if (myBuildType == null) {
+      return null;
+    }
+    return ValueWithDefault.decideIncludeByDefault(
+      myFields.isIncluded("agent-requirements", false),
+      check(() -> new PropEntitiesAgentRequirement(
+        myBuildType.getSettingsEx(),
+        myFields.getNestedField("agent-requirements", Fields.NONE, Fields.LONG),
+        myBeanContext
+      ))
+    );
   }
 
   @XmlElement(name="settings")
@@ -576,7 +580,7 @@ public class BuildType {
     }
     return ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false, true), () -> {
         final Fields nestedFields = myFields.getNestedField("compatibleAgents");
-        String  actualLocatorText = Locator.merge(nestedFields.getLocator(), AgentFinder.getCompatibleAgentsLocator(myBuildType.getBuildType()));
+        String actualLocatorText = Locator.merge(nestedFields.getLocator(), AgentFinder.getCompatibleAgentsLocator(myBuildType.getBuildType()));
         return new Agents(actualLocatorText, new PagerDataImpl(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
     });
   }
