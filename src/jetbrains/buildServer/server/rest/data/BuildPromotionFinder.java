@@ -1147,16 +1147,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String metadata = locator.getSingleDimensionValue(METADATA);
     if (metadata != null) {
-      final Iterator<BuildMetadataEntry> metadataEntries = getBuildMetadataEntryIterator(metadata);
-      return new ItemHolder<BuildPromotion>() {
-        @Override
-        public void process(@NotNull final ItemProcessor<BuildPromotion> processor) {
-          while (metadataEntries.hasNext()) {
-            BuildMetadataEntry metadataEntry = metadataEntries.next();
-            SBuild build = myBuildsManager.findBuildInstanceById(metadataEntry.getBuildId());
-            if (build != null && Build.canViewRuntimeData(myPermissionChecker, build.getBuildPromotion())) {
-              processor.processItem(build.getBuildPromotion());
-            }
+      Iterable<BuildMetadataEntry> metadataEntries = () -> getBuildMetadataEntryIterator(metadata);
+      return processor -> {
+        for (BuildMetadataEntry metadataEntry : metadataEntries) {
+          SBuild build = myBuildsManager.findBuildInstanceById(metadataEntry.getBuildId());
+          if (build != null && Build.canViewRuntimeData(myPermissionChecker, build.getBuildPromotion())) {
+            processor.processItem(build.getBuildPromotion());
           }
         }
       };
