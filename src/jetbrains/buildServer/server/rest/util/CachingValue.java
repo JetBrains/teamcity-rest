@@ -20,13 +20,14 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
- *         Date: 24.01.14
+ * @since 24.01.14
  */
 public abstract class CachingValue<S> {
   private S myValue;
+
   @NotNull
-  final public S get(){
-    if (myValue == null){
+  final public S get() {
+    if (myValue == null) {
       myValue = doGet();
     }
     return myValue;
@@ -38,14 +39,15 @@ public abstract class CachingValue<S> {
 
   /**
    * Should not return null
-   * @return
+   *
+   * @return calculates the value to be cached and used.
    */
   @NotNull
   protected abstract S doGet();
 
   @NotNull
-  public static <S>CachingValue<S> simple(@NotNull final S value) {
-    return new CachingValue<S>(){
+  public static <S> CachingValue<S> simple(@NotNull final S value) {
+    return new CachingValue<S>() {
       @NotNull
       @Override
       protected S doGet() {
