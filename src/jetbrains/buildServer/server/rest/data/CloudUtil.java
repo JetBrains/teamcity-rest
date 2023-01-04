@@ -36,16 +36,23 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
- * Date: 13/09/2019
+ * @since 13.09.2019
  */
 public class CloudUtil {
-  @NotNull private final ServiceLocator myServiceLocator;
-  @NotNull private final CloudManager myCloudManager;
-  @NotNull private final ProjectManager myProjectManager;
+  @NotNull
+  private final ServiceLocator myServiceLocator;
 
-  public CloudUtil(@NotNull final ServiceLocator serviceLocator,
-                   @NotNull final CloudManager cloudManager,
-                   @NotNull final ProjectManager projectManager) {
+  @NotNull
+  private final CloudManager myCloudManager;
+
+  @NotNull
+  private final ProjectManager myProjectManager;
+
+  public CloudUtil(
+    @NotNull ServiceLocator serviceLocator,
+    @NotNull CloudManager cloudManager,
+    @NotNull ProjectManager projectManager
+  ) {
     myServiceLocator = serviceLocator;
     myCloudManager = cloudManager;
     myProjectManager = projectManager;
