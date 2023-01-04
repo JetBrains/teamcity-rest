@@ -20,7 +20,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -1158,9 +1157,14 @@ public class Build {
 
   @XmlElement(name = "compatibleAgents")
   public Agents getCompatibleAgents() {
-    return myQueuedBuild == null ? null : ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false, true), () -> {
-      final Fields nestedFields = myFields.getNestedField("compatibleAgents");
+    if (myQueuedBuild == null) {
+      return null;
+    }
+
+    return ValueWithDefault.decideDefault(myFields.isIncluded("compatibleAgents", false, true), () -> {
+      Fields nestedFields = myFields.getNestedField("compatibleAgents");
       String actualLocatorText = Locator.merge(nestedFields.getLocator(), AgentFinder.getCompatibleAgentsLocator(myBuildPromotion));
+
       return new Agents(actualLocatorText, new PagerDataImpl(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
     });
   }
