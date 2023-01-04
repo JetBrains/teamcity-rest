@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.util;
 
+import java.util.function.Supplier;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -62,7 +63,7 @@ public abstract class CachingValue<S> {
   }
 
   @NotNull
-  public static <S>CachingValue<S> simple(@NotNull final ValueWithDefault.Value<S> value) {
+  public static <S> CachingValue<S> simple(@NotNull Supplier<S> value) {
     return new CachingValue<S>() {
       @NotNull
       @Override
