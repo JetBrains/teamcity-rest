@@ -63,7 +63,7 @@ public class ValueWithDefault {
     return decide(include, value, null, true);
   }
 
-  public static <T> T decideIncludeByDefault(@Nullable Boolean include, @Nullable Value<T> value) {
+  public static <T> T decideIncludeByDefault(@Nullable Boolean include, @Nullable Supplier<T> value) {
     return decide(include, value, null, true);
   }
 
@@ -84,7 +84,7 @@ public class ValueWithDefault {
   }
 
   @Nullable
-  public static <T> T decide(@Nullable Boolean decision, @Nullable Value<T> trueValue, @Nullable Value<T> falseValue, boolean defaultDecision) {
+  public static <T> T decide(@Nullable Boolean decision, @Nullable Supplier<T> trueValue, @Nullable Supplier<T> falseValue, boolean defaultDecision) {
     boolean actualDecision;
     if (decision == null) {
       actualDecision = defaultDecision;
@@ -100,12 +100,12 @@ public class ValueWithDefault {
   }
 
   @Nullable
-  public static <T> T decideDefault(@Nullable Boolean include, @Nullable Value<T> value) {
+  public static <T> T decideDefault(@Nullable Boolean include, @Nullable Supplier<T> value) {
     return decideDefault(include, value, ValueWithDefault::isDefault);
   }
 
   @Nullable
-  public static <T> T decideDefault(@Nullable Boolean include, @Nullable Value<T> value, @NotNull Predicate<T> isDefault) {
+  public static <T> T decideDefault(@Nullable Boolean include, @Nullable Supplier<T> value, @NotNull Predicate<T> isDefault) {
     if (value == null) {
       return null;
     }
@@ -119,7 +119,7 @@ public class ValueWithDefault {
   }
 
   @Nullable
-  public static <T> T decideDefaultIgnoringAccessDenied(@Nullable Boolean include, @NotNull Value<T> value) {
+  public static <T> T decideDefaultIgnoringAccessDenied(@Nullable Boolean include, @NotNull Supplier<T> value) {
     try {
       return decideDefault(include, value);
     } catch (AccessDeniedException e) {
