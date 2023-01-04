@@ -37,19 +37,32 @@ import java.util.stream.Collectors;
 @XmlType(name = "cloudImages")
 @ModelBaseType(ObjectType.PAGINATED)
 public class CloudImages {
-  @XmlElement(name = "cloudImage")
-  public List<CloudImage> cloudImages;
+  private List<CloudImage> cloudImages;
 
-  @XmlAttribute
-  public Integer count;
+  private Integer count;
 
-  @XmlAttribute(required = false) @Nullable public String nextHref;
-  @XmlAttribute(required = false) @Nullable public String prevHref;
-  @XmlAttribute(required = false) @Nullable public String href;
+  @Nullable
+  private String nextHref;
 
-  public CloudImages() {}
+  @Nullable
+  private String prevHref;
 
-  public CloudImages(final @NotNull CachingValue<List<jetbrains.buildServer.clouds.CloudImage>> items, final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext context) {
+  @Nullable
+  private String href;
+
+  public CloudImages() {
+  }
+
+  public CloudImages(
+    @NotNull
+    CachingValue<List<jetbrains.buildServer.clouds.CloudImage>> items,
+    @Nullable
+    PagerData pagerData,
+    @NotNull
+    Fields fields,
+    @NotNull
+    BeanContext context
+  ) {
     cloudImages = ValueWithDefault.decideDefault(fields.isIncluded("cloudImage", false, true),
                                                  () -> items.get().stream().map(i -> new CloudImage(i, fields.getNestedField("cloudImage"), context)).collect(Collectors.toList()));
 
@@ -62,5 +75,33 @@ public class CloudImages {
       prevHref = ValueWithDefault
         .decideDefault(fields.isIncluded("prevHref"), pagerData.getPrevHref() != null ? context.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()) : null);
     }
+  }
+
+  @XmlElement(name = "cloudImage")
+  public List<CloudImage> getCloudImages() {
+    return cloudImages;
+  }
+
+  @XmlAttribute
+  public Integer getCount() {
+    return count;
+  }
+
+  @Nullable
+  @XmlAttribute(required = false)
+  public String getNextHref() {
+    return nextHref;
+  }
+
+  @Nullable
+  @XmlAttribute(required = false)
+  public String getPrevHref() {
+    return prevHref;
+  }
+
+  @Nullable
+  @XmlAttribute(required = false)
+  public String getHref() {
+    return href;
   }
 }
