@@ -597,22 +597,12 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
       return new ItemFilter<T>() {
         @Override
         public boolean shouldStop(@NotNull final T item) {
-          for (ItemFilter<T> checker : myCheckers) {
-            if (checker.shouldStop(item)) {
-              return true;
-            }
-          }
-          return false;
+          return myCheckers.stream().anyMatch(checker -> checker.shouldStop(item));
         }
 
         @Override
         public boolean isIncluded(@NotNull final T item) {
-          for (ItemFilter<T> checker : myCheckers) {
-            if (!checker.isIncluded(item)) {
-              return false;
-            }
-          }
-          return true;
+          return myCheckers.stream().allMatch(checker -> checker.isIncluded(item));
         }
       };
     }
