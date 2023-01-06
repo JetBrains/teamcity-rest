@@ -16,7 +16,9 @@
 
 package jetbrains.buildServer.server.rest.data.util.finderBuilder;
 
-import jetbrains.buildServer.server.rest.data.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Filter;
+import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.ItemsFromDimension;
+import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.TypeFromItem;
 import org.jetbrains.annotations.NotNull;
 
 public interface TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> extends TypedFinderDimension<ITEM, TYPE> {
@@ -26,7 +28,7 @@ public interface TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FIL
    * @param retriever key extracting mapper
    */
   @NotNull
-  TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> valueForDefaultFilter(@NotNull TypedFinderBuilder.TypeFromItem<TYPE_FOR_FILTER, ITEM> retriever);
+  TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> valueForDefaultFilter(@NotNull TypeFromItem<TYPE_FOR_FILTER, ITEM> retriever);
 
   // all the same as in parent interface, with more precise return type
 
@@ -44,9 +46,9 @@ public interface TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FIL
 
   @NotNull
   @Override
-  TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> filter(@NotNull TypedFinderBuilder.Filter<TYPE, ITEM> checker);
+  TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> filter(@NotNull Filter<TYPE, ITEM> checker);
 
   @NotNull
   @Override
-  TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> toItems(@NotNull TypedFinderBuilder.ItemsFromDimension<ITEM, TYPE> filteringMapper);
+  TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> toItems(@NotNull ItemsFromDimension<ITEM, TYPE> filteringMapper);
 }
