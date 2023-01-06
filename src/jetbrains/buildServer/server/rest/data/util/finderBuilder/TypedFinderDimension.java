@@ -16,7 +16,8 @@
 
 package jetbrains.buildServer.server.rest.data.util.finderBuilder;
 
-import jetbrains.buildServer.server.rest.data.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Filter;
+import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.ItemsFromDimension;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -48,16 +49,16 @@ public interface TypedFinderDimension<ITEM, TYPE> {
    * Defines filter for the items obtained from other dimesnions.
    */
   @NotNull
-  TypedFinderDimension<ITEM, TYPE> filter(@NotNull TypedFinderBuilder.Filter<TYPE, ITEM> filter);
+  TypedFinderDimension<ITEM, TYPE> filter(@NotNull Filter<TYPE, ITEM> filter);
 
   /**
    * Defines a way to obtain items with given dimension value.
-   * Items returned via {@link TypedFinderBuilder.ItemsFromDimension} should be filtered exactly as if they were filtered via {@link #filter(TypedFinderBuilder.Filter)}.
+   * Items returned via {@link ItemsFromDimension} should be filtered exactly as if they were filtered via {@link #filter(Filter)}.
    *
    * @param filteringMapper mapping function producing items given the dimension value.
    */
   @NotNull
-  TypedFinderDimension<ITEM, TYPE> toItems(@NotNull TypedFinderBuilder.ItemsFromDimension<ITEM, TYPE> filteringMapper);
+  TypedFinderDimension<ITEM, TYPE> toItems(@NotNull ItemsFromDimension<ITEM, TYPE> filteringMapper);
 
   /**
    * Defines a default filter for the dimension.
@@ -66,5 +67,5 @@ public interface TypedFinderDimension<ITEM, TYPE> {
    * @param <TYPE_FOR_FILTER>
    */
   @NotNull
-  <TYPE_FOR_FILTER> TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> defaultFilter(@NotNull TypedFinderBuilder.Filter<TYPE, TYPE_FOR_FILTER> checker);
+  <TYPE_FOR_FILTER> TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> defaultFilter(@NotNull Filter<TYPE, TYPE_FOR_FILTER> checker);
 }
