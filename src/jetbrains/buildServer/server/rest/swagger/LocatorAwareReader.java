@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.swagger;
 
 import com.intellij.openapi.diagnostic.Logger;
-import io.swagger.annotations.ApiModelProperty;
 import io.swagger.jaxrs.Reader;
 import io.swagger.jaxrs.config.ReaderConfig;
 import io.swagger.models.*;
@@ -34,6 +33,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * This class is used for Swagger documentation generation.
+ * <p/>
+ * It scans the classes and add additional information to OPENAPI docs.
+ * <br/>
+ * For example, information about @LocatorDimension
+ */
 public class LocatorAwareReader extends Reader {
 
   public static final Logger LOGGER = Logger.getInstance(LocatorAwareReader.class.getName());
@@ -62,31 +68,38 @@ public class LocatorAwareReader extends Reader {
     return swagger;
   }
 
-  private void populateExamples(Path path) {
+  /**
+   * Set empty Example Objects for each MIME-Type involved in each response to handle TW-56270
+   */
+  private static void populateExamples(Path path) {
     for (Operation operation : path.getOperations()) {
-      List<String> produces = operation.getProduces(); // Returns a list of MIME-Type strings (specification expects one example per type)
-      if (produces == null || produces.isEmpty() || operation.getResponses().isEmpty() || operation.getResponses() == null) {
-        continue;
-      }
-      for (Response response : operation.getResponses().values()) {
-        Map<String, Object> examples = new HashMap<String, Object>();
-        for (String mimeType : produces) {
-          if (response.getExamples() != null && response.getExamples().containsKey(mimeType)) { // Preserve existing Example Objects if any
-            examples.put(mimeType, response.getExamples().get(mimeType));
-          } else {
-            examples.put(mimeType, "");
-          }
-        }
-        response.setExamples(examples);
-      }
+      setExamplesIfAbsent(operation);
     }
   }
 
-  private void populateLocatorDefinition(Swagger swagger, Class<?> cls) {
+  private static void setExamplesIfAbsent(Operation operation) {
+    List<String> produces = operation.getProduces(); // Returns a list of MIME-Type strings (specification expects one example per type)
+    if (produces == null || produces.isEmpty() || operation.getResponses().isEmpty() || operation.getResponses() == null) {
+      return;
+    }
+    for (Response response : operation.getResponses().values()) {
+      Map<String, Object> examples = new HashMap<>();
+      for (String mimeType : produces) {
+        boolean hasExample = response.getExamples() != null && response.getExamples().containsKey(mimeType);
+        // Preserve existing Example Objects if any
+        Object example = hasExample ? response.getExamples().get(mimeType) : "";
+        examples.put(mimeType, example);
+      }
+      response.setExamples(examples);
+    }
+  }
+
+  private static void populateLocatorDefinition(Swagger swagger, Class<?> cls) {
     LocatorResource locatorAnnotation = cls.getAnnotation(LocatorResource.class);
-    ModelImpl definition = new ModelImpl();
+    ModelImpl definition;
 
     if (!swagger.getDefinitions().containsKey(locatorAnnotation.value())) { //case if definition is already present because of other swagger annotations present on class
+      definition = new ModelImpl();
       definition.setType(ModelImpl.OBJECT);
       definition.setName(locatorAnnotation.value());
       definition.setVendorExtension(ExtensionType.X_BASE_TYPE, ObjectType.LOCATOR);
@@ -116,12 +129,7 @@ public class LocatorAwareReader extends Reader {
       }
     }
 
-    Collections.sort(dimensions, new Comparator<LocatorDimension>() {
-      @Override
-      public int compare(LocatorDimension o1, LocatorDimension o2) {
-        return o1.value().compareTo(o2.value());
-      }
-    });
+    Collections.sort(dimensions, (dim1, dim2) -> dim1.value().compareTo(dim2.value()));
 
     for (LocatorDimension dimension : dimensions) {
       AbstractProperty property = resolveLocatorDimensionProperty(dimension);
@@ -143,7 +151,7 @@ public class LocatorAwareReader extends Reader {
 
   }
 
-  private AbstractProperty resolveLocatorDimensionProperty(LocatorDimension dimension) {
+  private static AbstractProperty resolveLocatorDimensionProperty(LocatorDimension dimension) {
     AbstractProperty property;
 
     switch (dimension.dataType()) {
@@ -176,7 +184,7 @@ public class LocatorAwareReader extends Reader {
     return property;
   }
 
-  private void fixDuplicateOperationId(Swagger swagger, Path path) {
+  private static void fixDuplicateOperationId(Swagger swagger, Path path) {
     for (Operation operation : path.getOperations()) {
       String operationId = operation.getOperationId();
       List<String> tags = operation.getTags();
