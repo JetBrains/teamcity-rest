@@ -39,11 +39,13 @@ import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
 /**
+ * WADL - Web Application Description Language.
+ *
  * @author Yegor.Yarko
- *         Date: 06.08.2009
+ * @since 06.08.2009
  */
 public class WadlGenerator extends WadlGeneratorConfig {
-  private static Logger LOG = Logger.getInstance(WadlGenerator.class.getName());
+  private static final Logger LOG = Logger.getInstance(WadlGenerator.class);
 
   public static final String RESOURCE_JAVADOC_XML = "jetbrains/buildServer/server/rest/jersey/javadoc_generated.xml";
   private static final boolean ourExcludePlugins = TeamCityProperties.getBooleanOrTrue("rest.wadl.excludePlugins");
@@ -53,9 +55,9 @@ public class WadlGenerator extends WadlGeneratorConfig {
     WadlGeneratorConfigDescriptionBuilder builder = generator(WadlGeneratorApplicationDoc.class)
       .prop("applicationDocsStream", "jetbrains/buildServer/server/rest/jersey/application-doc.xml");
 
-    if (TeamCityProperties.getBooleanOrTrue("rest.wadl.patchResourcePathWithAPIVersion")){
+    if (TeamCityProperties.getBooleanOrTrue("rest.wadl.patchResourcePathWithAPIVersion")) {
       builder = builder.generator(PatchedWadlGenerator.class);
-    } else{
+    } else {
       builder = builder.generator(WadlGeneratorJAXBGrammarGenerator.class);
     }
 
@@ -69,6 +71,15 @@ public class WadlGenerator extends WadlGeneratorConfig {
 
   public static class PatchedWadlGenerator extends WadlGeneratorJAXBGrammarGenerator {
 
+    /**
+     * Decorates the super method to remove (exclude) resources, provided by extensions.
+     * <p/>
+     * This is a workaround, because of missing support in Jersey 1.x.
+     *
+     * @param introspector The root description used to resolve these entries
+     * @author Yegor Yarko
+     * @since 12.2019
+     */
     @Override
     public void attachTypes(final ApplicationDescription introspector) {
       if (ourExcludePlugins) {
