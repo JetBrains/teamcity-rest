@@ -21,11 +21,42 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * This annotation is put on the "Finders" (See implementations of <code>{@link jetbrains.buildServer.server.rest.data.Finder}</code>)
+ * <p/>
+ * This annotation is used to generate Swagger documentation.
+ */
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface LocatorResource {
+  /**
+   * The resource name
+   */
   String value();
+
+  /**
+   * List of extra dimensions, which are not listed in the Finder using {@link LocatorDimension} annotation
+   */
   String[] extraDimensions() default {};
+
+  /**
+   * Name of the base entity, which is handled by this Finder.
+   * <br/>
+   * Example: "Project" for "ProjectFinder", "VcsRoot" for "VcsRootFinder", etc.
+   */
   String baseEntity();
+
+  /**
+   * Examples of string value for this locator.
+   * <p/>
+   * Format for examples:
+   * <pre>
+   *   `locator example in backticks` - description for this example
+   * </pre>
+   * <p/>
+   * Examples of exaples:
+   * <li><pre>`name:MyProject` - find a project with name `MyProject`.</pre></li>
+   * <li><pre>`state:taken` - find investigations which are currently in work.</pre></li>
+   */
   String[] examples() default {};
 }
