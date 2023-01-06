@@ -37,7 +37,7 @@ import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 public class SshKeys {
   private List<SshKey> mySshKeys;
 
-  @XmlElement(name = "sshKeys")
+  @XmlElement(name = "sshKey")
   public List<SshKey> getSshKeys() {
     return mySshKeys;
   }
