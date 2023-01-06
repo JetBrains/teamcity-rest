@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
- *         Date: 17.11.2009
+ * @since 17.11.2009
  */
 public class Util {
   @Nullable
@@ -46,24 +46,48 @@ public class Util {
       if (pathPart == null) continue;;
       if (result.length() > 0 && '/' == result.charAt(result.length() - 1)) {
         result.append(StringUtil.removeLeadingSlash(pathPart));
-      } else if (pathPart.startsWith("/")){
+      } else if (pathPart.startsWith("/")) {
         result.append(pathPart);
-      } else{
+      } else {
         result.append('/').append(pathPart);
       }
     }
     return result.toString();
   }
 
+  /**
+   * Applies mapping function if the value is not null. Returns null otherwise.
+   * It does not resolve any nulls. The method should be named `resolveOrNull`.
+   *
+   * @param value the initial value
+   * @param mapper mapping function to be applied if value is not null
+   * @param <T> the initial value type
+   * @param <R> the result type
+   * @return
+   * @deprecated since 01.2023. Use `Optional.ofNullable(value).map(mapper).orElse(null);` instead;
+   */
   @Nullable
   @Contract("null, _ -> null; !null, _ -> !null")
-  public static <T, R> R resolveNull(@Nullable T t, @NotNull Function<T, R> f) { //todo: do we already have this?
-    return t == null ? null : f.apply(t);
+  @Deprecated
+  public static <T, R> R resolveNull(@Nullable T value, @NotNull Function<T, R> mapper) { //todo: do we already have this?
+    return value == null ? null : mapper.apply(value);
   }
 
+  /**
+   * Maps value with function, or returns default result if value is null.
+   *
+   * @param value         the value
+   * @param mapper        the mapping function
+   * @param resultForNull the return value if `value` is null
+   * @param <T>           the initial value type
+   * @param <R>           the result type
+   * @return the result of mapping function applied to `value`, or if `value` is null returns `resultForNull`
+   * @deprecated since 01.2023 Use `Optional.ofNullable(value).map(mapper).orElse(resultForNull);` instead;
+   */
   @NotNull
-  public static <T, R> R resolveNull(@Nullable T t, @NotNull Function<T, R> f, @NotNull R resultForNull) {
-    return t == null ? resultForNull : f.apply(t);
+  @Deprecated
+  public static <T, R> R resolveNull(@Nullable T value, @NotNull Function<T, R> mapper, @NotNull R resultForNull) {
+    return value == null ? resultForNull : mapper.apply(value);
   }
 
   @Nullable
