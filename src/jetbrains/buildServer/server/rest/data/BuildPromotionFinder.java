@@ -1208,14 +1208,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           SProject project = getProjectFromDimension(locator, PROJECT);
           if (project != null) {
             List<SBuildType> buildTypes = project.getOwnBuildTypes();
-            return getBuildsByBuldTypesAndBuildNumber(buildTypes, number);
+            return getBuildsByBuildTypesAndBuildNumber(buildTypes, number);
           }
         }
         if (locator.isUnused(AFFECTED_PROJECT)) {
           SProject project = getProjectFromDimension(locator, AFFECTED_PROJECT);
           if (project != null) {
             List<SBuildType> buildTypes = project.getBuildTypes();
-            return getBuildsByBuldTypesAndBuildNumber(buildTypes, number);
+            return getBuildsByBuildTypesAndBuildNumber(buildTypes, number);
           }
         }
       }
@@ -1489,7 +1489,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   }
 
   @NotNull
-  private ItemHolder<BuildPromotion> getBuildsByBuldTypesAndBuildNumber(@NotNull List<SBuildType> buildTypes, @NotNull String buildNumber) {
+  private ItemHolder<BuildPromotion> getBuildsByBuildTypesAndBuildNumber(@NotNull List<SBuildType> buildTypes, @NotNull String buildNumber) {
     return getItemHolder(() -> buildTypes
       .stream()
       .flatMap(it -> myBuildsManager.findBuildInstancesByBuildNumber(it.getBuildTypeId(), buildNumber).stream())
