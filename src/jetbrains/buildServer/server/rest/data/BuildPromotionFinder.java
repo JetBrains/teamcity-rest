@@ -1203,7 +1203,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       /*
         Search by build number and project id
        */
-      if (TeamCityProperties.getBoolean("rest.builds.selectByProjectAndBuildNumberOptimization.enabled", true)) {
+      if (TeamCityProperties.getBooleanOrTrue("rest.builds.selectByProjectAndBuildNumberOptimization.enabled")) {
         if (locator.isUnused(PROJECT)) {
           SProject project = getProjectFromDimension(locator, PROJECT);
           if (project != null) {
