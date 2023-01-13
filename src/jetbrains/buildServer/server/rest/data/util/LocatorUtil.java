@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data.util;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import org.jetbrains.annotations.NotNull;
@@ -30,6 +31,17 @@ import static jetbrains.buildServer.server.rest.data.Locator.BOOLEAN_TRUE;
 import static jetbrains.buildServer.server.rest.data.Locator.DIMENSION_NAME_VALUE_DELIMITER;
 
 public class LocatorUtil {
+  public static boolean exactlyOneIsPresentAndUnused(@NotNull Locator locator, @NotNull String ...dimensions) {
+    if(dimensions.length == 0) {
+      return false;
+    }
+    if(dimensions.length == 1) {
+      return locator.isUnused(dimensions[0]);
+    }
+
+    return Stream.of(dimensions).filter(locator::isUnused).count() == 1;
+  }
+
   public static boolean isAny(@NotNull final String value) {
     return ANY_LITERAL.equals(value);
   }

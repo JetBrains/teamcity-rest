@@ -60,9 +60,9 @@ import org.springframework.stereotype.Component;
 @Component("restBranchFinder") // Name copied from context xml file.
 public class BranchFinder extends AbstractFinder<BranchData> implements ExistenceAwareFinder {
   @LocatorDimension("name")
-  protected static final String NAME = "name";
+  public static final String NAME = "name";
   @LocatorDimension(value = "default", format = LocatorDimensionDataType.BOOLEAN, notes = "Is default branch.")
-  protected static final String DEFAULT = "default";
+  public static final String DEFAULT = "default";
   protected static final String UNSPECIFIED = "unspecified";
   @LocatorDimension(value = "branched", format = LocatorDimensionDataType.BOOLEAN, notes = "Is feature branch.")
   protected static final String BRANCHED = "branched"; //rather use "branched" dimension in build locator
@@ -71,24 +71,29 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
   @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
   protected static final String BUILD_TYPE = "buildType";
 
-  protected static final String BRANCH_GROUP = "group";
+  public static final String BRANCH_GROUP = "group";
   protected static final String GROUP_INCLUDE = "includeGroups"; //this activates a temporary/experemental hack to include branch groups as fake branches in the result
 
   @LocatorDimension(value = "policy", allowableValues = "VCS_BRANCHES,ACTIVE_VCS_BRANCHES,HISTORY_BRANCHES,ACTIVE_HISTORY_BRANCHES,ACTIVE_HISTORY_AND_ACTIVE_VCS_BRANCHES,ALL_BRANCHES")
-  protected static final String POLICY = "policy";
+  public static final String POLICY = "policy";
   protected static final String CHANGES_FROM_DEPENDENCIES = "changesFromDependencies";   //todo: revise naming
 
   private static final String ANY = "<any>";
   protected static final String COMPUTE_TIMESTAMPS = "computeLastActivity"; //experimental
 
-  @NotNull private final BuildTypeFinder myBuildTypeFinder;
-  @NotNull private final ServiceLocator myServiceLocator;
+  @NotNull
+  private final BuildTypeFinder myBuildTypeFinder;
+  @NotNull
+  private final ServiceLocator myServiceLocator;
+  @NotNull
+  private final BranchGroupsService myBranchGroupsService;
 
   public BranchFinder(@NotNull final BuildTypeFinder buildTypeFinder, @NotNull final ServiceLocator serviceLocator) {
     super(NAME, DEFAULT, UNSPECIFIED, BUILD_TYPE, BUILD, POLICY, CHANGES_FROM_DEPENDENCIES, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME); //see also getBranchFilterDetails
     setHiddenDimensions(BRANCHED, COMPUTE_TIMESTAMPS, BRANCH_GROUP, GROUP_INCLUDE);
     myBuildTypeFinder = buildTypeFinder;
     myServiceLocator = serviceLocator;
+    myBranchGroupsService = myServiceLocator.getSingletonService(BranchGroupsService.class);
   }
 
   @NotNull
@@ -248,37 +253,25 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
     final String groupsInclude = locator.getSingleDimensionValue(GROUP_INCLUDE);
     if (groupsInclude != null) {
       SUser user = validateAndgetGroupIncludeUser(groupsInclude);
-      BranchGroupsService branchGroupsService = myServiceLocator.getSingletonService(BranchGroupsService.class);
       result.add(FinderDataBinding.getItemHolder(buildTypes.stream().
-        flatMap(buildType -> branchGroupsService.getAvailableBranchGroups(new BranchGroupsProvider.Context((BuildTypeEx)buildType, user)).stream()).distinct().
+        flatMap(buildType -> myBranchGroupsService.getAvailableBranchGroups(new BranchGroupsProvider.Context((BuildTypeEx)buildType, user)).stream()).distinct().
                                                              map(branchGroup -> BranchData.fromBranchGroup(branchGroup))));
     }
 
     final String groupDimension = locator.getSingleDimensionValue(BRANCH_GROUP);
     if (groupDimension != null) {
-      UserFinder userFinder = myServiceLocator.getSingletonService(UserFinder.class);
-      BranchGroupsService branchGroupsService = myServiceLocator.getSingletonService(BranchGroupsService.class);
-      Locator branchGroupLocator = new Locator(groupDimension, "id", "user", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-      String userLocator = branchGroupLocator.getSingleDimensionValue("user");
-      SUser user = userLocator == null ? userFinder.getCurrentUser() : userFinder.getItem(userLocator);
-      if (user == null) {
-        throw new BadRequestException("Can only filter by branch group when the user is present");
-      } else {
-        userFinder.checkViewUserPermission(user);
-      }
-
-      String branchGroupId = branchGroupLocator.isSingleValue() ? branchGroupLocator.getSingleValue() : branchGroupLocator.getSingleDimensionValue("id");
-      if (branchGroupId == null) {
-        throw new BadRequestException(
-          "Dimension '" + BRANCH_GROUP + "' does not specify 'id' subdimension. Example: " + branchGroupsService.getAvailableBranchGroups(new BranchGroupsProvider.Context(
-            (BuildTypeEx)buildTypes.get(0), user)).stream().map(branchGroup -> branchGroup.getId()).collect(Collectors.joining(", ")));
-      }
-      branchGroupLocator.checkLocatorFullyProcessed();
+      BranchGroupFilterDetails groupDetails = getBranchGroupFilterDetails(groupDimension, buildTypes.get(0));
 
       result.add(processor -> {
         try {
-          buildTypes.forEach(buildType -> branchGroupsService.collectBranches(branchGroupId, new BranchGroupsProvider.Context((BuildTypeEx)buildType, user),
-                                                                              item -> processor.processItem(BranchData.fromBranchEx(item, myServiceLocator, null, true))));
+          buildTypes.forEach(buildType -> {
+            BranchGroupsProvider.Context ctx = new BranchGroupsProvider.Context((BuildTypeEx)buildType, groupDetails.getUser());
+            myBranchGroupsService.collectBranches(
+              groupDetails.getBranchGroupId(),
+              ctx,
+              branchEx -> processor.processItem(BranchData.fromBranchEx(branchEx, myServiceLocator, null, true))
+            );
+          });
         } catch (IllegalStateException e) {
           throw new BadRequestException("Error retrieving branch groups: " + e.getMessage());
         }
@@ -393,6 +386,36 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
     }
 
     return null;
+  }
+
+  @NotNull
+  public BranchGroupFilterDetails getBranchGroupFilterDetails(@NotNull String groupDimension, @Nullable SBuildType buildTypeForErrorMessage) {
+    Locator branchGroupLocator = new Locator(groupDimension, "id", "user", Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
+    String userLocator = branchGroupLocator.getSingleDimensionValue("user");
+    UserFinder userFinder = myServiceLocator.getSingletonService(UserFinder.class);
+
+    SUser user = userLocator == null ? userFinder.getCurrentUser() : userFinder.getItem(userLocator);
+    if (user == null) {
+      throw new BadRequestException("Can only filter by branch group when the user is present");
+    } else {
+      userFinder.checkViewUserPermission(user);
+    }
+
+    String branchGroupId = branchGroupLocator.isSingleValue() ? branchGroupLocator.getSingleValue() : branchGroupLocator.getSingleDimensionValue("id");
+    if (branchGroupId == null) {
+      String errorMessage = "Dimension '" + BRANCH_GROUP + "' does not specify 'id' subdimension.";
+      if(buildTypeForErrorMessage != null) {
+        BranchGroupsProvider.Context ctx = new BranchGroupsProvider.Context((BuildTypeEx)buildTypeForErrorMessage, user);
+        errorMessage += "Example: " + myBranchGroupsService.getAvailableBranchGroups(ctx).stream()
+                                                         .map(branchGroup -> branchGroup.getId())
+                                                         .collect(Collectors.joining(", "));
+      }
+
+      throw new BadRequestException(errorMessage);
+    }
+
+    branchGroupLocator.checkLocatorFullyProcessed();
+    return new BranchGroupFilterDetails(branchGroupId, user);
   }
 
   @NotNull
@@ -579,6 +602,26 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
 
     public boolean isUnspecified() {
       return unspecified;
+    }
+  }
+
+  public static class BranchGroupFilterDetails {
+    private final String myBranchGroupId;
+    private final SUser myUser;
+
+    public BranchGroupFilterDetails(@NotNull String branchGroupId, @NotNull SUser user) {
+      myBranchGroupId = branchGroupId;
+      myUser = user;
+    }
+
+    @NotNull
+    public String getBranchGroupId() {
+      return myBranchGroupId;
+    }
+
+    @NotNull
+    public SUser getUser() {
+      return myUser;
     }
   }
 }

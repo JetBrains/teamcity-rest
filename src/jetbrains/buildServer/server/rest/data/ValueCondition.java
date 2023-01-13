@@ -42,6 +42,11 @@ public class ValueCondition {
     }
   }
 
+  @NotNull
+  public RequirementType getRequirementType() {
+    return myRequirementType;
+  }
+
   public boolean getActualIgnoreCase() {
     return myIgnoreCase == null ? false : myIgnoreCase;
   }

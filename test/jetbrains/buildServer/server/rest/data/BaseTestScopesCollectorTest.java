@@ -20,10 +20,7 @@ import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector;
-import jetbrains.buildServer.serverSide.BuildTypeEx;
-import jetbrains.buildServer.serverSide.CurrentProblemsManager;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.TestName2Index;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
@@ -71,6 +68,7 @@ public class BaseTestScopesCollectorTest extends BaseServerTestCase {
 
     myBuildTypeFinder = new BuildTypeFinder(myProjectManager, myProjectFinder, myAgentFinder, myPermissionChecker, myFixture);
 
+    myFixture.addService(new BranchGroupsService(myServer));
     myBranchFinder = new BranchFinder(myBuildTypeFinder, myFixture);
 
     final VcsRootIdentifiersManagerImpl vcsRootIdentifiersManager = myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class);

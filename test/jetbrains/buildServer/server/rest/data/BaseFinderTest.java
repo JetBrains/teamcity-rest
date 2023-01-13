@@ -37,10 +37,7 @@ import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProdu
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
-import jetbrains.buildServer.serverSide.ArtifactDependencyFactory;
-import jetbrains.buildServer.serverSide.CurrentProblemsManager;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.TestName2Index;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.healthStatus.HealthStatusProvider;
 import jetbrains.buildServer.serverSide.healthStatus.HealthStatusReportLocator;
@@ -142,6 +139,7 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
                                   myFixture.getRolesManager(), myPermissionChecker, myServer.getSecurityContext(), myServer);
     myFixture.addService(myUserFinder);
 
+    myFixture.addService(new BranchGroupsService(myServer));
     myBranchFinder = new BranchFinder(myBuildTypeFinder, myFixture);
 
     myBuildPromotionFinder = new BuildPromotionFinder(myFixture.getBuildPromotionManager(), myFixture.getBuildQueue(), myServer, myVcsRootFinder, myProjectFinder,
