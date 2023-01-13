@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.data.build.GenericBuildsFilter;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.PagerDataImpl;
@@ -38,6 +39,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 /**
  * Specifies build locator.
@@ -47,6 +49,8 @@ import org.jetbrains.annotations.Nullable;
  * @deprecated in favor of {@link BuildPromotionFinder}
  */
 @Deprecated
+@JerseyContextSingleton
+@Component("restbuildFinder") // Name copied from context xml file.
 public class BuildFinder {
   private static final Logger LOG = Logger.getInstance(BuildFinder.class.getName());
   public static final String DIMENSION_ID = "id";

@@ -21,6 +21,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
@@ -41,6 +42,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
@@ -54,6 +56,8 @@ import java.util.*;
         "`project:(<projectLocator>)` — find pool associated with project found by `projectLocator`."
     }
 )
+@JerseyContextSingleton
+@Component("restAgentPoolsFinder") // Name copied from context xml file.
 public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
   @NotNull private final AgentPoolManager myAgentPoolManager;
   @NotNull private final ServiceLocator myServiceLocator;

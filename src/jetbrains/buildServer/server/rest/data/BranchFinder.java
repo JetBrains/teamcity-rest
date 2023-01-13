@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2022 JetBrains s.r.o.
+ * Copyright 2000-2023 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.util.FlatteningItemHolder;
 import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
 import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.FlatteningItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
@@ -41,6 +42,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
@@ -54,6 +56,8 @@ import org.jetbrains.annotations.Nullable;
         "`buildType:<buildTypeLocator>` — find branches of a build configuration found by `buildTypeLocator`."
     }
 )
+@JerseyContextSingleton
+@Component("restBranchFinder") // Name copied from context xml file.
 public class BranchFinder extends AbstractFinder<BranchData> implements ExistenceAwareFinder {
   @LocatorDimension("name")
   protected static final String NAME = "name";

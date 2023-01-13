@@ -33,6 +33,7 @@ import jetbrains.buildServer.server.rest.data.util.*;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.ItemsProviders;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -62,6 +63,7 @@ import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
@@ -76,6 +78,8 @@ import org.jetbrains.annotations.Nullable;
         "`defaultFilter:false,agent:<agentLocator>` — find builds executed on agent found by `agentLocator`, with `defaultFilter` disabled (see below)."
     }
 )
+@JerseyContextSingleton
+@Component("restBuildPromotionFinder") // Name copied from context xml file.
 public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private static final Logger LOG = Logger.getInstance(BuildPromotionFinder.class.getName());
 

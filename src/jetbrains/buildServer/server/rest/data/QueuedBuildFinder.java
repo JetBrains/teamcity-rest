@@ -20,6 +20,7 @@ import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
 import jetbrains.buildServer.server.rest.data.util.KeyDuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
@@ -31,6 +32,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
@@ -44,6 +46,8 @@ import org.jetbrains.annotations.Nullable;
         "`user:<userLocator>` — find queued builds started by user found by userLocator."
     }
 )
+@JerseyContextSingleton
+@Component("restQueuedBuildFinder") // Name copied from context xml file.
 public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
   @LocatorDimension(value = BuildPromotionFinder.PROMOTION_ID, notes = "Deprecated.")
   public static final String PROMOTION_ID = BuildPromotionFinder.PROMOTION_ID;
