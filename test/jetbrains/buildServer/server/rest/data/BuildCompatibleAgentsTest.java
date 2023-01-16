@@ -571,11 +571,13 @@ public class BuildCompatibleAgentsTest extends BaseFinderTest<BuildPromotion> {
   }
 
   private void checkAgents(final String locatorText, final SBuildAgent... agents) {
-    check(locatorText, new Matcher<SBuildAgent, SBuildAgent>() {
-      @Override
-      public boolean matches(@NotNull final SBuildAgent sBuildAgent, @NotNull final SBuildAgent sBuildAgent2) {
-        return sBuildAgent.getId() == sBuildAgent2.getId();
-      }
-    }, (r) -> r.describe(false), (r) -> r.describe(false), myAgentFinder, agents);
+    check(
+      locatorText,
+      (agent1, agent2) -> agent1.getId() == agent2.getId(),
+      (r) -> r.describe(false),
+      (r) -> r.describe(false),
+      myAgentFinder,
+      agents
+    );
   }
 }

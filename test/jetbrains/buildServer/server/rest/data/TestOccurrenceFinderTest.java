@@ -928,15 +928,11 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
                   .finish();
   }
 
-  private static final Matcher<TestRunData, STestRun> TEST_MATCHER = new Matcher<TestRunData, STestRun>() {
-    @Override
-    public boolean matches(@NotNull final TestRunData data, @NotNull final STestRun sTestRun) {
-      return data.testName.equals(sTestRun.getTest().getName().getAsString()) &&
-             (data.status == null || data.status.equals(sTestRun.getStatus())) &&
-             //data.orderId == sTestRun.getOrderId() && //https://youtrack.jetbrains.com/issue/TW-62277 currently orderId depends on the way the tests are provided and the cache state, so it should not be relied upon
-             (Status.UNKNOWN.equals(data.status) == sTestRun.isIgnored());
-    }
-  };
+  private static final Matcher<TestRunData, STestRun> TEST_MATCHER = (data, sTestRun) ->
+    data.testName.equals(sTestRun.getTest().getName().getAsString()) &&
+    (data.status == null || data.status.equals(sTestRun.getStatus())) &&
+    //data.orderId == sTestRun.getOrderId() && //https://youtrack.jetbrains.com/issue/TW-62277 currently orderId depends on the way the tests are provided and the cache state, so it should not be relied upon
+    (Status.UNKNOWN.equals(data.status) == sTestRun.isIgnored());
 
   private static TestRunData t(final String testName, @Nullable final Status status, @Nullable final Integer orderId) {
     return new TestRunData(testName, status, orderId);
@@ -959,12 +955,8 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     }
   }
 
-  private static final Matcher<TestRunDataWithBuild, STestRun> TEST_WITH_BUILD_MATCHER = new Matcher<TestRunDataWithBuild, STestRun>() {
-    @Override
-    public boolean matches(@NotNull final TestRunDataWithBuild data, @NotNull final STestRun sTestRun) {
-      return TEST_MATCHER.matches(data, sTestRun) && sTestRun.getBuildId() == data.buildId;
-    }
-  };
+  private static final Matcher<TestRunDataWithBuild, STestRun> TEST_WITH_BUILD_MATCHER =
+    (data, sTestRun) -> TEST_MATCHER.matches(data, sTestRun) && sTestRun.getBuildId() == data.buildId;
 
   private static TestRunDataWithBuild t(final String testName, final Status status, final int orderId, final long buildId) {
     return new TestRunDataWithBuild(testName, status, orderId, buildId);
@@ -986,9 +978,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
 
   public void check(@Nullable final String locator, STestRun... items) {
     //using getEqualsMatcher() sometimes fails
-    check(locator, new Matcher<STestRun, STestRun>() {
-      @Override
-      public boolean matches(@NotNull final STestRun o, @NotNull final STestRun o2) {
+    check(locator, (o, o2) -> {
           if (o == o2) return true;
           if (o.getClass() != o2.getClass()) return false;
           return o.getOrderId() == o2.getOrderId() &&
@@ -999,7 +989,6 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
                  Objects.equal(o.getBuild(),o2.getBuild()) &&
 //                 Objects.equal(o.getTestOutputInfo(), o2.getTestOutputInfo()) &&
                  Objects.equal(o.getMuteInfo(), o2.getMuteInfo());
-      }
     }, getFinder(), items);
   }
 }

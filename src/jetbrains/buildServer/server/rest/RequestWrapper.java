@@ -26,6 +26,14 @@ import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 
 /**
+ * This is the request decorator.
+ * <br/>
+ * Since TeamCity instance could contain multiple versions of REST API plugin (several jars),
+ * then we are facing the problem with correct request dispatching between them.
+ * <br/>
+ * Main purpose is to transform HTTP paths to support correct request dispatching between
+ * multiple versions of REST API in single TeamCity instance.
+ *
  * @author Yegor.Yarko
  *         Date: 16.11.2009
  */

@@ -34,7 +34,6 @@
   <bean id="illegalArgumentExceptionMapper" class="jetbrains.buildServer.server.rest.errors.IllegalArgumentExceptionMapper"/>
   <bean id="partialUpdateErrorMapper" class="jetbrains.buildServer.server.rest.errors.PartialUpdateErrorMapper"/>
 
-  <bean id="jerseyWebComponent" class="jetbrains.buildServer.server.rest.jersey.JerseyWebComponent"/>
   <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
 
   <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.data.DataProvider"/>
@@ -75,7 +74,6 @@
   <bean id="requestPathTransformInfo" class="jetbrains.buildServer.server.rest.RequestPathTransformInfo"/>
 
   <bean id="urlBuilderProvider" class="jetbrains.buildServer.server.rest.jersey.UrlBuilderProvider"/>
-  <bean id="beanContextProvider" class="jetbrains.buildServer.server.rest.jersey.BeanContextProvider"/>
   <bean id="dataProviderContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataProviderContextProvider"/>
   <bean id="permissionCheckerProvider" class="jetbrains.buildServer.server.rest.jersey.PermissionCheckerProvider"/>
   <bean id="buildTypeFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.BuildTypeFinderContextProvider"/>
@@ -106,7 +104,6 @@
     <constructor-arg ref="userAvatarsManager"/>
   </bean>
 
-  <bean id="restCloudUtil" class="jetbrains.buildServer.server.rest.data.CloudUtil"/>
   <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataUpdaterContextProvider"/>
   <bean id="serviceLocatorContextProvider" class="jetbrains.buildServer.server.rest.jersey.ServiceLocatorContextProvider"/>
   <bean id="beanFactoryContextProvider" class="jetbrains.buildServer.server.rest.jersey.BeanFactoryContextProvider"/>

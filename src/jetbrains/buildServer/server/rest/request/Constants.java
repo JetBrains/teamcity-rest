@@ -27,7 +27,14 @@ public class Constants {
   public static final int CACHE_CONTROL_NEVER_EXPIRES = 31536000;
   public static final String CACHE_CONTROL_MAX_AGE = "max-age=";
 
+  /**
+   * All classic REST API endpoints use this prefix.
+   * Example: `/bs/app/rest/builds/...`
+   */
   public static final String API_URL = "/app/rest";
+  /**
+   * All GraphQL endpoints use this prefix.
+   */
   public static final String GRAPHQL_API_URL = "/app/graphql";
 
   public static final String BIND_PATH_PROPERTY_NAME = "api.path";

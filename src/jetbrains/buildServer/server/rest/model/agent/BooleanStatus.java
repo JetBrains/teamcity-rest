@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.agent;
 
+import java.util.function.Supplier;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -44,7 +45,7 @@ public class BooleanStatus {
   }
 
   public BooleanStatus(final boolean statusP,
-                       @Nullable final ValueWithDefault.Value<jetbrains.buildServer.serverSide.comments.Comment> lastCommentP,
+                       @Nullable final Supplier<jetbrains.buildServer.serverSide.comments.Comment> lastCommentP,
                        @NotNull final Fields fields,
                        @NotNull final BeanContext beanContext) {
     status = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("status"), statusP);

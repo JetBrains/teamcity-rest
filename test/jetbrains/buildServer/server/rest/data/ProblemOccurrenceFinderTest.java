@@ -240,12 +240,7 @@ public class ProblemOccurrenceFinderTest extends BaseFinderTest<BuildProblem> {
   }
 
   public void checkProblem(@Nullable final String locator, ProblemData... items) {
-    check(locator, new Matcher<ProblemData, BuildProblem>() {
-      @Override
-      public boolean matches(@NotNull final ProblemData problemData, @NotNull final BuildProblem buildProblem) {
-        return problemData.matches(buildProblem);
-      }
-    }, myProblemOccurrenceFinder, items);
+    check(locator, (problemData, buildProblem) -> problemData.matches(buildProblem), myProblemOccurrenceFinder, items);
   }
 
   static ProblemData pd(final int id, final String identity, final String type, final long promotionId){

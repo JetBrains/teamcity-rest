@@ -16,11 +16,11 @@
 
 package jetbrains.buildServer.server.rest.data.util;
 
-import jetbrains.buildServer.server.rest.data.FinderDataBinding;
+import jetbrains.buildServer.server.rest.data.FinderDataBinding.ItemHolder;
 import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
 
-public class CollectionItemHolder<P> implements FinderDataBinding.ItemHolder<P> {
+public class CollectionItemHolder<P> implements ItemHolder<P> {
   @NotNull final private Iterable<? extends P> myEntries;
 
   public CollectionItemHolder(@NotNull final Iterable<? extends P> entries) {

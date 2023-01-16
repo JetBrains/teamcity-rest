@@ -16,6 +16,11 @@
 
 package jetbrains.buildServer.server.rest.model.plugin;
 
+import java.util.Collection;
+import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
@@ -23,15 +28,9 @@ import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.Collection;
-import java.util.List;
+import static jetbrains.buildServer.server.rest.util.ValueWithDefault.decideDefault;
 
 /**
  * Created by IntelliJ IDEA.
@@ -54,16 +53,17 @@ public class PluginInfos {
   }
 
   public PluginInfos(final Collection<ServerPluginInfo> pluginInfos, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    plugins = ValueWithDefault.decideDefault(fields.isIncluded("plugin", true), new ValueWithDefault.Value<List<jetbrains.buildServer.server.rest.model.plugin.PluginInfo>>() {
-      @Nullable
-      public List<jetbrains.buildServer.server.rest.model.plugin.PluginInfo> get() {
-        return CollectionsUtil.convertCollection(pluginInfos, new Converter<PluginInfo, ServerPluginInfo>() {
-          public PluginInfo createFrom(@NotNull final ServerPluginInfo source) {
-            return new jetbrains.buildServer.server.rest.model.plugin.PluginInfo(source, fields.getNestedField("plugin", Fields.SHORT, Fields.LONG), beanContext);
-          }
-        });
-      }
-    });
+    plugins = decideDefault(
+      fields.isIncluded("plugin", true),
+      () -> CollectionsUtil.convertCollection(
+        pluginInfos,
+        source -> new PluginInfo(
+          source,
+          fields.getNestedField("plugin", Fields.SHORT, Fields.LONG),
+          beanContext
+        )
+      )
+    );
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), pluginInfos.size());
   }
 }

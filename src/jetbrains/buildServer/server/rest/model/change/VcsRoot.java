@@ -44,13 +44,14 @@ import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
-import jetbrains.buildServer.vcs.VcsRootInstance;
-import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.SVcsRootEx;
+import jetbrains.buildServer.vcs.VcsException;
+import jetbrains.buildServer.vcs.VcsManager;
 import jetbrains.vcs.api.VcsSettings;
 import jetbrains.vcs.api.services.tc.MappingGeneratorService;
 import jetbrains.vcs.api.services.tc.VcsMappingElement;
@@ -136,15 +137,12 @@ public class VcsRoot {
 
     final PermissionChecker permissionChecker = beanContext.getServiceLocator().findSingletonService(PermissionChecker.class);
     assert permissionChecker != null;
-    uuid = ValueWithDefault.decideDefault(fields.isIncluded("uuid", false, false), new ValueWithDefault.Value<String>() {
-      @Nullable
-      public String get() {
+    uuid = ValueWithDefault.decideDefault(fields.isIncluded("uuid", false, false), () -> {
         final SProject projectOfTheRoot = getProjectByRoot(root);
         if (projectOfTheRoot != null && permissionChecker.isPermissionGranted(Permission.EDIT_PROJECT, projectOfTheRoot.getProjectId())) {
           return ((SVcsRootEx)root).getEntityId().getConfigId();
         }
         return null;
-      }
     });
 
     name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), root.getName());
@@ -163,24 +161,17 @@ public class VcsRoot {
     if (!shouldRestrictSettingsViewing(root, permissionChecker)) {
       properties = ValueWithDefault.decideDefault(fields.isIncluded("properties", false),
                                                   () -> new Properties(root.getProperties(), null, fields.getNestedField("properties", Fields.NONE, Fields.LONG), beanContext));
-      modificationCheckInterval = ValueWithDefault.decideDefault(fields.isIncluded("modificationCheckInterval", false),
-                                                                 () -> root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval());
-      vcsRootInstances = ValueWithDefault.decideDefault(fields.isIncluded("vcsRootInstances", false), new ValueWithDefault.Value<VcsRootInstances>() {
-        @Nullable
-        public VcsRootInstances get() {
-          return new VcsRootInstances(new CachingValue<Collection<VcsRootInstance>>() {
-            @NotNull
-            @Override
-            protected Collection<VcsRootInstance> doGet() {
-              return beanContext.getSingletonService(VcsRootInstanceFinder.class).getItems(VcsRootInstanceFinder.getLocatorByVcsRoot(root)).getEntries();
-            }
-          }, new PagerDataImpl(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext);
-        }
-      });
-      repositoryIdStrings = ValueWithDefault.decideDefault(fields.isIncluded("repositoryIdStrings", false, false), new ValueWithDefault.Value<Items>() {
-        @Nullable
-        @Override
-        public Items get() {
+      modificationCheckInterval = ValueWithDefault.decideDefault(
+        fields.isIncluded("modificationCheckInterval", false),
+        () -> root.isUseDefaultModificationCheckInterval() ? null : root.getModificationCheckInterval()
+      );
+
+      vcsRootInstances = ValueWithDefault.decideDefault(fields.isIncluded("vcsRootInstances", false), () -> new VcsRootInstances(
+        CachingValue.simple(() -> beanContext.getSingletonService(VcsRootInstanceFinder.class).getItems(VcsRootInstanceFinder.getLocatorByVcsRoot(root)).myEntries),
+        new PagerDataImpl(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext)
+      );
+
+      repositoryIdStrings = ValueWithDefault.decideDefault(fields.isIncluded("repositoryIdStrings", false, false), () -> {
           ArrayList<String> result = new ArrayList<>();
           try {
             Collection<VcsMappingElement> vcsMappingElements = VcsRoot.getRepositoryMappings(root, beanContext.getSingletonService(VcsManager.class));
@@ -193,7 +184,6 @@ public class VcsRoot {
             //ignore
           }
           return null;
-        }
       });
     } else {
       properties = null;

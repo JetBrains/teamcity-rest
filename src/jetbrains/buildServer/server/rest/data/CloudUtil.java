@@ -33,11 +33,13 @@ import jetbrains.buildServer.util.ItemProcessor;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
  * @since 13.09.2019
  */
+@Component("restCloudUtil") // Name copied from context xml.
 public class CloudUtil {
   @NotNull
   private final ServiceLocator myServiceLocator;

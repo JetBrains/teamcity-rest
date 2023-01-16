@@ -30,12 +30,14 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.RequestPathTransformInfo;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
  *         Date: 15.11.2009
  */
 @Provider
+@Component
 public class BeanContextProvider implements InjectableProvider<Context, Type>, Injectable<BeanContext> {
   private final RequestPathTransformInfo myRequestPathTransformInfo;
 
@@ -54,6 +56,10 @@ public class BeanContextProvider implements InjectableProvider<Context, Type>, I
     myServiceLocator = serviceLocator;
   }
 
+  /**
+   * This bean has PerRequest scope because of "headers" and "request"
+   * fields above, which should be re-injected every time per request.
+   */
   public ComponentScope getScope() {
     return ComponentScope.PerRequest;
   }

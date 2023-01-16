@@ -20,6 +20,8 @@ import java.util.function.Supplier;
 import org.jetbrains.annotations.NotNull;
 
 /**
+ * Calculates value once on the first access and saves in cache. Then returns cached value.
+ *
  * @author Yegor.Yarko
  * @since 24.01.14
  */

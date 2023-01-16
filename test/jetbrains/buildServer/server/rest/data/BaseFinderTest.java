@@ -56,7 +56,9 @@ import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 
 /**
- * Created by yaegor on 13/06/2015.
+ * Base class to test {@link Finder<T>} implementation.
+ *
+ * @param <T> the type of the entity, which is retrieved by target {@link Finder<T>}
  */
 public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected static final String ARTIFACT_DEP_FILE_NAME = "aaa";
@@ -240,23 +242,30 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     check(locator, matcher, BaseFinderTest::getDescription, BaseFinderTest::getDescription, finder, items);
   }
 
-  public <S, R> void checkWithMessage(@NotNull final String checkTitleMessage, @Nullable final String locator, @NotNull Matcher<S, R> matcher, @NotNull final Finder<R> finder, S... items) {
+  public <S, R> void checkWithMessage(@NotNull final String checkTitleMessage,
+                                      @Nullable final String locator,
+                                      @NotNull Matcher<S, R> matcher,
+                                      @NotNull final Finder<R> finder,
+                                      S... items) {
     checkWithMessage(checkTitleMessage, locator, matcher, BaseFinderTest::getDescription, BaseFinderTest::getDescription, finder, items);
   }
 
   public <S, R> void check(@Nullable final String locator,
                            @NotNull final Matcher<S, R> matcher,
-                           @NotNull DescriptionProvider <R> loggerActual, @NotNull DescriptionProvider <S> loggerExpected, @NotNull final Finder<R> finder, S... items) {
+                           @NotNull DescriptionProvider<R> loggerActual,
+                           @NotNull DescriptionProvider<S> loggerExpected,
+                           @NotNull final Finder<R> finder,
+                           S... items) {
     check(locator, loggerActual, loggerExpected, finder, getDefaultMatchStrategy(locator, matcher, items), items);
   }
 
-  public <S, R> void checkWithMessage(@Nullable final String checkTitleMessage,
-                                      @Nullable final String locator,
-                                      @NotNull final Matcher<S, R> matcher,
-                                      @NotNull final DescriptionProvider <R> loggerActual,
-                                      @NotNull final DescriptionProvider <S> loggerExpected,
-                                      @NotNull final Finder<R> finder,
-                                      S... items) {
+  public static <S, R> void checkWithMessage(@Nullable final String checkTitleMessage,
+                                             @Nullable final String locator,
+                                             @NotNull final Matcher<S, R> matcher,
+                                             @NotNull final DescriptionProvider<R> loggerActual,
+                                             @NotNull final DescriptionProvider<S> loggerExpected,
+                                             @NotNull final Finder<R> finder,
+                                             S... items) {
     checkWithMessage(checkTitleMessage, locator, loggerActual, loggerExpected, finder, getDefaultMatchStrategy(locator, matcher, items), items);
   }
 
@@ -269,19 +278,19 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     checkWithMessage(null, locator, loggerActual, loggerExpected, finder, strategy, items);
   }
 
-  public <S, R> void checkWithMessage(@Nullable final String checkTitleMessage,
-                                      @Nullable final String locator,
-                                      @NotNull final DescriptionProvider<R> loggerActual,
-                                      @NotNull final DescriptionProvider<S> loggerExpected,
-                                      @NotNull final Finder<R> finder,
-                                      @NotNull final CollectionsMatchStrategy<S, R> strategy,
-                                      S... items) {
-    final List<R> result = finder.getItems(locator).myEntries;
+  public static <S, R> void checkWithMessage(@Nullable final String checkTitleMessage,
+                                             @Nullable final String locator,
+                                             @NotNull final DescriptionProvider<R> loggerActual,
+                                             @NotNull final DescriptionProvider<S> loggerExpected,
+                                             @NotNull final Finder<R> finder,
+                                             @NotNull final CollectionsMatchStrategy<S, R> strategy,
+                                             S... items) {
+    final List<R> result = finder.getItems(locator).getEntries();
     final String expected = getDescription(Arrays.asList(items), loggerExpected);
     final String actual = getDescription(result, loggerActual);
 
     String assertMessage = "";
-    if(checkTitleMessage != null) {
+    if (checkTitleMessage != null) {
       assertMessage = checkTitleMessage + "\n";
     }
     assertMessage = assertMessage + String.format(
@@ -290,7 +299,9 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
       "%s\n\n" +
       "Actual:\n" +
       "%s",
-      locator, expected, actual
+      locator,
+      expected,
+      actual
     );
 
     assertEquals(assertMessage, items.length, result.size());
@@ -333,9 +344,9 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   }
 
   @NotNull
-  protected <S, R> OrderedMatcherStrategy<S, R> getDefaultMatchStrategy(@Nullable final String locator,
-                                                                        @NotNull final Matcher<S, R> equalsMatcher,
-                                                                        @NotNull final S[] items) {
+  protected static <S, R> OrderedMatcherStrategy<S, R> getDefaultMatchStrategy(@Nullable final String locator,
+                                                                               @NotNull final Matcher<S, R> equalsMatcher,
+                                                                               @NotNull final S[] items) {
     return new OrderedMatcherStrategy<>(equalsMatcher, p -> "Wrong item found for locator \"" + locator + "\" at position " + (p.getSecond() + 1) + "/" + items.length + "\n" +
                                                             "Expected:\n" + Arrays.toString(items) + "\n" +
                                                             "\nActual:\n" + p.first

@@ -27,20 +27,25 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.stereotype.Component;
 import org.springframework.util.ClassUtils;
 
 /**
+ * This is the point if Jersey+Spring integration.
+ *
  * @author Yegor.Yarko
  *         Date: 24.03.2009
  */
-
-
+@Component("jerseyWebComponent")
 public class JerseyWebComponent extends SpringServlet {
   private static final long serialVersionUID = 5686455305749079671L;
   private final String myPluginName;
 
   private Logger LOG = Logger.getInstance(JerseyWebComponent.class.getName());
   private final ExtensionHolder myExtensionHolder;
+  /**
+   * Spring context of REST-API and contexts for all REST-API extensions (e.g. contrib, compare-builds)
+   */
   private Collection<ConfigurableApplicationContext> myContexts;
   private WebApplication myWebApplication;
 

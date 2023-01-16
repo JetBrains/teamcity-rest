@@ -191,11 +191,8 @@ public class BranchFinderTest extends BaseFinderTest<BranchData> {
   }
 
   private void check(final String locator, final String defaultBranchName, final String... branchNames) {
-    check(locator, new Matcher<String, BranchData>() {
-      @Override
-      public boolean matches(@NotNull final String s, @NotNull final BranchData branchData) {
-        return s.equals(branchData.getName()) && (!s.equals(defaultBranchName) || branchData.isDefaultBranch());
-      }
-    }, Stream.concat(Stream.of(defaultBranchName), Arrays.stream(branchNames)).toArray(String[]::new));
+    check(locator,
+          (s, branchData) -> s.equals(branchData.getName()) && (!s.equals(defaultBranchName) || branchData.isDefaultBranch()),
+          Stream.concat(Stream.of(defaultBranchName), Arrays.stream(branchNames)).toArray(String[]::new));
   }
 }

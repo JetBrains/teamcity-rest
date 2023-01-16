@@ -106,13 +106,9 @@ public class Changes implements DefaultValueAware {
                                               @Nullable final PagerData pagerData,
                                               @NotNull Fields fields,
                                               @NotNull final BeanContext beanContext) {
-    return new Changes(pagerData, fields, beanContext, new CachingValue<List<SVcsModificationOrChangeDescriptor>>() {
-      @NotNull
-      @Override
-      protected List<SVcsModificationOrChangeDescriptor> doGet() {
-        return modifications.stream().map(SVcsModificationOrChangeDescriptor::new).collect(Collectors.toList());
-      }
-    });
+    return new Changes(pagerData, fields, beanContext, CachingValue.simple(
+      () -> modifications.stream().map(SVcsModificationOrChangeDescriptor::new).collect(Collectors.toList())
+    ));
   }
 
   @XmlElement(name = CHANGE)
