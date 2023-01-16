@@ -17,18 +17,19 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import com.intellij.openapi.util.Pair;
+import io.swagger.annotations.ApiModelProperty;
+import java.util.*;
 import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
-import io.swagger.annotations.ApiModelProperty;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.clouds.CloudClientEx;
+import jetbrains.buildServer.clouds.CloudImage;
+import jetbrains.buildServer.clouds.CloudProfile;
+import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
@@ -37,10 +38,12 @@ import jetbrains.buildServer.server.rest.data.parameters.EntityWithParameters;
 import jetbrains.buildServer.server.rest.data.parameters.InheritableUserParametersHolderEntityWithParameters;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.*;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.build.Builds;
+import jetbrains.buildServer.server.rest.model.cloud.CloudImages;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.server.rest.request.AgentRequest;
 import jetbrains.buildServer.server.rest.request.BuildTypeRequest;
@@ -51,13 +54,14 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.auth.AuthUtil;
-import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
-import jetbrains.buildServer.serverSide.auth.Permission;
-import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeKey;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
+import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.identifiers.BuildTypeIdentifiersManager;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.impl.virtualAgent.VirtualAgentCompatibilityResult;
+import jetbrains.buildServer.serverSide.impl.virtualAgent.VirtualAgentsManager;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.impl.Lazy;
@@ -73,7 +77,8 @@ import org.jetbrains.annotations.Nullable;
   "href", "webUrl", "inherited" /*used only for list of build configuration templates*/,
   "links", "project", "templates", "template" /*deprecated*/, "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements",
-  "branches", "builds", "investigations", "compatibleAgents", "vcsRootInstances", "externalStatusAllowed", "pauseComment" /*experimental*/})
+  "branches", "builds", "investigations", "compatibleAgents", "compatibleCloudImages",
+  "vcsRootInstances", "externalStatusAllowed", "pauseComment" /*experimental*/})
 @ModelDescription(
     value = "Represents a build configuration.",
     externalArticleLink = "https://www.jetbrains.com/help/teamcity/creating-and-editing-build-configurations.html",
@@ -84,14 +89,22 @@ public class BuildType {
 
   @Nullable
   protected BuildTypeOrTemplate myBuildType;
-  @NotNull private String myExternalId;
-  @Nullable private String myInternalId;
-  @Nullable private final Boolean myInherited;
+
+  @NotNull
+  private String myExternalId;
+
+  @Nullable
+  private String myInternalId;
+
+  @Nullable
+  private final Boolean myInherited;
 
   private final boolean canViewSettings;
 
   private Fields myFields = Fields.LONG;
-  @NotNull private BeanContext myBeanContext;
+
+  @NotNull
+  private BeanContext myBeanContext;
 
   public BuildType() {
     canViewSettings = true;
@@ -583,6 +596,23 @@ public class BuildType {
         String actualLocatorText = Locator.merge(nestedFields.getLocator(), AgentFinder.getCompatibleAgentsLocator(myBuildType.getBuildType()));
         return new Agents(actualLocatorText, new PagerDataImpl(AgentRequest.getItemsHref(actualLocatorText)), nestedFields, myBeanContext);
     });
+  }
+
+  @XmlElement(name = "compatibleCloudImages")
+  @SuppressWarnings("unused")
+  public CloudImages getCompatibleCloudImages() {
+    if (myBuildType == null || myBuildType.getBuildType() == null) {
+      return null;
+    }
+    return ValueWithDefault.decideDefault(myFields.isIncluded("compatibleCloudImages", false, true), () -> {
+      return findCompatibleCloudImages(myFields.getNestedField("compatibleCloudImages"));
+    });
+  }
+
+  @NotNull
+  private CloudImages findCompatibleCloudImages(Fields fields) {
+    PagedSearchResult<CloudImage> items = myBeanContext.getSingletonService(CloudImageFinder.class).getItems(CloudImageFinder.getCompatibleBuildTypeLocator(myBuildType));
+    return new CloudImages(CachingValue.simple(items.getEntries()), null, fields, myBeanContext);
   }
 
   /**

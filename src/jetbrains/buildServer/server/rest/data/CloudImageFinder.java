@@ -17,26 +17,35 @@
 package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.clouds.CloudClientEx;
 import jetbrains.buildServer.clouds.CloudErrorInfo;
 import jetbrains.buildServer.clouds.CloudImage;
 import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.clouds.server.CloudManager;
+import jetbrains.buildServer.server.rest.data.FinderDataBinding.ItemHolder;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeKey;
 import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.impl.virtualAgent.VirtualAgentCompatibilityResult;
+import jetbrains.buildServer.serverSide.impl.virtualAgent.VirtualAgentsManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimension;
 
@@ -48,11 +57,15 @@ import static jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Dimensio
     "`profile:<profileLocator>` - find all images in cloud profile found by `profileLocator`."
   }
 )
+@JerseyContextSingleton
+@Component("restCloudImageFinder") // Name copied from context xml file.
 public class CloudImageFinder extends DelegatingFinder<CloudImage> {
   private static final Logger LOG = Logger.getInstance(CloudImageFinder.class.getName());
 
-  @LocatorDimension("id") private static final Dimension<CloudUtil.ImageIdData> ID = new Dimension<>("id");
-  @LocatorDimension("name") private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
+  @LocatorDimension("id")
+  private static final Dimension<CloudUtil.ImageIdData> ID = new Dimension<>("id");
+  @LocatorDimension("name")
+  private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
   private static final Dimension<ValueCondition> ERROR = new Dimension<>("errorMessage");
   @LocatorDimension(value = "agent", format = LocatorName.AGENT, notes = "Agent locator.")
   private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
@@ -66,16 +79,24 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
   private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
   private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
+  @LocatorDimension(value = "compatibleBuildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator")
+  private static final Dimension<List<BuildTypeOrTemplate>> COMPATIBLE_BUILD_TYPE = new Dimension<>("compatibleBuildType");
 
-  @NotNull private final ServiceLocator myServiceLocator;
-  @NotNull private final CloudManager myCloudManager;
-  @NotNull private final CloudUtil myCloudUtil;
+  @NotNull
+  private final ServiceLocator myServiceLocator;
+  @NotNull
+  private final CloudManager myCloudManager;
+  @NotNull
+  private final CloudUtil myCloudUtil;
+  @NotNull
+  private final VirtualAgentsManager myVirtualAgentsManager;
 
   public CloudImageFinder(@NotNull final ServiceLocator serviceLocator,
                           @NotNull final CloudUtil cloudUtil) {
     myServiceLocator = serviceLocator;
     myCloudUtil = cloudUtil;
     myCloudManager = myServiceLocator.getSingletonService(CloudManager.class);
+    myVirtualAgentsManager = myServiceLocator.getSingletonService(VirtualAgentsManager.class);
     setDelegate(new Builder().build());
   }
 
@@ -121,10 +142,13 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
       dimensionWithFinder(AGENT_POOL, () -> myServiceLocator.getSingletonService(AgentPoolFinder.class), "agent pools of the images")
         .filter((pools, image) -> pools.stream().anyMatch(poolIsAssociatedWithCloudImage(image)));
 
-
       dimensionWithFinder(INSTANCE, () -> myServiceLocator.getSingletonService(CloudInstanceFinder.class), "instances of the images")
         .filter((instances, image) -> instances.stream().anyMatch(instanceBelongsToImage(image)))
         .toItems(instances -> instances.stream().map(instance -> instance.getInstance().getImage()).distinct().collect(Collectors.toList()));
+
+      dimensionBuildTypes(COMPATIBLE_BUILD_TYPE, myServiceLocator)
+        .filter((buildTypes, cloudImage) -> findCompatibleCloudImages(buildTypes).anyMatch(cloudImage::equals))
+        .toItems(buildTypes -> findCompatibleCloudImages(buildTypes).collect(Collectors.toList()));
 
       dimensionWithFinder(PROFILE, () -> myServiceLocator.getSingletonService(CloudProfileFinder.class), "profiles of the images")
         .valueForDefaultFilter(item -> Collections.singleton(myCloudUtil.getProfile(item)))
@@ -141,14 +165,62 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
       dimensionProjects(AFFECTED_PROJECT, myServiceLocator)
         .description("projects where the cloud profiles/images are accessible")
         .filter((projects, item) -> Util.resolveNull(myCloudUtil.getProject(item), p -> CloudUtil.containProjectOrParent(projects, p), false))
-        .toItems(projects -> projects.stream()
-                                     .flatMap(project -> getAllCloudImagesInProject(project, true))
-                                     .collect(Collectors.toList())
+        .toItems(projects -> projects
+          .stream()
+          .flatMap(project -> getAllCloudImagesInProject(project, true))
+          .collect(Collectors.toList())
         );
 
       multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> getAllCloudImages());
 
       locatorProvider(image -> getLocator(image, myCloudUtil));
+    }
+
+    private Stream<CloudImage> findCompatibleCloudImages(List<BuildTypeOrTemplate> buildTypeOrTemplateList) {
+      return buildTypeOrTemplateList
+        .stream()
+        .flatMap(it -> findCompatibleCloudImages(it));
+    }
+
+    @NotNull
+    private Stream<CloudImage> findCompatibleCloudImages(BuildTypeOrTemplate buildTypeOrTemplate) {
+      Map<SAgentType, VirtualAgentCompatibilityResult> availableAgentTypes;
+      if (buildTypeOrTemplate.isBuildType()) {
+        availableAgentTypes = myVirtualAgentsManager.getAvailableAgentTypes(Objects.requireNonNull(buildTypeOrTemplate.getBuildType()));
+      } else {
+        availableAgentTypes = myVirtualAgentsManager.getAvailableAgentTypes(Objects.requireNonNull(buildTypeOrTemplate.getTemplate()));
+      }
+      Set<SAgentType> agentTypes = availableAgentTypes.keySet();
+      return agentTypes.stream()
+                       .map(it -> findRespectiveCloudImage(it.getAgentTypeKey()))
+                       .filter(it -> it != null);
+    }
+
+    @Nullable
+    private CloudImage findRespectiveCloudImage(@NotNull AgentTypeKey AgentTypeKey) {
+      try {
+        CloudProfile profile = myCloudManager.findProfileGloballyById(AgentTypeKey.getProfileId());
+        if (profile == null) {
+          return null;
+        }
+
+        CloudImage respectiveImage = null;
+        CloudClientEx client = myCloudManager.getClient(profile.getProjectId(), profile.getProfileId());
+        for (CloudImage image : client.getImages()) {
+          SAgentType imageAgentType = myCloudManager.getDescriptionFor(profile, image.getId());
+          if (imageAgentType == null) continue;
+
+          if (AgentTypeKey.equals(imageAgentType.getAgentTypeKey())) {
+            respectiveImage = image;
+            break;
+          }
+        }
+
+        return respectiveImage;
+      } catch (AccessDeniedException ade) {
+        LOG.debug(ade);
+        return null;
+      }
     }
 
     private boolean checkImageByProfileAndId(CloudUtil.ImageIdData profileAndId, CloudImage item) {
@@ -173,7 +245,7 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
     }
 
     @NotNull
-    private FinderDataBinding.ItemHolder<CloudImage> getAllCloudImages() {
+    private ItemHolder<CloudImage> getAllCloudImages() {
       return itemProcessor -> {
         Stream<CloudImage> allImages = myCloudManager.listAllProfiles().stream()
                                                      .flatMap(p -> myCloudUtil.getImages(p).stream());
@@ -203,9 +275,17 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
 
     @NotNull
     private Predicate<AgentPool> poolIsAssociatedWithCloudImage(@NotNull CloudImage cloudImage) {
-      return pool -> Util.resolveNull(cloudImage.getAgentPoolId(), id -> id.equals(pool.getAgentPoolId()),false);
+      return pool -> Util.resolveNull(cloudImage.getAgentPoolId(), id -> id.equals(pool.getAgentPoolId()), false);
     }
   }
 
+  @NotNull
+  public static String getCompatibleBuildTypeLocator(final BuildTypeOrTemplate buildType) {
+    if (buildType.isBuildType()) {
+      return Locator.getStringLocator(COMPATIBLE_BUILD_TYPE.name, BuildTypeFinder.getLocator(Objects.requireNonNull(buildType.getBuildType())));
+    } else {
+      return Locator.getStringLocator(COMPATIBLE_BUILD_TYPE.name, BuildTypeFinder.getLocator(Objects.requireNonNull(buildType.getTemplate())));
+    }
+  }
 }
 

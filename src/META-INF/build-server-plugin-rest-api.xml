@@ -48,7 +48,6 @@
   <bean id="restChangeFinder" class="jetbrains.buildServer.server.rest.data.ChangeFinder"/>
   <bean id="restAgentFinder" class="jetbrains.buildServer.server.rest.data.AgentFinder"/>
   <bean id="restCloudInstanceFinder" class="jetbrains.buildServer.server.rest.data.CloudInstanceFinder"/>
-  <bean id="restCloudImageFinder" class="jetbrains.buildServer.server.rest.data.CloudImageFinder"/>
   <bean id="restCloudProfileFinder" class="jetbrains.buildServer.server.rest.data.CloudProfileFinder"/>
   <bean id="restInvestigationFinder" class="jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder"/>
   <bean id="restMuteFinder" class="jetbrains.buildServer.server.rest.data.mutes.MuteFinder"/>
@@ -85,7 +84,6 @@
   <bean id="changeFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.ChangeFinderContextProvider"/>
   <bean id="restAgentFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AgentFinderProvider"/>
   <bean id="restCloudInstanceFinderProvider" class="jetbrains.buildServer.server.rest.jersey.CloudInstanceFinderProvider"/>
-  <bean id="restCloudImageFinderProvider" class="jetbrains.buildServer.server.rest.jersey.CloudImageFinderProvider"/>
   <bean id="restCloudProfileFinderProvider" class="jetbrains.buildServer.server.rest.jersey.CloudProfileFinderProvider"/>
   <bean id="restInvestigationFinderProvider" class="jetbrains.buildServer.server.rest.jersey.InvestigationFinderProvider"/>
   <bean id="restMuteFinderProvider" class="jetbrains.buildServer.server.rest.jersey.MuteFinderProvider"/>
