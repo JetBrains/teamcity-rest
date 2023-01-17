@@ -142,15 +142,10 @@ public class UserFinder extends DelegatingFinder<SUser> {
   }
 
   public void checkViewUserPermission(final @Nullable SUser user) throws AuthorizationFailedException {
-    if (user == null) return;
-
-    final jetbrains.buildServer.users.User currentUser = getCurrentUser();
-    if (currentUser != null && currentUser.getId() == user.getId()) {
-      return;
-    }
-
-    if (!ServerAuthUtil.canViewUser(mySecurityContext.getAuthorityHolder(), user)) {
-      throw new AuthorizationFailedException("No permission to view user");
+    if (user == null || !ServerAuthUtil.canViewUser(mySecurityContext.getAuthorityHolder(), user)) {
+      //it's important to throw the same exception in both cases when the user is null and when there is no enough permissions,
+      //otherwise a malicious user can get the list of users from the server
+      throw new NotFoundException("User not found");
     }
   }
 

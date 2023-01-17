@@ -388,9 +388,6 @@ public class UserRequest {
     if (token.getName() == null) {
       throw new BadRequestException("name cannot be empty");
     }
-    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
-      myUserFinder.checkViewAllUsersPermission();
-    }
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     final SUser user = myUserFinder.getItem(userLocator, true);
     try {
@@ -454,9 +451,6 @@ public class UserRequest {
   public Token createToken(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                            @PathParam("name") @NotNull final String name,
                            @QueryParam("fields") String fields) {
-    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
-      myUserFinder.checkViewAllUsersPermission();
-    }
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     final SUser user = myUserFinder.getItem(userLocator, true);
     try {
@@ -473,9 +467,6 @@ public class UserRequest {
   @ApiOperation(value = "Get all authentication tokens of the matching user.", nickname = "getUserTokens")
   public Tokens getTokens(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                           @QueryParam("fields") String fields) {
-    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
-      myUserFinder.checkViewAllUsersPermission();
-    }
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     SUser user = myUserFinder.getItem(userLocator, true);
     return new Tokens(tokenAuthenticationModel.getUserTokens(user.getId()), new Fields(fields), myBeanContext);
@@ -487,9 +478,6 @@ public class UserRequest {
   public void deleteToken(@ApiParam(format = LocatorName.USER) @PathParam("userLocator") String userLocator,
                           @PathParam("name") @NotNull final String name,
                           @Context @NotNull final BeanContext beanContext) {
-    if (TeamCityProperties.getBooleanOrTrue(UserFinder.REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS)) {
-      myUserFinder.checkViewAllUsersPermission();
-    }
     final TokenAuthenticationModel tokenAuthenticationModel = myBeanContext.getSingletonService(TokenAuthenticationModel.class);
     SUser user = myUserFinder.getItem(userLocator, true);
     try {
