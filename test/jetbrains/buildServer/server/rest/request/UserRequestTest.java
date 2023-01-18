@@ -29,6 +29,7 @@ import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.data.BaseFinderTest;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.model.user.PermissionAssignment;
@@ -96,7 +97,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        checkException(AuthorizationFailedException.class, new Runnable() {
+        checkException(NotFoundException.class, new Runnable() {
           @Override
           public void run() {
             myRequest.serveUser("username:user2", Fields.LONG.getFieldsSpec());
@@ -108,7 +109,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        checkException(AuthorizationFailedException.class, new Runnable() {
+        checkException(NotFoundException.class, new Runnable() {
           @Override
           public void run() {
             myRequest.getGroups("username:user2", Fields.LONG.getFieldsSpec());
@@ -120,7 +121,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
       @Override
       public void run() throws Throwable {
-        checkException(AuthorizationFailedException.class, new Runnable() {
+        checkException(NotFoundException.class, new Runnable() {
           @Override
           public void run() {
             myRequest.serveUserProperties("username:user2", Fields.LONG.getFieldsSpec());
@@ -345,7 +346,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
     user2.addRole(RoleScope.projectScope(project1.getProjectId()), getTestRoles().createRole(Permission.VIEW_PROJECT, Permission.REORDER_BUILD_QUEUE));
 
     myFixture.getSecurityContext().runAs(user1, () -> {
-      checkException(AuthorizationFailedException.class, () -> myRequest.getPermissions("id:" + user2.getId(), null, null), "getting permissions of another user");
+      checkException(NotFoundException.class, () -> myRequest.getPermissions("id:" + user2.getId(), null, null), "getting permissions of another user");
     });
 
     SUser user3 = createUser("user3");
@@ -376,7 +377,7 @@ public class UserRequestTest extends BaseFinderTest<UserGroup> {
       assertContains(describe(permissions), permissions.myPermissionAssignments,
                         pa -> permissionEquals(pa, Permission.RUN_BUILD) && project2.getExternalId().equals(pa.project.id));
 
-      checkException(AuthorizationFailedException.class, () -> myRequest.getPermissions("id:" + user2.getId(), null, null), "getting permissions of another user");
+      checkException(NotFoundException.class, () -> myRequest.getPermissions("id:" + user2.getId(), null, null), "getting permissions of another user");
     });
 
     myFixture.getSecurityContext().runAs(getUserModelEx().getSuperUser(), () -> {

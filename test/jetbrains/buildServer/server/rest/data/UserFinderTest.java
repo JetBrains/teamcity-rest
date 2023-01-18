@@ -261,7 +261,7 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
 
         check("user1", user1);
 
-        checkException(AuthorizationFailedException.class, new Runnable() {
+        checkException(NotFoundException.class, new Runnable() {
           @Override
           public void run() {
             ((UserFinder)getFinder()).getItem("user2", true);

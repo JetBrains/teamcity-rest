@@ -30,6 +30,7 @@ import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.UserFinder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -103,7 +104,7 @@ public class User {
     try {
       checkCanViewUserDetails(myUser, myContext.getServiceLocator());
       myCanViewDetails = true;
-    } catch (AuthorizationFailedException e) {
+    } catch (AuthorizationFailedException | NotFoundException e) {
       myCanViewDetails = false;
     }
   }
