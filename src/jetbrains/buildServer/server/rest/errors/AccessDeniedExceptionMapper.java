@@ -23,6 +23,7 @@ import jetbrains.buildServer.serverSide.MissingServerResponsibilityException;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.web.readOnly.MissingResponsibilityExceptionResolver;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
 /**
  * User: Yegor Yarko
@@ -31,6 +32,7 @@ import org.jetbrains.annotations.NotNull;
  * This will hopefully report Jersey-originated errors with more details
  */
 @Provider
+@Component
 public class AccessDeniedExceptionMapper extends ExceptionMapperBase<AccessDeniedException> {
   @Override
   public ResponseData getResponseData(@NotNull final AccessDeniedException e) {

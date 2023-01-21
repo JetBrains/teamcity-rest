@@ -18,11 +18,12 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.requirements.RequirementType;
+import jetbrains.buildServer.server.rest.data.util.FilterUtil;
+import jetbrains.buildServer.server.rest.data.util.Matcher;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.OperationException;

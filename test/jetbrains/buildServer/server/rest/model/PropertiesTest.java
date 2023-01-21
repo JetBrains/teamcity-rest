@@ -18,7 +18,7 @@ package jetbrains.buildServer.server.rest.model;
 
 import java.util.Map;
 import jetbrains.buildServer.log.Loggable;
-import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.serverSide.MockParameter;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;

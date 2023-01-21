@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.Set;
 import java.util.UUID;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.user.TwoFactorCredentials;
 import jetbrains.buildServer.server.rest.model.user.TwoFactorRecoveryKeys;
 import jetbrains.buildServer.serverSide.auth.TwoFactorPasswordGenerator;
@@ -26,12 +27,15 @@ import jetbrains.buildServer.serverSide.auth.impl.TwoFactorConfirmationException
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
 /**
  * Context class for two-factor authentication actions via REST
  *
  * @author Daniil Boger
  */
+@JerseyContextSingleton
+@Component
 public class TwoFactorSecretKeysUpdater {
   @NotNull private final TwoFactorPasswordGenerator myGenerator;
   @NotNull private final TwoFactorPasswordManager myManager;

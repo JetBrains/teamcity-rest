@@ -17,7 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import jetbrains.buildServer.server.rest.data.HealthItemFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.HealthItemFinder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;

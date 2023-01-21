@@ -19,14 +19,18 @@ package jetbrains.buildServer.server.rest.util;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
  *         Date: 09.08.2010
  */
+@JerseyContextSingleton
+@Component
 public class BeanFactory {
   private final ApplicationContext ctx;
 

@@ -27,11 +27,13 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.RequestPathTransformInfo;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
  *         Date: 15.11.2009
  */
+@Component
 @Provider
 public class UrlBuilderProvider implements InjectableProvider<Context, java.lang.reflect.Type>, Injectable<ApiUrlBuilder> {
   private final RequestPathTransformInfo myRequestPathTransformInfo;

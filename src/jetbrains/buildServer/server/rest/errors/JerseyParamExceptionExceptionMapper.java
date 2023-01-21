@@ -21,8 +21,10 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
 @Provider
+@Component
 public class JerseyParamExceptionExceptionMapper extends ExceptionMapperBase<ParamException> {
   @Override
   public ResponseData getResponseData(@NotNull final com.sun.jersey.api.ParamException e) {

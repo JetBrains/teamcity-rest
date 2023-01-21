@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import jetbrains.buildServer.server.rest.data.finder.FinderImpl;
+import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import org.jetbrains.annotations.NotNull;
 

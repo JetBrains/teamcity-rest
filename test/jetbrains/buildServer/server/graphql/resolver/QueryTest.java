@@ -22,7 +22,7 @@ import jetbrains.buildServer.server.graphql.model.connections.PaginationArgument
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
 import jetbrains.buildServer.server.graphql.model.filter.ProjectsFilter;
 import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPoolFactory;
-import jetbrains.buildServer.server.rest.data.Finder;
+import jetbrains.buildServer.server.rest.data.finder.Finder;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.SimpleParameter;

@@ -20,11 +20,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
 /**
  * User: Yegor Yarko
  * Date: 30.03.2009
  */
+@Component
 @Provider
 public class BadRequestExceptionMapper extends ExceptionMapperBase<BadRequestException> {
   @Override

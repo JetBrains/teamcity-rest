@@ -19,7 +19,7 @@ package jetbrains.buildServer.server.rest.model;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;

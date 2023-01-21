@@ -27,7 +27,7 @@ import javax.xml.bind.annotation.XmlElement;
 import jetbrains.buildServer.controllers.fakes.FakeHttpServletRequest;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;

@@ -16,9 +16,9 @@
 
 package jetbrains.buildServer.server.rest.data.util.finderBuilder;
 
-import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Filter;
-import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.ItemsFromDimension;
-import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.TypeFromItem;
+import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Filter;
+import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.ItemsFromDimension;
+import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.TypeFromItem;
 import org.jetbrains.annotations.NotNull;
 
 public interface TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> extends TypedFinderDimension<ITEM, TYPE> {

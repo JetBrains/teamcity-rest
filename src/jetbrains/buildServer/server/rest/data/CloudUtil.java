@@ -24,6 +24,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.*;
 import jetbrains.buildServer.clouds.server.CloudInstancesProviderExtendedCallback;
 import jetbrains.buildServer.clouds.server.CloudManager;
+import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -122,7 +123,7 @@ public class CloudUtil {
   }
 
   @Nullable
-  CloudProfile findProfileGloballyById(@NotNull String profileId) {
+  public CloudProfile findProfileGloballyById(@NotNull String profileId) {
     try {
       return myCloudManager.findProfileGloballyById(profileId);
     } catch (AccessDeniedException e ) {
@@ -130,7 +131,7 @@ public class CloudUtil {
     }
   }
 
-  public FinderDataBinding.ItemHolder<CloudInstanceData> getAllInstancesProcessor() {
+  public ItemHolder<CloudInstanceData> getAllInstancesProcessor() {
     return processor -> myCloudManager.iterateInstances(callback(processor));
   }
 
@@ -176,9 +177,9 @@ public class CloudUtil {
     return myCloudManager.findInstanceById(profile.getProjectId(), profile.getProfileId(), id);
   }
 
-  static class ImageIdData {
-    String profileId;
-    String id;
+  public static class ImageIdData {
+    public String profileId;
+    public String id;
 
     public ImageIdData(@NotNull final String value) {
       Locator locator = new Locator(value, "profileId", "id");
@@ -191,10 +192,10 @@ public class CloudUtil {
     }
   }
 
-  static class InstanceIdData {
-    String profileId;
-    String imageId;
-    String id;
+  public static class InstanceIdData {
+    public String profileId;
+    public String imageId;
+    public String id;
 
     public InstanceIdData(@NotNull final String value) {
       Locator locator = new Locator(value, "profileId", "id");

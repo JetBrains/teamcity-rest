@@ -18,17 +18,16 @@ package jetbrains.buildServer.server.rest.request;
 
 import com.intellij.openapi.util.text.StringUtil;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import java.util.LinkedHashSet;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
-
-import io.swagger.annotations.ApiOperation;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.DataUpdater;
-import jetbrains.buildServer.server.rest.data.UserFinder;
-import jetbrains.buildServer.server.rest.data.UserGroupFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.UserFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.UserGroupFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;

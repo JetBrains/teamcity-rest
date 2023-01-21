@@ -19,7 +19,7 @@ package jetbrains.buildServer.server.rest.request;
 import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.log.Loggers;
-import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.nodes.EnabledResponsibilities;

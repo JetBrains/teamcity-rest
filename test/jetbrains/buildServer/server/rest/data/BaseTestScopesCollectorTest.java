@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data;
 
+import jetbrains.buildServer.server.rest.data.finder.impl.*;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer;

@@ -17,16 +17,30 @@
 package jetbrains.buildServer.server.rest.data.investigations;
 
 import com.intellij.openapi.util.text.StringUtil;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.responsibility.*;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.util.FilterConditionChecker;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.UserFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
+import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
+import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
@@ -42,11 +56,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
@@ -60,6 +70,8 @@ import java.util.List;
         "`state:taken` — find investigations which are currently in work."
     }
 )
+@JerseyContextSingleton
+@Component("restInvestigationFinder")
 public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   @LocatorDimension(value = "problem", format = LocatorName.PROBLEM, notes = "Problem locator.")
   private static final String PROBLEM_DIMENSION = "problem";
@@ -283,19 +295,19 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     final String problemDimension = locator.getSingleDimensionValue(PROBLEM_DIMENSION);
     if (problemDimension != null){
       final ProblemWrapper problem = myProblemFinder.getItem(problemDimension);
-      return getItemHolder(problem.getInvestigations());
+      return ItemHolder.of(problem.getInvestigations());
     }
 
     final String testDimension = locator.getSingleDimensionValue(TEST_DIMENSION);
     if (testDimension != null){
       final STest test = myTestFinder.getItem(testDimension);
-      return getItemHolder(getInvestigationWrappers(test));
+      return ItemHolder.of(getInvestigationWrappers(test));
     }
 
     final String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeDimension != null){
       final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension, false);
-      return getItemHolder(getInvestigationWrappersForBuildType(buildType));
+      return ItemHolder.of(getInvestigationWrappersForBuildType(buildType));
     }
 
     @Nullable User user = null;
@@ -307,20 +319,20 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
     if (assignmentProjectDimension != null){
       @NotNull final SProject project = myProjectFinder.getItem(assignmentProjectDimension);
-      return getItemHolder(getInvestigationWrappersForProject(project, user));
+      return ItemHolder.of(getInvestigationWrappersForProject(project, user));
     }
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null){
       @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
-      return getItemHolder(getInvestigationWrappersForProjectWithSubprojects(project, user));
+      return ItemHolder.of(getInvestigationWrappersForProjectWithSubprojects(project, user));
     }
 
     if (user != null){
-      return getItemHolder(getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), user));
+      return ItemHolder.of(getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), user));
     }
     locator.markUnused(ASSIGNEE);
-    return getItemHolder(getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), null));
+    return ItemHolder.of(getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), null));
   }
 
   public List<InvestigationWrapper> getInvestigationWrappersForBuildType(final SBuildType buildType) {

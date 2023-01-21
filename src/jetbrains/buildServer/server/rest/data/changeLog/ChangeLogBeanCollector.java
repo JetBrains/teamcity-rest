@@ -29,10 +29,17 @@ import jetbrains.buildServer.controllers.buildType.tabs.ChangeLogFilter;
 import jetbrains.buildServer.controllers.buildType.tabs.ChangesListFilter;
 import jetbrains.buildServer.controllers.project.ProjectChangeLogBeanProvider;
 import jetbrains.buildServer.controllers.viewLog.BuildChangeLogBeanProvider;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.ParameterCondition;
+import jetbrains.buildServer.server.rest.data.ValueCondition;
+import jetbrains.buildServer.server.rest.data.finder.impl.BranchFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildPromotionFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
@@ -51,6 +58,7 @@ import org.springframework.stereotype.Component;
  * and is undesirable to make separate requests for a change log and a graph. Ideally, graph information should be included into
  * change log rows and this class may then implement Finder<ChangeLogRow>, but as of now the limitation is graph rendering library used on frontend.
  */
+@JerseyContextSingleton
 @Component
 public class ChangeLogBeanCollector {
   @LocatorDimension(value = "build", hidden = true)

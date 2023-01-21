@@ -24,14 +24,17 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.responsibility.ResponsibilityEntry;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.*;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilter;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer;
-import jetbrains.buildServer.server.rest.data.util.FlatteningItemHolder;
-import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
-import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.*;
+import jetbrains.buildServer.server.rest.data.util.itemholder.FlatteningItemHolder;
+import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -56,6 +59,7 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_NO_DETAILS;
 
@@ -71,6 +75,8 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
         "`build:<buildLocator>` — find test occurrences under build found by `buildLocator`."
     }
 )
+@JerseyContextSingleton
+@Component("restTestOccurrenceFinder")
 public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @LocatorDimension(value = "build", format = LocatorName.BUILD, notes = "Build locator.")
   public static final String BUILD = "build";
@@ -295,7 +301,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     try {
       return NamedThreadFactory.executeWithNewThreadName("Sorting " + items.size() + " items", () -> {
         items.sort(comparator);
-        return getItemHolder(items);
+        return ItemHolder.of(items);
       });
     } catch (Exception e) {
       ExceptionUtil.rethrowAsRuntimeException(e);
@@ -482,7 +488,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     for (STest test : tests) {
       result.addAll(getTestHistory(test, affectedProject, branchFilter));
     }
-    return FinderDataBinding.getItemHolder(result);
+    return ItemHolder.of(result);
   }
 
   @NotNull
@@ -504,7 +510,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     for (STest test : tests) {
       result.addAll(getTestHistory(test, buildType, branchFilter));
     }
-    return FinderDataBinding.getItemHolder(result);
+    return ItemHolder.of(result);
   }
 
   @NotNull
@@ -558,7 +564,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @NotNull
   private ItemHolder<STestRun> getPossibleExpandedTestsHolder(@NotNull final Iterable<STestRun> tests, @Nullable final Boolean expandInvocations) {
     if (!FilterUtil.isTrue(expandInvocations)) {
-      return getItemHolder(tests);
+      return ItemHolder.of(tests);
     }
     return processor -> {
       for (STestRun entry : tests) {
@@ -707,7 +713,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
                 @NotNull
                 @Override
                 public ItemHolder<STestRun> getPrefilteredItems(@NotNull final Locator locator1) {
-                  return getItemHolder(testRuns);
+                  return ItemHolder.of(testRuns);
                 }
               });
           return matcher.matches(null);

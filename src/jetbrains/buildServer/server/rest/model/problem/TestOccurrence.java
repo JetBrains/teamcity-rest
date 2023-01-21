@@ -25,8 +25,8 @@ import javax.xml.bind.annotation.XmlType;
 
 import io.swagger.annotations.ApiModelProperty;
 import jetbrains.buildServer.messages.Status;
-import jetbrains.buildServer.server.rest.data.FilterItemProcessor;
-import jetbrains.buildServer.server.rest.data.PagingItemFilter;
+import jetbrains.buildServer.server.rest.data.util.FilterItemProcessor;
+import jetbrains.buildServer.server.rest.data.util.PagingItemFilter;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;

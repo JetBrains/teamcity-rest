@@ -20,9 +20,10 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import jetbrains.buildServer.server.rest.data.finder.Finder;
 
 /**
- * This annotation is put on the "Finders" (See implementations of <code>{@link jetbrains.buildServer.server.rest.data.Finder}</code>)
+ * This annotation is put on the "Finders" (See implementations of <code>{@link Finder}</code>)
  * <p/>
  * This annotation is used to generate Swagger documentation.
  */

@@ -18,6 +18,9 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildFinderTestBase;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.change.Change;

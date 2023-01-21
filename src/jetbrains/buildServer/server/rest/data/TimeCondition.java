@@ -18,6 +18,10 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildPromotionFinder;
+import jetbrains.buildServer.server.rest.data.util.FilterConditionChecker;
+import jetbrains.buildServer.server.rest.data.util.Matcher;
+import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -27,11 +31,13 @@ import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TimeService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
  *         Date: 23/11/2015
  */
+@Component
 public class TimeCondition {
   public static final String DATE_CONDITION_EQUALS = "equals";
   public static final String DATE_CONDITION_BEFORE = "before";
@@ -98,7 +104,7 @@ public class TimeCondition {
    * @return Date is included if it can be used for cutting processing. 'null' if no dimension is defined
    */
   @Nullable
-  <T> FilterAndLimitingDate<T> processTimeConditions(@NotNull final String locatorDimension,
+  public <T> FilterAndLimitingDate<T> processTimeConditions(@NotNull final String locatorDimension,
                                                      @NotNull final Locator locator,
                                                      @NotNull final ValueExtractor<T, Date> valueExtractor,
                                                      @Nullable final ValueExtractor<BuildPromotion, Date> buildValueExtractor) {
@@ -310,7 +316,7 @@ public class TimeCondition {
     return date1;
   }
 
-  static class FilterAndLimitingDate<T> {
+  public static class FilterAndLimitingDate<T> {
     @NotNull private final FilterConditionChecker<T> filter;
     @Nullable private final Date limitingDate;
 

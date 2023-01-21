@@ -37,10 +37,14 @@ import jetbrains.buildServer.controllers.changes.ChangesPopupUtil;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.PasswordParametersFilterCore;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.ParameterCondition;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.change.BuildChangeData;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
+import jetbrains.buildServer.server.rest.data.finder.FinderImpl;
+import jetbrains.buildServer.server.rest.data.finder.impl.*;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.*;
@@ -2240,7 +2244,7 @@ public class Build {
 
   @NotNull
   private static List<BuildChangeData> getArtifactDependencyChanges(@NotNull final BuildPromotion build, @NotNull final ServiceLocator serviceLocator) {
-    //see also jetbrains.buildServer.server.rest.data.ChangeFinder.getBuildChanges
+    //see also jetbrains.buildServer.server.rest.data.finder.impl.ChangeFinder.getBuildChanges
 
     ArtifactDependencyChangesProvider changesProvider = new ArtifactDependencyChangesProvider(build, ChangeFinder.getBuildChangesPolicy(),
                                                                                               serviceLocator.getSingletonService(BuildsManager.class),

@@ -18,7 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.model.group.Group;
 import jetbrains.buildServer.users.SUser;
 import org.testng.annotations.BeforeMethod;

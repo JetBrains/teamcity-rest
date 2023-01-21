@@ -24,6 +24,7 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.Orders;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtil;
 import jetbrains.buildServer.serverSide.*;
@@ -31,8 +32,11 @@ import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 
+@JerseyContextSingleton
+@Component
 public class TestScopesCollector {
   public static final String SPLIT_TESTS_GROUP_BY_DEFAULT_TOGGLE = "rest.splitTests.groupByDefault";
 

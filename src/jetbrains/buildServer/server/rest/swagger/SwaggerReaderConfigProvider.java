@@ -19,7 +19,9 @@ package jetbrains.buildServer.server.rest.swagger;
 import io.swagger.jaxrs.config.ReaderConfig;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.jersey.AbstractSingletonBeanProvider;
+import org.springframework.stereotype.Component;
 
+@Component
 @Provider
 public class SwaggerReaderConfigProvider extends AbstractSingletonBeanProvider<ReaderConfig> {
   public SwaggerReaderConfigProvider(final ReaderConfig config) {

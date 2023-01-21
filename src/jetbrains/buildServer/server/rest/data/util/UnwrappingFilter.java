@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.data.util;
 
 import java.util.function.Function;
-import jetbrains.buildServer.server.rest.data.ItemFilter;
 import org.jetbrains.annotations.NotNull;
 
 public class UnwrappingFilter<NAKED, WRAPPED> implements ItemFilter<WRAPPED> {

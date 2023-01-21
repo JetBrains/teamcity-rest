@@ -18,11 +18,10 @@ package jetbrains.buildServer.server.rest.model.user;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
-
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.UserGroup;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -83,7 +82,7 @@ public class RoleAssignment {
     return "p:" + scopeParam;
   }
 
-  // See also jetbrains.buildServer.server.rest.data.UserFinder.RoleEntryDatas.getScope()
+  // See also jetbrains.buildServer.server.rest.data.finder.impl.UserFinder.RoleEntryDatas.getScope()
   @NotNull
   public static RoleScope getScope(@NotNull String scopeData, @NotNull final ServiceLocator serviceLocator) {
     if ("g".equalsIgnoreCase(scopeData)) {

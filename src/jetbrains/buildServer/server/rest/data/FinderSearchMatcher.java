@@ -17,6 +17,8 @@
 package jetbrains.buildServer.server.rest.data;
 
 import java.util.List;
+import jetbrains.buildServer.server.rest.data.finder.Finder;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

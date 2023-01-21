@@ -18,106 +18,13 @@
 
   <!-- <aop:aspectj-autoproxy/> -->
 
-  <bean id="serverListener" class="jetbrains.buildServer.server.rest.data.ServerListener"/>
-
-  <bean id="notFoundExceptionMapper" class="jetbrains.buildServer.server.rest.errors.NotFoundExceptionMapper"/>
-  <bean id="badRequestExceptionMapper" class="jetbrains.buildServer.server.rest.errors.BadRequestExceptionMapper"/>
-  <bean id="invalidStateExceptionMapper" class="jetbrains.buildServer.server.rest.errors.InvalidStateExceptionMapper"/>
-  <bean id="locatorProcessExceptionMapper" class="jetbrains.buildServer.server.rest.errors.LocatorProcessExceptionMapper"/>
-  <bean id="authorizationFailedExceptionMapper" class="jetbrains.buildServer.server.rest.errors.AuthorizationFailedExceptionMapper"/>
-  <bean id="accessDeniedExceptionMapper" class="jetbrains.buildServer.server.rest.errors.AccessDeniedExceptionMapper"/>
-  <bean id="webApplicationExceptionMapper" class="jetbrains.buildServer.server.rest.errors.WebApplicationExceptionMapper"/>
-  <bean id="jerseyNotFoundExceptionMapper" class="jetbrains.buildServer.server.rest.errors.JerseyNotFoundExceptionMapper"/>
-  <bean id="jerseyParamExceptionExceptionMapper" class="jetbrains.buildServer.server.rest.errors.JerseyParamExceptionExceptionMapper"/>
-  <bean id="operationExceptionMapper" class="jetbrains.buildServer.server.rest.errors.OperationExceptionMapper"/>
-  <bean id="runtimeExceptionMapper" class="jetbrains.buildServer.server.rest.errors.RuntimeExceptionMapper"/>
-  <bean id="illegalArgumentExceptionMapper" class="jetbrains.buildServer.server.rest.errors.IllegalArgumentExceptionMapper"/>
-  <bean id="partialUpdateErrorMapper" class="jetbrains.buildServer.server.rest.errors.PartialUpdateErrorMapper"/>
-
-  <bean id="apiController" class="jetbrains.buildServer.server.rest.APIController"/>
-
-  <bean id="restDataProvider" class="jetbrains.buildServer.server.rest.data.DataProvider"/>
-  <bean id="restPermissionChecker" class="jetbrains.buildServer.server.rest.data.PermissionChecker"/>
-
-  <bean id="restbuildTypeFinder" class="jetbrains.buildServer.server.rest.data.BuildTypeFinder"/>
-  <bean id="restProjectFinder" class="jetbrains.buildServer.server.rest.data.ProjectFinder"/>
-  <bean id="restUserGroupFinder" class="jetbrains.buildServer.server.rest.data.UserGroupFinder"/>
-  <bean id="restUserFinder" class="jetbrains.buildServer.server.rest.data.UserFinder"/>
-  <bean id="restVcsRootFinder" class="jetbrains.buildServer.server.rest.data.VcsRootFinder"/>
-  <bean id="restVcsRootInstanceFinder" class="jetbrains.buildServer.server.rest.data.VcsRootInstanceFinder"/>
-  <bean id="restChangeFinder" class="jetbrains.buildServer.server.rest.data.ChangeFinder"/>
-  <bean id="restAgentFinder" class="jetbrains.buildServer.server.rest.data.AgentFinder"/>
-  <bean id="restCloudInstanceFinder" class="jetbrains.buildServer.server.rest.data.CloudInstanceFinder"/>
-  <bean id="restCloudProfileFinder" class="jetbrains.buildServer.server.rest.data.CloudProfileFinder"/>
-  <bean id="restInvestigationFinder" class="jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder"/>
-  <bean id="restMuteFinder" class="jetbrains.buildServer.server.rest.data.mutes.MuteFinder"/>
-  <bean id="restProblemFinder" class="jetbrains.buildServer.server.rest.data.problem.ProblemFinder"/>
-  <bean id="restProblemOccurrenceFinder" class="jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder"/>
-  <bean id="restTestFinder" class="jetbrains.buildServer.server.rest.data.problem.TestFinder"/>
-  <bean id="restTestOccurrenceFinder" class="jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder"/>
-  <bean id="restAuditEventFinder" class="jetbrains.buildServer.server.rest.data.AuditEventFinder"/>
-  <bean id="healthStatusItemFinder" class="jetbrains.buildServer.server.rest.data.HealthItemFinder"/>
-  <bean id="restTeamCityNodesFinder" class="jetbrains.buildServer.server.rest.data.TeamCityNodeFinder"/>
-  <bean id="testScopesCollector" class="jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector" />
-  <bean id="testScopeFilterProducer" class="jetbrains.buildServer.server.rest.data.problem.scope.TestScopeFilterProducer" />
-  <bean id="testScopeTreeCollector" class="jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector" />
-  <bean id="problemOccurrencesTreeCollector" class="jetbrains.buildServer.server.rest.data.problem.scope.ProblemOccurrencesTreeCollector" />
-
-  <bean id="buildQueuePositionModifier" class="jetbrains.buildServer.server.rest.util.BuildQueuePostitionModifier" />
-
-  <bean id="timeCondition" class="jetbrains.buildServer.server.rest.data.TimeCondition"/>
-  <bean id="restDataUpdater" class="jetbrains.buildServer.server.rest.data.DataUpdater"/>
-  <bean id="twoFactorSecretKeysUpdater" class="jetbrains.buildServer.server.rest.data.TwoFactorSecretKeysUpdater"/>
-  <bean id="beanFactory" class="jetbrains.buildServer.server.rest.util.BeanFactory"/>
-
-  <bean id="requestPathTransformInfo" class="jetbrains.buildServer.server.rest.RequestPathTransformInfo"/>
-
-  <bean id="urlBuilderProvider" class="jetbrains.buildServer.server.rest.jersey.UrlBuilderProvider"/>
-  <bean id="dataProviderContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataProviderContextProvider"/>
-  <bean id="permissionCheckerProvider" class="jetbrains.buildServer.server.rest.jersey.PermissionCheckerProvider"/>
-  <bean id="buildTypeFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.BuildTypeFinderContextProvider"/>
-  <bean id="projectFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.ProjectFinderContextProvider"/>
-  <bean id="userGroupFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.UserGroupFinderContextProvider"/>
-  <bean id="userFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.UserFinderContextProvider"/>
-  <bean id="vcsRootFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.VcsRootFinderContextProvider"/>
-  <bean id="vcsRootInstanceFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.VcsRootInstanceFinderContextProvider"/>
-  <bean id="changeFinderContextProvider" class="jetbrains.buildServer.server.rest.jersey.ChangeFinderContextProvider"/>
-  <bean id="restAgentFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AgentFinderProvider"/>
-  <bean id="restCloudInstanceFinderProvider" class="jetbrains.buildServer.server.rest.jersey.CloudInstanceFinderProvider"/>
-  <bean id="restCloudProfileFinderProvider" class="jetbrains.buildServer.server.rest.jersey.CloudProfileFinderProvider"/>
-  <bean id="restInvestigationFinderProvider" class="jetbrains.buildServer.server.rest.jersey.InvestigationFinderProvider"/>
-  <bean id="restMuteFinderProvider" class="jetbrains.buildServer.server.rest.jersey.MuteFinderProvider"/>
-  <bean id="restProblemFinderProvider" class="jetbrains.buildServer.server.rest.jersey.ProblemFinderProvider"/>
-  <bean id="restProblemOccurrenceFinderProvider" class="jetbrains.buildServer.server.rest.jersey.ProblemOccurrenceFinderProvider"/>
-  <bean id="restTestFinderProvider" class="jetbrains.buildServer.server.rest.jersey.TestFinderProvider"/>
-  <bean id="restTestOccurrenceFinderProvider" class="jetbrains.buildServer.server.rest.jersey.TestOccurrenceFinderProvider"/>
-  <bean id="restAuditEventFinderProvider" class="jetbrains.buildServer.server.rest.jersey.AuditEventFinderProvider"/>
-  <bean id="restTeamCityNodeFinderProvider" class="jetbrains.buildServer.server.rest.jersey.TeamCityNodeFinderProvider"/>
-  <bean id="healthStatusItemFinderProvider" class="jetbrains.buildServer.server.rest.jersey.HealthItemFinderProvider"/>
-  <bean id="testScopesCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.TestScopesCollectorProvider"/>
-  <bean id="testScopeTreeCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.TestScopeTreeCollectorProvider"/>
-  <bean id="problemOccurrencesTreeCollectorProvider" class="jetbrains.buildServer.server.rest.jersey.ProblemOccurrencesTreeCollectorProvider"/>
-  <bean id="twoFactorSecretKeysProvider" class="jetbrains.buildServer.server.rest.jersey.TwoFactorSecretKeysProvider"/>
   <bean id="userAvatarsManagerResolver" class="jetbrains.buildServer.server.rest.jersey.UserAvatarsManagerResolver">
     <constructor-arg ref="userAvatarsManager"/>
   </bean>
 
-  <bean id="dataUpdaterContextProvider" class="jetbrains.buildServer.server.rest.jersey.DataUpdaterContextProvider"/>
-  <bean id="serviceLocatorContextProvider" class="jetbrains.buildServer.server.rest.jersey.ServiceLocatorContextProvider"/>
-  <bean id="beanFactoryContextProvider" class="jetbrains.buildServer.server.rest.jersey.BeanFactoryContextProvider"/>
-
   <bean id="swaggerReaderConfig" class="io.swagger.jaxrs.config.DefaultReaderConfig">
     <property name="scanAllResources" value="false"/>
   </bean>
-
-  <bean id="swaggerConfig" class="jetbrains.buildServer.server.rest.swagger.SwaggerConfigImpl"/>
-
-  <bean id="swaggerReaderConfigProvider" class="jetbrains.buildServer.server.rest.swagger.SwaggerReaderConfigProvider"/>
-  <bean id="swaggerConfigProvider" class="jetbrains.buildServer.server.rest.swagger.SwaggerConfigProvider"/>
-
-  <bean id="jacksonObjectMapperResolver" class="jetbrains.buildServer.server.rest.jersey.JacksonObjectMapperResolver"/>
-
-  <bean id="extensionsAwareResourceConfig" class="jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig"/>
 
   <bean id="agentPoolActionsAccessChecker" class="jetbrains.buildServer.server.graphql.resolver.agentPool.AgentPoolActionsAccessCheckerImpl">
     <property name="agentPoolManager" ref="hiddenAgentPoolManager" />

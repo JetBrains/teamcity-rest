@@ -20,12 +20,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
  * Date: 02.06.13
  */
 @Provider
+@Component
 public class IllegalArgumentExceptionMapper extends ExceptionMapperBase<IllegalArgumentException> {
   @Override
   public ResponseData getResponseData(@NotNull final IllegalArgumentException e) {

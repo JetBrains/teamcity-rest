@@ -18,17 +18,20 @@ package jetbrains.buildServer.server.rest.data.problem.scope;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.ParameterCondition;
+import jetbrains.buildServer.server.rest.data.ValueCondition;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
+@Component
 public class TestScopeFilterProducer {
   public static final String[] SUPPORTED_DIMENSIONS = {
     "suite",

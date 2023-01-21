@@ -18,11 +18,13 @@ package jetbrains.buildServer.server.rest.jersey;
 
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.ServiceLocator;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
  *         Date: 06.08.2010
  */
+@Component
 @Provider
 public class ServiceLocatorContextProvider extends AbstractSingletonBeanProvider<ServiceLocator> {
   public ServiceLocatorContextProvider(final ServiceLocator contextLocator) {

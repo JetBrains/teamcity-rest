@@ -22,12 +22,14 @@ import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
 /**
  * User: Yegor Yarko
  * Date: 30.03.2009
  */
 @Provider
+@Component
 public class RuntimeExceptionMapper extends ExceptionMapperBase<RuntimeException> {
   @Override
   public ResponseData getResponseData(@NotNull final RuntimeException e) {

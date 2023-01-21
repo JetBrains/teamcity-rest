@@ -16,8 +16,21 @@
 
 package jetbrains.buildServer.server.rest.data.build;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildPromotionFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.UserFinder;
+import jetbrains.buildServer.server.rest.data.util.FilterConditionChecker;
+import jetbrains.buildServer.server.rest.data.util.FilterUtil;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
+import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
+import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
@@ -30,12 +43,6 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * @author Yegor.Yarko
@@ -115,7 +122,7 @@ public class TagFinder extends AbstractFinder<TagData> {
         return user1.getUsername().compareToIgnoreCase(user2.getUsername());
       }
     });
-    return getItemHolder(result);
+    return ItemHolder.of(result);
   }
 
   @NotNull

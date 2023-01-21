@@ -20,8 +20,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.*;
+import jetbrains.buildServer.server.rest.data.finder.impl.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.PartialUpdateError;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.Property;
 import jetbrains.buildServer.server.rest.model.group.Group;
@@ -34,11 +36,14 @@ import jetbrains.buildServer.users.impl.NewUserAccountBuilder;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
  *         Date: 12.07.2009
  */
+@JerseyContextSingleton
+@Component("restDataUpdater")
 public class DataUpdater {
   private final DataProvider myDataProvider;
   private final UserGroupManager myGroupManager;

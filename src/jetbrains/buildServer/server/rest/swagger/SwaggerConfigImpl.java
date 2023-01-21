@@ -20,15 +20,15 @@ import com.intellij.openapi.diagnostic.Logger;
 import io.swagger.config.SwaggerConfig;
 import io.swagger.models.Info;
 import io.swagger.models.Swagger;
+import java.net.MalformedURLException;
+import java.net.URL;
 import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-
+@Component("swaggerConfig")
 public class SwaggerConfigImpl implements SwaggerConfig {
   private final DataProvider myDataProvider;
   private static final Logger LOG = Logger.getInstance(SwaggerConfigImpl.class.getName());

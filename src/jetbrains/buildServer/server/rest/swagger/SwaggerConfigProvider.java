@@ -19,7 +19,9 @@ package jetbrains.buildServer.server.rest.swagger;
 import io.swagger.config.SwaggerConfig;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.jersey.AbstractSingletonBeanProvider;
+import org.springframework.stereotype.Component;
 
+@Component
 @Provider
 public class SwaggerConfigProvider extends AbstractSingletonBeanProvider<SwaggerConfig> {
   public SwaggerConfigProvider(final SwaggerConfig config) {

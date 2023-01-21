@@ -19,8 +19,17 @@ package jetbrains.buildServer.server.rest.data.problem;
 import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildPromotionFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.util.FilterUtil;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
+import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
+import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
@@ -33,6 +42,7 @@ import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.util.CollectionsUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
@@ -46,6 +56,8 @@ import org.jetbrains.annotations.Nullable;
         "`build:<buildLocator>` — find tests under build found by `buildLocator`."
     }
 )
+@JerseyContextSingleton
+@Component("restTestFinder")
 public class TestFinder extends AbstractFinder<STest> {
   @LocatorDimension("name") private static final String NAME = "name";
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
@@ -161,7 +173,7 @@ public class TestFinder extends AbstractFinder<STest> {
   public ItemHolder<STest> getPrefilteredItems(@NotNull final Locator locator) {
     String buildLocator = locator.getSingleDimensionValue(BUILD);
     if (buildLocator != null){
-      return getItemHolder(getTestsByBuilds(buildLocator));
+      return ItemHolder.of(getTestsByBuilds(buildLocator));
     }
 
     final SProject affectedProject;
@@ -174,12 +186,12 @@ public class TestFinder extends AbstractFinder<STest> {
 
     Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
-      return getItemHolder(getCurrentlyFailingTests(affectedProject));
+      return ItemHolder.of(getCurrentlyFailingTests(affectedProject));
     }
 
     Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null && currentlyMutedDimension) {
-      return getItemHolder(getCurrentlyMutedTests(affectedProject));
+      return ItemHolder.of(getCurrentlyMutedTests(affectedProject));
     }
 
     //todo: TeamCity API: find a way to support more cases

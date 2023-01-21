@@ -34,7 +34,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import jetbrains.buildServer.controllers.HttpDownloadProcessor;
 import jetbrains.buildServer.server.rest.data.ArchiveElement;
-import jetbrains.buildServer.server.rest.data.BuildArtifactsFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;

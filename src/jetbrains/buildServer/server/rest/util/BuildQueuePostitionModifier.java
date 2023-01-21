@@ -22,7 +22,9 @@ import jetbrains.buildServer.serverSide.BuildQueue;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
+@Component
 public class BuildQueuePostitionModifier {
   @NotNull
   private final BuildQueue myBuildQueue;

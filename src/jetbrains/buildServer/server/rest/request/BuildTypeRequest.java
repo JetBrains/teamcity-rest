@@ -33,7 +33,11 @@ import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.data.finder.impl.*;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationFinder;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
@@ -71,7 +75,7 @@ import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static jetbrains.buildServer.server.rest.data.ProjectFinder.BUILD_TYPE;
+import static jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder.BUILD_TYPE;
 
 /*
  * User: Yegor Yarko

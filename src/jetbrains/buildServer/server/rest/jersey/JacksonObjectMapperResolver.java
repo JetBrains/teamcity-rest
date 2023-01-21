@@ -31,10 +31,12 @@ import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.model.Constants;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Vladislav.Rassokhin
  */
+@Component
 @Provider
 @Produces(MediaType.APPLICATION_JSON)
 public class JacksonObjectMapperResolver implements ContextResolver<ObjectMapper> {

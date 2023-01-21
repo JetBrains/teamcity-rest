@@ -16,15 +16,19 @@
 
 package jetbrains.buildServer.server.rest.data.problem.scope;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.problem.Orders;
 import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
-import jetbrains.buildServer.server.rest.data.problem.tree.*;
+import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
+import jetbrains.buildServer.server.rest.data.problem.tree.TreeSlicingOptions;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtil;
 import jetbrains.buildServer.serverSide.BuildPromotion;
@@ -32,6 +36,7 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
 /**
  * Collects test scopes (project path, build type, suite, package, class) according to a given
@@ -43,6 +48,8 @@ import org.jetbrains.annotations.NotNull;
  * <li>2. Horizontal slicing: tree nodes are returned up to the level, determined by a given condition. </li>
  * </ul>
  */
+@JerseyContextSingleton
+@Component
 public class TestScopeTreeCollector {
   public static final String BUILD = "build";
   public static final String ORDER_BY = "orderBy";

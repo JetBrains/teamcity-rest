@@ -27,7 +27,7 @@ import jetbrains.buildServer.controllers.buildType.tabs.GraphFactory;
 import jetbrains.buildServer.controllers.project.ProjectChangeLogBeanProvider;
 import jetbrains.buildServer.controllers.viewLog.BuildChangeLogBeanProvider;
 import jetbrains.buildServer.requirements.RequirementType;
-import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.changeLog.ChangeLogBeanCollector;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;

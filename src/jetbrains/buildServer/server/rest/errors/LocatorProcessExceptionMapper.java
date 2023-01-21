@@ -20,12 +20,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
 /**
  * User: Yegor Yarko
  * Date: 30.03.2009
  */
 @Provider
+@Component
 public class LocatorProcessExceptionMapper extends ExceptionMapperBase<LocatorProcessException> {
   @Override
   public ResponseData getResponseData(@NotNull final LocatorProcessException e) {

@@ -24,7 +24,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import jetbrains.buildServer.server.rest.data.TwoFactorSecretKeysUpdater;
-import jetbrains.buildServer.server.rest.data.UserFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.UserFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.user.TwoFactorCredentials;
 import jetbrains.buildServer.server.rest.model.user.TwoFactorRecoveryKeys;

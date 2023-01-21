@@ -21,11 +21,13 @@ import java.util.Map;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
  *         Date: 15.11.2009
  */
+@Component
 public class RequestPathTransformInfo implements PathTransformator {
   @NotNull private Map<String, String> myPathMapping;
 

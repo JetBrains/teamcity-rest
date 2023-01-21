@@ -16,8 +16,7 @@
 
 package jetbrains.buildServer.server.rest.swagger.constants;
 
-import jetbrains.buildServer.server.rest.data.AbstractFinder;
-import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.CommonLocatorDimension;
 

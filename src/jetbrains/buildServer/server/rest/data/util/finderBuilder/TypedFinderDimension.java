@@ -16,8 +16,8 @@
 
 package jetbrains.buildServer.server.rest.data.util.finderBuilder;
 
-import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.Filter;
-import jetbrains.buildServer.server.rest.data.TypedFinderBuilder.ItemsFromDimension;
+import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Filter;
+import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.ItemsFromDimension;
 import org.jetbrains.annotations.NotNull;
 
 /**

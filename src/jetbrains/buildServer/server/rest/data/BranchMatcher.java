@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.server.rest.data.build.GenericBuildsFilter;
+import jetbrains.buildServer.server.rest.data.finder.impl.BranchFinder;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.util.StringUtil;

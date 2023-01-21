@@ -22,6 +22,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.TestInternalProperties;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import org.jetbrains.annotations.NotNull;

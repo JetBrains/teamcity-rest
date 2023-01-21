@@ -18,12 +18,12 @@ package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.schema.DataFetchingEnvironment;
 import jetbrains.buildServer.Used;
+import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
 import jetbrains.buildServer.server.graphql.model.connections.PaginationArguments;
 import jetbrains.buildServer.server.graphql.model.connections.ProjectsConnection;
 import jetbrains.buildServer.server.graphql.util.ModelResolver;
 import jetbrains.buildServer.server.graphql.util.ParentsFetcher;
-import jetbrains.buildServer.server.graphql.model.buildType.BuildType;
-import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildTypeFinder;
 import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;

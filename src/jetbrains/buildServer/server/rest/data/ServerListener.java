@@ -19,11 +19,13 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.Date;
 import jetbrains.buildServer.serverSide.BuildServerAdapter;
 import jetbrains.buildServer.serverSide.SBuildServer;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
  *         Date: 17.11.2009
  */
+@Component
 public class ServerListener extends BuildServerAdapter {
   protected Date myServerStartTime;
 

@@ -25,9 +25,14 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.server.rest.APIController;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.VcsRootFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.VcsRootInstanceFinder;
 import jetbrains.buildServer.server.rest.data.parameters.EntityWithModifiableParameters;
 import jetbrains.buildServer.server.rest.data.parameters.MapBackedEntityWithModifiableParameters;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -323,7 +328,7 @@ public class VcsRoot {
   }
 
   public static boolean shouldRestrictSettingsViewing(final @NotNull SVcsRoot root, final @NotNull PermissionChecker permissionChecker) {
-    //see also jetbrains.buildServer.server.rest.data.VcsRootFinder.checkPermission
+    //see also jetbrains.buildServer.server.rest.data.finder.impl.VcsRootFinder.checkPermission
     if (TeamCityProperties.getBooleanOrTrue("rest.beans.vcsRoot.checkPermissions")) {
       final SProject project = VcsRoot.getProjectByRoot(root);
       return !permissionChecker.isPermissionGranted(Permission.VIEW_BUILD_CONFIGURATION_SETTINGS, project != null ? project.getProjectId() : null);

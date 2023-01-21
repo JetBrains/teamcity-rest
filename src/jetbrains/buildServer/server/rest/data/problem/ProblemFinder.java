@@ -16,9 +16,19 @@
 
 package jetbrains.buildServer.server.rest.data.problem;
 
+import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildPromotionFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.util.FilterConditionChecker;
+import jetbrains.buildServer.server.rest.data.util.FilterUtil;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
+import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
+import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
@@ -35,8 +45,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.*;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
@@ -50,6 +59,8 @@ import java.util.*;
         "`build:<buildLocator>` — find build problems under build found by `buildLocator`."
     }
 )
+@JerseyContextSingleton
+@Component("restProblemFinder")
 public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @LocatorDimension(value = "currentlyFailing", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is currently failing.")
   private static final String CURRENT = "currentlyFailing";
@@ -138,7 +149,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   public ItemHolder<ProblemWrapper> getPrefilteredItems(@NotNull final Locator locator) {
     String buildLocator = locator.getSingleDimensionValue(BUILD);
     if (buildLocator != null) {
-      return getItemHolder(getProblemsByBuilds(buildLocator));
+      return ItemHolder.of(getProblemsByBuilds(buildLocator));
     }
 
     final SProject affectedProject;
@@ -152,13 +163,13 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
       locator.markUsed(CURRENT);
-      return getItemHolder(getCurrentProblemsList(affectedProject));
+      return ItemHolder.of(getCurrentProblemsList(affectedProject));
     }
 
     Boolean currentlyMutedDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null && currentlyMutedDimension) {
       locator.markUsed(CURRENTLY_MUTED);
-      return getItemHolder(getCurrentlyMutedProblems(affectedProject));
+      return ItemHolder.of(getCurrentlyMutedProblems(affectedProject));
     }
 
     //todo: TeamCity API: find a way to do this

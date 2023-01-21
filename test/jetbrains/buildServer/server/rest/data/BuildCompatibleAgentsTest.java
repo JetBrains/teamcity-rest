@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 import jetbrains.LicenseTestUtil;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.requirements.RequirementType;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.model.BuildTest;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.agent.Agent;

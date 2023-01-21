@@ -17,12 +17,26 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.server.rest.data.*;
-import jetbrains.buildServer.server.rest.data.util.FlatteningItemHolder;
+import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildPromotionFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.util.FilterUtil;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
+import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
+import jetbrains.buildServer.server.rest.data.util.itemholder.FlatteningItemHolder;
+import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.*;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.request.BuildRequest;
 import jetbrains.buildServer.server.rest.request.Constants;
@@ -41,10 +55,7 @@ import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
 import jetbrains.buildServer.util.ItemProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
@@ -58,6 +69,8 @@ import java.util.stream.Collectors;
         "`build:<buildLocator>` — find build problem occurrences under build found by `buildLocator`."
     }
 )
+@JerseyContextSingleton
+@Component("restProblemOccurrenceFinder")
 public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   private static final Logger LOG = Logger.getInstance(ProblemOccurrenceFinder.class.getName());
 
@@ -174,7 +187,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       FlatteningItemHolder<BuildProblem> result = new FlatteningItemHolder<>();
       for (BuildPromotion build : builds) {
         List<BuildProblem> buildProblemOccurrences = getProblemOccurrences(build);
-        if (!buildProblemOccurrences.isEmpty()) result.add(getItemHolder(buildProblemOccurrences));
+        if (!buildProblemOccurrences.isEmpty()) result.add(ItemHolder.of(buildProblemOccurrences));
       }
       return result;
     }
@@ -182,7 +195,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
     if (currentDimension != null && currentDimension) {
       locator.markUsed(CURRENT);
-      return getItemHolder(getCurrentProblemOccurences(getAffectedProject(locator)));
+      return ItemHolder.of(getCurrentProblemOccurences(getAffectedProject(locator)));
     }
 
     String problemDimension = locator.getSingleDimensionValue(PROBLEM);

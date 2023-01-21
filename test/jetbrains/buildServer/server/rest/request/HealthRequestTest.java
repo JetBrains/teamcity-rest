@@ -17,7 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import java.util.Collections;
-import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.model.health.HealthItem;
 import jetbrains.buildServer.serverSide.healthStatus.*;
 import org.jetbrains.annotations.NotNull;

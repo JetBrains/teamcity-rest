@@ -17,13 +17,12 @@
 package jetbrains.buildServer.server.graphql.resolver;
 
 import graphql.relay.Edge;
-import graphql.schema.DataFetchingEnvironment;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import jetbrains.buildServer.server.graphql.model.connections.ExtensibleConnection;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
-import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 
 import org.jetbrains.annotations.NotNull;

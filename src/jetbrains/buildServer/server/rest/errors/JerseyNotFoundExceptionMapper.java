@@ -20,6 +20,7 @@ import com.sun.jersey.api.NotFoundException;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
 /**
  * User: Yegor Yarko
@@ -28,6 +29,7 @@ import org.jetbrains.annotations.NotNull;
  * This will hopefully report Jersey-originated errors with more details
  */
 @Provider
+@Component
 public class JerseyNotFoundExceptionMapper extends ExceptionMapperBase<NotFoundException> {
   @Override
   public ResponseData getResponseData(@NotNull final com.sun.jersey.api.NotFoundException e) {

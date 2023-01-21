@@ -23,19 +23,19 @@ import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
 import com.sun.jersey.spi.container.ReloadListener;
 import com.sun.jersey.spi.scanning.AnnotationScannerListener;
 import com.sun.jersey.spi.scanning.PathProviderScannerListener;
+import java.lang.annotation.Annotation;
+import java.util.*;
+import javax.ws.rs.Path;
+import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.RESTControllerExtension;
-import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.LocatorResourceListener;
+import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import javax.ws.rs.Path;
-import javax.ws.rs.ext.Provider;
-import java.lang.annotation.Annotation;
-import java.util.*;
+import org.springframework.stereotype.Component;
 
 /**
  * Based on {@link com.sun.jersey.api.core.ScanningResourceConfig}
@@ -43,6 +43,7 @@ import java.util.*;
  *
  * @since 9.0
  */
+@Component
 public class ExtensionsAwareResourceConfig extends DefaultResourceConfig implements ReloadListener {
   private static Logger LOG = Logger.getInstance(ExtensionsAwareResourceConfig.class.getName());
 

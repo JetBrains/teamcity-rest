@@ -17,7 +17,7 @@
 package jetbrains.buildServer.server.rest.request;
 
 import java.util.Arrays;
-import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.model.problem.Mutes;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.STest;

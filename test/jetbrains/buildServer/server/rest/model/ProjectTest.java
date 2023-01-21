@@ -16,7 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model;
 
-import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.model.project.Project;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.SimpleParameter;

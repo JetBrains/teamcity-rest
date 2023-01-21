@@ -37,9 +37,9 @@ import jetbrains.buildServer.server.graphql.resolver.agentPool.AbstractAgentPool
 import jetbrains.buildServer.server.graphql.util.Context;
 import jetbrains.buildServer.server.graphql.util.EntityNotFoundGraphQLError;
 import jetbrains.buildServer.server.graphql.util.OperationFailedGraphQLError;
-import jetbrains.buildServer.server.rest.data.AgentFinder;
-import jetbrains.buildServer.server.rest.data.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.AgentFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildTypeFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.agentPools.*;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeManager;

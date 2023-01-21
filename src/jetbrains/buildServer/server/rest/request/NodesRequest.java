@@ -29,7 +29,7 @@ import javax.ws.rs.core.MediaType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
-import jetbrains.buildServer.server.rest.data.TeamCityNodeFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.TeamCityNodeFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.nodes.*;

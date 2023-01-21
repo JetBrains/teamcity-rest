@@ -19,7 +19,7 @@ package jetbrains.buildServer.server.rest.model;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import jetbrains.buildServer.server.rest.data.BaseFinderTest;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.AgentEnabledInfo;
 import jetbrains.buildServer.server.rest.request.AgentRequest;
