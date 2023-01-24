@@ -639,8 +639,9 @@ public class ChangeStatusTest extends BaseFinderTest {
 
     myFixture.flushQueueAndWaitN(2);
 
+    RunningBuildEx depFail = build().withFailedTests("depFail").run(depBuild);
+    finishBuild(depFail, true);
 
-    build().withFailedTests("depFail").run(depBuild).finish();
     RunningBuildEx mainRunning = build().run(mainBuild);
     mainRunning.updateBuild(); mainRunning.finish();
 
