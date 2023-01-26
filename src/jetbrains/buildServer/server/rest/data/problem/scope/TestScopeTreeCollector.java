@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data.problem.scope;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.server.rest.data.Locator;
@@ -26,6 +27,7 @@ import jetbrains.buildServer.server.rest.data.problem.Orders;
 import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
+import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree.Node;
 import jetbrains.buildServer.server.rest.data.problem.tree.TreeSlicingOptions;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
@@ -68,16 +70,11 @@ public class TestScopeTreeCollector {
   private final TestScopesCollector myScopeCollector;
   private final TestOccurrenceFinder myTestOccurrenceFinder;
 
-  private static final Orders<ScopeTree.Node<STestRun, TestCountersData>> SUPPORTED_ORDERS = new Orders<ScopeTree.Node<STestRun, TestCountersData>>()
+  private static final Orders<Node<STestRun, TestCountersData>> SUPPORTED_ORDERS = new Orders<Node<STestRun, TestCountersData>>()
     .add("name", Comparator.comparing(node -> node.getScope().getName()))
     .add("duration", Comparator.comparing(node -> node.getCounters().getDuration()))
     .add("count", Comparator.comparing(node -> node.getCounters().getCount()))
-    .add("newFailedCount", Comparator.comparing(node -> {
-      if(node.getCounters().getNewFailed() == null) {
-        return -1; // we should always have new failed count, but if not, let's sort these to the end
-      }
-      return node.getCounters().getNewFailed();
-    }))
+    .add("newFailedCount", Comparator.nullsLast(Comparator.comparing(node -> node.getCounters().getNewFailed())))
     .add("childrenCount", Comparator.comparing(node -> node.getChildren().size()));
 
   public TestScopeTreeCollector(final @NotNull TestScopesCollector scopesCollector, final @NotNull TestOccurrenceFinder testOccurrenceFinder) {
@@ -87,7 +84,7 @@ public class TestScopeTreeCollector {
 
 
   @NotNull
-  public List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedTree(@NotNull Locator locator) {
+  public List<Node<STestRun, TestCountersData>> getSlicedTree(@NotNull Locator locator) {
     locator.addSupportedDimensions(BUILD, ORDER_BY, MAX_CHILDREN, AFFECTED_PROJECT, CURRENT, CURRENTLY_INVESTIGATED, NEW_FAILURE, SUBTREE_ROOT_ID,
                                    TestScopesCollector.GROUP_PARALLEL_TESTS);
 
@@ -99,16 +96,13 @@ public class TestScopeTreeCollector {
   }
 
   @NotNull
-  private List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedTreeInternal(@NotNull Locator locator) {
+  private List<Node<STestRun, TestCountersData>> getSlicedTreeInternal(@NotNull Locator locator) {
     ScopeTree<STestRun, TestCountersData> tree = buildTree(locator);
-    Comparator<ScopeTree.Node<STestRun, TestCountersData>> order = getNodeOrder(locator);
+    Comparator<Node<STestRun, TestCountersData>> order = getNodeOrder(locator);
 
-    String maxChildrenDim = locator.getSingleDimensionValue(MAX_CHILDREN);
-    int maxChildren = maxChildrenDim == null ? DEFAULT_MAX_CHILDREN : Integer.parseInt(maxChildrenDim);
-
-    TreeSlicingOptions<STestRun, TestCountersData> slicingOptions = new TreeSlicingOptions<>(maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order);
+    TreeSlicingOptions<STestRun, TestCountersData> slicingOptions = new TreeSlicingOptions<>(getMaxChildrenFunction(locator), STestRun.NEW_FIRST_NAME_COMPARATOR, order);
     String maxTotalNodesStr = locator.getSingleDimensionValue(TREE_MAX_TOTAL_NODES);
-    if(maxTotalNodesStr != null) {
+    if (maxTotalNodesStr != null) {
       try {
         int maxTotalNodes = Integer.parseInt(maxTotalNodesStr);
         slicingOptions = slicingOptions.withMaxNodes(maxTotalNodes);
@@ -123,7 +117,7 @@ public class TestScopeTreeCollector {
   }
 
   @NotNull
-  public List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedTreeFromBuildPromotions(@NotNull Stream<BuildPromotion> promotions, @NotNull Locator treeLocator) {
+  public List<Node<STestRun, TestCountersData>> getSlicedTreeFromBuildPromotions(@NotNull Stream<BuildPromotion> promotions, @NotNull Locator treeLocator) {
     treeLocator.addSupportedDimensions(NEW_FAILURE, SUBTREE_ROOT_ID);
 
     final String testRunsLocator = "build:%d,status:failure,muted:false,ignored:false"
@@ -148,8 +142,8 @@ public class TestScopeTreeCollector {
       }).collect(Collectors.toList());
 
     ScopeTree<STestRun, TestCountersData> tree = new ScopeTree<STestRun, TestCountersData>(TestScopeInfo.ROOT, new TestCountersData(), scopes);
-    TreeSlicingOptions<STestRun, TestCountersData> slicingOptions = new TreeSlicingOptions<STestRun, TestCountersData>(
-      DEFAULT_MAX_CHILDREN,
+    TreeSlicingOptions<STestRun, TestCountersData> slicingOptions = new TreeSlicingOptions<>(
+      (node) -> DEFAULT_MAX_CHILDREN,
       STestRun.NEW_FIRST_NAME_COMPARATOR,
       SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT)
     );
@@ -177,22 +171,19 @@ public class TestScopeTreeCollector {
   }
 
   @NotNull
-  private List<ScopeTree.Node<STestRun, TestCountersData>> getSlicedSubTree(@NotNull Locator locator) {
+  private List<Node<STestRun, TestCountersData>> getSlicedSubTree(@NotNull Locator locator) {
     ScopeTree<STestRun, TestCountersData> tree = buildTree(locator);
-    Comparator<ScopeTree.Node<STestRun, TestCountersData>> order = getNodeOrder(locator);
-
-    String maxChildrenDim = locator.getSingleDimensionValue(MAX_CHILDREN);
-    int maxChildren = maxChildrenDim == null ? DEFAULT_MAX_CHILDREN : Integer.parseInt(maxChildrenDim);
+    Comparator<Node<STestRun, TestCountersData>> order = getNodeOrder(locator);
 
     String subTreeRootID = locator.getSingleDimensionValue(SUBTREE_ROOT_ID);
-    if(subTreeRootID == null) {
+    if (subTreeRootID == null) {
       throw new LocatorProcessException("Missing value of required dimension " + SUBTREE_ROOT_ID);
     }
 
-    TreeSlicingOptions<STestRun, TestCountersData> slicingOptions = new TreeSlicingOptions<STestRun, TestCountersData>(maxChildren, STestRun.NEW_FIRST_NAME_COMPARATOR, order);
+    TreeSlicingOptions<STestRun, TestCountersData> slicingOptions = new TreeSlicingOptions<STestRun, TestCountersData>(getMaxChildrenFunction(locator), STestRun.NEW_FIRST_NAME_COMPARATOR, order);
 
     String maxTotalNodesStr = locator.getSingleDimensionValue(TREE_MAX_TOTAL_NODES);
-    if(maxTotalNodesStr != null) {
+    if (maxTotalNodesStr != null) {
       try {
         int maxTotalNodes = Integer.parseInt(maxTotalNodesStr);
         slicingOptions = slicingOptions.withMaxNodes(maxTotalNodes);
@@ -207,11 +198,11 @@ public class TestScopeTreeCollector {
   }
 
   @NotNull
-  public List<ScopeTree.Node<STestRun, TestCountersData>> getTopSlicedTree(@NotNull Locator locator) {
+  public List<Node<STestRun, TestCountersData>> getTopSlicedTree(@NotNull Locator locator) {
     locator.addSupportedDimensions(BUILD, ORDER_BY, AFFECTED_PROJECT);
 
     ScopeTree<STestRun, TestCountersData> tree = buildTree(locator);
-    Comparator<ScopeTree.Node<STestRun, TestCountersData>> order = getNodeOrder(locator);
+    Comparator<Node<STestRun, TestCountersData>> order = getNodeOrder(locator);
 
     locator.checkLocatorFullyProcessed();
 
@@ -232,7 +223,59 @@ public class TestScopeTreeCollector {
     );
   }
 
-  private Locator prepareScopesLocator(@NotNull Locator locator) {
+  @NotNull
+  private static Function<Node<STestRun, TestCountersData>, Integer> getMaxChildrenFunction(int defaultMaxChildren, Function<TestScopeInfo, Integer> scope2maxChildren) {
+    return (node) -> {
+      // TW-71521 Don't apply `maxChildren` to project & build configuration nodes
+      if (node.getScope() instanceof TestScopeInfo) {
+        Integer maxChildren = scope2maxChildren.apply((TestScopeInfo)node.getScope());
+        return maxChildren == null ? defaultMaxChildren : maxChildren;
+      }
+      return defaultMaxChildren;
+    };
+  }
+
+  /**
+   * <pre>
+   *   "" -> DEFAULT_MAX_CHILDREN for all
+   *   maxChildren:7 -> 7 for all
+   *   maxChildren(default:7) -> 7 for all
+   *   maxChildren(buildType:4,project:3,default:7) -> 4 for BUILD_TYPE nodes, 3 for PROJECT nodes, 7 for all others
+   *   maxChildren(buildType:4,project:3) -> 4 for BUILD_TYPE nodes, 3 for PROJECT nodes, DEFAULT_MAX_CHILDREN for all others
+   *
+   *   maxChildren:qwerty -> error
+   *   maxChildren(default:qwerty) -> error
+   *   maxChildren(buildType:qwerty) -> error
+   *   maxChildren(project:qwerty) -> error
+   * </pre>
+   *
+   * TW-71521 Don't apply `maxChildren` to project & build configuration nodes
+   */
+  @NotNull
+  private static Function<Node<STestRun, TestCountersData>, Integer> getMaxChildrenFunction(@NotNull Locator locator) {
+    Locator maxChildrenLocator = locator.get(MAX_CHILDREN);
+    if (maxChildrenLocator == null) {
+      return (node) -> DEFAULT_MAX_CHILDREN;
+    }
+
+    if (maxChildrenLocator.isSingleValue()) {
+      String maxChildrenDim = maxChildrenLocator.getSingleValue();
+      //noinspection DataFlowIssue // Never null because cheched with isSingleValue above
+      int maxChildren = Integer.parseInt(maxChildrenDim);
+      return (node) -> maxChildren;
+    }
+
+    int defaultMaxChildren = (int)(long)maxChildrenLocator.getSingleDimensionValueAsLong("default", (long)DEFAULT_MAX_CHILDREN);
+    int buildTypeMaxChildren = (int)(long)maxChildrenLocator.getSingleDimensionValueAsLong("buildType", (long)defaultMaxChildren);
+    int projectMaxChildren = (int)(long)maxChildrenLocator.getSingleDimensionValueAsLong("project", (long)defaultMaxChildren);
+    return getMaxChildrenFunction(defaultMaxChildren, scope -> {
+      if (scope.getType().equals(TestScopeType.BUILD_TYPE)) return buildTypeMaxChildren;
+      if (scope.getType().equals(TestScopeType.PROJECT)) return projectMaxChildren;
+      return null;
+    });
+  }
+
+  private static Locator prepareScopesLocator(@NotNull Locator locator) {
     Locator occurrencesLocator = Locator.createEmptyLocator();
     occurrencesLocator.setDimension(TestOccurrenceFinder.STATUS, "FAILURE");
     occurrencesLocator.setDimension(PagerData.COUNT, "-1");
@@ -253,7 +296,7 @@ public class TestScopeTreeCollector {
     return scopesLocator;
   }
 
-  private Comparator<ScopeTree.Node<STestRun, TestCountersData>> getNodeOrder(@NotNull Locator locator) {
+  private static Comparator<Node<STestRun, TestCountersData>> getNodeOrder(@NotNull Locator locator) {
     if(locator.isAnyPresent(ORDER_BY)) {
       String orderDimension = locator.getSingleDimensionValue(ORDER_BY);
       //noinspection ConstantConditions

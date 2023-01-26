@@ -78,8 +78,8 @@ public class Locator {
 
   @NotNull private final Set<String> myUsedDimensions;
   @Nullable private String[] mySupportedDimensions;
-  @NotNull private final Collection<String> myIgnoreUnusedDimensions = new HashSet<String>();
-  @NotNull private final Collection<String> myHiddenSupportedDimensions = new HashSet<String>();
+  @NotNull private final Collection<String> myIgnoreUnusedDimensions = new HashSet<>();
+  @NotNull private final Collection<String> myHiddenSupportedDimensions = new HashSet<>();
   private DescriptionProvider myDescriptionProvider = null;
 
   public Locator(@Nullable final String locator) throws LocatorProcessException {
@@ -629,11 +629,30 @@ public class Locator {
     }
   }
 
+  /**
+   * Examles:
+   * <pre>
+   *   12345 -> true
+   *   bar -> true
+   *   foo:bar -> false
+   *   "" -> false
+   * </pre>
+   *
+   * @return
+   */
   public boolean isSingleValue() {
     return mySingleValue != null;
   }
 
   /**
+   * Examples:
+   * <pre>
+   *   12345 -> 12345
+   *   bar -> bar
+   *   foo:bar -> null
+   *   "" -> null
+   * </pre>
+   *
    * @return locator's not-null value if it is single-value locator, 'null' otherwise
    */
   @Nullable
@@ -642,6 +661,11 @@ public class Locator {
     return lookupSingleValue();
   }
 
+  /**
+   * Gets the value without marking it as used.
+   * @see {@link Locator#getSingleValue()}
+   * @return the value of single-value-locator
+   */
   @Nullable
   public String lookupSingleValue() {
     return mySingleValue;
@@ -736,7 +760,16 @@ public class Locator {
   }
 
   /**
-   * Extracts the single dimension value from dimensions.
+   * Extracts raw dimension value if it is single. Error if not single.
+   *
+   * Examples:
+   * <pre>
+   *   foo in foo:(bar:xyz,dee:jux),abc:def -> bar:xyz,dee:jux
+   *   foo in foo:bar,foo:xyz -> error
+   *   foo in foo:() -> empty locator
+   *   foo in bar:buz -> null
+   *   foo in foo:(buz) -> ???
+   * </pre>
    *
    * @param dimensionName the name of the dimension to extract value.   @return 'null' if no such dimension is found, value of the dimension otherwise.
    * @throws jetbrains.buildServer.server.rest.errors.LocatorProcessException if there are more then a single dimension definition for a 'dimensionName' name or the dimension has no value specified.
@@ -745,6 +778,29 @@ public class Locator {
   public String getSingleDimensionValue(@NotNull final String dimensionName) {
     markUsed(dimensionName);
     return lookupSingleDimensionValue(dimensionName);
+  }
+
+  /**
+   * Get dimension value as locator.
+   * <p/>
+   * Examples:
+   * <pre>
+   *   foo in foo -> null
+   *   foo in foo(bar) -> bar
+   *   foo in foo(bar:buz) -> bar:buz
+   *   foo in foo:bar,foo:buz -> error
+   * </pre>
+   *
+   * @param dimensionName
+   * @return
+   */
+  @Nullable
+  public Locator get(@NotNull String dimensionName) {
+    if (isEmpty()) {
+      return null;
+    }
+    String dimensionRawValue = getSingleDimensionValue(dimensionName);
+    return Locator.locator(dimensionRawValue);
   }
 
   /**

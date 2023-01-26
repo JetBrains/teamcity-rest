@@ -17,36 +17,57 @@
 package jetbrains.buildServer.server.rest.data.problem.tree;
 
 import java.util.Comparator;
+import java.util.function.Function;
+import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree.Node;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class TreeSlicingOptions<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
-  private int myMaxChildren = 5;
+  /**
+   * This function should always return non-null non-negative integer value. <br/>
+   * If no limit could be provided, then {@link Integer.MAX_VALUE} should be returned.
+   */
+  private final Function<Node<DATA, COUNTERS>, Integer> myMaxChildren;
   @NotNull
   private final Comparator<DATA> myDataComparator;
   @Nullable
-  private Comparator<ScopeTree.Node<DATA, COUNTERS>> myNodeComparator = null;
+  private final Comparator<Node<DATA, COUNTERS>> myNodeComparator;
   @Nullable
-  private Integer myMaxTotalNodes = null;
+  private final Integer myMaxTotalNodes;
 
-  public TreeSlicingOptions(int maxChildren,
-                            @NotNull Comparator<DATA> dataComparator,
-                            @Nullable Comparator<ScopeTree.Node<DATA, COUNTERS>> nodeComparator,
-                            @Nullable Integer maxTotalNodes) {
+  public TreeSlicingOptions(
+    Function<Node<DATA, COUNTERS>, Integer> maxChildren,
+    @NotNull Comparator<DATA> dataComparator,
+    @Nullable Comparator<Node<DATA, COUNTERS>> nodeComparator,
+    @Nullable Integer maxTotalNodes
+  ) {
     myMaxChildren = maxChildren;
     myNodeComparator = nodeComparator;
     myDataComparator = dataComparator;
     myMaxTotalNodes = maxTotalNodes;
   }
 
-  public TreeSlicingOptions(int maxChildren,
+  public TreeSlicingOptions(
+    int maxChildren,
+    @NotNull Comparator<DATA> dataComparator,
+    @Nullable Comparator<Node<DATA, COUNTERS>> nodeComparator
+  ) {
+    this((__) -> maxChildren, dataComparator, nodeComparator, null);
+  }
+
+  public TreeSlicingOptions(Function<Node<DATA, COUNTERS>, Integer> maxChildren,
                             @NotNull Comparator<DATA> dataComparator,
-                            @Nullable Comparator<ScopeTree.Node<DATA, COUNTERS>> nodeComparator) {
+                            @Nullable Comparator<Node<DATA, COUNTERS>> nodeComparator) {
     this(maxChildren, dataComparator, nodeComparator, null);
   }
 
   @NotNull
   public TreeSlicingOptions<DATA, COUNTERS> withMaxChildren(int maxChildren) {
+    return new TreeSlicingOptions<DATA, COUNTERS>((__) -> maxChildren, myDataComparator, myNodeComparator, myMaxTotalNodes);
+  }
+
+  @NotNull
+  public TreeSlicingOptions<DATA, COUNTERS> withMaxChildren(Function<Node<DATA, COUNTERS>, Integer> maxChildren) {
     return new TreeSlicingOptions<DATA, COUNTERS>(maxChildren, myDataComparator, myNodeComparator, myMaxTotalNodes);
   }
 
@@ -54,8 +75,15 @@ public class TreeSlicingOptions<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     return new TreeSlicingOptions<DATA, COUNTERS>(myMaxChildren, myDataComparator, myNodeComparator, maxTotalNodes);
   }
 
-  public int getMaxChildren() {
-    return myMaxChildren;
+  /**
+   * See issue TW-71521.
+   * Previously, this was just a const value, but we need to configure max children depending on the parent node.
+   *
+   * @param node the node which has a limit on the count of the children
+   * @return the max amount of children or {@link Integer.MAX_VALUE} if no limit present.
+   */
+  public int getMaxChildren(Node<DATA, COUNTERS> node) {
+    return myMaxChildren.apply(node);
   }
 
   @NotNull
@@ -64,7 +92,7 @@ public class TreeSlicingOptions<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
   }
 
   @Nullable
-  public Comparator<ScopeTree.Node<DATA, COUNTERS>> getNodeComparator() {
+  public Comparator<Node<DATA, COUNTERS>> getNodeComparator() {
     return myNodeComparator;
   }
 

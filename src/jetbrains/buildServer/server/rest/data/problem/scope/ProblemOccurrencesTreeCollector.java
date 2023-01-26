@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.data.problem.scope;
 import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.BuildProblemTypes;
@@ -91,12 +92,9 @@ public class ProblemOccurrencesTreeCollector {
     ScopeTree<BuildProblem, ProblemCounters> tree = getTreeByLocator(locator);
     Comparator<ScopeTree.Node<BuildProblem, ProblemCounters>> nodeOrder = getNodeOrder(locator);
 
-    String maxChildrenDim = locator.getSingleDimensionValue(MAX_CHILDREN);
-    int maxChildren = maxChildrenDim == null ? DEFAULT_MAX_CHILDREN : Integer.parseInt(maxChildrenDim);
+    TreeSlicingOptions<BuildProblem, ProblemCounters> slicingOptions = new TreeSlicingOptions<>(getMaxChildrenFunction(locator), NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
 
-    TreeSlicingOptions<BuildProblem, ProblemCounters> slicingOptions = new TreeSlicingOptions<BuildProblem, ProblemCounters>(maxChildren, NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
-
-    if(locator.isAnyPresent(SUB_TREE_ROOT_ID)) {
+    if (locator.isAnyPresent(SUB_TREE_ROOT_ID)) {
       String subTreeRootId = locator.getSingleDimensionValue(SUB_TREE_ROOT_ID);
       locator.checkLocatorFullyProcessed();
       //noinspection ConstantConditions
@@ -124,7 +122,7 @@ public class ProblemOccurrencesTreeCollector {
     );
 
     TreeSlicingOptions<BuildProblem, ProblemCounters> slicingOptions = new TreeSlicingOptions<BuildProblem, ProblemCounters>(
-      DEFAULT_MAX_CHILDREN,
+      __ -> DEFAULT_MAX_CHILDREN,
       NEW_FAILED_FIRST_THEN_BY_ID,
       SUPPORTED_ORDERS.getComparator(DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT)
     );
@@ -155,10 +153,13 @@ public class ProblemOccurrencesTreeCollector {
   private List<LeafInfo<BuildProblem, ProblemCounters>> groupProblems(@NotNull Stream<BuildProblem> problemStream) {
     // buildPromotion id -> problem type description -> List[BuildProblem]
     Map<Long, Map<String, List<BuildProblem>>> problemsByBuildAndType = problemStream
-      .filter(bp -> !BuildProblemTypes.TC_FAILED_TESTS_TYPE.equals(bp.getBuildProblemData().getType())) // filter out unwanted problems early to avoid creating empty tree leaves later.
+      // filter out unwanted problems early to avoid creating empty tree leaves later.
+      .filter(bp -> !BuildProblemTypes.TC_FAILED_TESTS_TYPE.equals(bp.getBuildProblemData().getType()))
       .collect(Collectors.groupingBy(
         buildProblem -> buildProblem.getBuildPromotion().getId(),
-        Collectors.groupingBy(buildProblem -> buildProblem.getBuildProblemData().getType() == null ? UNCATEGORIZED_PROBLEM : buildProblem.getBuildProblemData().getType())
+        Collectors.groupingBy(
+          buildProblem -> Optional.ofNullable(buildProblem.getBuildProblemData().getType()).orElse(UNCATEGORIZED_PROBLEM)
+        )
       ));
 
     return problemsByBuildAndType.values().stream()
@@ -339,4 +340,34 @@ public class ProblemOccurrencesTreeCollector {
       return new ProblemCounters(myCount + other.getCount(), myNewFailed + other.getNewFailed());
     }
   }
+
+  @NotNull
+  private static Function<ScopeTree.Node<BuildProblem, ProblemCounters>, Integer> getMaxChildrenFunction(@NotNull Locator locator) {
+    Locator maxChildrenDimension = locator.get(MAX_CHILDREN);
+    if (maxChildrenDimension == null) {
+      return __ -> DEFAULT_MAX_CHILDREN;
+    }
+
+    if (maxChildrenDimension.isSingleValue()) {
+      //noinspection DataFlowIssue // already checked with IsSingleValue above
+      return __ -> Math.toIntExact(maxChildrenDimension.getSingleValueAsLong());
+    }
+
+    int maxChildrenDefault = Math.toIntExact(maxChildrenDimension.getSingleDimensionValueAsLong("default", (long)DEFAULT_MAX_CHILDREN));
+    int maxChildrenBuildType = Math.toIntExact(maxChildrenDimension.getSingleDimensionValueAsLong("buildType", (long)maxChildrenDefault));
+    int maxChildrenProject = Math.toIntExact(maxChildrenDimension.getSingleDimensionValueAsLong("project", (long)maxChildrenDefault));
+    return (node) -> {
+      if (node.getScope() instanceof ProblemScope) {
+        ProblemScopeType type = ((ProblemScope)node.getScope()).getType();
+        if (type == ProblemScopeType.PROJECT) {
+          return maxChildrenProject;
+        }
+        if (type == ProblemScopeType.BUILD_TYPE) {
+          return maxChildrenBuildType;
+        }
+      }
+      return maxChildrenDefault;
+    };
+  }
+
 }

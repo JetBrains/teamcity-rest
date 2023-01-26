@@ -117,14 +117,16 @@ public class BaseTestScopesCollectorTest extends BaseServerTestCase {
                 buildconf1   subproject11    subproject21
                     |               \                    \
                   suite1          buildconf2            buildconf1
-                 /      \             \             /        |    \
-            packageA    packageB    suite2       suite1  suite2   suite0
-             /     \        \          \           |         |         \
-         class1   class2    class1   packageA   packageB   packageC    packageZ
-         / | \       |         \        \          |         |            \
-        b  a  c      a          b     class3    class1       class2      classZ
-                                         \         |       / | | | | \      \
-                                          c        a      h  g f e d  c      z
+                 /      \             \             /          \
+            packageA    packageB    suite2        build11     build12
+             /     \        \          \         /      \          \
+         class1   class2    class1   packageA  suite1   suite2      suite0
+         / | \       |         \        \         |        |            |
+        b  a  c      a          b     class3   packageB packageC      packageZ
+                                         \        |        |             |
+                                          c    class1     class2----   classZ
+                                                  |       | | | | | \    |
+                                                  a       h g f e d c    z
      */
 
     ProjectEx project = myFixture.createProject("project", "project");
@@ -138,6 +140,7 @@ public class BaseTestScopesCollectorTest extends BaseServerTestCase {
     BuildTypeEx buildconf1 = project1.createBuildType("buildconf1");
     BuildTypeEx buildconf2 = subproject11.createBuildType("buildconf2");
     BuildTypeEx buildconf11 = subproject21.createBuildType("buildconf1");
+    BuildTypeEx bc3 = subproject21.createBuildType("bc3");
 
     final SFinishedBuild build1 = build().in(buildconf1)
                                          .startSuite("suite1")
@@ -155,7 +158,7 @@ public class BaseTestScopesCollectorTest extends BaseServerTestCase {
                                          .endSuite()
                                          .finish();
 
-    final SFinishedBuild build3 = build().in(buildconf11)
+    final SFinishedBuild build11 = build().in(buildconf11)
                                          .startSuite("suite1")
                                          .withTest("packageB.class1.a", false)
                                          .endSuite()
@@ -167,6 +170,9 @@ public class BaseTestScopesCollectorTest extends BaseServerTestCase {
                                          .withTest("packageC.class2.d", false)
                                          .withTest("packageC.class2.c", false)
                                          .endSuite()
+                                         .finish();
+
+    SFinishedBuild build12 = build().in(buildconf11)
                                          .startSuite("suite0")
                                          .withTest("packageZ.classZ.z", false)
                                          .endSuite()

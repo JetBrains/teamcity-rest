@@ -33,6 +33,8 @@ import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static java.util.Arrays.asList;
+
 public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   private TestScopeTreeCollector myTestScopeTreeCollector;
 
@@ -63,12 +65,47 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   }
 
   @Test
+  public void testMaxChildrenForProject() {
+    buildTree();
+
+    Locator locator = Locator.locator("build:(affectedProject:project),maxChildren:(default:1,project:2),orderBy:count:desc");
+    List<String> result = getNodeNames(myTestScopeTreeCollector.getSlicedTree(locator));
+
+    assertSameElements(result, "_Root", "project", "project2", "project1", "subproject21", "project1_Buildconf1", "subproject11", "subproject21_Buildconf1", "build",
+                       "subproject11_Buildconf2", "build", "suite1: ", "build", "suite2: ", "packageA", "suite2: ", "packageC", "class1", "packageA", "class2", "class3");
+  }
+
+  @Test
+  public void testMaxChildrenForProject2() {
+    buildTree();
+
+    Locator locator = Locator.locator("build:(affectedProject:project),maxChildren:(default:2,project:1),orderBy:count:desc");
+    List<String> result = getNodeNames(myTestScopeTreeCollector.getSlicedTree(locator));
+
+    assertSameElements(result, "_Root", "project", "project2", "subproject21", "subproject21_Buildconf1",
+                       "build", "build", "suite2: ", "suite1: ", "suite0: ", "packageC",
+                       "packageB", "packageZ", "class2", "class1", "classZ");
+  }
+
+  @Test
+  public void testMaxChildrenForBuildType() {
+    buildTree();
+
+    Locator locator = Locator.locator("build:(affectedProject:project),maxChildren:(default:1,buildType:2),orderBy:count:desc");
+    List<String> result = getNodeNames(myTestScopeTreeCollector.getSlicedTree(locator));
+
+    assertSameElements(result, "_Root", "project", "project2", "subproject21", "subproject21_Buildconf1", "build", "build", "suite2: ", "suite0: ", "packageC", "packageZ",
+                       "class2", "classZ"
+    );
+  }
+
+  @Test
   public void testSliceOrderedByCountDesc() {
     buildTree();
 
     List<String> result = getNodeNames(myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:1,orderBy:name:desc")));
 
-    assertSameElements(result, "_Root", "project", "project2", "subproject21", "subproject21_Buildconf1", "build", "suite2: ", "packageC", "class2");
+    assertSameElements(result, "_Root", "project", "project2", "subproject21", "subproject21_Buildconf1", "build", "suite0: ", "packageZ", "classZ");
   }
 
   @Test
@@ -76,7 +113,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     buildTree();
     List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
 
-    assertEquals("29 nodes in a tree + _Root", 30, result.size()); // 26 nodes + 3 builds
+    assertEquals("29 nodes in a tree + _Root", 31, result.size()); // 26 nodes + 3 builds
     assertEquals("Root must always be first", "_Root", result.get(0).getScope().getName());
 
     checkAncestorsBeforeChildren(result);
@@ -108,8 +145,8 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:subproject21),maxChildren:100"));
     checkAncestorsBeforeChildren(result);
 
-    List<Integer> expectedCounters = Arrays.asList(
-      8, 8, 8, 8, 8, 8, // _Root, project2, subproject21, buildconf1, build
+    List<Integer> expectedCounters = asList(
+      8, 8, 8, 8, 8, 7, 1, // _Root, project2, subproject21, buildconf1, build11, build12
       1, 1, 1,       // suite1, packageB, class1
       6, 6, 6,       // suite2, packageC, class2
       1, 1, 1        // suite0, packageZ, classZ
@@ -151,8 +188,8 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     assertNotNull(nodeOfInterest1);
     assertNotNull(nodeOfInterest2);
 
-    List<String> names1 = Arrays.asList("a", "b", "c");
-    List<String> names2 = Arrays.asList("c", "d", "e");
+    List<String> names1 = asList("a", "b", "c");
+    List<String> names2 = asList("c", "d", "e");
 
     List<String> result1 = nodeOfInterest1.getData().stream().map(tr -> tr.getTest().getName().getTestMethodName()).collect(Collectors.toList());
     List<String> result2 = nodeOfInterest2.getData().stream().map(tr -> tr.getTest().getName().getTestMethodName()).collect(Collectors.toList());
@@ -183,10 +220,9 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     String subTreeLocator = String.format("build:(affectedProject:project),subTreeRootId:%s,maxChildren:100", subTreeRoot.getId());
     List<ScopeTree.Node<STestRun, TestCountersData>> subTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator(subTreeLocator));
     checkAncestorsBeforeChildren(subTree, subTreeRoot.getParent().getId());
-    assertEquals(
-      "Subtree must contain following 12 nodes: subproject21, buildconf1, build, suite2, suite0, suite1, packageC, packageZ, packageB, class2, classZ, class1",
-      12,
-      subTree.size()
+    assertSameElements(
+      getNodeNames(subTree),
+      asList("subproject21", "subproject21_Buildconf1", "build", "build", "suite2: ", "suite0: ", "suite1: ", "packageC", "packageZ", "packageB", "class2", "classZ", "class1")
     );
 
     List<String> fullTreeNodeIds = fullTree.stream().map(node -> node.getId()).collect(Collectors.toList());

@@ -44,10 +44,10 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
       parent.mergeCounters(counters);
 
       for (Scope scope : leafInfo.getPath()) {
-        if(scope.equals(myRoot.getScope())) {
+        if (scope.equals(myRoot.getScope())) {
           continue;
         }
-        if(scope.isLeaf()) {
+        if (scope.isLeaf()) {
           Node<DATA, COUNTERS> leaf = new Node<>(scope.getId(), scope, leafInfo.getData(), leafInfo.getCounters(), parent);
           myIdToNodesMap.put(leaf.getId(), leaf);
           parent.putChild(leaf);
@@ -140,8 +140,8 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
   }
 
   @NotNull
-  private List<Node<DATA, COUNTERS>> getSlicedOrderedSubtree(@NotNull Node<DATA, COUNTERS> subTreeRoot, @NotNull TreeSlicingOptions<DATA, COUNTERS> slicingOptions) {
-    Queue<Node<DATA, COUNTERS>> nodeQueue = new ArrayDeque<>(slicingOptions.getMaxChildren() + 1);
+  private static <DATA, COUNTERS extends TreeCounters<COUNTERS>> List<Node<DATA, COUNTERS>> getSlicedOrderedSubtree(@NotNull Node<DATA, COUNTERS> subTreeRoot, @NotNull TreeSlicingOptions<DATA, COUNTERS> slicingOptions) {
+    Queue<Node<DATA, COUNTERS>> nodeQueue = new ArrayDeque<>(slicingOptions.getMaxChildren(subTreeRoot) + 1);
     nodeQueue.add(subTreeRoot);
     Integer maxTotalNodes = slicingOptions.getMaxTotalNodes();
     if(maxTotalNodes == null) {
@@ -165,7 +165,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
         children = children.sorted(slicingOptions.getNodeComparator());
       }
 
-      children.limit(slicingOptions.getMaxChildren())
+      children.limit(slicingOptions.getMaxChildren(node))
               .forEach(nodeQueue::add);
     }
 
@@ -176,14 +176,14 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
    * Slices a leaf node and returns a new one.<br/>
    * <b>Important:</b> modifies parent, replacing <code>node</code> with a new sliced one.
    */
-  private Node<DATA, COUNTERS> sliceLeaf(@NotNull Node<DATA, COUNTERS> node, @NotNull TreeSlicingOptions<DATA, COUNTERS> slicingOptions) {
+  private static <DATA, COUNTERS extends TreeCounters<COUNTERS>> Node<DATA, COUNTERS> sliceLeaf(@NotNull Node<DATA, COUNTERS> node, @NotNull TreeSlicingOptions<DATA, COUNTERS> slicingOptions) {
     // Actually, it shouldn't be the root node, so there should always be a parent, but just to be safe.
     if(!node.getScope().isLeaf() || node.getParent() == null) {
       throw new InvalidStateException("Can't slice a non-leaf.");
     }
     List<DATA> slicedData = node.getData().stream()
                                 .sorted(slicingOptions.getDataComparator())
-                                .limit(slicingOptions.getMaxChildren())
+                                .limit(slicingOptions.getMaxChildren(node))
                                 .collect(Collectors.toList());
 
     Node<DATA, COUNTERS> slicedLeaf = new Node<>(node.getId(), node.getScope(), slicedData, node.getCounters(), node.getParent());
@@ -225,7 +225,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     @NotNull
     private final Scope myScope;
     @NotNull
-    private final List<DATA> myTestRuns;
+    private final List<DATA> values;
     @NotNull
     private COUNTERS myCountersData;
     @NotNull
@@ -233,27 +233,34 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     @NotNull
     private final String myId;
 
-    /** Construct a non-leaf node. It has zero testRuns and may contain children. */
-    Node(@NotNull String id, @NotNull Scope scope, @NotNull COUNTERS counters, @Nullable Node<DATA, COUNTERS> parent) {
+    /**
+     * Construct a non-leaf node. It has zero values and may contain children.
+     **/
+    Node(@NotNull String id,
+         @NotNull Scope scope,
+         @NotNull COUNTERS counters,
+         @Nullable Node<DATA, COUNTERS> parent) {
       myId = id;
       myParent = parent;
       myScope = scope;
       myCountersData = counters;
       myChildren = new LinkedHashMap<>();
-      myTestRuns = Collections.emptyList();
+      values = Collections.emptyList();
     }
 
-    /** Construct a leaf node. It is always a node of type CLASS and has zero children. */
-    Node (@NotNull String id,
+    /**
+     * Construct a leaf node. It is always a node of type CLASS and has zero children.
+     * */
+    Node(@NotNull String id,
           @NotNull Scope scope,
-          @NotNull Collection<DATA> sTestRuns,
+          @NotNull Collection<DATA> values,
           @NotNull COUNTERS counters,
           @Nullable Node<DATA, COUNTERS> parent) {
       myId = id;
       myParent = parent;
       myScope = scope;
       myCountersData = counters;
-      myTestRuns = new ArrayList<>(sTestRuns);
+      this.values = new ArrayList<>(values);
       myChildren = Collections.emptyMap();
     }
 
@@ -274,7 +281,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
 
     @NotNull
     public List<DATA> getData() {
-      return myTestRuns;
+      return values;
     }
 
     @NotNull
