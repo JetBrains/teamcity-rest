@@ -48,7 +48,7 @@ public class ChangeLogPagerData implements PagerData {
     int curPage = myLocator.getSingleDimensionValueAsLong(PAGE_DIMENSION, 1L).intValue();
     int curRecordsPerPage = myLocator.getSingleDimensionValueAsLong(RECORDS_PER_PAGE_DIMENSION, (long) myPager.getRecordsPerPage()).intValue();
 
-    if(curPage >= myPager.getPageCount()) {
+    if(!myPager.isUnknownNumberOfRecords() && curPage >= myPager.getPageCount()) {
       return null;
     }
 
