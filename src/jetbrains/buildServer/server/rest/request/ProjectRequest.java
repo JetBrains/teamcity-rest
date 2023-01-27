@@ -1014,7 +1014,7 @@ public class ProjectRequest {
     @Context
     HttpServletRequest request
   ) throws IOException {
-    if(!TeamCityProperties.getBoolean(SSH_KEY_UPLOAD_ENABLED_PROP)) {
+    if(!TeamCityProperties.getBooleanOrTrue(SSH_KEY_UPLOAD_ENABLED_PROP)) {
       throw new NotFoundException("");
     }
     Objects.requireNonNull(fileName);
@@ -1063,7 +1063,7 @@ public class ProjectRequest {
     @Context
     HttpServletRequest request
   ) {
-    if(!TeamCityProperties.getBoolean(SSH_KEY_UPLOAD_ENABLED_PROP)) {
+    if(!TeamCityProperties.getBooleanOrTrue(SSH_KEY_UPLOAD_ENABLED_PROP)) {
       throw new NotFoundException("");
     }
     SProject project = myProjectFinder.getItem(projectLocator);
