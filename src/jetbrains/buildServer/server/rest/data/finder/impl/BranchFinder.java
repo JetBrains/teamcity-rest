@@ -26,7 +26,6 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.ExistenceAwareFinder;
 import jetbrains.buildServer.server.rest.data.util.*;
-import jetbrains.buildServer.server.rest.data.util.itemholder.FlatteningItemHolder;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -251,7 +250,7 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
     }
     final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, buildTypeLocator);
 
-    FlatteningItemHolder<BranchData> result = new FlatteningItemHolder<>();
+    List<ItemHolder<BranchData>> result = new ArrayList<>();
 
     final String groupsInclude = locator.getSingleDimensionValue(GROUP_INCLUDE);
     if (groupsInclude != null) {
@@ -285,7 +284,7 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
           throw new BadRequestException("Error retrieving branch groups: " + e.getMessage());
         }
       });
-      return result;
+      return ItemHolder.concat(result);
     }
 
     BranchSearchOptions searchOptions = getBranchSearchOptions(locator);
@@ -330,7 +329,7 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
       }
     }
 
-    return result;
+    return ItemHolder.concat(result);
   }
 
   @NotNull

@@ -26,7 +26,6 @@ import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
 import jetbrains.buildServer.server.rest.data.util.FilterItemProcessor;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.PagingItemFilter;
-import jetbrains.buildServer.server.rest.data.util.itemholder.DeduplicatingItemHolder;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -301,7 +300,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         //get the dimension only for supporting finders so that unused dimension is reported otherwise
         boolean deduplicate = locator.getSingleDimensionValueAsStrictBoolean(DIMENSION_UNIQUE, locator.isAnyPresent(DIMENSION_ITEM));
         if (deduplicate) {
-          unfilteredItems = new DeduplicatingItemHolder<>(unfilteredItems, duplicateChecker);
+          unfilteredItems = unfilteredItems.filter(item -> !duplicateChecker.checkDuplicateAndRemember(item));
         }
       }
 

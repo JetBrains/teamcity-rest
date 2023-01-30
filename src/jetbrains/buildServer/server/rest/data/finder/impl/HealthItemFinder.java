@@ -24,7 +24,7 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.Finder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
-import jetbrains.buildServer.server.rest.data.util.itemholder.CollectionItemHolder;
+import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.StreamUtil;
@@ -99,7 +99,7 @@ public class HealthItemFinder extends DelegatingFinder<HealthStatusItem> {
 
       singleDimension(dimension -> getAllMatching(category -> dimension.equalsIgnoreCase(category.getId())));
 
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> new CollectionItemHolder<>(getAllMatching(myEmptyPredicate)));
+      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> ItemHolder.of(getAllMatching(myEmptyPredicate)));
     }
 
     @NotNull
@@ -153,7 +153,7 @@ public class HealthItemFinder extends DelegatingFinder<HealthStatusItem> {
         } else {
           profile = null;
         }
-        return new CollectionItemHolder<>(myHealthStatusProvider.collectItemsSynchronously(scopeBuilder.build(), profile));
+        return ItemHolder.of(myHealthStatusProvider.collectItemsSynchronously(scopeBuilder.build(), profile));
       });
     }
   }

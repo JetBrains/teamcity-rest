@@ -32,8 +32,6 @@ import jetbrains.buildServer.server.rest.data.finder.*;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.util.*;
-import jetbrains.buildServer.server.rest.data.util.itemholder.CollectionItemHolder;
-import jetbrains.buildServer.server.rest.data.util.itemholder.FlatteningItemHolder;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -1132,14 +1130,14 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
       final String strobBuildLocator = strobLocator.getSingleDimensionValue(STROB_BUILD_LOCATOR);
 
-      final FlatteningItemHolder<BuildPromotion> strobResult = new FlatteningItemHolder<>();
+      final List<ItemHolder<BuildPromotion>> strobResult = new ArrayList<>();
       for (Locator partialLocator : partialLocators) {
         partialLocator.setDimensionIfNotPresent(PagerData.COUNT, "1");  //limit to single item per strob item by default
         final String finalBuildLocator = Locator.createLocator(strobBuildLocator, partialLocator, new String[]{}).getStringRepresentation();
         strobResult.add(ItemHolder.of(getItems(finalBuildLocator).myEntries));
       }
       strobLocator.checkLocatorFullyProcessed();
-      return strobResult;
+      return ItemHolder.concat(strobResult);
     }
 
     setLocatorDefaults(locator);
@@ -1485,7 +1483,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final ItemHolder<BuildPromotion> finishedBuildsFinal = finishedBuilds;
     return processor -> {
-      new CollectionItemHolder<>(result).process(processor);
+      ItemHolder.of(result).process(processor);
       if (finishedBuildsFinal != null) {
         finishedBuildsFinal.process(processor);
       }

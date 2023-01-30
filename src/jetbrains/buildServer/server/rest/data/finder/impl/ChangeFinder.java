@@ -30,7 +30,6 @@ import jetbrains.buildServer.server.rest.data.finder.GraphFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
 import jetbrains.buildServer.server.rest.data.util.*;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
-import jetbrains.buildServer.server.rest.data.util.itemholder.WrappingItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -898,19 +897,19 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   }
 
   private ItemHolder<SVcsModificationOrChangeDescriptor> wrapModifications(@NotNull ItemHolder<SVcsModification> toWrap) {
-    return new WrappingItemHolder<>(toWrap, SVcsModificationOrChangeDescriptor::new);
+    return toWrap.map(SVcsModificationOrChangeDescriptor::new);
   }
 
   private ItemHolder<SVcsModificationOrChangeDescriptor> wrapModifications(@NotNull Stream<SVcsModification> toWrap) {
-    return new WrappingItemHolder<>(toWrap, SVcsModificationOrChangeDescriptor::new);
+    return ItemHolder.of(toWrap.map(SVcsModificationOrChangeDescriptor::new));
   }
 
   private ItemHolder<SVcsModificationOrChangeDescriptor> wrapModifications(@NotNull List<SVcsModification> toWrap) {
-    return new WrappingItemHolder<>(toWrap, SVcsModificationOrChangeDescriptor::new);
+    return ItemHolder.of(toWrap).map(SVcsModificationOrChangeDescriptor::new);
   }
 
   private ItemHolder<SVcsModificationOrChangeDescriptor> wrapDescriptors(@NotNull Stream<ChangeDescriptor> toWrap) {
-    return new WrappingItemHolder<>(toWrap, SVcsModificationOrChangeDescriptor::new);
+    return ItemHolder.of(toWrap.map(SVcsModificationOrChangeDescriptor::new));
   }
 
   private class ChangesGraphTraverser implements GraphFinder.Traverser<SVcsModification> {

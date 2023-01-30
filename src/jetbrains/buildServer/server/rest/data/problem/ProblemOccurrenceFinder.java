@@ -33,7 +33,6 @@ import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.util.FilterUtil;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
-import jetbrains.buildServer.server.rest.data.util.itemholder.FlatteningItemHolder;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.*;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
@@ -184,12 +183,12 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
       List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
-      FlatteningItemHolder<BuildProblem> result = new FlatteningItemHolder<>();
+      List<ItemHolder<BuildProblem>> result = new ArrayList<>();
       for (BuildPromotion build : builds) {
         List<BuildProblem> buildProblemOccurrences = getProblemOccurrences(build);
         if (!buildProblemOccurrences.isEmpty()) result.add(ItemHolder.of(buildProblemOccurrences));
       }
-      return result;
+      return ItemHolder.concat(result);
     }
 
     Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
@@ -221,11 +220,8 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
   @NotNull
   private ItemHolder<BuildProblem> getProblemOccurrences(@NotNull final Iterable<ProblemWrapper> problems) {
-    final FlatteningItemHolder<BuildProblem> result = new FlatteningItemHolder<BuildProblem>();
-    for (ProblemWrapper problem : problems) {
-      result.add(getProblemOccurrences(problem.getId(), myServiceLocator, myBuildPromotionFinder));
-    }
-    return result;
+    return ItemHolder.of(problems)
+                     .flatMap(problem -> getProblemOccurrences(problem.getId(), myServiceLocator, myBuildPromotionFinder));
   }
 
   @NotNull
