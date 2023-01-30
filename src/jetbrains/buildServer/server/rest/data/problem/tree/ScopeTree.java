@@ -144,7 +144,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     Queue<Node<DATA, COUNTERS>> nodeQueue = new ArrayDeque<>(slicingOptions.getMaxChildren(subTreeRoot) + 1);
     nodeQueue.add(subTreeRoot);
     Integer maxTotalNodes = slicingOptions.getMaxTotalNodes();
-    if(maxTotalNodes == null) {
+    if (maxTotalNodes == null) {
       maxTotalNodes = Integer.MAX_VALUE;
     }
 

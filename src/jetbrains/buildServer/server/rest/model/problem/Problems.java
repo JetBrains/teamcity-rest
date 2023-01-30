@@ -16,6 +16,11 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -27,15 +32,8 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author Yegor.Yarko
@@ -57,22 +55,18 @@ public class Problems implements DefaultValueAware {
                   @Nullable final PagerData pagerData,
                   @NotNull final Fields fields,
                   @NotNull final BeanContext beanContext) {
-    items = ValueWithDefault.decideDefault(fields.isIncluded("problem", false),new ValueWithDefault.Value<List<Problem>>() {
-      public List<Problem> get() {
-        final Fields nestedField = fields.getNestedField("problem");
-        return CollectionsUtil.convertCollection(itemsP, new Converter<Problem, ProblemWrapper>() {
-          public Problem createFrom(@NotNull final ProblemWrapper source) {
-            return new Problem(source, nestedField, beanContext);
-          }
-        });
-      }
+    items = ValueWithDefault.decideDefault(fields.isIncluded("problem", false), () -> {
+      final Fields nestedField = fields.getNestedField("problem");
+      return CollectionsUtil.convertCollection(itemsP, source -> new Problem(source, nestedField, beanContext));
     });
+
     if (pagerData != null) {
       nextHref = ValueWithDefault.decideDefault(fields.isIncluded("nextHref"),
                                                 pagerData.getNextHref() == null ? null : beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getNextHref()));
       prevHref = ValueWithDefault.decideDefault(fields.isIncluded("prevHref"),
                                                 pagerData.getPrevHref() == null ? null : beanContext.getApiUrlBuilder().transformRelativePath(pagerData.getPrevHref()));
     }
+
     count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), itemsP.size());
   }
 

@@ -38,7 +38,6 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeTemplate;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -115,20 +114,12 @@ public class BuildTypes {
 
   @NotNull
   public static List<BuildTypeOrTemplate> fromBuildTypes(Collection<SBuildType> source){
-    return CollectionsUtil.convertCollection(source, new Converter<BuildTypeOrTemplate, SBuildType>() {
-      public BuildTypeOrTemplate createFrom(@NotNull final SBuildType source) {
-        return new BuildTypeOrTemplate(source);
-      }
-    });
+    return CollectionsUtil.convertCollection(source, source1 -> new BuildTypeOrTemplate(source1));
   }
 
   @NotNull
   public static List<BuildTypeOrTemplate> fromTemplates(Collection<BuildTypeTemplate> source){
-    return CollectionsUtil.convertCollection(source, new Converter<BuildTypeOrTemplate, BuildTypeTemplate>() {
-      public BuildTypeOrTemplate createFrom(@NotNull final BuildTypeTemplate source) {
-        return new BuildTypeOrTemplate(source);
-      }
-    });
+    return CollectionsUtil.convertCollection(source, source1 -> new BuildTypeOrTemplate(source1));
   }
 
   public BuildTypes initializeSubmittedFromUsual() {

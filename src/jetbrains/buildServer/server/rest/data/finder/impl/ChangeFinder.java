@@ -273,9 +273,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     final String vcsRootLocator = locator.getSingleDimensionValue(VCS_ROOT);
     if (vcsRootLocator != null) {
       final VcsRoot vcsRoot = myVcsRootFinder.getItem(vcsRootLocator);
-      result.add(item -> {
-        return !item.isPersonal() && vcsRoot.getId() == item.getVcsRoot().getParent().getId(); //todo: check personal change applicability to the root
-      });
+      //todo: check personal change applicability to the root
+      result.add(item -> !item.isPersonal() && vcsRoot.getId() == item.getVcsRoot().getParent().getId());
     }
 
     final String sinceChangeLocator = locator.getSingleDimensionValue(SINCE_CHANGE); //todo: deprecate this
@@ -287,9 +286,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     if (locator.isUnused(USERNAME)) {
       final String username = locator.getSingleDimensionValue(USERNAME);
       if (username != null) {
-        result.add(item -> {
-          return username.equalsIgnoreCase(item.getUserName()); //todo: is ignoreCase is right here?
-        });
+        //todo: is ignoreCase is right here?
+        result.add(item -> username.equalsIgnoreCase(item.getUserName()));
       }
     }
 
@@ -302,10 +300,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     }
 
     //TeamCity API: exclude "fake" personal changes created by TeamCity for personal builds without personal changes
-    result.add(item -> {
-      if (!item.isPersonal()) return true;
-      return item.getChanges().size() > 0;
-    });
+    result.add(item -> !item.isPersonal() || item.getChanges().size() > 0);
 
     final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
     if (personal != null) {
@@ -409,14 +404,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
       if (pathLocatorText != null) {
         final String containsText = new Locator(pathLocatorText).getSingleDimensionValue("contains");
         if (containsText != null) {
-          result.add(item -> {
-            for (VcsFileModification vcsFileModification : item.getChanges()) {
-              if (vcsFileModification.getFileName().contains(containsText)) {
-                return true;
-              }
-            }
-            return false;
-          });
+          result.add(item -> item.getChanges().stream().anyMatch(vcsFileModification -> vcsFileModification.getFileName().contains(containsText)));
           //todo: check unknown locator dimensions
         } else {
           ValueCondition condition = ParameterCondition.createValueCondition(pathLocatorText);
@@ -561,7 +549,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
 
     final String graphLocator = locator.getSingleDimensionValue(DAG_TRAVERSE);
     if (graphLocator != null) {
-      final GraphFinder<SVcsModification> graphFinder = new GraphFinder<SVcsModification>(
+      final GraphFinder<SVcsModification> graphFinder = new GraphFinder<>(
         locatorText -> getItems(locatorText).myEntries.stream().map(SVcsModificationOrChangeDescriptor::getSVcsModification).collect(Collectors.toList()),
         new ChangesGraphTraverser()
       );

@@ -25,7 +25,9 @@ import jetbrains.buildServer.AgentRestrictor;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.CloudInstance;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.CloudInstanceData;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.ParameterCondition;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.FinderImpl;
 import jetbrains.buildServer.server.rest.data.util.*;
@@ -295,17 +297,14 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     return result;
   }
 
-  protected static final Comparator<SBuildAgent> AGENT_COMPARATOR = new Comparator<SBuildAgent>() {
-    @Override
-    public int compare(final SBuildAgent o1, final SBuildAgent o2) {
-      return ComparisonChain.start()
-                            .compare(o1.getId(), o2.getId())
-                            .compare(o1.getAgentTypeId(), o2.getAgentTypeId())
-                            .compare(o1.getName(), o2.getName())
-                            .result();
-    }
-  };
+  protected static final Comparator<SBuildAgent> AGENT_COMPARATOR = (o1, o2) ->
+    ComparisonChain.start()
+                   .compare(o1.getId(), o2.getId())
+                   .compare(o1.getAgentTypeId(), o2.getAgentTypeId())
+                   .compare(o1.getName(), o2.getName())
+                   .result();
 
+  @Override
   @NotNull
   public DuplicateChecker<SBuildAgent> createDuplicateChecker() {
     return new ComparatorDuplicateChecker<>(AGENT_COMPARATOR);

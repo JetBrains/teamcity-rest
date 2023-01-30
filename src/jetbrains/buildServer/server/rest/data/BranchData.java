@@ -65,12 +65,14 @@ public abstract class BranchData implements Branch {
         return branch.isDefaultBranch();
       }
 
+      @Override
       @Nullable
       public Boolean isActive() {
         if (disableActive) return null;
         return overrideActive != null ? overrideActive : branch.isActive(); //call to isActive can be expensive
       }
 
+      @Override
       @Nullable
       public Date getActivityTimestamp() {
         return branch.getTimestamp();

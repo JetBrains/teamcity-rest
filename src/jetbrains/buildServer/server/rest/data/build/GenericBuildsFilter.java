@@ -22,7 +22,10 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.BranchMatcher;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.ParameterCondition;
+import jetbrains.buildServer.server.rest.data.RangeLimit;
 import jetbrains.buildServer.server.rest.data.util.FilterUtil;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -30,7 +33,6 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -309,11 +311,7 @@ public class GenericBuildsFilter implements BuildsFilter {
     if (project.getProjectId().equals(projectId)){
       return true;
     }
-    return CollectionsUtil.findFirst(project.getProjects(), new Filter<SProject>() {
-      public boolean accept(@NotNull final SProject data) {
-        return projectId.equals(data.getProjectId());
-      }
-    }) != null;
+    return CollectionsUtil.findFirst(project.getProjects(), data -> projectId.equals(data.getProjectId())) != null;
   }
 
   private boolean isTagsMatchLocator(final List<String> buildTags, final Locator tagsLocator) {

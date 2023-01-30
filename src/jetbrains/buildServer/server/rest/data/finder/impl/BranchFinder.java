@@ -140,7 +140,7 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
 
   @NotNull
   private BranchFilterDetails getBranchFilterDetails(@NotNull final Locator locator) {
-    final MultiCheckerFilter<BranchData> filter = new MultiCheckerFilter<BranchData>();
+    final MultiCheckerFilter<BranchData> filter = new MultiCheckerFilter<>();
     final BranchFilterDetails result = new BranchFilterDetails();
     result.filter = filter;
 
@@ -148,12 +148,7 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
     if (singleValue != null) {
       if (!ANY.equals(singleValue)) {
 //        result.branchName = singleValue;  do not set as it is ignore case and can match display/vcs branch
-        filter.add(new FilterConditionChecker<BranchData>() {
-          @Override
-          public boolean isIncluded(@NotNull final BranchData item) {
-            return singleValue.equalsIgnoreCase(item.getDisplayName()) || singleValue.equalsIgnoreCase(item.getName());
-          }
-        });
+        filter.add(item -> singleValue.equalsIgnoreCase(item.getDisplayName()) || singleValue.equalsIgnoreCase(item.getName()));
         return result;
       } else {
         result.matchesAllBranches = true;
@@ -165,23 +160,20 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
     if (nameDimension != null && !ANY.equals(nameDimension)) {
       final ValueCondition parameterCondition = ParameterCondition.createValueCondition(nameDimension);
       boolean compatibilityMode;
-      if (nameDimension.equals(parameterCondition.getValue())){
+      if (nameDimension.equals(parameterCondition.getValue())) {
         //single value
         compatibilityMode = true;
         if (parameterCondition.getIgnoreCase() == null) parameterCondition.setIgnoreCase(true); //pre-TeamCity-10 behavior
-      } else{
+      } else {
         compatibilityMode = false;
       }
       String exactValue = parameterCondition.getConstantValueIfSimpleEqualsCondition();
       if (exactValue != null) result.branchName = exactValue;
-      filter.add(new FilterConditionChecker<BranchData>() {
-        @Override
-        public boolean isIncluded(@NotNull final BranchData item) {
-          if (compatibilityMode){
+      filter.add(item -> {
+          if (compatibilityMode) {
             return parameterCondition.matches(item.getDisplayName()) || parameterCondition.matches(item.getName()); //this basically matched both actual name and "<default>" for default branch
           }
           return parameterCondition.matches(item.getDisplayName());
-        }
       });
     }
 
@@ -190,33 +182,18 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
       if (defaultDimension) {
         result.matchesDefaultBranchOrNotBranched = true;
       }
-      filter.add(new FilterConditionChecker<BranchData>() {
-        @Override
-        public boolean isIncluded(@NotNull final BranchData item) {
-          return FilterUtil.isIncludedByBooleanFilter(defaultDimension, item.isDefaultBranch());
-        }
-      });
+      filter.add(item -> FilterUtil.isIncludedByBooleanFilter(defaultDimension, item.isDefaultBranch()));
     }
 
     final Boolean unspecifiedDimension = locator.getSingleDimensionValueAsBoolean(UNSPECIFIED);
     if (unspecifiedDimension != null) {
       result.unspecified = true;
-      filter.add(new FilterConditionChecker<BranchData>() {
-        @Override
-        public boolean isIncluded(@NotNull final BranchData item) {
-          return FilterUtil.isIncludedByBooleanFilter(unspecifiedDimension, Branch.UNSPECIFIED_BRANCH_NAME.equals(item.getName()));
-        }
-      });
+      filter.add(item -> FilterUtil.isIncludedByBooleanFilter(unspecifiedDimension, Branch.UNSPECIFIED_BRANCH_NAME.equals(item.getName())));
     }
 
     final Boolean branchedDimension = locator.getSingleDimensionValueAsBoolean(BRANCHED);
     if (branchedDimension != null) {
-      filter.add(new FilterConditionChecker<BranchData>() {
-        @Override
-        public boolean isIncluded(@NotNull final BranchData item) {
-          return FilterUtil.isIncludedByBooleanFilter(branchedDimension, BranchData.isBranched(item));
-        }
-      });
+      filter.add(item -> FilterUtil.isIncludedByBooleanFilter(branchedDimension, BranchData.isBranched(item)));
     }
 
     result.matchesAllBranches = filter.getSubFiltersCount() == 0 &&

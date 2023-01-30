@@ -27,6 +27,7 @@ public abstract class AbstractAgentPool implements ObjectIdentificationNode {
     myRealPool = realPool;
   }
 
+  @Override
   public String getRawId() {
     return Integer.toString(myRealPool.getAgentPoolId());
   }

@@ -199,17 +199,13 @@ public class BuildFinderTest extends BuildFinderTestBase {
 
     final String notExistingNumberLocator = "number:" + "notExisting";
     checkExceptionOnBuildSearch(NotFoundException.class, notExistingNumberLocator);
-    checkException(NotFoundException.class, new Runnable() {
-      public void run() {
-        myBuildFinder.getBuild(build1.getBuildType(), notExistingNumberLocator);
-      }
-    }, "searching single build with locator \"" + notExistingNumberLocator + "\"");
+    checkException(NotFoundException.class,
+                   () -> myBuildFinder.getBuild(build1.getBuildType(), notExistingNumberLocator),
+                   "searching single build with locator \"" + notExistingNumberLocator + "\"");
 
-    checkException(NotFoundException.class, new Runnable() {
-      public void run() {
-        myBuildFinder.getBuildPromotion(build1.getBuildType(), notExistingNumberLocator);
-      }
-    }, "searching single build promotion with locator \"" + notExistingNumberLocator + "\"");
+    checkException(NotFoundException.class,
+                   () -> myBuildFinder.getBuildPromotion(build1.getBuildType(), notExistingNumberLocator),
+                   "searching single build promotion with locator \"" + notExistingNumberLocator + "\"");
   }
 
   @Test

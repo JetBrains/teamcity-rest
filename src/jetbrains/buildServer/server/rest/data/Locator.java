@@ -818,7 +818,7 @@ public class Locator {
   @NotNull
   public List<String> lookupDimensionValue(@NotNull final String dimensionName) {
     Collection<String> idDimension = myDimensions.get(dimensionName);
-    return idDimension != null ? new ArrayList<String>(idDimension) : Collections.<String>emptyList();
+    return idDimension != null ? new ArrayList<String>(idDimension) : Collections.emptyList();
   }
 
   public boolean isAnyPresent(@NotNull final String... dimensionName) {

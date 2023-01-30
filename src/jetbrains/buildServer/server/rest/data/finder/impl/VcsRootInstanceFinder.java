@@ -24,11 +24,17 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.ParameterCondition;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.data.TimeCondition;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.Finder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
-import jetbrains.buildServer.server.rest.data.util.*;
+import jetbrains.buildServer.server.rest.data.util.FilterUtil;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
+import jetbrains.buildServer.server.rest.data.util.Matcher;
+import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -90,11 +96,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   @LocatorDimension(value = "versionedSettings", dataType = LocatorDimensionDataType.BOOLEAN, notes = "Is used for versioned settings.")
   protected static final String HAS_VERSIONED_SETTINGS_ONLY = "versionedSettings"; //whether to include usages in project's versioned settings or not. By default "false" if "buildType" dimension is present and "any" otherwise
   protected static final String COMMIT_HOOK_MODE = "commitHookMode"; // experimental
-  protected static final Comparator<VcsRootInstance> VCS_ROOT_INSTANCE_COMPARATOR = new Comparator<VcsRootInstance>() {
-    public int compare(final VcsRootInstance o1, final VcsRootInstance o2) {
-      return (int)(o1.getId() - o2.getId());
-    }
-  };
+  protected static final Comparator<VcsRootInstance> VCS_ROOT_INSTANCE_COMPARATOR = (o1, o2) -> (int)(o1.getId() - o2.getId());
 
   @NotNull private final VcsRootFinder myVcsRootFinder;
   @NotNull private final VcsManager myVcsManager;
@@ -194,17 +196,13 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
   @Override
   public ItemFilter<VcsRootInstance> getFilter(@NotNull final Locator locator) {
 
-    final MultiCheckerFilter<VcsRootInstance> result = new MultiCheckerFilter<VcsRootInstance>();
+    final MultiCheckerFilter<VcsRootInstance> result = new MultiCheckerFilter<>();
 
     result.add(item -> canViewSettingsFor(item.getParent()));
 
     final String type = locator.getSingleDimensionValue(TYPE);
     if (type != null) {
-      result.add(new FilterConditionChecker<VcsRootInstance>() {
-        public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return type.equals(item.getVcsName());
-        }
-      });
+      result.add(item -> type.equals(item.getVcsName()));
     }
 
     if (locator.isUnused(BUILD)) {
@@ -230,40 +228,28 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       final SProject project = myProjectFinder.getItem(projectLocator);
       VcsRootInstance settingsInstance = myVersionedSettingsManager.getVersionedSettingsVcsRootInstance(project);
       final Boolean nonVersionedSettings = locator.lookupSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY);
-      result.add(new FilterConditionChecker<VcsRootInstance>() {
-        public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return project.equals(VcsRoot.getProjectByRoot(item.getParent())) || //todo: rework project dimensions for the instance to mean smth. more meaningful
-                 (nonVersionedSettings == null || nonVersionedSettings) && item.equals(settingsInstance);
-        }
-      });
+      result.add(item -> project.equals(VcsRoot.getProjectByRoot(item.getParent())) || //todo: rework project dimensions for the instance to mean smth. more meaningful
+             (nonVersionedSettings == null || nonVersionedSettings) && item.equals(settingsInstance));
     }
 
     final String repositoryIdString = locator.getSingleDimensionValue(REPOSITORY_ID_STRING);
     if (repositoryIdString != null) {
-      result.add(new FilterConditionChecker<VcsRootInstance>() {
-        public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return VcsRootFinder.repositoryIdStringMatches(item, repositoryIdString, myVcsManager);
-        }
-      });
+      result.add(item -> VcsRootFinder.repositoryIdStringMatches(item, repositoryIdString, myVcsManager));
     }
 
     final List<String> properties = locator.getDimensionValue(PROPERTY);
     if (!properties.isEmpty()) {
       final Matcher<ParametersProvider> parameterCondition = ParameterCondition.create(properties);
-      result.add(new FilterConditionChecker<VcsRootInstance>() {
-        public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return parameterCondition.matches(new AbstractMapParametersProvider(item.getProperties()));
-        }
-      });
+      result.add(item -> parameterCondition.matches(new AbstractMapParametersProvider(item.getProperties())));
     }
 
     final String status = locator.getSingleDimensionValue(STATUS);
     if (status != null) {
-      TypedFinderBuilder<VcsRootInstanceEx> builder = new TypedFinderBuilder<VcsRootInstanceEx>();
+      TypedFinderBuilder<VcsRootInstanceEx> builder = new TypedFinderBuilder<>();
       builder.dimensionEnum(TypedFinderBuilder.Dimension.single(), VcsRootStatus.Type.class).description("status of the VCS root instance").
         valueForDefaultFilter(root -> root.getStatus().getType());
 
-      final TypedFinderBuilder<VcsRootCheckStatus> statusFilterBuilder = new TypedFinderBuilder<VcsRootCheckStatus>();
+      final TypedFinderBuilder<VcsRootCheckStatus> statusFilterBuilder = new TypedFinderBuilder<>();
       statusFilterBuilder.dimensionEnum(new TypedFinderBuilder.Dimension<>("status"), VcsRootStatus.Type.class).description("type of operation")
                          .valueForDefaultFilter(vcsRootCheckStatus -> vcsRootCheckStatus.myStatus.getType());
       statusFilterBuilder.dimensionTimeCondition(new TypedFinderBuilder.Dimension<>("timestamp"), myTimeCondition).description("time of the operation start")
@@ -278,11 +264,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
              .description("previous VCS root status").valueForDefaultFilter(root -> new VcsRootCheckStatus(root.getPreviousStatus(), null));
 
       final ItemFilter<VcsRootInstanceEx> filter = builder.build().getFilter(status);
-      result.add(new FilterConditionChecker<VcsRootInstance>() {
-        public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return filter.isIncluded((VcsRootInstanceEx)item);
-        }
-      });
+      result.add(item -> filter.isIncluded((VcsRootInstanceEx)item));
     }
 
     final Boolean commitHookMode = locator.getSingleDimensionValueAsBoolean(COMMIT_HOOK_MODE);
@@ -308,11 +290,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
       });
 
       final ItemFilter<RepositoryState> filter = builder.build().getFilter(repositoryState);
-      result.add(new FilterConditionChecker<VcsRootInstance>() {
-        public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return filter.isIncluded(((VcsRootInstanceEx)item).getLastUsedState());
-        }
-      });
+      result.add(item -> filter.isIncluded(((VcsRootInstanceEx)item).getLastUsedState()));
 
     }
 
@@ -328,11 +306,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     if (affectedProjectLocator != null) {
       final Set<VcsRootInstance> vcsRootInstances = getVcsRootInstancesUnderProject(myProjectFinder.getItem(affectedProjectLocator),
                                                                                     locator.getSingleDimensionValueAsBoolean(HAS_VERSIONED_SETTINGS_ONLY));
-      result.add(new FilterConditionChecker<VcsRootInstance>() {
-        public boolean isIncluded(@NotNull final VcsRootInstance item) {
-          return vcsRootInstances.contains(item);
-        }
-      });
+      result.add(item -> vcsRootInstances.contains(item));
     }
 
     // should check HAS_VERSIONED_SETTINGS_ONLY only in prefiltered items as it should consider the current scope - no way to filter in Filter

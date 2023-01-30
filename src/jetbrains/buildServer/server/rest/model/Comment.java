@@ -21,7 +21,6 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -60,12 +59,9 @@ public class Comment {
                     @Nullable final String commentTextP,
                     @NotNull final Fields fields,
                     @NotNull final BeanContext context) {
-    user = userP == null ? null : ValueWithDefault
-          .decideDefault(fields.isIncluded("user"), new ValueWithDefault.Value<jetbrains.buildServer.server.rest.model.user.User>() {
-            public jetbrains.buildServer.server.rest.model.user.User get() {
-              return new jetbrains.buildServer.server.rest.model.user.User(userP, fields.getNestedField("user"), context);
-            }
-          });
+    user = userP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("user"), () ->
+        new jetbrains.buildServer.server.rest.model.user.User(userP, fields.getNestedField("user"), context)
+    );
     timestamp = ValueWithDefault.decideDefault(fields.isIncluded("timestamp"), Util.formatTime(timestampP));
     text = ValueWithDefault.decideDefault(fields.isIncluded("text"), StringUtil.isEmpty(commentTextP) ? null : commentTextP);
   }

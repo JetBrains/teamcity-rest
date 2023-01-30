@@ -23,7 +23,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
@@ -137,11 +136,7 @@ public class PropEntity {
   }
 
   static public BeanContext getFakeBeanContext(@NotNull final ServiceLocator serviceLocator) {
-    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
-      public String transform(final String path) {
-        return path;
-      }
-    });
+    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(path -> path);
     final BeanFactory beanFactory = new BeanFactory(null);
 
     return new BeanContext(beanFactory, serviceLocator, apiUrlBuilder);

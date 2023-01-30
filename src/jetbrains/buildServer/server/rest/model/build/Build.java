@@ -99,7 +99,6 @@ import jetbrains.buildServer.serverSide.vcs.VcsLabelManager;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.PasswordReplacer;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.Element;
@@ -1403,15 +1402,10 @@ public class Build {
   public Items getReplacementIds() {
     return ValueWithDefault.decideDefault(myFields.isIncluded("replacementIds", false, false), () -> {
       final Collection<Long> replacementIds = myServiceLocator.getSingletonService(BuildPromotionReplacement.class).getOriginalPromotionIds(myBuildPromotion.getId());
-      ArrayList<Long> sortedReplacemetIds = new ArrayList<Long>(replacementIds);
+      ArrayList<Long> sortedReplacemetIds = new ArrayList<>(replacementIds);
       Collections.sort(sortedReplacemetIds, Collections.reverseOrder());
 
-      return new Items(CollectionsUtil.convertCollection(sortedReplacemetIds, new Converter<String, Long>() {
-        @Override
-        public String createFrom(@NotNull final Long source) {
-          return String.valueOf(source);
-        }
-      }));
+      return new Items(CollectionsUtil.convertCollection(sortedReplacemetIds, source -> String.valueOf(source)));
     });
   }
 
@@ -1774,14 +1768,12 @@ public class Build {
       }
       if (submittedTriggeringOptions.rebuildDependencies != null) {
         customizer.setRebuildDependencies(CollectionsUtil.convertCollection(
-          submittedTriggeringOptions.rebuildDependencies.getFromPosted(serviceLocator.getSingletonService(BuildTypeFinder.class)), new Converter<String, BuildTypeOrTemplate>() {
-            public String createFrom(@NotNull final BuildTypeOrTemplate source) {
+          submittedTriggeringOptions.rebuildDependencies.getFromPosted(serviceLocator.getSingletonService(BuildTypeFinder.class)), source -> {
               if (source.getBuildType() == null) {
                 //noinspection ConstantConditions
                 throw new BadRequestException("Template is specified instead of a build type. Template id: '" + source.getTemplate().getExternalId() + "'");
               }
               return source.getBuildType().getInternalId();
-            }
           }));
       }
     }

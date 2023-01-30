@@ -227,7 +227,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   @NotNull
   @Override
   public ItemFilter<BuildProblem> getFilter(@NotNull final Locator locator) {
-    final MultiCheckerFilter<BuildProblem> result = new MultiCheckerFilter<BuildProblem>();
+    final MultiCheckerFilter<BuildProblem> result = new MultiCheckerFilter<>();
 
     if (locator.isUnused(PROBLEM)) {
       String problemDimension = locator.getSingleDimensionValue(PROBLEM);
@@ -369,9 +369,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       throw new OperationException("Error performing database query: " + e.toString(), e);
     }
 
-    return new ItemHolder<BuildProblem>() {
-      @Override
-      public void process(@NotNull final ItemProcessor<BuildProblem> processor) {
+    return processor -> {
         for (Long buildId : buildIds) {
           try {
             final BuildPromotion buildByPromotionId = buildPromotionFinder.getBuildPromotion(Long.valueOf(buildId));
@@ -388,7 +386,6 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
             LOG.infoAndDebugDetails("Error getting problems for build promotion with id " + buildId + ", problemId: " + problemId + ", ignoring. Cause", e);
           }
         }
-      }
     };
   }
 

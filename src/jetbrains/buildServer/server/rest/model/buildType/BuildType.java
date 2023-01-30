@@ -531,12 +531,9 @@ public class BuildType {
     if (myBuildType == null) {
       return null;
     } else {
-      ValueWithDefault.Value<PropEntitiesArtifactDep> value = new ValueWithDefault.Value<PropEntitiesArtifactDep>() {
-        public PropEntitiesArtifactDep get() {
-          return new PropEntitiesArtifactDep(myBuildType.getSettingsEx(), myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext);
-        }
-      };
-      return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("artifact-dependencies", false), check(value));
+      return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("artifact-dependencies", false), check(
+        () -> new PropEntitiesArtifactDep(myBuildType.getSettingsEx(), myFields.getNestedField("artifact-dependencies", Fields.NONE, Fields.LONG), myBeanContext)
+      ));
     }
   }
 

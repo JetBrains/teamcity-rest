@@ -16,6 +16,11 @@
 
 package jetbrains.buildServer.server.rest.model.agent;
 
+import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
@@ -24,15 +29,8 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
-import java.util.List;
 
 @XmlRootElement(name = "compatibilities")
 @XmlType(name = "compatibilities")
@@ -51,17 +49,9 @@ public class Compatibilities {
   public Compatibilities(@Nullable final List<Compatibility.AgentCompatibilityData> compatibilitiesP,
                          @Nullable final SBuildAgent contextAgent, @Nullable final SBuildType contextBuildType,
                          @NotNull final Fields fields, final @NotNull BeanContext beanContext) {
-    compatibilities =
-      compatibilitiesP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("compatibility", true, true), new ValueWithDefault.Value<List<Compatibility>>() {
-        @Nullable
-        public List<Compatibility> get() {
-          Fields nestedFields = fields.getNestedField("compatibility");
-          return CollectionsUtil.convertCollection(compatibilitiesP, new Converter<Compatibility, Compatibility.AgentCompatibilityData>() {
-            public Compatibility createFrom(@NotNull final Compatibility.AgentCompatibilityData source) {
-              return new Compatibility(source, contextAgent, contextBuildType, nestedFields, beanContext);
-            }
-          });
-        }
+    compatibilities = compatibilitiesP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("compatibility", true, true), () -> {
+        Fields nestedFields = fields.getNestedField("compatibility");
+        return CollectionsUtil.convertCollection(compatibilitiesP, source -> new Compatibility(source, contextAgent, contextBuildType, nestedFields, beanContext));
       });
 
     count = compatibilitiesP == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), compatibilitiesP.size());

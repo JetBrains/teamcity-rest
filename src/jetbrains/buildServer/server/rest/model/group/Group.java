@@ -29,7 +29,6 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.CycleDetectedException;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.groups.UserGroupManager;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
@@ -93,38 +92,42 @@ public class Group {
   }
 
   public Group(@NotNull final SUserGroup userGroup, @NotNull final Fields fields, @NotNull final BeanContext context) {
-    this.key = ValueWithDefault.decideDefault(fields.isIncluded("key"), userGroup.getKey());
-    this.name = ValueWithDefault.decideDefault(fields.isIncluded("name"), userGroup.getName());
-    this.href = ValueWithDefault.decideDefault(fields.isIncluded("href"), context.getApiUrlBuilder().getHref(userGroup));
-    this.description = ValueWithDefault.decideDefault(fields.isIncluded("description"), StringUtil.isEmpty(userGroup.getDescription()) ? null : userGroup.getDescription());
-    final ApiUrlBuilder apiUrlBuilder = context.getContextService(ApiUrlBuilder.class);
-    parentGroups = ValueWithDefault.decideDefault(fields.isIncluded("parent-groups", false), new ValueWithDefault.Value<Groups>() {
-      public Groups get() {
-        return new Groups(userGroup.getParentGroups(), fields.getNestedField("parent-groups", Fields.NONE, Fields.LONG), context);
-      }
-    });
-    childGroups = ValueWithDefault.decideDefault(fields.isIncluded("child-groups", false), new ValueWithDefault.Value<Groups>() {
-      public Groups get() {
-        return new Groups(userGroup.getDirectSubgroups(), fields.getNestedField("child-groups", Fields.NONE, Fields.LONG), context);
-      }
-    });
-    users = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("users", false), new ValueWithDefault.Value<Users>() {
-      public Users get() {
+    key = ValueWithDefault.decideDefault(fields.isIncluded("key"), userGroup.getKey());
+
+    name = ValueWithDefault.decideDefault(fields.isIncluded("name"), userGroup.getName());
+
+    href = ValueWithDefault.decideDefault(fields.isIncluded("href"), context.getApiUrlBuilder().getHref(userGroup));
+
+    description = ValueWithDefault.decideDefault(fields.isIncluded("description"), StringUtil.isEmpty(userGroup.getDescription()) ? null : userGroup.getDescription());
+
+    parentGroups = ValueWithDefault.decideDefault(
+      fields.isIncluded("parent-groups", false),
+      () -> new Groups(userGroup.getParentGroups(), fields.getNestedField("parent-groups", Fields.NONE, Fields.LONG), context)
+    );
+
+    childGroups = ValueWithDefault.decideDefault(
+      fields.isIncluded("child-groups", false),
+      () -> new Groups(userGroup.getDirectSubgroups(), fields.getNestedField("child-groups", Fields.NONE, Fields.LONG), context)
+    );
+
+    users = ValueWithDefault.decideDefaultIgnoringAccessDenied(
+      fields.isIncluded("users", false),
+      () -> {
         //improvement: it is better to force the group to the current one (and support several ANDed groups in the userFinder)
         final PagedSearchResult<SUser> items = context.getSingletonService(UserFinder.class).getItems(Locator.merge(fields.getLocator(), UserFinder.getLocatorByGroup(userGroup)));
         return new Users(items.getEntries(), fields.getNestedField("users", Fields.NONE, Fields.LONG), context);
       }
-    });
-    roleAssignments = ValueWithDefault.decideDefault(fields.isIncluded("roles", false), new ValueWithDefault.Value<RoleAssignments>() {
-      public RoleAssignments get() {
-        return new RoleAssignments(userGroup.getRoles(), userGroup, context);
-      }
-    });
-    properties = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("properties", false), new ValueWithDefault.Value<Properties>() {
-      public Properties get() {
-        return new Properties(getProperties(userGroup), GroupRequest.getPropertiesHref(userGroup), fields.getNestedField("properties", Fields.NONE, Fields.LONG), context);
-      }
-    });
+    );
+
+    roleAssignments = ValueWithDefault.decideDefault(
+      fields.isIncluded("roles", false),
+      () -> new RoleAssignments(userGroup.getRoles(), userGroup, context)
+    );
+
+    properties = ValueWithDefault.decideDefaultIgnoringAccessDenied(
+      fields.isIncluded("properties", false),
+      () -> new Properties(getProperties(userGroup), GroupRequest.getPropertiesHref(userGroup), fields.getNestedField("properties", Fields.NONE, Fields.LONG), context)
+    );
   }
 
   public static void setGroupParents(@NotNull final SUserGroup group,
@@ -172,7 +175,7 @@ public class Group {
   }
 
   public static Map<String, String> getProperties(final SUserGroup user) {
-    Map<String, String> convertedProperties = new HashMap<String, String>();
+    Map<String, String> convertedProperties = new HashMap<>();
     for (Map.Entry<PropertyKey, String> prop : user.getProperties().entrySet()) {
       convertedProperties.put(prop.getKey().getKey(), prop.getValue());
     }

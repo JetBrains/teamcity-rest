@@ -20,7 +20,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.BuildProblemDataEx;
 import jetbrains.buildServer.ServiceLocator;
@@ -95,14 +94,12 @@ public class ProblemOccurrence {
     final MuteInfo muteInfo = problemP.getMuteInBuildInfo();
     muted = ValueWithDefault.decideDefault(fields.isIncluded("muted"), muteInfo != null);
 
-    currentlyInvestigated = ValueWithDefault.decideDefault(fields.isIncluded("currentlyInvestigated"), new ValueWithDefault.Value<Boolean>() {
-      public Boolean get() {
+    currentlyInvestigated = ValueWithDefault.decideDefault(fields.isIncluded("currentlyInvestigated"), () -> {
         if (problemP.getBuildPromotion().getBuildType() == null){
           //missing build type, skip. Workaround for http://youtrack.jetbrains.com/issue/TW-34733
           return null;
         }
         return !problemP.getAllResponsibilities().isEmpty();
-      }
     });
 
     if (problemP.getBuildPromotion().getBuildType() != null){
@@ -129,23 +126,23 @@ public class ProblemOccurrence {
       }
     });
 
-    problem = ValueWithDefault.decideDefault(fields.isIncluded("problem", false), new ValueWithDefault.Value<Problem>() {
-      public Problem get() {
-        return new Problem(new ProblemWrapper(problemP.getId(), problemP.getBuildProblemData(), beanContext.getServiceLocator()),
-                           fields.getNestedField("problem"), beanContext);
-      }
-    }
+    problem = ValueWithDefault.decideDefault(
+      fields.isIncluded("problem", false),
+      () -> new Problem(
+        new ProblemWrapper(problemP.getId(), problemP.getBuildProblemData(), beanContext.getServiceLocator()),
+        fields.getNestedField("problem"), beanContext
+      )
     );
 
     mute = muteInfo == null
            ? null
-           : ValueWithDefault.decideDefault(fields.isIncluded("mute", false), new Mute(muteInfo, fields.getNestedField("mute", Fields.NONE, Fields.LONG), beanContext));
+           : ValueWithDefault.decideDefault(
+             fields.isIncluded("mute", false),
+             new Mute(muteInfo, fields.getNestedField("mute", Fields.NONE, Fields.LONG), beanContext)
+           );
 
-    build = ValueWithDefault.decideDefault(fields.isIncluded("build", false), new ValueWithDefault.Value<Build>() {
-      public Build get() {
-        return new Build(problemP.getBuildPromotion(), fields.getNestedField("build"), beanContext);
-      }
-    });
+    build = ValueWithDefault.decideDefault(fields.isIncluded("build", false), () ->
+      new Build(problemP.getBuildPromotion(), fields.getNestedField("build"), beanContext));
   }
 
   @NotNull

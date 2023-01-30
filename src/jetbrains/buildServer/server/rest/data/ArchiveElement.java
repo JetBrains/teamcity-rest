@@ -20,10 +20,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.List;
 import java.util.function.Supplier;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.StreamingOutput;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.browser.Browser;
@@ -50,25 +48,30 @@ public class ArchiveElement implements Element {
     myName = name;
   }
 
+  @Override
   @NotNull
   public String getName() {
     return myName;
   }
 
+  @Override
   @NotNull
   public String getFullName() {
     return myName;
   }
 
+  @Override
   public boolean isLeaf() {
     return true;
   }
 
+  @Override
   @Nullable
   public Iterable<Element> getChildren() throws BrowserException {
     return null;
   }
 
+  @Override
   public boolean isContentAvailable() {
     return true;
   }
@@ -78,8 +81,7 @@ public class ArchiveElement implements Element {
       throw new IllegalStateException("Partial streaming is not yet supported");
     }
 
-    return new StreamingOutput() {
-      public void write(final OutputStream out) throws WebApplicationException {
+    return out -> {
         final ZipArchiveOutputStream resultOutput = new ZipArchiveOutputStream(new BufferedOutputStream(out));
         resultOutput.setEncoding(null); // TW-12815
         int errorsCount = 0;
@@ -133,22 +135,24 @@ public class ArchiveElement implements Element {
             resultOutput.close();
           } catch (Exception e) {
             LOG.warnAndDebugDetails("Error closing archived stream", e);
-          }
         }
       }
     };
   }
 
 
+  @Override
   @NotNull
   public InputStream getInputStream() throws IllegalStateException, IOException, BrowserException {
     throw new IllegalStateException("Operation is not supported");
   }
 
+  @Override
   public long getSize() throws IllegalStateException {
     return -1;
   }
 
+  @Override
   @NotNull
   public Browser getBrowser() {
     throw new IllegalStateException("Operation is not supported");

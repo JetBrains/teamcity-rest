@@ -17,10 +17,10 @@
 package jetbrains.buildServer.server.rest.data.finder;
 
 
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.SetDuplicateChecker;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -104,6 +104,10 @@ public abstract class AbstractFinder<ITEM> extends FinderImpl<ITEM> implements F
     return null;
   }
 
+  /**
+   * Determines the dimensions which should not be returned by help request.
+   * @param hiddenDimensions the names of the hidden dimensions
+   */
   public void setHiddenDimensions(@NotNull final String... hiddenDimensions) {
     myHiddenDimensions = hiddenDimensions;
   }

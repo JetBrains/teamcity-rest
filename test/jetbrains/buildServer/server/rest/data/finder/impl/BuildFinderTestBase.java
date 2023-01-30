@@ -30,12 +30,8 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.db.DBActionNoResults;
-import jetbrains.buildServer.serverSide.db.DBException;
-import jetbrains.buildServer.serverSide.db.DBFunctions;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -109,19 +105,11 @@ public class BuildFinderTestBase extends BaseFinderTest<SBuild> {
   }
 
   private List<BuildPromotion> getPromotions(final SBuild[] builds) {
-    return CollectionsUtil.convertCollection(Arrays.asList(builds), new Converter<BuildPromotion, SBuild>() {
-      public BuildPromotion createFrom(@NotNull final SBuild source) {
-        return source.getBuildPromotion();
-      }
-    });
+    return CollectionsUtil.convertCollection(Arrays.asList(builds), source -> source.getBuildPromotion());
   }
 
   private List<BuildPromotion> getPromotions(final Iterable<SBuild> builds) {
-    return CollectionsUtil.convertCollection(builds, new Converter<BuildPromotion, SBuild>() {
-      public BuildPromotion createFrom(@NotNull final SBuild source) {
-        return source.getBuildPromotion();
-      }
-    });
+    return CollectionsUtil.convertCollection(builds, source -> source.getBuildPromotion());
   }
 
   protected void checkNoBuildsFound(@Nullable final String locator) {
@@ -136,16 +124,13 @@ public class BuildFinderTestBase extends BaseFinderTest<SBuild> {
   }
 
   public static String getPromotionsDescription(final List<BuildPromotion> result) {
-    return LogUtil.describe(CollectionsUtil.convertCollection(result, new Converter<Loggable, BuildPromotion>() {
-      public Loggable createFrom(@NotNull final BuildPromotion source) {
-        return new Loggable() {
-          @NotNull
-          public String describe(final boolean verbose) {
-            return LogUtil.appendDescription(LogUtil.describeInDetail(source), "startTime: " + LogUtil.describe(source.getServerStartDate()));
-          }
-        };
-      }
-    }), "\n", "", "");
+    return LogUtil.describe(
+      CollectionsUtil.convertCollection(
+        result,
+        source -> (Loggable)verbose -> LogUtil.appendDescription(LogUtil.describeInDetail(source), "startTime: " + LogUtil.describe(source.getServerStartDate()))
+      ),
+      "\n", "", ""
+    );
   }
 
   public <E extends Throwable> void checkExceptionOnBuildSearch(final Class<E> exception, final String singleBuildLocator) {
@@ -153,25 +138,21 @@ public class BuildFinderTestBase extends BaseFinderTest<SBuild> {
   }
 
   public <E extends Throwable> void checkExceptionOnBuildSearch(final Class<E> exception, final SBuildType buildType, final String singleBuildLocator) {
-    checkException(exception, new Runnable() {
-      public void run() {
-        myBuildFinder.getBuild(buildType, singleBuildLocator);
-      }
-    }, "searching single build with locator \"" + singleBuildLocator + "\"");
+    checkException(
+      exception,
+      () -> myBuildFinder.getBuild(buildType, singleBuildLocator),
+      "searching single build with locator \"" + singleBuildLocator + "\""
+    );
 
-    checkException(exception, new Runnable() {
-      public void run() {
-        myBuildFinder.getBuildPromotion(buildType, singleBuildLocator);
-      }
-    }, "searching single build promotion with locator \"" + singleBuildLocator + "\"");
+    checkException(
+      exception,
+      () -> myBuildFinder.getBuildPromotion(buildType, singleBuildLocator),
+      "searching single build promotion with locator \"" + singleBuildLocator + "\""
+    );
   }
 
   public <E extends Throwable> void checkExceptionOnBuildsSearch(final Class<E> exception, @Nullable final String multipleBuildsLocator) {
-    checkException(exception, new Runnable() {
-      public void run() {
-        myBuildFinder.getBuilds(null, multipleBuildsLocator);
-      }
-    }, "searching builds with locator \"" + multipleBuildsLocator + "\"");
+    checkException(exception, () -> myBuildFinder.getBuilds(null, multipleBuildsLocator), "searching builds with locator \"" + multipleBuildsLocator + "\"");
   }
 
   @NotNull
@@ -183,11 +164,9 @@ public class BuildFinderTestBase extends BaseFinderTest<SBuild> {
    * requires calling recreateBuildServer() and re-initializing all the beans
    */
   protected void prepareFinishedBuildIdChange(final long oldId, final long newId) {
-    withDBF(new DBActionNoResults() {
-      public void run(final DBFunctions dbf) throws DBException {
-        assertEquals(1, dbf.executeDml("update history set build_id = ? where build_id = ?", newId, oldId));
-        assertEquals(1, dbf.executeDml("update build_state set build_id = ? where build_id = ?", newId, oldId));
-      }
+    withDBF(dbf -> {
+      assertEquals(1, dbf.executeDml("update history set build_id = ? where build_id = ?", newId, oldId));
+      assertEquals(1, dbf.executeDml("update build_state set build_id = ? where build_id = ?", newId, oldId));
     }, true);
   }
 

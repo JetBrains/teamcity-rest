@@ -138,15 +138,12 @@ public class TimeCondition {
     }else{
       matcher = getTimeCondition(timeLocatorText, buildValueExtractor);
     }
-    FilterConditionChecker<T> filter = new FilterConditionChecker<T>() {
-      @Override
-      public boolean isIncluded(@NotNull final T item) {
+    FilterConditionChecker<T> filter = item -> {
         final Date tryValue = valueExtractor.get(item);
         if (tryValue == null) {
           return false; //do not include if no date present (e.g. not started build). This can be reworked to treat nulls as "future" instead of "never"
         }
         return matcher.matches(tryValue);
-      }
     };
     return new FilterAndLimitingDate<T>(filter, matcher.getLimitingSinceDate());
   }

@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.util;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -134,12 +135,18 @@ public class ValueWithDefault {
   public static <T> boolean isDefault(@Nullable final T value) {
     if (value == null) return true;
 
-    if (Integer.class.isAssignableFrom(value.getClass())) return (Integer)value == 0;
-    if (Long.class.isAssignableFrom(value.getClass())) return (Long)value == 0;
+    if (Integer.class.isAssignableFrom(value.getClass())) {
+      return (Integer)value == 0;
+    }
+    if (Long.class.isAssignableFrom(value.getClass())) {
+      return (Long)value == 0;
+    }
     if (Boolean.class.isAssignableFrom(value.getClass())) {//noinspection PointlessBooleanExpression
       return (Boolean)value == false;
     }
-    if (Collection.class.isAssignableFrom(value.getClass())) return ((Collection)value).size() == 0;
+    if (Collection.class.isAssignableFrom(value.getClass())) {
+      return ((Collection<?>)value).size() == 0;
+    }
     if (DefaultValueAware.class.isAssignableFrom(value.getClass())) {
       return ((DefaultValueAware)value).isDefault();
     }
@@ -149,9 +156,7 @@ public class ValueWithDefault {
 
   public static <T> boolean isAllDefault(@Nullable final T... values) {
     if (values != null) {
-      for (T value : values) {
-        if (!isDefault(value)) return false;
-      }
+      return Arrays.stream(values).allMatch(ValueWithDefault::isDefault);
     }
     return true;
   }

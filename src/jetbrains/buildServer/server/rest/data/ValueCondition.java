@@ -82,7 +82,7 @@ public class ValueCondition {
 
   @Nullable
   @Contract("!null -> !null; null -> null")
-  private String toLower(@Nullable final String value) {
+  private static String toLower(@Nullable final String value) {
     return value == null ? null : value.toLowerCase();
   }
 

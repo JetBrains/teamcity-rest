@@ -65,16 +65,17 @@ public class Projects {
 
   public Projects(@NotNull final List<SProject> projectObjects, @Nullable final PagerData pagerData, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     if (fields.isIncluded("project", false, true)) {
-      projects = ValueWithDefault.decideDefault(fields.isIncluded("project"), new ValueWithDefault.Value<List<Project>>() {
-        public List<Project> get() {
-          final ArrayList<Project> result = new ArrayList<Project>(projectObjects.size());
+      projects = ValueWithDefault.decideDefault(
+        fields.isIncluded("project"),
+        () -> {
+          final ArrayList<Project> result = new ArrayList<>(projectObjects.size());
           final Fields nestedField = fields.getNestedField("project");
           for (SProject project : projectObjects) {
             result.add(new Project(project, nestedField, beanContext));
           }
           return result;
         }
-      });
+      );
     } else {
       projects = null;
     }
@@ -103,7 +104,7 @@ public class Projects {
     if (projects == null) {
       return Collections.emptyList();
     }
-    final ArrayList<SProject> result = new ArrayList<SProject>(projects.size());
+    final ArrayList<SProject> result = new ArrayList<>(projects.size());
     for (Project project : projects) {
       result.add(project.getProjectFromPosted(projectFinder));
     }

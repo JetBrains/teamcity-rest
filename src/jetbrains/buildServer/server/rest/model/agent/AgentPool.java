@@ -87,20 +87,15 @@ public class AgentPool {
                     return new Project(project.getProject(), fields.getNestedField("ownerProject"), beanContext);
                   });
 
-    projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
-      @Nullable
-      public Projects get() {
-        return new Projects(agentPoolFinder.getPoolProjects(agentPool), null, fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext);
-      }
-    });
+    projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), () ->
+      new Projects(agentPoolFinder.getPoolProjects(agentPool), null, fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext)
+    );
+
     //todo: support agent types
-    agents = ValueWithDefault.decideDefault(fields.isIncluded("agents", false), new ValueWithDefault.Value<Agents>() {
-      @Nullable
-      public Agents get() {
+    agents = ValueWithDefault.decideDefault(fields.isIncluded("agents", false), () -> {
         Fields nestedFields = fields.getNestedField("agents", Fields.NONE, Fields.LONG);
         String locator = Locator.merge(nestedFields.getLocator(), AgentFinder.getLocator(agentPool));
         return new Agents(locator, new PagerDataImpl(AgentRequest.getItemsHref(locator)), nestedFields, beanContext);
-      }
     });
 
     final AuthorityHolder authorityHolder = beanContext.getSingletonService(PermissionChecker.class).getCurrent();

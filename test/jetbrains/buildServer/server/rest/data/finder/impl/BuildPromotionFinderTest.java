@@ -29,9 +29,9 @@ import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.LogInitializer;
-import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -2713,19 +2713,19 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   public <E extends Throwable> void checkExceptionOnBuildSearch(final Class<E> exception, final String singleBuildLocator) {
-    checkException(exception, new Runnable() {
-      public void run() {
-        myBuildPromotionFinder.getItem(singleBuildLocator);
-      }
-    }, "searching single build with locator \"" + singleBuildLocator + "\"");
+    checkException(
+      exception,
+      () -> myBuildPromotionFinder.getItem(singleBuildLocator),
+      "searching single build with locator \"" + singleBuildLocator + "\""
+    );
   }
 
   public <E extends Throwable> void checkExceptionOnBuildsSearch(final Class<E> exception, final String multipleBuildsLocator) {
-    checkException(exception, new Runnable() {
-      public void run() {
-        myBuildPromotionFinder.getItems(multipleBuildsLocator);
-      }
-    }, "searching builds with locator \"" + multipleBuildsLocator + "\"");
+    checkException(
+      exception,
+      () -> myBuildPromotionFinder.getItems(multipleBuildsLocator),
+      "searching builds with locator \"" + multipleBuildsLocator + "\""
+    );
   }
 
   @NotNull

@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
@@ -32,7 +33,6 @@ import jetbrains.buildServer.serverSide.Parameter;
 import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -204,34 +204,22 @@ public class ParameterCondition {
   @NotNull
   public static Matcher<ParametersProvider> create(@Nullable final List<String> propertyConditionLocators) {
     if (propertyConditionLocators == null || propertyConditionLocators.isEmpty()) {
-      return new Matcher<ParametersProvider>() {
-        public boolean matches(@NotNull final ParametersProvider parametersProvider) {
-          return true;
-        }
-      };
+      return parametersProvider -> true;
     }
 
-    final List<ParameterCondition> list = new ArrayList<>(propertyConditionLocators.size());
-    for (String propertyConditionLocator : propertyConditionLocators) {
-      final ParameterCondition condition = create(propertyConditionLocator);
-      if (condition != null) list.add(condition);
-    }
-    return new Matcher<ParametersProvider>() {
-      public boolean matches(@NotNull final ParametersProvider parametersProvider) {
-        for (ParameterCondition condition : list) {
-          if (!condition.matches(parametersProvider)) return false;
-        }
-        return true;
-      }
+    final List<ParameterCondition> list = propertyConditionLocators
+      .stream()
+      .map(ParameterCondition::create)
+      .filter(Objects::nonNull)
+      .collect(Collectors.toList());
+
+    return parametersProvider -> {
+      return list.stream().allMatch(condition -> condition.matches(parametersProvider));
     };
   }
 
   private static List<String> getAllRequirementTypes() {
-    return CollectionsUtil.convertCollection(RequirementType.ALL_REQUIREMENT_TYPES, new Converter<String, RequirementType>() {
-      public String createFrom(@NotNull final RequirementType source) {
-        return source.getName();
-      }
-    });
+    return CollectionsUtil.convertCollection(RequirementType.ALL_REQUIREMENT_TYPES, RequirementType::getName);
   }
 
   public static String getLocatorExactValueMatch(@NotNull final String value) {

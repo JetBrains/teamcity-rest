@@ -16,15 +16,10 @@
 
 package jetbrains.buildServer.server.rest.data.finder.impl;
 
-import jetbrains.buildServer.server.rest.data.util.FilterConditionChecker;
-import jetbrains.buildServer.server.rest.data.util.FilterUtil;
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.FinderImpl;
-import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
-import jetbrains.buildServer.server.rest.data.util.KeyDuplicateChecker;
-import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
+import jetbrains.buildServer.server.rest.data.util.*;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -166,70 +161,44 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
     if (projectLocator != null) {
       project = myProjectFinder.getItem(projectLocator);
       final SProject internalProject = project;
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return internalProject.equals(item.getBuildType().getProject());
-        }
-      });
+      result.add(item -> internalProject.equals(item.getBuildType().getProject()));
     }
 
 
     final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
     if (buildTypeLocator != null) {
       final SBuildType buildType = myBuildTypeFinder.getBuildType(project, buildTypeLocator, false);
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return buildType.equals(item.getBuildPromotion().getParentBuildType());
-        }
-      });
+      result.add(item -> buildType.equals(item.getBuildPromotion().getParentBuildType()));
     }
 
     final String agentLocator = locator.getSingleDimensionValue(AGENT);
     if (agentLocator != null) {
       final SBuildAgent agent = myAgentFinder.getItem(agentLocator);
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return agent.equals(item.getBuildAgent());
-        }
-      });
+      result.add(item -> agent.equals(item.getBuildAgent()));
     }
 
     final String compatibleAagentLocator = locator.getSingleDimensionValue("compatibleAgent"); //experimental
     if (compatibleAagentLocator != null) {
       final SBuildAgent agent = myAgentFinder.getItem(compatibleAagentLocator);
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return item.getCanRunOnAgents().contains(agent);
-        }
-      });
+      result.add(item -> item.getCanRunOnAgents().contains(agent));
     }
 
     final Long compatibleAgentsCount = locator.getSingleDimensionValueAsLong("compatibleAgentsCount"); //experimental
     if (compatibleAgentsCount != null) {
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return compatibleAgentsCount.equals(Integer.valueOf(item.getCanRunOnAgents().size()).longValue());
-        }
-      });
+      result.add(item -> compatibleAgentsCount.equals(Integer.valueOf(item.getCanRunOnAgents().size()).longValue()));
     }
 
     final Boolean personal = locator.getSingleDimensionValueAsBoolean(PERSONAL);
     if (personal != null) {
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          return FilterUtil.isIncludedByBooleanFilter(personal, item.isPersonal());
-        }
-      });
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(personal, item.isPersonal()));
     }
 
     final String userDimension = locator.getSingleDimensionValue(USER);
     if (userDimension != null) {
       final SUser user = myUserFinder.getItem(userDimension);
-      result.add(new FilterConditionChecker<SQueuedBuild>() {
-        public boolean isIncluded(@NotNull final SQueuedBuild item) {
-          final SUser actualUser = item.getTriggeredBy().getUser();
-          return actualUser != null && user.getId() == actualUser.getId();
-        }
+      result.add(item -> {
+        final SUser actualUser = item.getTriggeredBy().getUser();
+        return actualUser != null && user.getId() == actualUser.getId();
       });
     }
 

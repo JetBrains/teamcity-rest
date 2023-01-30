@@ -80,43 +80,46 @@ public class Test {
     final ApiUrlBuilder apiUrlBuilder = beanContext.getApiUrlBuilder();
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), apiUrlBuilder.transformRelativePath(TestRequest.getHref(test)));
 
-    mutes = ValueWithDefault.decideDefault(fields.isIncluded("mutes", false), new ValueWithDefault.Value<Mutes>() {
-      public Mutes get() {
+    mutes = ValueWithDefault.decideDefault(
+      fields.isIncluded("mutes", false),
+      () -> {
         if (TeamCityProperties.getBoolean(Mutes.REST_MUTES_ACTUAL_STATE)) {
           return Mutes.createMutesWithActualAttributes(MuteFinder.getLocator(test), fields, beanContext);
         }
 
-        final ArrayList<MuteInfo> muteInfos = new ArrayList<MuteInfo>();
+        final ArrayList<MuteInfo> muteInfos = new ArrayList<>();
         final CurrentMuteInfo currentMuteInfo = test.getCurrentMuteInfo();
         if (currentMuteInfo != null) {
-          muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getProjectsMuteInfo().values())); //add with deduplication
-          muteInfos.addAll(new LinkedHashSet<MuteInfo>(currentMuteInfo.getBuildTypeMuteInfo().values())); //add with deduplication
+          muteInfos.addAll(new LinkedHashSet<>(currentMuteInfo.getProjectsMuteInfo().values())); //add with deduplication
+          muteInfos.addAll(new LinkedHashSet<>(currentMuteInfo.getBuildTypeMuteInfo().values())); //add with deduplication
         }
         return new Mutes(muteInfos, null, fields.getNestedField("mutes", Fields.NONE, Fields.LONG), beanContext);
-
       }
-    });
+    );
 
-    investigations = ValueWithDefault.decideDefault(fields.isIncluded("investigations", false), new ValueWithDefault.Value<Investigations>() {
-      public Investigations get() {
-        return new Investigations(beanContext.getSingletonService(InvestigationFinder.class).getInvestigationWrappers(test),
-                                  new PagerDataImpl(InvestigationRequest.getHref(test)), fields.getNestedField("investigations"),
-                                  beanContext);
-      }
-    });
+    investigations = ValueWithDefault.decideDefault(
+      fields.isIncluded("investigations", false),
+      () -> new Investigations(
+        beanContext.getSingletonService(InvestigationFinder.class).getInvestigationWrappers(test),
+        new PagerDataImpl(InvestigationRequest.getHref(test)),
+        fields.getNestedField("investigations"),
+        beanContext
+      )
+    );
 
-    testOccurrences = ValueWithDefault.decideDefault(fields.isIncluded("testOccurrences", false), new ValueWithDefault.Value<TestOccurrences>() {
-      public TestOccurrences get() {
+    testOccurrences = ValueWithDefault.decideDefault(
+      fields.isIncluded("testOccurrences", false),
+      () -> {
         //todo: add support for locator + filter here, like for builds in BuildType
         final Fields nestedFields = fields.getNestedField("testOccurrences");
         return new TestOccurrences(null, null, TestOccurrenceRequest.getHref(test), null, nestedFields, beanContext);
       }
-    });
+    );
 
     if (fields.isIncluded("parsedTestName", false, false)) {
       parsedTestName = new ParsedTestName();
       parsedTestName.testPackage = test.getName().getPackageName();
-      parsedTestName.testSuite  = test.getName().getSuite();
+      parsedTestName.testSuite = test.getName().getSuite();
       parsedTestName.testClass = test.getName().getClassName();
       parsedTestName.testShortName = test.getName().getShortName();
       parsedTestName.testNameWithoutPrefix = test.getName().getTestNameWithoutPrefix();

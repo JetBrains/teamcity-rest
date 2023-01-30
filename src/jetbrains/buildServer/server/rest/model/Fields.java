@@ -323,7 +323,7 @@ public class Fields {
 
   @NotNull
   public Fields resetRestrictedField(@NotNull final String fieldName, @NotNull Fields newRestriction) {
-    final Map<String, Fields> newRestrictedFields = new HashMap<String, Fields>(myRestrictedFields);
+    final Map<String, Fields> newRestrictedFields = new HashMap<>(myRestrictedFields);
     newRestrictedFields.put(fieldName, newRestriction);
     return new Fields(myFieldsSpec, newRestrictedFields, myContext, true);
   }

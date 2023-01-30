@@ -84,7 +84,7 @@ public class TestOccurrences {
     myFields = fields;
 
     if(items != null) {
-      this.items = ValueWithDefault.decideDefault(isTestOccurrenceIncluded(fields), (ValueWithDefault.Value<List<TestOccurrence>>)() -> {
+      this.items = ValueWithDefault.decideDefault(isTestOccurrenceIncluded(fields), () -> {
         final List<STestRun> sortedItems = new ArrayList<>(items);
         if (TeamCityProperties.getBoolean("rest.beans.testOccurrences.sortByNameAndNew")) {
           sortedItems.sort(STestRun.NEW_FIRST_NAME_COMPARATOR); //if we are to support customizable order, this should be done in the TestOccurrenceFinder

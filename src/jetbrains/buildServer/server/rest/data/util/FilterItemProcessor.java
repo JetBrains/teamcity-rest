@@ -33,6 +33,7 @@ public class FilterItemProcessor<T> implements ItemProcessor<T> {
     myFilter = filter;
   }
 
+  @Override
   public boolean processItem(final T item) {
     final boolean withinRange = myFilter.isBelowUpperRangeLimit(myCurrentIndex, myTotalItemsProcessed++);
     if (!withinRange){

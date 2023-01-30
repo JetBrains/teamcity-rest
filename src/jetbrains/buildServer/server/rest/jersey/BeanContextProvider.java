@@ -60,10 +60,12 @@ public class BeanContextProvider implements InjectableProvider<Context, Type>, I
    * This bean has PerRequest scope because of "headers" and "request"
    * fields above, which should be re-injected every time per request.
    */
+  @Override
   public ComponentScope getScope() {
     return ComponentScope.PerRequest;
   }
 
+  @Override
   public Injectable getInjectable(final ComponentContext ic, final Context context, final Type type) {
     if (type.equals(BeanContext.class)) {
       return this;
@@ -71,6 +73,7 @@ public class BeanContextProvider implements InjectableProvider<Context, Type>, I
     return null;
   }
 
+  @Override
   public BeanContext getValue() {
     return new BeanContext(myFactory, myServiceLocator, new ApiUrlBuilder(new SimplePathTransformer(request, headers, myRequestPathTransformInfo)));
   }

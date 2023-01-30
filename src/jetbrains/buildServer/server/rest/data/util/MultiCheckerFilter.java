@@ -42,12 +42,7 @@ public class MultiCheckerFilter<T> implements ItemFilter<T> {
   }
 
   public boolean isIncluded(@NotNull T item) {
-    for (FilterConditionChecker<T> checker : myCheckers) {
-      if (!checker.isIncluded(item)) {
-        return false;
-      }
-    }
-    return true;
+    return myCheckers.stream().allMatch(checker -> checker.isIncluded(item));
   }
 
   public boolean shouldStop(@NotNull final T item) {

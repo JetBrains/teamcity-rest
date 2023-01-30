@@ -20,7 +20,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.problem.MuteData;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -59,28 +58,22 @@ public class Mute {
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), item.getId());
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(MuteRequest.getHref(item)));
 
-    assignment = ValueWithDefault.decideDefault(fields.isIncluded("assignment", false), new ValueWithDefault.Value<Comment>() {
-      public Comment get() {
-        //todo: can support userId here without user
-        return new Comment(item.getMutingUser(), item.getMutingTime(), item.getMutingComment(), fields.getNestedField("assignment", Fields.NONE, Fields.LONG), beanContext);
-      }
-    });
+    assignment = ValueWithDefault.decideDefault(fields.isIncluded("assignment", false), () ->
+      //todo: can support userId here without user
+      new Comment(item.getMutingUser(), item.getMutingTime(), item.getMutingComment(), fields.getNestedField("assignment", Fields.NONE, Fields.LONG), beanContext)
+    );
 
-    scope = ValueWithDefault.decideDefault(fields.isIncluded("scope", false), new ValueWithDefault.Value<ProblemScope>() {
-      public ProblemScope get() {
-        return new ProblemScope(item.getScope(), fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext);
-      }
-    });
-    target = ValueWithDefault.decideDefault(fields.isIncluded("target", false), new ValueWithDefault.Value<ProblemTarget>() {
-      public ProblemTarget get() {
-        return new ProblemTarget(item, fields.getNestedField("target", Fields.NONE, Fields.LONG), beanContext);
-      }
-    });
-    resolution = ValueWithDefault.decideDefault(fields.isIncluded("resolution", false), new ValueWithDefault.Value<Resolution>() {
-      public Resolution get() {
-        return new Resolution(item.getAutoUnmuteOptions(), fields.getNestedField("resolution", Fields.NONE, Fields.LONG));
-      }
-    });
+    scope = ValueWithDefault.decideDefault(fields.isIncluded("scope", false), () ->
+      new ProblemScope(item.getScope(), fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext)
+    );
+
+    target = ValueWithDefault.decideDefault(fields.isIncluded("target", false), () ->
+      new ProblemTarget(item, fields.getNestedField("target", Fields.NONE, Fields.LONG), beanContext)
+    );
+
+    resolution = ValueWithDefault.decideDefault(fields.isIncluded("resolution", false), () ->
+      new Resolution(item.getAutoUnmuteOptions(), fields.getNestedField("resolution", Fields.NONE, Fields.LONG))
+    );
   }
 
   @NotNull

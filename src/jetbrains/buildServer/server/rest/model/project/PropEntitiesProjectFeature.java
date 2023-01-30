@@ -21,7 +21,6 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -33,7 +32,6 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.SProjectFeatureDescriptor;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -59,17 +57,13 @@ public class PropEntitiesProjectFeature {
 
   public PropEntitiesProjectFeature(@NotNull final SProject project, @Nullable final String featureLocator, @NotNull final Fields fields, final BeanContext beanContext) {
     final List<SProjectFeatureDescriptor> features = new PropEntityProjectFeature.ProjectFeatureFinder(project).getItems(featureLocator).getEntries();
-    propEntities = ValueWithDefault.decideDefault(fields.isIncluded("projectFeature"), new ValueWithDefault.Value<List<PropEntityProjectFeature>>() {
-      @Nullable
-      public List<PropEntityProjectFeature> get() {
-        return CollectionsUtil.convertCollection(features, new Converter<PropEntityProjectFeature, SProjectFeatureDescriptor>() {
-          public PropEntityProjectFeature createFrom(@NotNull final SProjectFeatureDescriptor source) {
-            return new PropEntityProjectFeature(project, source, fields.getNestedField("projectFeature", Fields.NONE, Fields.LONG), beanContext);
-          }
-        });
-      }
-    });
+
+    propEntities = ValueWithDefault.decideDefault(fields.isIncluded("projectFeature"), () -> CollectionsUtil.convertCollection(features, source ->
+      new PropEntityProjectFeature(project, source, fields.getNestedField("projectFeature", Fields.NONE, Fields.LONG), beanContext)
+    ));
+
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), features.size());
+
     href = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(ProjectRequest.getFeaturesHref(project)));
   }
 

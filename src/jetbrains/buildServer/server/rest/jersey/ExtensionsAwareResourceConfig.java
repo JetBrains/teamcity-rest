@@ -48,7 +48,7 @@ public class ExtensionsAwareResourceConfig extends DefaultResourceConfig impleme
   private static Logger LOG = Logger.getInstance(ExtensionsAwareResourceConfig.class.getName());
 
   @NotNull private final APIController myController;
-  private final Set<Class<?>> myCachedClasses = new HashSet<Class<?>>();
+  private final Set<Class<?>> myCachedClasses = new HashSet<>();
 
   @Autowired
   public ExtensionsAwareResourceConfig(@NotNull final APIController controller, @SuppressWarnings("SpringJavaAutowiringInspection") final ServerPluginInfo pluginDescriptor) {

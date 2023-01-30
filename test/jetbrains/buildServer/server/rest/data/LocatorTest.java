@@ -83,7 +83,7 @@ public class LocatorTest {
     assertEquals(null, locator.getSingleDimensionValue("Name"));
     try {
       locator.getSingleDimensionValueAsLong("name");
-      fail();
+      fail("String value shuld not be able to get as long");
     } catch (LocatorProcessException ex) {
     }
   }
@@ -634,12 +634,14 @@ public class LocatorTest {
     locator.setDimension("a", "x");
     assertEquals("a:x,c:y", locator.getStringRepresentation());
 
+    assertEquals("", Locator.createEmptyLocator().getStringRepresentation());
     assertEquals("a", new Locator("a").getStringRepresentation());
     assertEquals("a", new Locator("(a)").getStringRepresentation());
     assertEquals("((a))", new Locator("((a))").getStringRepresentation());
     assertEquals("(a:b)", new Locator("(a:b)").getStringRepresentation());
     assertEquals("(a,b)", new Locator("(a,b)").getStringRepresentation());
 
+    assertEquals("", Locator.getStringLocator());
     assertEquals("a:y", Locator.getStringLocator("a", "y"));
     assertEquals("a:((y))", Locator.getStringLocator("a", "(y)")); //if the value is not wrapped into the additional parentheses, it will unwrap on parsing and produce locator with another value
     assertEquals("a:((x)y(z))", Locator.getStringLocator("a", "(x)y(z)"));
@@ -654,7 +656,7 @@ public class LocatorTest {
     assertEquals("a:($base64:" + base64("x)y(z") + ")", Locator.getStringLocator("a", "x)y(z"));
   }
 
-  String base64(String text) {
+  static String base64(String text) {
     return new String(Base64.getEncoder().encode(text.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
   }
 
@@ -724,15 +726,15 @@ public class LocatorTest {
     BaseFinderTest.checkException(exception, () -> new Locator(locatorText, metadata), "creating locator for text '" + locatorText + "'");
   }
 
-  void check(String locatorText, boolean isSingleValue, String singleValue, @Nullable String... dimensions) {
+  static void check(String locatorText, boolean isSingleValue, String singleValue, @Nullable String... dimensions) {
     check(new Locator(locatorText), isSingleValue, singleValue, dimensions);
   }
 
-  void check(String locatorText, Locator.Metadata metadata, boolean isSingleValue, String singleValue, @Nullable String... dimensions) {
+  static void check(String locatorText, Locator.Metadata metadata, boolean isSingleValue, String singleValue, @Nullable String... dimensions) {
     check(new Locator(locatorText, metadata), isSingleValue, singleValue, dimensions);
   }
 
-  void check(Locator locator, boolean isSingleValue, String singleValue, @Nullable String... dimensions) {
+  static void check(Locator locator, boolean isSingleValue, String singleValue, @Nullable String... dimensions) {
     assertEquals("is single value", isSingleValue, locator.isSingleValue());
     assertEquals("single value", singleValue, locator.getSingleValue());
     if (dimensions == null){

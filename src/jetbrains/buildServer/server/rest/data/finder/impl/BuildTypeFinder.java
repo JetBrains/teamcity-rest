@@ -26,7 +26,6 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.GraphFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
-import jetbrains.buildServer.server.rest.data.util.FilterConditionChecker;
 import jetbrains.buildServer.server.rest.data.util.FilterUtil;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
@@ -52,7 +51,6 @@ import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsManager;
@@ -283,11 +281,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
     if (name != null) {
-      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-          return name.equalsIgnoreCase(item.getName());
-        }
-      });
+      result.add(item -> name.equalsIgnoreCase(item.getName()));
     }
 
     if (locator.isUnused(DIMENSION_PROJECT)) {
@@ -296,17 +290,9 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
         final List<SProject> projects = myProjectFinder.getItems(projectLocator).myEntries;
         if (projects.size() == 1) {
           final SProject internalProject = projects.iterator().next();
-          result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-            public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-              return internalProject.getProjectId().equals(item.getProject().getProjectId());
-            }
-          });
+          result.add(item -> internalProject.getProjectId().equals(item.getProject().getProjectId()));
         } else {
-          result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-            public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-              return projects.contains(item.getProject());
-            }
-          });
+          result.add(item -> projects.contains(item.getProject()));
         }
       }
     }
@@ -314,20 +300,14 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
       @NotNull final SProject parentProject = myProjectFinder.getItem(affectedProjectDimension);
-      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-          return ProjectFinder.isSameOrParent(parentProject, item.getProject());
-        }
-      });
+      result.add(item -> ProjectFinder.isSameOrParent(parentProject, item.getProject()));
     }
 
     final Boolean paused = locator.getSingleDimensionValueAsBoolean(PAUSED);
     if (paused != null) {
-      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+      result.add(item -> {
           final Boolean pausedState = item.isPaused();
           return FilterUtil.isIncludedByBooleanFilter(paused, pausedState != null && pausedState);
-        }
       });
     }
 
@@ -343,21 +323,18 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     final String compatibleAagentLocator = locator.getSingleDimensionValue(COMPATIBLE_AGENT); //experimental
     if (compatibleAagentLocator != null) {
       final List<SBuildAgent> agents = myAgentFinder.getItems(compatibleAagentLocator).myEntries;
-      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+      result.add(item -> {
           if (item.getBuildType() == null) return false;
           for (SBuildAgent agent : agents) {
             if (AgentFinder.canActuallyRun(agent, item.getBuildType())) return true;
           }
           return false;
-        }
       });
     }
 
     final Long compatibleAgentsCount = locator.getSingleDimensionValueAsLong(COMPATIBLE_AGENTS_COUNT); //experimental
     if (compatibleAgentsCount != null) {
-      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+      result.add(item -> {
           if (item.getBuildType() == null) return false;
           long count = 0;
           for (SBuildAgent agent : myAgentFinder.getItems(null).myEntries) { //or should process unauthorized as well?
@@ -365,7 +342,6 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
             if (count > compatibleAgentsCount) return false;
           }
           return count == compatibleAgentsCount;
-        }
       });
     }
 
@@ -380,15 +356,13 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     final String parameterDimension = locator.getSingleDimensionValue(PARAMETER);
     if (parameterDimension != null) {
       final ParameterCondition parameterCondition = ParameterCondition.create(parameterDimension);
-      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+      result.add(item -> {
           final boolean canView = !BuildType.shouldRestrictSettingsViewing(item.get(), myPermissionChecker);
           if (!canView) {
             LOG.debug("While filtering build types by " + PARAMETER + " user does not have enough permissions to see settings. Excluding build type: " + item.describe(false));
             return false;
           }
           return parameterCondition.matches(item.get());
-        }
       });
     }
 
@@ -408,11 +382,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     final Boolean template = locator.getSingleDimensionValueAsBoolean(TEMPLATE_FLAG_DIMENSION_NAME);
     if (template != null) {
-      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-          return FilterUtil.isIncludedByBooleanFilter(template, item.isTemplate());
-        }
-      });
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(template, item.isTemplate()));
     }
 
     final String type = locator.getSingleDimensionValue(TYPE);
@@ -425,37 +395,26 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     if (filterBuilds != null) {
       BuildPromotionFinder promotionFinder = myServiceLocator.getSingletonService(BuildPromotionFinder.class);
       FinderSearchMatcher<BuildPromotion> matcher = new FinderSearchMatcher<>(filterBuilds, promotionFinder);
-      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-        @Override
-        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+      result.add(item -> {
           SBuildType buildType = item.getBuildType();
           if (buildType == null) return false;
           String defaults = Locator.getStringLocator(BuildPromotionFinder.BUILD_TYPE, BuildTypeFinder.getLocator(buildType), PagerData.COUNT, "1");
           return matcher.matches(defaults);
-        }
       });
     }
 
     final String snapshotDependencies = locator.getSingleDimensionValue(SNAPSHOT_DEPENDENCY);
     if (snapshotDependencies != null) {
-      final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new SnapshotDepsTraverser(myPermissionChecker));
+      final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<>(this, new SnapshotDepsTraverser(myPermissionChecker));
       final List<BuildTypeOrTemplate> boundingList = graphFinder.getItems(snapshotDependencies).myEntries;
-      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-          return boundingList.contains(item);
-        }
-      });
+      result.add(item -> boundingList.contains(item));
     }
 
     final String artifactDependencies = locator.getSingleDimensionValue(ARTIFACT_DEPENDENCY);
     if (artifactDependencies != null) {
-      final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new ArtifactDepsTraverser(myPermissionChecker));
+      final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<>(this, new ArtifactDepsTraverser(myPermissionChecker));
       final List<BuildTypeOrTemplate> boundingList = graphFinder.getItems(artifactDependencies).myEntries;
-      result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-        public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-          return boundingList.contains(item);
-        }
-      });
+      result.add(item -> boundingList.contains(item));
     }
 
     final String templateLocator = locator.getSingleDimensionValue(TEMPLATE_DIMENSION_NAME);
@@ -463,11 +422,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       try {
         final BuildTypeTemplate buildTemplate = getBuildTemplate(null, templateLocator, true); //only this can throw exceptions caught later
         final List<BuildTypeOrTemplate> boundingList = BuildTypes.fromBuildTypes(buildTemplate.getUsages());
-        result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-          public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-            return boundingList.contains(item);
-          }
-        });
+        result.add(item -> boundingList.contains(item));
       } catch (NotFoundException e) {
         //legacy support for boolean template
         Boolean legacyTemplateFlag = null;
@@ -480,11 +435,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
         //legacy request detected
         if (legacyTemplateFlag != null) {
           final boolean legacyTemplateFlagFinal = legacyTemplateFlag;
-          result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-            public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
-              return FilterUtil.isIncludedByBooleanFilter(legacyTemplateFlagFinal, item.isTemplate());
-            }
-          });
+          result.add(item -> FilterUtil.isIncludedByBooleanFilter(legacyTemplateFlagFinal, item.isTemplate()));
         }
       } catch (BadRequestException e) {
         throw new BadRequestException(
@@ -495,14 +446,12 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     if (locator.isUnused(VCS_ROOT_DIMENSION)) {
       final String vcsRoot = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
       if (vcsRoot != null) {
-        final Set<SVcsRoot> vcsRoots = new HashSet<SVcsRoot>(myServiceLocator.getSingletonService(VcsRootFinder.class).getItems(vcsRoot).myEntries);
-        result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-          public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+        final Set<SVcsRoot> vcsRoots = new HashSet<>(myServiceLocator.getSingletonService(VcsRootFinder.class).getItems(vcsRoot).myEntries);
+        result.add(item -> {
             for (VcsRootInstanceEntry vcsRootInstanceEntry : item.getVcsRootInstanceEntries()) {
               if (vcsRoots.contains(vcsRootInstanceEntry.getVcsRoot().getParent())) return true;
             }
             return false;
-          }
         });
       }
     }
@@ -511,14 +460,12 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       final String vcsRootInstance = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE_DIMENSION);
       if (vcsRootInstance != null) {
         final Set<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances =
-          new HashSet<jetbrains.buildServer.vcs.VcsRootInstance>(myServiceLocator.getSingletonService(VcsRootInstanceFinder.class).getItems(vcsRootInstance).myEntries);
-        result.add(new FilterConditionChecker<BuildTypeOrTemplate>() {
-          public boolean isIncluded(@NotNull final BuildTypeOrTemplate item) {
+          new HashSet<>(myServiceLocator.getSingletonService(VcsRootInstanceFinder.class).getItems(vcsRootInstance).myEntries);
+        result.add(item -> {
             for (VcsRootInstanceEntry vcsRootInstanceEntry : item.getVcsRootInstanceEntries()) {
               if (vcsRootInstances.contains(vcsRootInstanceEntry.getVcsRoot())) return true;
             }
             return false;
-          }
         });
       }
     }
@@ -728,13 +675,11 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   @NotNull
   public List<SBuildType> getBuildTypes(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
     final PagedSearchResult<BuildTypeOrTemplate> items = getBuildTypesPaged(project, buildTypeLocator, true);
-    return CollectionsUtil.convertCollection(items.myEntries, new Converter<SBuildType, BuildTypeOrTemplate>() {
-      public SBuildType createFrom(@NotNull final BuildTypeOrTemplate source) {
+    return CollectionsUtil.convertCollection(items.myEntries, source -> {
         if (project != null && !source.getProject().equals(project)) {
           throw new BadRequestException("Found " + LogUtil.describe(source.getBuildType()) + " but it does not belong to project " + LogUtil.describe(project) + ".");
         }
         return source.getBuildType();
-      }
     });
   }
 
@@ -908,28 +853,22 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     @NotNull
     public GraphFinder.LinkRetriever<BuildTypeOrTemplate> getChildren() {
-      return new GraphFinder.LinkRetriever<BuildTypeOrTemplate>() {
-        @NotNull
-        public List<BuildTypeOrTemplate> getLinked(@NotNull final BuildTypeOrTemplate item) {
+      return item -> {
           if (BuildType.shouldRestrictSettingsViewing(item.get(), myPermissionChecker)){
             return new ArrayList<BuildTypeOrTemplate>(); //conceal dependencies
           }
           return item.get().getDependencies().stream().map(Dependency::getDependOn).filter(Objects::nonNull).map(v -> new BuildTypeOrTemplate(v)).collect(Collectors.toList());
-        }
       };
     }
 
     @NotNull
     public GraphFinder.LinkRetriever<BuildTypeOrTemplate> getParents() {
-      return new GraphFinder.LinkRetriever<BuildTypeOrTemplate>() {
-        @NotNull
-        public List<BuildTypeOrTemplate> getLinked(@NotNull final BuildTypeOrTemplate item) {
+      return item -> {
           final SBuildType buildType = item.getBuildType();
           if (buildType == null){
             return new ArrayList<BuildTypeOrTemplate>(); //template should have no dependencies on it
           }
           return getDependingOn(buildType, myPermissionChecker);
-        }
       };
     }
   }
@@ -943,30 +882,24 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     @NotNull
     public GraphFinder.LinkRetriever<BuildTypeOrTemplate> getChildren() {
-      return new GraphFinder.LinkRetriever<BuildTypeOrTemplate>() {
-        @NotNull
-        public List<BuildTypeOrTemplate> getLinked(@NotNull final BuildTypeOrTemplate item) {
+      return item -> {
           if (BuildType.shouldRestrictSettingsViewing(item.get(), myPermissionChecker)) {
             return new ArrayList<BuildTypeOrTemplate>(); //conceal dependencies
           }
           return item.get().getArtifactDependencies().stream().map(SArtifactDependency::getSourceBuildType).filter(Objects::nonNull).map(v -> new BuildTypeOrTemplate(v))
                      .collect(Collectors.toList());
-        }
       };
     }
 
     @NotNull
     public GraphFinder.LinkRetriever<BuildTypeOrTemplate> getParents() {
-      return new GraphFinder.LinkRetriever<BuildTypeOrTemplate>() {
-        @NotNull
-        public List<BuildTypeOrTemplate> getLinked(@NotNull final BuildTypeOrTemplate item) {
+      return item -> {
           final SBuildType buildType = item.getBuildType();
           if (buildType == null) {
             return new ArrayList<BuildTypeOrTemplate>(); //template should have no dependencies on it
           }
           return buildType.getArtifactsReferences().stream().filter(Objects::nonNull).filter(v -> !BuildType.shouldRestrictSettingsViewing(v, myPermissionChecker))
                           .map(v -> new BuildTypeOrTemplate(v)).collect(Collectors.toList());
-        }
       };
     }
   }
@@ -1012,13 +945,9 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
                                       "/mode\" is not supported for build types");
       case SELECTED_AND_UNKNOWN: //this is pre-2017.1 behavior
       default:
-        final List<BuildTypeOrTemplate> result = new ArrayList<BuildTypeOrTemplate>();
+        final List<BuildTypeOrTemplate> result = new ArrayList<>();
         for (SProject project : selectedProjects) {
-          result.addAll(CollectionsUtil.convertCollection(user.getOrderedBuildTypes(project), new Converter<BuildTypeOrTemplate, SBuildType>() {
-            public BuildTypeOrTemplate createFrom(@NotNull final SBuildType source) {
-              return new BuildTypeOrTemplate(source);
-            }
-          }));
+          result.addAll(CollectionsUtil.convertCollection(user.getOrderedBuildTypes(project), source -> new BuildTypeOrTemplate(source)));
         }
         return result;
     }

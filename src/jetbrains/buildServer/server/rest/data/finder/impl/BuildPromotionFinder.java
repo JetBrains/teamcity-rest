@@ -597,12 +597,10 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final List<String> properties = locator.getDimensionValue(CommonLocatorDimensionsList.PROPERTY);
     if (!properties.isEmpty()) {
       final Matcher<ParametersProvider> parameterCondition = ParameterCondition.create(properties);
-      result.add(new FilterConditionChecker<BuildPromotion>() {
-        public boolean isIncluded(@NotNull final BuildPromotion item) {
+      result.add(item -> {
           if (!Build.canViewRuntimeData(myPermissionChecker, item)) return false;
           //does not correspond to Build.getProperties() which includes less parameters
           return parameterCondition.matches(Build.getBuildResultingParameters(item, myServiceLocator)); //TeamCity open API issue
-        }
       });
     }
 
@@ -1915,30 +1913,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private static class SnapshotDepsTraverser implements GraphFinder.Traverser<BuildPromotion> {
     @NotNull
     public GraphFinder.LinkRetriever<BuildPromotion> getChildren() {
-      return new GraphFinder.LinkRetriever<BuildPromotion>() {
-        @NotNull
-        public List<BuildPromotion> getLinked(@NotNull final BuildPromotion item) {
-          return CollectionsUtil.convertCollection(item.getDependencies(), new Converter<BuildPromotion, BuildDependency>() {
-                      public BuildPromotion createFrom(@NotNull final BuildDependency source) {
-                        return source.getDependOn();
-                      }
-                    });
-        }
-      };
+      return item -> CollectionsUtil.convertCollection(item.getDependencies(), source -> source.getDependOn());
     }
 
     @NotNull
     public GraphFinder.LinkRetriever<BuildPromotion> getParents() {
-      return new GraphFinder.LinkRetriever<BuildPromotion>() {
-        @NotNull
-        public List<BuildPromotion> getLinked(@NotNull final BuildPromotion item) {
-          return CollectionsUtil.convertCollection(item.getDependedOnMe(), new Converter<BuildPromotion, BuildDependency>() {
-                public BuildPromotion createFrom(@NotNull final BuildDependency source) {
-                  return source.getDependent();
-                }
-              });
-        }
-      };
+      return item -> CollectionsUtil.convertCollection(item.getDependedOnMe(), source -> source.getDependent());
     }
   }
 
@@ -1996,24 +1976,19 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     @NotNull
     public GraphFinder.LinkRetriever<BuildPromotion> getChildren() {
-      return new GraphFinder.LinkRetriever<BuildPromotion>() {
-        @NotNull
-        public List<BuildPromotion> getLinked(@NotNull final BuildPromotion item) {
+      return item -> {
           //see also jetbrains.buildServer.server.rest.model.build.Build.getBuildArtifactDependencies
           SBuild build = item.getAssociatedBuild();
           if (build == null)
             return Collections.emptyList();
           return build.getDownloadedArtifacts().getArtifacts().keySet().stream().map(v -> ((SBuild)v).getBuildPromotion())
                       .sorted(new Build.BuildPromotionDependenciesComparator()).collect(Collectors.toList());
-        }
       };
     }
 
     @NotNull
     public GraphFinder.LinkRetriever<BuildPromotion> getParents() {
-      return new GraphFinder.LinkRetriever<BuildPromotion>() {
-        @NotNull
-        public List<BuildPromotion> getLinked(@NotNull final BuildPromotion item) {
+      return item -> {
           SBuild build = item.getAssociatedBuild();
           if (build == null)
             return Collections.emptyList();
@@ -2028,7 +2003,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           }
           return Stream.concat(result, build.getProvidedArtifacts().getArtifacts().keySet().stream().map(v -> ((SBuild)v).getBuildPromotion()))
                        .sorted(new Build.BuildPromotionDependenciesComparator()).distinct().collect(Collectors.toList());
-        }
       };
     }
   }
@@ -2069,10 +2043,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     @NotNull
     @Override
     public GraphFinder.LinkRetriever<BuildPromotion> getChildren() {
-      return new GraphFinder.LinkRetriever<BuildPromotion>() {
-        @NotNull
-        @Override
-        public List<BuildPromotion> getLinked(@NotNull final BuildPromotion item) {
+      return item -> {
           final SBuildType buildType = item.getBuildType();
           if (buildType == null) {
             return Collections.emptyList();
@@ -2094,7 +2065,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
               }
             });
             return getBuildPromotions(buildsBefore);
-          }
         }
       };
     }
@@ -2102,10 +2072,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     @NotNull
     @Override
     public GraphFinder.LinkRetriever<BuildPromotion> getParents() {
-      return new GraphFinder.LinkRetriever<BuildPromotion>() {
-        @NotNull
-        @Override
-        public List<BuildPromotion> getLinked(@NotNull final BuildPromotion item) {
+      return item -> {
           final SBuildType buildType = item.getBuildType();
           if (buildType == null) {
             return Collections.emptyList();
@@ -2117,7 +2084,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
           } else {
             return Collections.emptyList();
           }
-        }
       };
     }
   }

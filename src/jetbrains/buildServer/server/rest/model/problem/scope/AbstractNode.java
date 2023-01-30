@@ -17,10 +17,6 @@
 package jetbrains.buildServer.server.rest.model.problem.scope;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
-import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeType;
-import jetbrains.buildServer.server.rest.data.problem.tree.Scope;
 import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
 import jetbrains.buildServer.server.rest.data.problem.tree.TreeCounters;
 import jetbrains.buildServer.server.rest.model.Fields;

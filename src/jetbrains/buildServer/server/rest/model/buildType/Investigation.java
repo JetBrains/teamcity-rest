@@ -97,30 +97,31 @@ public class Investigation {
       //ignore: InvestigationFinder.getLocator can throw exception
     }
 
-    target = ValueWithDefault.decideDefault(fields.isIncluded("target", false), new ValueWithDefault.Value<ProblemTarget>() {
-      public ProblemTarget get() {
-        return new ProblemTarget(investigation, fields.getNestedField("target", Fields.NONE, Fields.LONG), beanContext);
-      }
-    });
-    scope = ValueWithDefault.decideDefault(fields.isIncluded("scope", false), new ValueWithDefault.Value<ProblemScope>() {
-      public ProblemScope get() {
-        return new ProblemScope(investigation, fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext);
-      }
-    });
-    assignee = ValueWithDefault.decideDefault(fields.isIncluded("assignee", false), new ValueWithDefault.Value<User>() {
-      public User get() {
-        return new User(investigation.getResponsibleUser(), fields.getNestedField("assignee"), beanContext);
-      }
-    });
+    target = ValueWithDefault.decideDefault(fields.isIncluded("target", false), () ->
+      new ProblemTarget(investigation, fields.getNestedField("target", Fields.NONE, Fields.LONG), beanContext)
+    );
 
-    assignment = ValueWithDefault.decideDefault(fields.isIncluded("assignment", false), new ValueWithDefault.Value<Comment>() {
-      public Comment get() {
-        return new Comment(investigation.getReporterUser(), investigation.getTimestamp(), investigation.getComment(), fields.getNestedField("assignment", Fields.NONE, Fields.LONG),
-                           beanContext);
-      }
-    });
-    resolution = ValueWithDefault
-      .decideDefault(fields.isIncluded("assignment", false), new Resolution(investigation.getRemoveMethod(), fields.getNestedField("resolution", Fields.NONE, Fields.LONG)));
+    scope = ValueWithDefault.decideDefault(fields.isIncluded("scope", false), () ->
+      new ProblemScope(investigation, fields.getNestedField("scope", Fields.NONE, Fields.LONG), beanContext)
+    );
+    assignee = ValueWithDefault.decideDefault(fields.isIncluded("assignee", false), () ->
+      new User(investigation.getResponsibleUser(), fields.getNestedField("assignee"), beanContext)
+    );
+
+    assignment = ValueWithDefault.decideDefault(fields.isIncluded("assignment", false), () ->
+      new Comment(
+        investigation.getReporterUser(),
+        investigation.getTimestamp(),
+        investigation.getComment(),
+        fields.getNestedField("assignment", Fields.NONE, Fields.LONG),
+        beanContext
+      )
+    );
+
+    resolution = ValueWithDefault.decideDefault(
+      fields.isIncluded("assignment", false),
+      new Resolution(investigation.getRemoveMethod(), fields.getNestedField("resolution", Fields.NONE, Fields.LONG))
+    );
 
     //support for pre-8.1
     if (TeamCityProperties.getBoolean(Investigation.REST_BEANS_INVESTIGATIONS_COMPATIBILITY)) {

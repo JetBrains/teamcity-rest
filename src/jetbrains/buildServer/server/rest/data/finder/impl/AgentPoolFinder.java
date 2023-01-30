@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.data.finder.impl;
 import com.google.common.collect.ComparisonChain;
 import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
@@ -27,6 +26,7 @@ import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Dimension;
 import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -44,7 +44,6 @@ import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
@@ -155,11 +154,7 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
 
     //todo: support cloud agents here
     final List<SBuildAgent> allAgents = myAgentFinder.getItems(Locator.getStringLocator(AgentFinder.DEFAULT_FILTERING, "false")).myEntries;
-    return CollectionsUtil.filterCollection(allAgents, new Filter<SBuildAgent>() {
-      public boolean accept(@NotNull final SBuildAgent agent) {
-        return agentTypeIds.contains(agent.getAgentTypeId());
-      }
-    });
+    return CollectionsUtil.filterCollection(allAgents, agent -> agentTypeIds.contains(agent.getAgentTypeId()));
   }
 
   //todo: TeamCity API: what is the due way to do this? http://youtrack.jetbrains.com/issue/TW-33307
@@ -170,7 +165,7 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
   public List<SProject> getPoolProjects(@NotNull final AgentPool agentPool) {
     final Set<String> projectIds = myAgentPoolManager.getPoolProjects(agentPool.getAgentPoolId());
     final ProjectManager projectManager = myServiceLocator.getSingletonService(ProjectManager.class);
-    final List<SProject> result = new ArrayList<SProject>(projectIds.size());
+    final List<SProject> result = new ArrayList<>(projectIds.size());
     for (String projectId : projectIds) {
       final SProject project = projectManager.findProjectById(projectId);
       if (project != null) {

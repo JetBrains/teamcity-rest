@@ -22,13 +22,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.log.Loggers;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.ProjectManagerEx;
+import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
 import jetbrains.buildServer.serverSide.agentPools.ReadOnlyAgentPool;
 import jetbrains.buildServer.serverSide.agentTypes.AgentType;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
-import jetbrains.buildServer.serverSide.auth.*;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -156,6 +159,7 @@ public class AgentPoolActionsAccessCheckerImpl implements AgentPoolActionsAccess
 
   // Duplicates PoolAgentTypeSelectorDescriptor.getManageablePoolIdsForUser,
   // so this is a candidate to be moved into some utility class.
+  @Override
   @NotNull
   public Set<Integer> getManageablePoolIds() {
     AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();

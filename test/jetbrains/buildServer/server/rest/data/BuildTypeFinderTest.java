@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.data;
 import java.util.Arrays;
 import java.util.Collections;
 import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
-import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -32,10 +31,8 @@ import jetbrains.buildServer.serverSide.impl.auth.RoleImpl;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -364,22 +361,16 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
     SecurityContextImpl securityContext = myFixture.getSecurityContext();
 
-    securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
-      @Override
-      public void run() throws Throwable {
+    securityContext.runAs(user1, () -> {
         checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
         checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
         checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
-      }
     });
 
-    securityContext.runAs(user1, new SecurityContextEx.RunAsAction() {
-      @Override
-      public void run() throws Throwable {
+    securityContext.runAs(user1, () -> {
         checkBuildTypes("selectedByUser:(current)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
         checkBuildTypes("selectedByUser:(user:(current),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
         checkBuildTypes("selectedByUser:(user:(current),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
-      }
     });
 
 
@@ -389,36 +380,27 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     RoleImpl role_viewUsers = new RoleImpl("role_viewUsers", "custom role", new Permissions(Permission.VIEW_ALL_USERS, Permission.VIEW_USER_PROFILE), null);
     myFixture.getRolesManager().addRole(role_viewUsers);
     user2.addRole(RoleScope.globalScope(), role_viewUsers);
-    securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
-      @Override
-      public void run() throws Throwable {
+    securityContext.runAs(user2, () -> {
         checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
         checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
         checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
-      }
     });
 
     user2.addRole(RoleScope.projectScope(project40.getProjectId()), getProjectViewerRole());
     checkBuildTypes("selectedByUser:(username:user2)",  p10_bt20, p10_bt10, p10_bt30, p10_30_bt10, p10_30_bt20, p10_30_bt30, p10_10_bt10, p10_10_bt20, p10_10_bt30, p40_bt10, p40_bt20, p40_bt30);
-    securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
-      @Override
-      public void run() throws Throwable {
+    securityContext.runAs(user2, () -> {
         checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
         checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
         checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
-      }
     });
 
     checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
     user1.addRole(RoleScope.projectScope(project40.getProjectId()), getProjectViewerRole());
     checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p40_bt10, p40_bt30, p30_bt10, p30_bt30, p30_bt20);
-    securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
-      @Override
-      public void run() throws Throwable {
+    securityContext.runAs(user2, () -> {
         checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p40_bt10, p40_bt30, p30_bt10, p30_bt30, p30_bt20);
         checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p40_bt10, p40_bt30, p30_bt10, p30_bt30, p30_bt20);
         checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p40_bt10, p40_bt30, p40_bt20, p30_bt10, p30_bt30, p30_bt20);
-      }
     });
     user2.removeRole(RoleScope.projectScope(project40.getProjectId()), getProjectViewerRole());
     assertEmpty(user2.getPermissionsGrantedForProject(project40.getProjectId()).toList());
@@ -435,13 +417,10 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
     user1.removeRole(RoleScope.projectScope(project40.getProjectId()), getProjectViewerRole());
 
     user2.addRole(RoleScope.globalScope(), getProjectAdminRole());
-    securityContext.runAs(user2, new SecurityContextEx.RunAsAction() {
-      @Override
-      public void run() throws Throwable {
+    securityContext.runAs(user2, () -> {
         checkBuildTypes("selectedByUser:(username:user1)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
         checkBuildTypes("selectedByUser:(user:(username:user1),mode:selected_and_unknown)", p10_bt30, p10_bt10, p10_10_bt20, p10_10_bt30, p30_bt10, p30_bt30, p30_bt20);
         checkBuildTypes("selectedByUser:(user:(username:user1),mode:all_with_order)", p10_bt30, p10_bt10, p10_bt20, p10_10_bt20, p10_10_bt30, p10_10_bt10, p30_bt10, p30_bt30, p30_bt20);
-      }
     });
 
     checkExceptionOnItemsSearch(BadRequestException.class, "selectedByUser:(user:(username:user2),mode:selected)");
@@ -674,11 +653,9 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
   @Test
   public void testHelp() throws Exception {
-    String message = checkException(LocatorProcessException.class, new Runnable() {
-      public void run() {
-        getFinder().getItems("$help");
-      }
-    }, null).getMessage();
+    String message = checkException(LocatorProcessException.class,
+                                    () -> getFinder().getItems("$help"),
+                                    null).getMessage();
 
     assertContains(message, "id");
     assertContains(message, "name");
@@ -688,14 +665,12 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   private void checkBuildTypes(@Nullable final String locator, BuildTypeSettings... items) {
-    check(locator, CollectionsUtil.convertCollection(Arrays.asList(items), new Converter<BuildTypeOrTemplate, BuildTypeSettings>() {
-      public BuildTypeOrTemplate createFrom(@NotNull final BuildTypeSettings source) {
+    check(locator, CollectionsUtil.convertCollection(Arrays.asList(items), source -> {
         if (source instanceof SBuildType) {
           return new BuildTypeOrTemplate((SBuildType)source);
         } else {
           return new BuildTypeOrTemplate((BuildTypeTemplate)source);
         }
-      }
     }).toArray(new BuildTypeOrTemplate[items.length]));
   }
 }

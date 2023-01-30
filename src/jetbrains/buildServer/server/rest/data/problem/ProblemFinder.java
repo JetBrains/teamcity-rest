@@ -18,11 +18,11 @@ package jetbrains.buildServer.server.rest.data.problem;
 
 import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.BuildPromotionFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
-import jetbrains.buildServer.server.rest.data.util.FilterConditionChecker;
 import jetbrains.buildServer.server.rest.data.util.FilterUtil;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
@@ -42,7 +42,6 @@ import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.problems.BuildProblemManager;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
@@ -183,24 +182,16 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @NotNull
   @Override
   public ItemFilter<ProblemWrapper> getFilter(@NotNull final Locator locator) {
-    final MultiCheckerFilter<ProblemWrapper> result = new MultiCheckerFilter<ProblemWrapper>();
+    final MultiCheckerFilter<ProblemWrapper> result = new MultiCheckerFilter<>();
 
     final String identityDimension = locator.getSingleDimensionValue(IDENTITY);
     if (identityDimension != null) {
-      result.add(new FilterConditionChecker<ProblemWrapper>() {
-        public boolean isIncluded(@NotNull final ProblemWrapper item) {
-          return identityDimension.equals(item.getIdentity());
-        }
-      });
+      result.add(item -> identityDimension.equals(item.getIdentity()));
     }
 
     final String typeDimension = locator.getSingleDimensionValue(TYPE);
     if (typeDimension != null) {
-      result.add(new FilterConditionChecker<ProblemWrapper>() {
-        public boolean isIncluded(@NotNull final ProblemWrapper item) {
-          return typeDimension.equals(item.getType());
-        }
-      });
+      result.add(item -> typeDimension.equals(item.getType()));
     }
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
@@ -208,31 +199,20 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
       final Set<ProblemWrapper> currentProjectProblems = getCurrentProblemsList(project);
       //todo: bug: searches only inside current problems: non-current problems are not returned
-      result.add(new FilterConditionChecker<ProblemWrapper>() {
-        public boolean isIncluded(@NotNull final ProblemWrapper item) {
-          return currentProjectProblems.contains(item);  //todo: TeamCity API (VB): is there a dedicated API call for this?  -- consider doing this via ProblemOccurrences
-        }
-      });
+      //todo: TeamCity API (VB): is there a dedicated API call for this?  -- consider doing this via ProblemOccurrences
+      result.add(item -> currentProjectProblems.contains(item));
     }
 
     final Boolean currentlyInvestigatedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_INVESTIGATED);
     if (currentlyInvestigatedDimension != null) {
-      result.add(new FilterConditionChecker<ProblemWrapper>() {
-        public boolean isIncluded(@NotNull final ProblemWrapper item) {
-          //todo: check investigation in affected Project/buildType only, if set
-          return FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension, !item.getInvestigations().isEmpty());
-        }
-      });
+      //todo: check investigation in affected Project/buildType only, if set
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(currentlyInvestigatedDimension, !item.getInvestigations().isEmpty()));
     }
 
     final Boolean currentlyMutedDimension = locator.getSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
     if (currentlyMutedDimension != null) {
-      result.add(new FilterConditionChecker<ProblemWrapper>() {
-        public boolean isIncluded(@NotNull final ProblemWrapper item) {
-          //todo: check in affected Project/buildType only, if set
-          return FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, !item.getMutes().isEmpty());
-        }
-      });
+      //todo: check in affected Project/buildType only, if set
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(currentlyMutedDimension, !item.getMutes().isEmpty()));
     }
 
     if (locator.isUnused(CURRENT)) {
@@ -247,12 +227,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       String buildLocator = locator.getSingleDimensionValue(BUILD);
       if (buildLocator != null) {
         final Set<ProblemWrapper> problems = getProblemsByBuilds(buildLocator);
-        result.add(new FilterConditionChecker<ProblemWrapper>() {
-          @Override
-          public boolean isIncluded(@NotNull final ProblemWrapper item) {
-            return problems.contains(item);
-          }
-        });
+        result.add(problems::contains);
       }
     }
 
@@ -266,7 +241,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     }
     final List<BuildProblem> currentBuildProblemsList = myBuildProblemManager.getCurrentBuildProblemsList(project);
 
-    @NotNull final Set<ProblemWrapper> resultSet = new TreeSet<ProblemWrapper>();
+    @NotNull final Set<ProblemWrapper> resultSet = new TreeSet<>();
     for (BuildProblem buildProblem : currentBuildProblemsList) {
       resultSet.add(new ProblemWrapper(buildProblem.getId(), buildProblem.getBuildProblemData(), myServiceLocator));
     }
@@ -279,19 +254,15 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
     LinkedHashSet<ProblemWrapper> result = new LinkedHashSet<>();
     List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).myEntries;
     for (BuildPromotion build : builds) {
-      result.addAll(CollectionsUtil.convertCollection(ProblemOccurrenceFinder.getProblemOccurrences(build), new Converter<ProblemWrapper, BuildProblem>() {
-        @Override
-        public ProblemWrapper createFrom(@NotNull final BuildProblem buildProblem) {
-          return new ProblemWrapper(buildProblem.getId(), buildProblem.getBuildProblemData(), myServiceLocator);
-        }
-      }));
+      result.addAll(CollectionsUtil.convertCollection(ProblemOccurrenceFinder.getProblemOccurrences(build),
+                                                      buildProblem -> new ProblemWrapper(buildProblem.getId(), buildProblem.getBuildProblemData(), myServiceLocator)));
     }
     return result;
   }
 
   public Set<ProblemWrapper> getCurrentlyMutedProblems(final SProject affectedProject) {
     final Map<Integer,CurrentMuteInfo> currentMutes = myProblemMutingService.getBuildProblemsCurrentMuteInfo(affectedProject);
-    final TreeSet<ProblemWrapper> result = new TreeSet<ProblemWrapper>();
+    final TreeSet<ProblemWrapper> result = new TreeSet<>();
     for (Map.Entry<Integer, CurrentMuteInfo> mutedData : currentMutes.entrySet()) {
       result.add(new ProblemWrapper(mutedData.getKey(), myServiceLocator));
     }
@@ -299,7 +270,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   }
 
   public static List<ProblemWrapper> getProblemWrappers(@NotNull Collection<Integer> problemIds, @NotNull final ServiceLocator serviceLocator) {
-    final TreeSet<ProblemWrapper> result = new TreeSet<ProblemWrapper>();
+    final TreeSet<ProblemWrapper> result = new TreeSet<>();
     for (Integer problemId : problemIds) {
       result.add(new ProblemWrapper(problemId, serviceLocator));
     }

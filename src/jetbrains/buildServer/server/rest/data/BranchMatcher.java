@@ -50,7 +50,7 @@ public class BranchMatcher {
       myDefaultBranch = null;
       myUnspecifiedBranch = null;
       myBranched = null;
-    }else{
+    } else {
       myLocator = new Locator(locatorText, NAME, DEFAULT, UNSPECIFIED, Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
       myLocator.addHiddenDimensions(BRANCHED);
       mySingleValue = myLocator.getSingleValue();

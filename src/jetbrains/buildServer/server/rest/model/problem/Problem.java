@@ -76,28 +76,22 @@ public class Problem {
     description = ValueWithDefault.decideDefault(fields.isIncluded("description", false, false), problem::getDescription);
     href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(ProblemRequest.getHref(problem)));
 
-    mutes = ValueWithDefault.decideDefault(fields.isIncluded("mutes", false), new ValueWithDefault.Value<Mutes>() {
-      public Mutes get() {
+    mutes = ValueWithDefault.decideDefault(fields.isIncluded("mutes", false), () -> {
         if (TeamCityProperties.getBoolean(Mutes.REST_MUTES_ACTUAL_STATE)) {
           return Mutes.createMutesWithActualAttributes(MuteFinder.getLocator(problem), fields, beanContext);
         }
         return new Mutes(problem.getMutes(), null, fields.getNestedField("mutes", Fields.NONE, Fields.LONG), beanContext);
-      }
     });
-    investigations = ValueWithDefault.decideDefault(fields.isIncluded("investigations", false), new ValueWithDefault.Value<Investigations>() {
-      public Investigations get() {
-        return new Investigations(problem.getInvestigations(), new PagerDataImpl(InvestigationRequest.getHref(problem)), fields.getNestedField("investigations"), beanContext);
-      }
-    });
-    problemOccurrences = ValueWithDefault.decideDefault(fields.isIncluded("problemOccurrences", false), new ValueWithDefault.Value<ProblemOccurrences>() {
-      public ProblemOccurrences get() {
-        //todo: add support for locator + filter here, like for builds in BuildType
-        return new ProblemOccurrences(null, null, null, null, null, null, null, ProblemOccurrenceRequest.getHref(problem), null, fields.getNestedField("problemOccurrences"),
-                                      beanContext);
-      }
-    });
-  }
 
+    investigations = ValueWithDefault.decideDefault(fields.isIncluded("investigations", false), () ->
+      new Investigations(problem.getInvestigations(), new PagerDataImpl(InvestigationRequest.getHref(problem)), fields.getNestedField("investigations"), beanContext)
+    );
+
+    problemOccurrences = ValueWithDefault.decideDefault(fields.isIncluded("problemOccurrences", false), () ->
+      //todo: add support for locator + filter here, like for builds in BuildType
+      new ProblemOccurrences(null, null, null, null, null, null, null, ProblemOccurrenceRequest.getHref(problem), null, fields.getNestedField("problemOccurrences"), beanContext)
+    );
+  }
 
   /**
    *

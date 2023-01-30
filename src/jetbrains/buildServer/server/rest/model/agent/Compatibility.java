@@ -21,7 +21,6 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -56,27 +55,18 @@ public class Compatibility {
     compatible = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("compatible", true, true), compatibility.isCompatible());
 
     final boolean sameAgent = contextAgent != null && compatibility.getAgent().getId() == contextAgent.getId();
-    agent = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("agent", !sameAgent, !sameAgent), new ValueWithDefault.Value<Agent>() {
-      @Nullable
-      public Agent get() {
-        return new Agent(compatibility.getAgent(), fields.getNestedField("agent", Fields.SHORT, Fields.SHORT), context);
-      }
-    });
+    agent = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("agent", !sameAgent, !sameAgent), () ->
+      new Agent(compatibility.getAgent(), fields.getNestedField("agent", Fields.SHORT, Fields.SHORT), context)
+    );
 
     final boolean sameBuildType = contextBuildType != null && compatibility.getBuildType().getInternalId().equals(contextBuildType.getInternalId());
-    buildType = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("buildType", !sameBuildType, !sameBuildType), new ValueWithDefault.Value<BuildType>() {
-      @Nullable
-      public BuildType get() {
-        return new BuildType(new BuildTypeOrTemplate(compatibility.getBuildType()), fields.getNestedField("buildType", Fields.SHORT, Fields.SHORT), context);
-      }
-    });
-    unmetRequirements = compatibility.isCompatible() ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("unmetRequirements", true, true),
-                                                                                                      new ValueWithDefault.Value<Requirements>() {
-      @Nullable
-      public Requirements get() {
-        return new Requirements(compatibility.getDescription(), fields.getNestedField("unmetRequirements", Fields.LONG, Fields.LONG), context);
-      }
-    });
+    buildType = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("buildType", !sameBuildType, !sameBuildType), () ->
+      new BuildType(new BuildTypeOrTemplate(compatibility.getBuildType()), fields.getNestedField("buildType", Fields.SHORT, Fields.SHORT), context)
+    );
+
+    unmetRequirements = compatibility.isCompatible() ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("unmetRequirements", true, true), () ->
+      new Requirements(compatibility.getDescription(), fields.getNestedField("unmetRequirements", Fields.LONG, Fields.LONG), context)
+    );
   }
 
   public interface AgentCompatibilityData {
