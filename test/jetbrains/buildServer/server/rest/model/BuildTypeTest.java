@@ -246,7 +246,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     final BuildTypeEx bt = getRootProject().createProject("Project1", "Project test 1").createBuildType("testBT", "My test build type");
     WebLinks webLinks = getWebLinks(myServer.getRootUrl());
     RelativeWebLinks relativeWebLinks = new RelativeWebLinks();
-    assertEquals("http://localhost/viewType.html?buildTypeId=testBT", webLinks.getConfigurationHomePageUrl(bt));
+    assertEquals("http://localhost:8111/viewType.html?buildTypeId=testBT", webLinks.getConfigurationHomePageUrl(bt));
     assertEquals("/viewType.html?buildTypeId=testBT", relativeWebLinks.getConfigurationHomePageUrl(bt));
 
     BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt), Fields.SHORT, myBeanContext);
