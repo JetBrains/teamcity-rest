@@ -48,7 +48,7 @@ public class CommonLocatorDimensionsList {
     );
     dimensionHashMap.put(
         AbstractFinder.DIMENSION_ID, new CommonLocatorDimension(
-            AbstractFinder.DIMENSION_ID, LocatorDimensionDataType.INTEGER, "", "Entity ID.", "", false
+            AbstractFinder.DIMENSION_ID, LocatorDimensionDataType.STRING, "", "Entity ID.", "", false
         )
     );
     dimensionHashMap.put(

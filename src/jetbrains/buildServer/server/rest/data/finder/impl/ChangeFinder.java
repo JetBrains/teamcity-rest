@@ -97,7 +97,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
   public static final String USER = "user";
   @LocatorDimension("version")
   public static final String VERSION = "version";
-  @LocatorDimension("internalVersion")
+  @LocatorDimension(value = "internalVersion", notes = "Commit SHA.")
   public static final String INTERNAL_VERSION = "internalVersion";
   @LocatorDimension("comment")
   public static final String COMMENT = "comment";

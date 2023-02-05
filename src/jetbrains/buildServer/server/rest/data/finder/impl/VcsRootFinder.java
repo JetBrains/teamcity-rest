@@ -39,6 +39,7 @@ import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
+import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.ProjectManager;
@@ -75,7 +76,7 @@ import org.springframework.stereotype.Component;
 public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
   private static final Logger LOG = Logger.getInstance(VcsRootFinder.class.getName());
   public static final String REPOSITORY_ID_STRING = "repositoryIdString";
-  @LocatorDimension("internalId")
+  @LocatorDimension(value = "internalId", dataType = LocatorDimensionDataType.INTEGER)
   protected static final String INTERNAL_ID = "internalId";
   @LocatorDimension("uuid")
   protected static final String UUID = "uuid";
