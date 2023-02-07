@@ -80,8 +80,13 @@ public abstract class BranchData implements Branch {
 
       @NotNull
       @Override
-      public List<ChangeDescriptor> getChanges(@NotNull final SelectPrevBuildPolicy prevBuildPolicy, @Nullable final Boolean includeDependencyChanges) {
-        return branch.getDetectedChanges(prevBuildPolicy, includeDependencyChanges);
+      public List<ChangeDescriptor> getChanges(@NotNull final SelectPrevBuildPolicy prevBuildPolicy, @Nullable final Boolean includeDependencyChanges, @Nullable Long changesLimit) {
+        ChangesCalculationOptionsFactoryEx optsFactory = serviceLocator.getSingletonService(ChangesCalculationOptionsFactoryEx.class);
+        ChangesCalculationOptionsEx opts = optsFactory.create().setIncludeDependencyChanges(includeDependencyChanges).setPrevBuildPolicy(prevBuildPolicy);
+        if (changesLimit != null) {
+          opts.setCallback(new LimitingVcsModificationProcessor(changesLimit.intValue()));
+        }
+        return branch.getDetectedChanges(opts);
       }
 
       @NotNull
@@ -260,7 +265,8 @@ public abstract class BranchData implements Branch {
 
   @NotNull
   public List<ChangeDescriptor> getChanges(@NotNull SelectPrevBuildPolicy prevBuildPolicy,
-                                            @Nullable Boolean includeDependencyChanges) {
+                                           @Nullable Boolean includeDependencyChanges,
+                                           @Nullable Long changesLimit) {
     //todo: implement in more places and use
     throw new OperationException("Should not be called");
   }

@@ -731,8 +731,9 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     Predicate<ChangeDescriptor> changeDescriptorFilter = getChangeDescriptorFilter(locator);
 
     if (filterBranches != null) {
+      final Long changesLimit = locator.getSingleDimensionValueAsLong(PagerData.COUNT);
       Function<BranchData, Stream<SVcsModificationOrChangeDescriptor>> flattenBranchData = branchData ->
-        branchData.getChanges(policy, includeDependencyChanges).stream()
+        branchData.getChanges(policy, includeDependencyChanges, changesLimit).stream()
                   .filter(changeDescriptorFilter)
                   .filter(cd -> cd.getRelatedVcsChange() != null)
                   .map(SVcsModificationOrChangeDescriptor::new);
