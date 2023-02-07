@@ -731,25 +731,23 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
 
     Predicate<ChangeDescriptor> changeDescriptorFilter = getChangeDescriptorFilter(locator); //getting this before filtering is important: othrwise it can never be called and dimension reported as ignored
 
-    if (filterBranches != null) {
-      Function<BranchData, Stream<SVcsModificationOrChangeDescriptor>> flattenBranchData = branchData ->
-        branchData.getChanges(policy, includeDependencyChanges).stream()
-                  .filter(changeDescriptorFilter)
-                  .filter(cd -> cd.getRelatedVcsChange() != null)
-                  .map(SVcsModificationOrChangeDescriptor::new);
-
-      return filterBranches.stream()
-                           .flatMap(flattenBranchData)
-                           .sorted(Comparator.comparing(mcd -> mcd.getSVcsModification()))
-                           .collect(Collectors.toMap(mcd -> mcd.getSVcsModification().getId(), mcd -> mcd, this::chooseChangeNotFromDependency, LinkedHashMap::new))
-                           .values().stream();
-    } else {
-      return ((BuildTypeEx)buildType).getDetectedChanges(policy, includeDependencyChanges)
-                                     .stream()
-                                     .filter(changeDescriptorFilter)
-                                     .filter(cd -> cd.getRelatedVcsChange() != null)
-                                     .map(SVcsModificationOrChangeDescriptor::new);
+    if (filterBranches == null) {
+      final BranchEx defaultBranch = ((BuildTypeEx)buildType).getBranch(Branch.DEFAULT_BRANCH_NAME);
+      filterBranches = Collections.singletonList(BranchData.fromBranchEx(defaultBranch, myServiceLocator, null, true));
     }
+
+    final Long changesLimit = locator.lookupSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT, getDefaultLookupLimit());
+    Function<BranchData, Stream<SVcsModificationOrChangeDescriptor>> flattenBranchData = branchData ->
+      branchData.getChanges(policy, includeDependencyChanges, changesLimit).stream()
+                .filter(changeDescriptorFilter)
+                .filter(cd -> cd.getRelatedVcsChange() != null)
+                .map(SVcsModificationOrChangeDescriptor::new);
+
+    return filterBranches.stream()
+                         .flatMap(flattenBranchData)
+                         .sorted(Comparator.comparing(mcd -> mcd.getSVcsModification()))
+                         .collect(Collectors.toMap(mcd -> mcd.getSVcsModification().getId(), mcd -> mcd, this::chooseChangeNotFromDependency, LinkedHashMap::new))
+                         .values().stream();
   }
 
   @NotNull
@@ -909,5 +907,11 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     public GraphFinder.LinkRetriever<SVcsModification> getParents() {
       return item -> getModificationsByIds(((VcsRootInstanceEx)item.getVcsRoot()).getDag().getChildren(item.getId()), myVcsManager);
     }
+  }
+
+  @Nullable
+  @Override
+  public Long getDefaultLookupLimit() {
+    return TeamCityProperties.getLong("teamcity.request.changes.defaultLookupLimit", 15_000);
   }
 }
