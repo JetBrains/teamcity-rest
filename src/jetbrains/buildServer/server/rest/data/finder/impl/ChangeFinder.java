@@ -735,7 +735,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
       filterBranches = Collections.singletonList(BranchData.fromBranchEx(defaultBranch, myServiceLocator, null, true));
     }
 
-    final Long changesLimit = locator.lookupSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT, null);
+    final Long changesLimit = locator.lookupSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT, getDefaultLookupLimit());
     Function<BranchData, Stream<SVcsModificationOrChangeDescriptor>> flattenBranchData = branchData ->
       branchData.getChanges(policy, includeDependencyChanges, changesLimit).stream()
                 .filter(changeDescriptorFilter)
@@ -910,5 +910,11 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     public GraphFinder.LinkRetriever<SVcsModification> getParents() {
       return item -> getModificationsByIds(((VcsRootInstanceEx)item.getVcsRoot()).getDag().getChildren(item.getId()), myVcsManager);
     }
+  }
+
+  @Nullable
+  @Override
+  public Long getDefaultLookupLimit() {
+    return TeamCityProperties.getLong("teamcity.request.changes.defaultLookupLimit", 15_000);
   }
 }
