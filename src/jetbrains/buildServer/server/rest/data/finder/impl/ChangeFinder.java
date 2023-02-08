@@ -731,7 +731,8 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     Predicate<ChangeDescriptor> changeDescriptorFilter = getChangeDescriptorFilter(locator);
 
     if (filterBranches == null) {
-      filterBranches = Collections.singletonList(BranchData.fromBranch(((BuildTypeEx)buildType).getBranch(Branch.DEFAULT_BRANCH_NAME)));
+      final BranchEx defaultBranch = ((BuildTypeEx)buildType).getBranch(Branch.DEFAULT_BRANCH_NAME);
+      filterBranches = Collections.singletonList(BranchData.fromBranchEx(defaultBranch, myServiceLocator, null, true));
     }
 
     final Long changesLimit = locator.lookupSingleDimensionValueAsLong(DIMENSION_LOOKUP_LIMIT, null);
