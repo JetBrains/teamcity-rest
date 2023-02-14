@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<grammars xmlns="http://research.sun.com/wadl/2006/10"
-    >
-    <include href="/plugins/rest-api/rest-api-schema.xsd" />
-</grammars>

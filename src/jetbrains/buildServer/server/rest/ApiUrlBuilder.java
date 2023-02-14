@@ -109,10 +109,6 @@ public class ApiUrlBuilder {
     return myPathTransformer.transform(VcsRootInstanceRequest.getVcsRootInstanceHref(root));
   }
 
-  public String getGlobalWadlHref() {
-    return myPathTransformer.transform( Constants.API_URL + Constants.EXTERNAL_APPLICATION_WADL_NAME);
-  }
-
   public String transformRelativePath(final String internalRelativePath) {
     return myPathTransformer.transform(internalRelativePath);
   }

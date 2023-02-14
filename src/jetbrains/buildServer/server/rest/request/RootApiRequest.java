@@ -56,7 +56,6 @@ public class RootApiRequest {
   public String serveRoot() {
     return "This is a root of TeamCity REST API.\n" +
            "Explore what's inside from '" + myApiUrlBuilder.transformRelativePath(ServerRequest.API_SERVER_URL) + "'.\n" +
-           "Get WADL with the full list of supported requests via '" + myApiUrlBuilder.getGlobalWadlHref() + "'.\n" +
            "See also notes on the usage at " + myDataProvider.getHelpLink("REST API", null);
   }
 

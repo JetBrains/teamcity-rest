@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<applicationDocs targetNamespace="http://research.sun.com/wadl/2006/10">
-
-  <doc xml:lang="en" title="TeamCity REST API">
-    See also https://www.jetbrains.com/help/teamcity/?REST+API
-  </doc>
-</applicationDocs>

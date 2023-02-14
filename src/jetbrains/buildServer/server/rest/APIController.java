@@ -52,7 +52,6 @@ import jetbrains.buildServer.server.rest.data.RestContext;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig;
 import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
-import jetbrains.buildServer.server.rest.jersey.WadlGenerator;
 import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildServerAdapter;
@@ -101,8 +100,6 @@ public class APIController extends BaseController implements ServletContextAware
     ServerRequest.SERVER_REQUEST_PATH + "/" + ServerRequest.SERVER_VERSION_RQUEST_PATH,
     RootApiRequest.VERSION,
     RootApiRequest.API_VERSION,
-    Constants.EXTERNAL_APPLICATION_WADL_NAME,
-    Constants.EXTERNAL_APPLICATION_WADL_NAME + "/xsd*.xsd",
     "/swagger**",
     NodesRequest.NODES_PATH
   };
@@ -246,7 +243,6 @@ public class APIController extends BaseController implements ServletContextAware
 
     Map<String, String> transformBindPaths = new HashMap<>();
     addEntries(transformBindPaths, bindPaths, Constants.API_URL);
-    addEntries(transformBindPaths, addWadlSuffix(bindPaths), Constants.JERSEY_APPLICATION_WADL_NAME);
 
     myRequestPathTransformInfo.setPathMapping(transformBindPaths);
     LOG.debug("Will use request mapping: " + myRequestPathTransformInfo);
@@ -354,14 +350,6 @@ public class APIController extends BaseController implements ServletContextAware
     return result;
   }
 
-  private static List<String> addWadlSuffix(final List<String> paths) {
-    List<String> result = new ArrayList<>(paths.size());
-    for (String path : paths) {
-      result.add(path + Constants.EXTERNAL_APPLICATION_WADL_NAME);
-    }
-    return result;
-  }
-
   private void registerController(final List<String> bindPaths) {
     try {
       for (String controllerBindPath : bindPaths) {
@@ -412,7 +400,7 @@ public class APIController extends BaseController implements ServletContextAware
       private final Map<String, String> initParameters = new HashMap<>();
 
       {
-        initParameters.put(ResourceConfig.PROPERTY_WADL_GENERATOR_CONFIG, WadlGenerator.class.getCanonicalName());
+        initParameters.put(ResourceConfig.FEATURE_DISABLE_WADL, "true");
         initParameters.put(JSONConfiguration.FEATURE_POJO_MAPPING, "true");
         initParameters.put(WebComponent.RESOURCE_CONFIG_CLASS, ExtensionsAwareResourceConfig.class.getCanonicalName());
         if (TeamCityProperties.getBoolean(APIController.REST_RESPONSE_PRETTYFORMAT)) {
