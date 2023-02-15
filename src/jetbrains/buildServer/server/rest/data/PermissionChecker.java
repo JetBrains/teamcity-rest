@@ -171,6 +171,11 @@ public class PermissionChecker {
     return AuthUtil.hasReadAccessTo(authorityHolder, change);
   }
 
+// There are no separate permissions for reading groups and roles
+  public void checkViewAllUsersPermission() {
+    checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_USER_PROFILE, Permission.CHANGE_USER});
+  }
+
   public boolean isPermissionGranted(@NotNull final Permission permission, @Nullable final String internalProjectId) {
     final AuthorityHolder authorityHolder = mySecurityContext.getAuthorityHolder();
     if (internalProjectId == null){

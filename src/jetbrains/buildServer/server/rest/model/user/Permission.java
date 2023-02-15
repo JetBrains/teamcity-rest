@@ -19,12 +19,10 @@ package jetbrains.buildServer.server.rest.model.user;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -63,5 +61,9 @@ public class Permission {
     id = ValueWithDefault.decideDefault(fields.isIncluded("id"), () -> permission.name().toLowerCase());
     name = ValueWithDefault.decideDefault(fields.isIncluded("name"), () -> permission.getDescription());
     global = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("global"), () -> !permission.isProjectAssociationSupported());
+  }
+
+  public Permission(String id) {
+    this.id = id;
   }
 }
