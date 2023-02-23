@@ -147,5 +147,43 @@
       </library>
     </orderEntry>
     <orderEntry type="library" exported="" name="jackson" level="project" />
+    <orderEntry type="module" module-name="logging" />
+    <orderEntry type="library" name="Maven: org.springframework:spring-context:5.3.19" level="project" />
+    <orderEntry type="library" name="Maven: org.springframework:spring-beans:5.3.19" level="project" />
+    <orderEntry type="library" name="Maven: com.google.guava:guava:31.1-android" level="project" />
+    <orderEntry type="module" module-name="server-model" exported="" />
+    <orderEntry type="module" module-name="server-vcs-api-ex" exported="" />
+    <orderEntry type="module" module-name="server-vcs-api" exported="" />
+    <orderEntry type="module" module-name="server-openapi-vcs" exported="" />
+    <orderEntry type="module" module-name="common-vcs" exported="" />
+    <orderEntry type="module" module-name="idea-obsolete-openapi" exported="" />
+    <orderEntry type="module" module-name="utils" exported="" />
+    <orderEntry type="module" module-name="vcs-api" exported="" />
+    <orderEntry type="module" module-name="vcs-plugin-api" exported="" />
+    <orderEntry type="module" module-name="cloud-api" exported="" />
+    <orderEntry type="module" module-name="cloud-server-api" exported="" />
+    <orderEntry type="module" module-name="cloud-shared" exported="" />
+    <orderEntry type="module" module-name="server-common-api" exported="" />
+    <orderEntry type="library" name="Maven: javax.servlet:javax.servlet-api:3.1.0" level="project" />
+    <orderEntry type="module" module-name="common-impl" />
+    <orderEntry type="module" module-name="messages" />
+    <orderEntry type="module" module-name="federation-open-api" />
+    <orderEntry type="module" module-name="db" />
+    <orderEntry type="module" module-name="server-startup" />
+    <orderEntry type="library" name="Maven: org.springframework:spring-web:5.3.19" level="project" />
+    <orderEntry type="library" name="Maven: org.springframework:spring-webmvc:5.3.19" level="project" />
+    <orderEntry type="library" name="Maven: org.springframework:spring-core:5.3.19" level="project" />
+    <orderEntry type="library" name="Maven: org.springframework:spring-context:5.3.19" level="project" />
+    <orderEntry type="module" module-name="plugin-model-common" />
+    <orderEntry type="module" module-name="common-graph" />
+    <orderEntry type="library" name="Maven: eu.bitwalker:UserAgentUtils:1.17" level="project" />
+    <orderEntry type="module" module-name="ro-server-util" />
+    <orderEntry type="module" module-name="plugin-model-server" />
+    <orderEntry type="module" module-name="serviceMessages" />
+    <orderEntry type="module" module-name="db-test-core" scope="TEST" />
+    <orderEntry type="module" module-name="test-api" scope="TEST" />
+    <orderEntry type="module" module-name="common-test-core" scope="TEST" />
+    <orderEntry type="module" module-name="server-test-core" scope="TEST" />
+    <orderEntry type="library" scope="TEST" name="Maven: jmock:jmock:1.2.0" level="project" />
   </component>
 </module>

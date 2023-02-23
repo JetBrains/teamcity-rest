@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.graphql;
 
-import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 import graphql.GraphQL;
 import graphql.execution.AsyncExecutionStrategy;
@@ -27,6 +26,7 @@ import graphql.kickstart.tools.SchemaParserOptions;
 import graphql.schema.GraphQLSchema;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.PostConstruct;
 import jetbrains.buildServer.server.graphql.model.agentPool.actions.*;
@@ -117,7 +117,7 @@ public class GraphQLProvider {
       throw new IOException("Can't find schema.graphls");
     }
 
-    String sdl = Resources.toString(url, Charsets.UTF_8);
+    String sdl = Resources.toString(url, StandardCharsets.UTF_8);
     GraphQLSchema graphQLSchema = buildSchema(sdl);
     graphQL = GraphQL
       .newGraphQL(graphQLSchema)
