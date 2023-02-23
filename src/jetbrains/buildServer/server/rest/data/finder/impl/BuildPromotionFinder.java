@@ -950,9 +950,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private MultiCheckerFilter<SBuild> getBuildFilter(@NotNull final Locator locator) {
     final MultiCheckerFilter<SBuild> result = new MultiCheckerFilter<>();
 
-    final String buildNumber = locator.getSingleDimensionValue(NUMBER);
-    if (buildNumber != null) {
-      result.add(item -> buildNumber.equals(item.getBuildNumber()));
+    if(locator.isUnused(NUMBER)) {
+      final String buildNumber = locator.getSingleDimensionValue(NUMBER);
+      assert buildNumber != null;
+
+      ValueCondition buildNumberCondition = ParameterCondition.createValueCondition(buildNumber);
+      result.add(item -> buildNumberCondition.matches(item.getBuildNumber()));
     }
 
     final String status = locator.getSingleDimensionValue(STATUS);
@@ -1184,38 +1187,43 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       return ItemHolder.of(getSnapshotDepProblemBuilds(snapshotDepProblem));
     }
 
-    final String number = locator.getSingleDimensionValue(NUMBER);
-    if (number != null) {
-      final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
-      if (buildTypeLocator != null) {
+    if(locator.isUnused(NUMBER) && locator.isUnused(BUILD_TYPE)) {
+      final String buildNumber = getBuildNumberIfEqualsCondition(locator);
+      if(buildNumber != null) {
+        final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
+
         final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, buildTypeLocator);
         final Set<BuildPromotion> builds = new TreeSet<>(BUILD_PROMOTIONS_COMPARATOR);
         for (SBuildType buildType : buildTypes) {
-          List<SBuild> buildByNumber = myBuildsManager.findBuildInstancesByBuildNumber(buildType.getBuildTypeId(), number);
+          List<SBuild> buildByNumber = myBuildsManager.findBuildInstancesByBuildNumber(buildType.getBuildTypeId(), buildNumber);
           builds.addAll(CollectionsUtil.convertCollection(buildByNumber, SBuild::getBuildPromotion)); //todo: ensure due builds sorting
         }
-        return ItemHolder.of(builds);
-      } else {
-        // if build type is not specified, search by scanning (performance impact)
-        locator.markUnused(NUMBER, BUILD_TYPE);
-      }
 
-      /*
-        Search by build number and project id
-       */
-      if (TeamCityProperties.getBooleanOrTrue("rest.builds.selectByProjectAndBuildNumberOptimization.enabled")) {
-        if (locator.isUnused(PROJECT)) {
+        return ItemHolder.of(builds);
+      }
+    }
+
+    /*
+      Search by build number and project id
+     */
+    if(TeamCityProperties.getBooleanOrTrue("rest.builds.selectByProjectAndBuildNumberOptimization.enabled")) {
+      if (locator.isUnused(NUMBER) && locator.isUnused(PROJECT)) {
+        final String buildNumber = getBuildNumberIfEqualsCondition(locator);
+        if (buildNumber != null) {
           SProject project = getProjectFromDimension(locator, PROJECT);
           if (project != null) {
             List<SBuildType> buildTypes = project.getOwnBuildTypes();
-            return getBuildsByBuildTypesAndBuildNumber(buildTypes, number);
+            return getBuildsByBuildTypesAndBuildNumber(buildTypes, buildNumber);
           }
         }
-        if (locator.isUnused(AFFECTED_PROJECT)) {
+      }
+      if(locator.isUnused(NUMBER) && locator.isUnused(AFFECTED_PROJECT)) {
+        final String buildNumber = getBuildNumberIfEqualsCondition(locator);
+        if (buildNumber != null) {
           SProject project = getProjectFromDimension(locator, AFFECTED_PROJECT);
           if (project != null) {
             List<SBuildType> buildTypes = project.getBuildTypes();
-            return getBuildsByBuildTypesAndBuildNumber(buildTypes, number);
+            return getBuildsByBuildTypesAndBuildNumber(buildTypes, buildNumber);
           }
         }
       }
@@ -1497,6 +1505,19 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       .sorted(BUILD_PROMOTIONS_COMPARATOR)
       .iterator()
     );
+  }
+
+  @Nullable
+  private String getBuildNumberIfEqualsCondition(@NotNull Locator locator) {
+    final String number = locator.getSingleDimensionValue(NUMBER);
+    assert number != null;
+
+    ValueCondition numberCondition = ParameterCondition.createValueCondition(number);
+    String result = numberCondition.getConstantValueIfSimpleEqualsCondition();
+    if(result == null) {
+      locator.markUnused(NUMBER);
+    }
+    return result;
   }
 
   // Package-private for tests

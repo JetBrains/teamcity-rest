@@ -1176,6 +1176,21 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
+  public void testBuildNumberCondition() {
+    final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
+
+    SBuild buildHello = build().in(buildConf).number("hello").finish();
+    SBuild buildWorld = build().in(buildConf).number("hello, world!").finish();
+    SBuild buildFriend = build().in(buildConf).number("hello, my dear friend!").finish();
+
+    final String buildTypeDimension = ",buildType:" + buildConf.getExternalId();
+    checkBuilds("number:hello" + buildTypeDimension, getBuildPromotions(buildHello));
+    checkBuilds("number:(matchType:starts-with,value:hello)" + buildTypeDimension, getBuildPromotions(buildFriend, buildWorld, buildHello));
+    checkBuilds("number:(matchType:starts-with,value:hello)", getBuildPromotions(buildFriend, buildWorld, buildHello));
+    checkBuilds("number:(matchType:starts-with,value:hello),project:(name:project)", getBuildPromotions(buildFriend, buildWorld, buildHello));
+  }
+
+  @Test
   @TestFor(issues = "TW-78993")
   public void testBuildNumberAndProject() {
     setInternalProperty("rest.builds.selectByProjectAndBuildNumberOptimization.enabled", true);
