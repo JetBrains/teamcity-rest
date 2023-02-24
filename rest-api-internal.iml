@@ -169,6 +169,7 @@
     <orderEntry type="module" module-name="messages" />
     <orderEntry type="module" module-name="federation-open-api" />
     <orderEntry type="module" module-name="db" />
+    <orderEntry type="module" module-name="migration" />
     <orderEntry type="module" module-name="server-startup" />
     <orderEntry type="library" name="Maven: org.springframework:spring-web:5.3.19" level="project" />
     <orderEntry type="library" name="Maven: org.springframework:spring-webmvc:5.3.19" level="project" />
