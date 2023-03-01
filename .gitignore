@@ -1,13 +1,13 @@
 .gradle
-gradle/
+/gradle/
 gradlew.bat
 gradlew
 .ant-targets-*.xml
-out/
+/out/
 rest-api.iws
-dist/
-temp/
-test-output/
+/dist/
+/temp/
+/test-output/
 # Ignore Gradle build output directory
-build
+/build/
 /target/
