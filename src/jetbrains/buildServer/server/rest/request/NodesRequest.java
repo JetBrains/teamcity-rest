@@ -151,12 +151,7 @@ public class NodesRequest {
     SecurityContextEx securityContext = myServiceLocator.getSingletonService(SecurityContextEx.class);
     boolean notAuthorizedRequest = securityContext.isSystemAccess();
     if (notAuthorizedRequest) {
-      return securityContext.runAsUnchecked(SecurityContextImpl.NO_PERMISSIONS, new SecurityContextEx.RunAsActionWithResult<T>() {
-        @Override
-        public T run() throws Throwable {
-          return action.get();
-        }
-      });
+      return securityContext.runAsUnchecked(SecurityContextImpl.NO_PERMISSIONS, action::get);
     }
 
     return action.get();

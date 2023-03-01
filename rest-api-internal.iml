@@ -142,7 +142,19 @@
         <SOURCES>
           <root url="jar://$MODULE_DIR$/lib/src/graphql-java-19.2-sources.jar!/" />
           <root url="jar://$MODULE_DIR$/lib/src/graphql-java-tools-13.0.2-sources.jar!/" />
-          <root url="jar://$MODULE_DIR$/lib/src/graphql-java-tools-13.0.2-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/reflections-0.9.11-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jersey-server-1.19-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/jackson-module-kotlin-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/antlr4-runtime-4.9.3-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/classmate-1.5.1-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/commons-lang3-3.12.0-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/java-dataloader-3.2.0-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/kotlin-reflect-1.7.20-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/kotlin-stdlib-1.7.20-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/kotlinx-coroutines-core-jvm-1.6.4-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/kotlinx-coroutines-reactive-1.6.4-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/kotlinx-coroutines-jdk8-1.6.4-sources.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/src/reactive-streams-1.0.3-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>

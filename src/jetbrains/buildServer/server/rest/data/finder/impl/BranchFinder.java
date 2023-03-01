@@ -529,7 +529,7 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
   /** Deduplicates branches by name */
   private static class DeduplicatingAccumulator {
     //de-duplicate by name, ordering is not important here
-    private final Map<String, BranchData> myMap = new HashMap<String, BranchData>();
+    private final Map<String, BranchData> myMap = new HashMap<>();
 
     void addAll(@NotNull final Stream<BranchData> buildTypeBranches) {
       buildTypeBranches.forEach(branch -> {

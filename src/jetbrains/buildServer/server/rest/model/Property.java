@@ -24,7 +24,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
@@ -56,19 +55,20 @@ import org.jetbrains.annotations.Nullable;
   "type"})
 @ModelDescription("Represents a name-value-type relation.")
 public class Property {
-  @XmlAttribute
   public String name;
-  @XmlAttribute
   public String value;
-  @XmlAttribute
   public Boolean inherited;
-  @XmlElement
   public ParameterType type;
 
   public Property() {
   }
 
-  public Property(@NotNull final Parameter parameter, @Nullable final Boolean inherited, @NotNull final Fields fields, @NotNull final ServiceLocator serviceLocator) {
+  public Property(
+    @NotNull Parameter parameter,
+    @Nullable Boolean inherited,
+    @NotNull Fields fields,
+    @NotNull ServiceLocator serviceLocator
+  ) {
     name = !fields.isIncluded("name", true, true) ? null : parameter.getName();
     value = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("value", true, true), () -> getParameterValue(parameter, serviceLocator));
     this.inherited = ValueWithDefault.decideDefault(fields.isIncluded("inherited"), inherited);
@@ -77,6 +77,42 @@ public class Property {
       type = ValueWithDefault
         .decideDefault(fields.isIncluded("type", false, true), new ParameterType(parameterSpec, fields.getNestedField("type", Fields.NONE, Fields.LONG), serviceLocator));
     }
+  }
+
+  @XmlAttribute
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  @XmlAttribute
+  public String getValue() {
+    return value;
+  }
+
+  public void setValue(String value) {
+    this.value = value;
+  }
+
+  @XmlAttribute
+  public Boolean getInherited() {
+    return inherited;
+  }
+
+  public void setInherited(Boolean inherited) {
+    this.inherited = inherited;
+  }
+
+  @XmlElement
+  public ParameterType getType() {
+    return type;
+  }
+
+  public void setType(ParameterType type) {
+    this.type = type;
   }
 
   /**

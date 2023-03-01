@@ -25,17 +25,18 @@ import org.springframework.stereotype.Component;
 
 /**
  * @author Yegor.Yarko
- *         Date: 15.11.2009
+ * Date: 15.11.2009
  */
 @Component
 public class RequestPathTransformInfo implements PathTransformator {
-  @NotNull private Map<String, String> myPathMapping;
+  @NotNull
+  private Map<String, String> myPathMapping;
 
   public RequestPathTransformInfo() {
   }
 
   public void setPathMapping(@Nullable final Map<String, String> pathMapping) {
-    myPathMapping = pathMapping != null ? pathMapping : Collections.<String, String>emptyMap();
+    myPathMapping = pathMapping != null ? pathMapping : Collections.emptyMap();
   }
 
   @Override
@@ -43,6 +44,17 @@ public class RequestPathTransformInfo implements PathTransformator {
     return "Path mapping: " + myPathMapping;
   }
 
+  /**
+   * <pre>
+   * Examples:
+   * (abacaba, [a, ab, ba, aba, ca]) -> "aba"
+   * (abacaba, [foo, bar]) -> ""
+   * (abacaba, []) -> ""
+   * (abacaba, [abacaba, abacaba]) -> "abacaba"
+   * </pre>
+   *
+   * If {@code path} contains multiple {@code substrings} then any of then could be returned.
+   */
   @NotNull
   private static String getLargestMatchingSubstring(@NotNull final String path, final Set<String> substrings) {
     String result = "";
@@ -74,19 +86,12 @@ public class RequestPathTransformInfo implements PathTransformator {
   public PathTransformator getReverseTransformator(@NotNull final String originalPath, final boolean prefixSupported) {
     final String matching = getLargestMatchingSubstring(originalPath, myPathMapping.keySet());
     if (matching.length() == 0){
-      return new PathTransformator(){
-        @NotNull
-        public String getTransformedPath(@NotNull final String path) {
-          return path;
-        }
-      };
+      return path -> path;
     }
 
     final String prefix = prefixSupported ? originalPath.substring(0, originalPath.indexOf(matching)) : "";
     final String prefixWithNewPart = prefix + myPathMapping.get(matching);
-    return new PathTransformator(){
-      @NotNull
-      public String getTransformedPath(@NotNull final String path) {
+    return path -> {
         if (!path.startsWith(prefixWithNewPart)){
           return path; //some wrong path
         }
@@ -97,7 +102,6 @@ public class RequestPathTransformInfo implements PathTransformator {
           return prefix + path; //path already partly in due form. Should generally not happen, however
         }
         return prefix + matching + path.substring(prefixWithNewPart.length());
-      }
     };
   }
 }

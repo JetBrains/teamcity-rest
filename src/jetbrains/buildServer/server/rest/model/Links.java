@@ -16,25 +16,19 @@
 
 package jetbrains.buildServer.server.rest.model;
 
-import io.swagger.annotations.ExtensionProperty;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
-import jetbrains.buildServer.util.filters.Filter;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 /**
  * @author Yegor.Yarko
@@ -44,36 +38,42 @@ import java.util.List;
 @XmlRootElement(name = "links")
 @ModelBaseType(ObjectType.LIST)
 public class Links {
-  @XmlAttribute
-  public Integer count;
+  private Integer myCount;
 
-  @XmlElement(name = "link")
-  public List<Link> links;
+  private List<Link> myLinks;
 
   public Links() {
   }
 
   public Links(@NotNull final Collection<LinkData> linksP, @NotNull final Fields fields) {
-    this.links = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("link"), new ValueWithDefault.Value<List<Link>>() {
-      @Nullable
-      @Override
-      public List<Link> get() {
-        final Fields nestedField = fields.getNestedField("link", Fields.LONG, Fields.LONG);
-        final ParameterCondition condition = ParameterCondition.create(fields.getLocator());
-        return CollectionsUtil.filterAndConvertCollection(linksP, new Converter<Link, LinkData>() {
-          @Override
-          public Link createFrom(@NotNull final LinkData source) {
-            return new Link(source.type, source.url, source.relativeUrl, nestedField);
-          }
-        }, new Filter<LinkData>() {
-          @Override
-          public boolean accept(@NotNull final LinkData data) {
-            return data.matches(condition);
-          }
-        });
-      }
+    myLinks = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("link"), () -> {
+      final Fields nestedField = fields.getNestedField("link", Fields.LONG, Fields.LONG);
+      final ParameterCondition condition = ParameterCondition.create(fields.getLocator());
+      return CollectionsUtil.filterAndConvertCollection(
+        linksP,
+        source -> new Link(source.type, source.url, source.relativeUrl, nestedField),
+        data -> data.matches(condition)
+      );
     });
-    this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), linksP.size());
+    myCount = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), linksP.size());
+  }
+
+  @XmlAttribute
+  public Integer getCount() {
+    return myCount;
+  }
+
+  public void setCount(Integer count) {
+    myCount = count;
+  }
+
+  @XmlElement(name = "link")
+  public List<Link> getLinks() {
+    return myLinks;
+  }
+
+  public void setLinks(List<Link> links) {
+    myLinks = links;
   }
 
   public static LinksBuilder builder() {

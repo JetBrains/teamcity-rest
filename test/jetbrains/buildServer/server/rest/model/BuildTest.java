@@ -34,7 +34,6 @@ import jetbrains.buildServer.parameters.ValueResolver;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.finder.impl.BuildFinderTestBase;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -381,18 +380,16 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     build2.setLocator("buildType:(id:" + buildType4.getExternalId() + "),number:" + build4_1.getBuildNumber());
     builds2.setBuilds(Arrays.asList(build2));
     build.setBuildArtifactDependencies(builds2);
-    checkException(BadRequestException.class, new Runnable() {
-      public void run() {
-        build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
-      }
-    }, "triggering build with artifact dependency not in default artifact dependencies");
+    checkException(BadRequestException.class,
+                   () -> build.triggerBuild(user, myFixture, new HashMap<Long, Long>()),
+                   "triggering build with artifact dependency not in default artifact dependencies");
 
     build.setBuildArtifactDependencies(builds1);
 
     PropEntitiesArtifactDep propEntitiesArtifactDep1 = new PropEntitiesArtifactDep();
     propEntitiesArtifactDep1.setReplace("false");
     build.setCustomBuildArtifactDependencies(propEntitiesArtifactDep1);
-    result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
+    result = build.triggerBuild(user, myFixture, new HashMap<>());
     assertEquals(2, result.getBuildPromotion().getArtifactDependencies().size());
     assertEquals(buildType3.getId(), result.getBuildPromotion().getArtifactDependencies().get(0).getSourceBuildTypeId());
     assertEquals(build3_2.getBuildId() + ".tcbuildid", result.getBuildPromotion().getArtifactDependencies().get(0).getRevisionRule().getRevision());
@@ -409,11 +406,9 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     propEntitiesArtifactDep2.propEntities = Arrays.asList(propEntityArtifactDep1);
     build.setCustomBuildArtifactDependencies(propEntitiesArtifactDep2);
 
-    checkException(BadRequestException.class, new Runnable() {
-      public void run() {
-        build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
-      }
-    }, "triggering build with artifact dependency not in posted custom-artifact-dependnecies");
+    checkException(BadRequestException.class,
+                   () -> build.triggerBuild(user, myFixture, new HashMap<Long, Long>()),
+                   "triggering build with artifact dependency not in posted custom-artifact-dependnecies");
 
     build.setBuildArtifactDependencies(null);
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
@@ -778,11 +773,9 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     builds1.setBuilds(Arrays.asList(build2, build3, build1));
     build.setBuildArtifactDependencies(builds1);
 
-    checkException(BadRequestException.class, new Runnable() {
-      public void run() {
-        build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
-      }
-    }, "triggering build with more builds in artifact dependencies then there are default artifact dependencies");
+    checkException(BadRequestException.class,
+                   () -> build.triggerBuild(user, myFixture, new HashMap<Long, Long>()),
+                   "triggering build with more builds in artifact dependencies then there are default artifact dependencies");
 
 
     builds1 = new Builds();
@@ -806,11 +799,9 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     customDeps.propEntities = Arrays.asList(dep1);
     build.setCustomBuildArtifactDependencies(customDeps);
 
-    checkException(BadRequestException.class, new Runnable() {
-      public void run() {
-        build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
-      }
-    }, "triggering build with more builds in artifact dependencies then there are in custom artifact dependencies");
+    checkException(BadRequestException.class,
+                   () -> build.triggerBuild(user, myFixture, new HashMap<Long, Long>()),
+                   "triggering build with more builds in artifact dependencies then there are in custom artifact dependencies");
 
 
     builds1 = new Builds();
@@ -919,12 +910,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     SBuild build2 = createBuild(bt2, Status.NORMAL);
 
     final SUser user = createUser("user1");
-    myFixture.getSecurityContext().runAsSystem(new SecurityContextEx.RunAsAction() {
-      @Override
-      public void run() throws Throwable {
-        user.addRole(RoleScope.projectScope(build1.getProjectId()), getTestRoles().getProjectViewerRole());
-      }
-    });
+    myFixture.getSecurityContext().runAsSystem(() -> user.addRole(RoleScope.projectScope(build1.getProjectId()), getTestRoles().getProjectViewerRole()));
 
     artifactsLogger.logArtifactDownload(build2.getBuildId(), build1.getBuildId(), "path1");
     artifactsLogger.logArtifactDownload(build2.getBuildId(), build0.getBuildId(), "path0");
@@ -984,11 +970,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
      //noinspection ResultOfMethodCallIgnored
      file.createNewFile();
 
-    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
-      public String transform(final String path) {
-        return StringUtil.replace(path, "/app/rest/", "/app/rest/version/");
-      }
-    });
+    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(path -> StringUtil.replace(path, "/app/rest/", "/app/rest/version/"));
 
     final Build build = new Build(finishedBuild, new Fields("href,artifacts(href,file(children,content))"), new BeanContext(new BeanFactory(null), myFixture, apiUrlBuilder));
 
@@ -1014,11 +996,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     File file = new File(dir, specialCharacters);
     file.createNewFile();
 
-    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(new PathTransformer() {
-      public String transform(final String path) {
-        return StringUtil.replace(path, "/app/rest/", "/app/rest/version/");
-      }
-    });
+    final ApiUrlBuilder apiUrlBuilder = new ApiUrlBuilder(path -> StringUtil.replace(path, "/app/rest/", "/app/rest/version/"));
 
     final Build build = new Build(finishedBuild, new Fields("href,artifacts($locator(recursive:true),href,file(name,fullName,href,children($long,$locator(pattern(+:**,+:%))),content))"), new BeanContext(new BeanFactory(null), myFixture, apiUrlBuilder));
 
@@ -1859,12 +1837,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     }
   }
 
-  protected static final EqualsTest<SArtifactDependency, SArtifactDependency> EQUALS_TEST = new EqualsTest<SArtifactDependency, SArtifactDependency>() {
-    @Override
-    public boolean equals(@NotNull final SArtifactDependency o1, @NotNull final SArtifactDependency o2) {
-      return o1.isSimilarTo(o2);
-    }
-  };
+  protected static final EqualsTest<SArtifactDependency, SArtifactDependency> EQUALS_TEST = (o1, o2) -> o1.isSimilarTo(o2);
 
   public interface EqualsTest<A, T> {
     public boolean equals(@NotNull final A o1, @NotNull final T o2);

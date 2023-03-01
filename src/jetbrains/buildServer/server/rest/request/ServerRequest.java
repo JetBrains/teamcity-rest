@@ -34,9 +34,9 @@ import jetbrains.buildServer.controllers.FileSecurityUtil;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.metrics.ServerMetricsReader;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.finder.impl.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.data.DataProvider;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.data.finder.impl.BuildArtifactsFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -111,7 +111,7 @@ public class ServerRequest {
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value = "Get the server info.", nickname = "getServerInfo")
   public Server serveServerInfo(@QueryParam("fields") String fields) {
-    return new Server(new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new Server(new Fields(fields), myServiceLocator, myApiUrlBuilder);
   }
 
   @GET
@@ -401,7 +401,7 @@ public class ServerRequest {
 
   @NotNull
   private String getUrlPrefix(final String areaId) {
-    return Util.concatenatePath(myBeanContext.getContextService(ApiUrlBuilder.class).transformRelativePath(API_SERVER_URL), "/files/", areaId);
+    return Util.concatenatePath(myBeanContext.getApiUrlBuilder().transformRelativePath(API_SERVER_URL), "/files/", areaId);
   }
 
   @NotNull

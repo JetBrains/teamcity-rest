@@ -20,7 +20,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.groups.UserGroup;
-import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
@@ -65,14 +64,14 @@ public class RoleAssignment {
     roleId = roleEntry.getRole().getId();
     final String scopeParam = getScopeProject(roleEntry.getScope(), context);
     scope = getScopeRepresentation(scopeParam);
-    href = context.getContextService(ApiUrlBuilder.class).getHref(roleEntry, user, scopeParam);
+    href = context.getApiUrlBuilder().getHref(roleEntry, user, scopeParam);
   }
 
   public RoleAssignment(RoleEntry roleEntry, UserGroup group, @NotNull final BeanContext context) {
     roleId = roleEntry.getRole().getId();
     final String scopeParam = getScopeProject(roleEntry.getScope(), context);
     scope = getScopeRepresentation(scopeParam);
-    href = context.getContextService(ApiUrlBuilder.class).getHref(roleEntry, group, scopeParam);
+    href = context.getApiUrlBuilder().getHref(roleEntry, group, scopeParam);
   }
 
   public static String getScopeRepresentation(@Nullable final String scopeParam) {

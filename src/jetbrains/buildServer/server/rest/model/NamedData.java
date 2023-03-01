@@ -16,17 +16,15 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import java.util.Map;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.Map;
 
 /**
  * @author Yegor.Yarko
@@ -49,14 +47,15 @@ public class NamedData {
   public NamedData() {
   }
 
-  public NamedData(@NotNull final String nameP, @NotNull final Map<String, String> properties, @NotNull final Fields fields) {
+  public NamedData(
+    @NotNull String nameP,
+    @NotNull Map<String, String> properties,
+    @NotNull Fields fields
+  ) {
     id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), nameP);
-    entries = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("entries"), new ValueWithDefault.Value<Entries>() {
-      @Nullable
-      @Override
-      public Entries get() {
-        return new Entries(properties, fields.getNestedField("entries"));
-      }
-    });
+
+    entries = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("entries"), () ->
+      new Entries(properties, fields.getNestedField("entries"))
+    );
   }
 }

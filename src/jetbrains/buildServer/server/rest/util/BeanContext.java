@@ -23,24 +23,26 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Yegor.Yarko
- *         Date: 20.04.13
+ * Date: 20.04.13
  */
 public class BeanContext {
-  private final BeanFactory myFactory;
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final ApiUrlBuilder myApiUrlBuilder;
 
-  public BeanContext(final BeanFactory factory, @NotNull final ServiceLocator serviceLocator, @NotNull ApiUrlBuilder apiUrlBuilder) {
-    myFactory = factory;
-    myServiceLocator = serviceLocator;
-    myApiUrlBuilder = apiUrlBuilder;
+  public BeanContext(
+    BeanFactory factory,
+    @NotNull ServiceLocator serviceLocator,
+    @NotNull ApiUrlBuilder apiUrlBuilder
+  ) {
+    this(serviceLocator, apiUrlBuilder);
   }
 
-  /**
-   * @deprecated let's not use this at all
-   */
-  public <T> void autowire(T t){
-    myFactory.autowire(t);
+  public BeanContext(
+    @NotNull ServiceLocator serviceLocator,
+    @NotNull ApiUrlBuilder apiUrlBuilder
+  ) {
+    myServiceLocator = serviceLocator;
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   @NotNull
@@ -58,8 +60,4 @@ public class BeanContext {
         return myServiceLocator;
   }
 
-  @NotNull
-  public ApiUrlBuilder getContextService(@NotNull Class<ApiUrlBuilder> serviceClass) throws ServiceNotFoundException {
-        return myApiUrlBuilder;
-  }
 }

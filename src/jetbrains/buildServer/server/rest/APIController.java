@@ -53,7 +53,6 @@ import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig;
 import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
 import jetbrains.buildServer.server.rest.request.*;
-import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildServerAdapter;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
@@ -262,7 +261,7 @@ public class APIController extends BaseController implements ServletContextAware
     }).start();
   }
 
-  private void initJerseyWebComponent(@NotNull final ValueWithDefault.Value<String> contextDetails) {
+  private void initJerseyWebComponent(@NotNull final Supplier<String> contextDetails) {
     if (!myWebComponentInitialized.get()) {
       NamedThreadFactory.executeWithNewThreadName("Initializing Jersey for " + getPluginIdentifyingText() + " " + contextDetails.get(), () -> {
         synchronized (myWebComponentInitialized) {
@@ -408,10 +407,12 @@ public class APIController extends BaseController implements ServletContextAware
         }
       }
 
+      @Override
       public String getFilterName() {
         return "jerseyFilter";
       }
 
+      @Override
       public ServletContext getServletContext() {
         //return APIController.this.getServletContext();
         // workaround for http://jetbrains.net/tracker/issue2/TW-7656
@@ -423,10 +424,12 @@ public class APIController extends BaseController implements ServletContextAware
         throw new RuntimeException("WebApplication context was not found.");
       }
 
+      @Override
       public String getInitParameter(final String s) {
         return initParameters.get(s);
       }
 
+      @Override
       public Enumeration<String> getInitParameterNames() {
         return new Vector<>(initParameters.keySet()).elements();
       }

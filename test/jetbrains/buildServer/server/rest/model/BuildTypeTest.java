@@ -197,17 +197,13 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals("<default>", branches.branches.get(0).getInternalName());
 
 
-    checkException(LocatorProcessException.class, new Runnable() {
-      public void run() {
-        buildTypeRequest.serveBranches("id:testBT", "changesFromDependencies:any", null);
-      }
-    }, "searching with wrong changesFromDependencies");
+    checkException(LocatorProcessException.class,
+                   () -> buildTypeRequest.serveBranches("id:testBT", "changesFromDependencies:any", null),
+                   "searching with wrong changesFromDependencies");
 
-    checkException(BadRequestException.class, new Runnable() {
-      public void run() {
-        buildTypeRequest.serveBranches("id:testBT", "policy:INVALID_POLICY", null);
-      }
-    }, "searching with wrong changesFromDependencies");
+    checkException(BadRequestException.class,
+                   () -> buildTypeRequest.serveBranches("id:testBT", "policy:INVALID_POLICY", null),
+                   "searching with wrong changesFromDependencies");
 
     //can also add test for branches from builds
     //can also add test for "changesFromDependencies:true" locator and several defaults in different branches
@@ -260,14 +256,14 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
     buildType = new BuildType(new BuildTypeOrTemplate(bt), new Fields("links"), myBeanContext);
     assertNotNull(buildType.getLinks());
-    assertEquals(Integer.valueOf(2), buildType.getLinks().count);
-    assertNotNull(buildType.getLinks().links);
-    assertEquals("webView", buildType.getLinks().links.get(0).type);
-    assertEquals(webLinks.getConfigurationHomePageUrl(bt), buildType.getLinks().links.get(0).url);
-    assertEquals(relativeWebLinks.getConfigurationHomePageUrl(bt), buildType.getLinks().links.get(0).relativeUrl);
-    assertEquals("webEdit", buildType.getLinks().links.get(1).type);
-    assertEquals(webLinks.getEditConfigurationPageUrl(bt.getExternalId()), buildType.getLinks().links.get(1).url);
-    assertEquals(relativeWebLinks.getEditConfigurationPageUrl(bt.getExternalId()), buildType.getLinks().links.get(1).relativeUrl);
+    assertEquals(Integer.valueOf(2), buildType.getLinks().getCount());
+    assertNotNull(buildType.getLinks().getLinks());
+    assertEquals("webView", buildType.getLinks().getLinks().get(0).type);
+    assertEquals(webLinks.getConfigurationHomePageUrl(bt), buildType.getLinks().getLinks().get(0).url);
+    assertEquals(relativeWebLinks.getConfigurationHomePageUrl(bt), buildType.getLinks().getLinks().get(0).relativeUrl);
+    assertEquals("webEdit", buildType.getLinks().getLinks().get(1).type);
+    assertEquals(webLinks.getEditConfigurationPageUrl(bt.getExternalId()), buildType.getLinks().getLinks().get(1).url);
+    assertEquals(relativeWebLinks.getEditConfigurationPageUrl(bt.getExternalId()), buildType.getLinks().getLinks().get(1).relativeUrl);
   }
 
   @Test

@@ -16,63 +16,67 @@
 
 package jetbrains.buildServer.server.rest.model;
 
-import com.intellij.util.containers.SortedList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author Yegor.Yarko
- *         Date: 13.07.2009
+ * Date: 13.07.2009
  */
-@SuppressWarnings("PublicField")
 @XmlRootElement(name = "datas")
 @ModelBaseType(
-    value = ObjectType.LIST,
-    baseEntity = "MetaData"
+  value = ObjectType.LIST,
+  baseEntity = "MetaData"
 )
-public class NamedDatas implements DefaultValueAware{
-  @XmlAttribute
-  public Integer count;
+public class NamedDatas implements DefaultValueAware {
+  private Integer count;
 
-  @XmlElement(name = "data")
-  public List<NamedData> entries = new SortedList<NamedData>(new Comparator<NamedData>() {
-    private final CaseInsensitiveStringComparator comp = new CaseInsensitiveStringComparator();
-
-    public int compare(final NamedData o1, final NamedData o2) {
-      return comp.compare(o1.id, o2.id);
-    }
-  });
+  private List<NamedData> entries = Collections.emptyList();
 
   public NamedDatas() {
   }
 
+
   public NamedDatas(@NotNull final Map<String, Map<String, String>> properties, @NotNull final Fields fields) {
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), properties.size());
-    entries = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("data"), new ValueWithDefault.Value<List<NamedData>>() {
-      @Nullable
-      @Override
-      public List<NamedData> get() {
-        ArrayList<NamedData> result = new ArrayList<>(properties.size());
-        Fields dataFields = fields.getNestedField("data");
-        for (java.util.Map.Entry<String, Map<String, String>> prop : properties.entrySet()) {
-          result.add(new NamedData(prop.getKey(), prop.getValue(), dataFields));
-        }
-        return result;
-      }
+
+    entries = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("data"), () -> {
+      Fields dataFields = fields.getNestedField("data");
+      return properties.entrySet().stream()
+                       .map(prop -> new NamedData(prop.getKey(), prop.getValue(), dataFields))
+                       .sorted(Comparator.comparing(it -> it.id, CaseInsensitiveStringComparator.INSTANCE))
+                       .collect(Collectors.toList());
     });
+  }
+
+  @XmlAttribute
+  public Integer getCount() {
+    return count;
+  }
+
+  public void setCount(Integer count) {
+    this.count = count;
+  }
+
+  @XmlElement(name = "data")
+  public List<NamedData> getEntries() {
+    return entries;
+  }
+
+  public void setEntries(List<NamedData> entries) {
+    this.entries = entries;
   }
 
   public boolean isDefault() {

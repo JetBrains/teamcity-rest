@@ -33,7 +33,6 @@ import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.model.nodes.Node;
 import jetbrains.buildServer.server.rest.request.*;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
-import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -53,18 +52,18 @@ public class Server {
   private ServerSettings myServerSettings;
 
   private Fields myFields;
-  private BeanContext myBeanContext;
+  private ServiceLocator myServiceLocator;
   private ApiUrlBuilder myApiUrlBuilder;
 
   public Server() {
   }
 
-  public Server(@NotNull final Fields fields, final BeanContext beanContext) {
+  public Server(@NotNull final Fields fields, final ServiceLocator serviceLocator, ApiUrlBuilder apiUrlBuilder) {
     myFields = fields;
-    myBeanContext = beanContext;
-    myServer = beanContext.getSingletonService(SBuildServer.class);
-    myServerSettings = beanContext.getSingletonService(ServerSettings.class);
-    myApiUrlBuilder = beanContext.getContextService(ApiUrlBuilder.class);
+    myServiceLocator = serviceLocator;
+    myServer = serviceLocator.getSingletonService(SBuildServer.class);
+    myServerSettings = serviceLocator.getSingletonService(ServerSettings.class);
+    myApiUrlBuilder = apiUrlBuilder;
   }
 
   @XmlAttribute
@@ -91,7 +90,7 @@ public class Server {
   public String getStartTime() {
     try {
       //workaround for https://youtrack.jetbrains.com/issue/TW-25260
-      StartupContext startupContext = myBeanContext.getSingletonService(DataProvider.class).getBean(StartupContext.class);
+      StartupContext startupContext = myServiceLocator.getSingletonService(DataProvider.class).getBean(StartupContext.class);
       return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("startTime"), Util.formatTime(startupContext.getServerStartupTimestamp()));
     } catch (Exception e) {
       return null;
@@ -115,7 +114,7 @@ public class Server {
 
   @XmlAttribute
   public String getRole() {
-    TeamCityNode currentNode = myBeanContext.getSingletonService(TeamCityNodes.class).getCurrentNode();
+    TeamCityNode currentNode = myServiceLocator.getSingletonService(TeamCityNodes.class).getCurrentNode();
     if (!currentNode.isMainNode()) {
       return ValueWithDefault.decideIncludeByDefault(myFields.isIncluded("role"), Node.getNodeRole(currentNode).name());
     }

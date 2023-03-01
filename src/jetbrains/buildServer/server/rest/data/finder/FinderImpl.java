@@ -20,7 +20,9 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.RestContext;
 import jetbrains.buildServer.server.rest.data.finder.impl.BuildPromotionFinder;
 import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
 import jetbrains.buildServer.server.rest.data.util.FilterItemProcessor;
@@ -150,6 +152,13 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
 
+  /**
+   * Creates locator from {@code locatorText}.
+   * Modifies locator with some finder defaults.
+   * @param locatorText if null, then the empty locator with some finder specific locator defaults is created.
+   * @param locatorDefaults optional parameter. if {@code locatorText} does not have some dimensions, then they are going to be retrieved from this.
+   * @return
+   */
   @NotNull
   protected Locator createLocator(@Nullable final String locatorText, @Nullable final Locator locatorDefaults) {
     final Locator result = Locator.createLocator(locatorText, locatorDefaults, getSupportedDimensions());
@@ -395,7 +404,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
                                    filter.getLookupLimit(), filter.isLookupLimitReached(), filter.getLastProcessedItem());
   }
 
-  private boolean isHeavyRequest(long processingTimeMs, long totalItemsProcessed, int resultSize) {
+  private static boolean isHeavyRequest(long processingTimeMs, long totalItemsProcessed, int resultSize) {
     if (processingTimeMs > TeamCityProperties.getLong("rest.finder.timeWarnLimit", 10000)) {
       return true;
     }
@@ -518,12 +527,12 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
   }
 
   @NotNull
-  private List<String> getListOfSubLocators(@NotNull final String locatorText) {
+  private static List<String> getListOfSubLocators(@NotNull final String locatorText) {
     Locator locator = new Locator(locatorText);
     if (locator.isSingleValue()) {
       return Collections.singletonList(locator.getStringRepresentation());
     }
-    ArrayList<String> result = new ArrayList<>();
+    List<String> result = new ArrayList<>();
     for (String dimensionName : locator.getDefinedDimensions()) {
       for (String value : locator.getDimensionValue(dimensionName)) {
         result.add(Locator.getStringLocator(dimensionName, value));

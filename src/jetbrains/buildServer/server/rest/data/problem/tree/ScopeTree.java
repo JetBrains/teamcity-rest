@@ -139,6 +139,34 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     return result;
   }
 
+  /**
+   * Example:
+   * <pre>
+   * the tree:
+   * a
+   * |-aa
+   * | |-aaa
+   * | |-aab
+   * | '-aac
+   * '-ab
+   *   |-aba
+   *   |-abb
+   *   '-abc
+   *
+   * slicing options:
+   *   maxChildren=((__)->2)
+   *   maxTotalNodes=6
+   *
+   * result:
+   * [a, aa, ab, aaa, aab, aba]
+   * </pre>
+   * <p/>
+   * Modifies the tree!
+   *
+   * @param subTreeRoot
+   * @param slicingOptions
+   * @return
+   */
   @NotNull
   private static <DATA, COUNTERS extends TreeCounters<COUNTERS>> List<Node<DATA, COUNTERS>> getSlicedOrderedSubtree(@NotNull Node<DATA, COUNTERS> subTreeRoot, @NotNull TreeSlicingOptions<DATA, COUNTERS> slicingOptions) {
     Queue<Node<DATA, COUNTERS>> nodeQueue = new ArrayDeque<>(slicingOptions.getMaxChildren(subTreeRoot) + 1);
@@ -173,8 +201,20 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
   }
 
   /**
+   * Example:
+   * <pre>
+   *   root
+   *   |-a
+   *   | |-aa
+   *   | |-ab
+   *   |-b
+   *   |-c
+   * </pre>
+   *
    * Slices a leaf node and returns a new one.<br/>
    * <b>Important:</b> modifies parent, replacing <code>node</code> with a new sliced one.
+   *
+   * @param node the leaf node
    */
   private static <DATA, COUNTERS extends TreeCounters<COUNTERS>> Node<DATA, COUNTERS> sliceLeaf(@NotNull Node<DATA, COUNTERS> node, @NotNull TreeSlicingOptions<DATA, COUNTERS> slicingOptions) {
     // Actually, it shouldn't be the root node, so there should always be a parent, but just to be safe.

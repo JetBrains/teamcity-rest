@@ -23,24 +23,29 @@ import jetbrains.buildServer.server.rest.PathTransformer;
 import jetbrains.buildServer.server.rest.RequestPathTransformInfo;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
-* @author Yegor.Yarko
-*         Date: 27.01.14
-*/
+ * @author Yegor.Yarko
+ * Date: 27.01.14
+ */
 public class SimplePathTransformer implements PathTransformer {
 
   private final HttpServletRequest myRequest;
   private final HttpHeaders myHeaders;
   private final RequestPathTransformInfo myRequestPathTransformInfo;
 
-  public SimplePathTransformer(final HttpServletRequest request, final HttpHeaders headers, final RequestPathTransformInfo requestPathTransformInfo) {
+  public SimplePathTransformer(HttpServletRequest request, HttpHeaders headers, RequestPathTransformInfo requestPathTransformInfo) {
     myRequest = request;
     myHeaders = headers;
     myRequestPathTransformInfo = requestPathTransformInfo;
   }
 
-  public String transform(final String path) {
+  @Contract("null -> null")
+  @Nullable
+  public String transform(@Nullable String path) {
     if (path == null) return null;
     if (!TeamCityProperties.getBoolean("rest.beans.href.useFullURLs") || myRequest == null) {
       return getRequestTranslator().getTransformedPath(path);
@@ -48,8 +53,13 @@ public class SimplePathTransformer implements PathTransformer {
     final String scheme = myRequest.getScheme();
     final int port = myRequest.getServerPort();
     return scheme + "://" + myRequest.getServerName() +
-           ((("http".equals(scheme) && port > 80) || ("https".equals(scheme) && port != 443)) ? ":" + port : "")
+           getPortSuffix(scheme, port)
            + myRequest.getServletContext().getContextPath() + getRequestTranslator().getTransformedPath(path);
+  }
+
+  @NotNull
+  private static String getPortSuffix(String scheme, int port) {
+    return (("http".equals(scheme) && port > 80) || ("https".equals(scheme) && port != 443)) ? ":" + port : "";
   }
 
   private PathTransformator getRequestTranslator() {

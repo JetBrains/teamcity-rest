@@ -18,16 +18,21 @@ package jetbrains.buildServer.server.rest.model;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.containers.SortedList;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
-import jetbrains.buildServer.server.rest.data.util.FilterUtil;
+import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
 import jetbrains.buildServer.server.rest.data.parameters.EntityWithModifiableParameters;
 import jetbrains.buildServer.server.rest.data.parameters.EntityWithParameters;
 import jetbrains.buildServer.server.rest.data.parameters.MapBackedEntityWithParameters;
+import jetbrains.buildServer.server.rest.data.util.FilterUtil;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypeUtil;
@@ -43,11 +48,6 @@ import jetbrains.buildServer.util.CaseInsensitiveStringComparator;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.*;
 
 /**
  * @author Yegor.Yarko
@@ -86,23 +86,34 @@ public class Properties  implements DefaultValueAware {
   /**
    * @param externalLocator locator to override the one from "fields"
    */
-  public Properties(@Nullable final EntityWithParameters parameters,
+  public Properties(@Nullable EntityWithParameters parameters,
                     @Nullable String href,
                     @Nullable Locator externalLocator,
-                    @NotNull final Fields fields,
-                    @NotNull final BeanContext beanContext) {
-    this (parameters, true, href, externalLocator, fields, beanContext);
+                    @NotNull Fields fields,
+                    @NotNull BeanContext beanContext) {
+    this (parameters, true, href, externalLocator, fields, beanContext.getServiceLocator(), beanContext.getApiUrlBuilder());
+  }
+
+
+  public Properties(@Nullable EntityWithParameters parameters,
+                    boolean enforceSorting,
+                    @Nullable String href,
+                    @Nullable Locator externalLocator,
+                    @NotNull Fields fields,
+                    @NotNull BeanContext beanContext) {
+    this(parameters, enforceSorting, href, externalLocator, fields, beanContext.getServiceLocator(), beanContext.getApiUrlBuilder());
   }
 
   /**
    * @param externalLocator locator to override the one from "fields"
    */
-  public Properties(@Nullable final EntityWithParameters parameters,
+  public Properties(@Nullable EntityWithParameters parameters,
                     boolean enforceSorting,
                     @Nullable String href,
                     @Nullable Locator externalLocator,
-                    @NotNull final Fields fields,
-                    @NotNull final BeanContext beanContext) {
+                    @NotNull Fields fields,
+                    ServiceLocator serviceLocator,
+                    ApiUrlBuilder apiUrlBuilder) {
     if (parameters == null) {
       this.count = null;
       this.properties = null;
@@ -118,7 +129,7 @@ public class Properties  implements DefaultValueAware {
         for (Parameter parameter : parametersCollection) {
           Boolean inherited = parameters.isInherited(parameter.getName());
           if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
-            this.properties.add(new Property(parameter, inherited, propertyFields, beanContext.getServiceLocator()));
+            this.properties.add(new Property(parameter, inherited, propertyFields, serviceLocator));
           }
         }
         this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), this.properties.size());  //count of the properties included
@@ -126,7 +137,7 @@ public class Properties  implements DefaultValueAware {
         this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), parameters.getParametersCollection(null).size()); //actual count when no properties are included
       }
     }
-    this.href = href == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(href));
+    this.href = href == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), apiUrlBuilder.transformRelativePath(href));
   }
 
   public Properties(@NotNull final ParametersProvider paramsProvider, @Nullable String href, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {

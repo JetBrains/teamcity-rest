@@ -90,7 +90,7 @@ import static jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder.B
 @Path(BuildTypeRequest.API_BUILD_TYPES_URL)
 @Api("BuildType")
 public class BuildTypeRequest {
-  private static final Logger LOG = Logger.getInstance(BuildTypeRequest.class.getName());
+  private static final Logger LOG = Logger.getInstance(BuildTypeRequest.class);
 
   private static final Pattern WHITESPACE_PATTERN = Pattern.compile(" ");
   private static final Pattern PROJECT_PATH_SEPARATOR_PATTERN = Pattern.compile("::");
@@ -921,7 +921,7 @@ public class BuildTypeRequest {
   public PropEntitiesArtifactDep getArtifactDeps(@ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
                                                  @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    return new PropEntitiesArtifactDep(buildType.getSettingsEx(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntitiesArtifactDep(buildType.getSettingsEx(), new Fields(fields), restBeanContext());
   }
 
   /**
@@ -938,7 +938,7 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
     deps.setToBuildType(buildType.getSettingsEx(), myServiceLocator);
     buildType.persist("Artifact dependencies replaced");
-    return new PropEntitiesArtifactDep(buildType.getSettingsEx(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntitiesArtifactDep(buildType.getSettingsEx(), new Fields(fields), restBeanContext());
   }
 
   @POST
@@ -952,7 +952,7 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
     final SArtifactDependency result = description.addTo(buildType.getSettingsEx(), myServiceLocator);
     buildType.persist("Artifact dependency added");
-    return new PropEntityArtifactDep(result, buildType.getSettingsEx(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntityArtifactDep(result, buildType.getSettingsEx(), new Fields(fields), restBeanContext());
   }
 
   @GET
@@ -964,7 +964,7 @@ public class BuildTypeRequest {
                                               @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
     final SArtifactDependency artifactDependency = getArtifactDependency(buildType, artifactDepLocator);
-    return new PropEntityArtifactDep(artifactDependency, buildType.getSettingsEx(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntityArtifactDep(artifactDependency, buildType.getSettingsEx(), new Fields(fields), restBeanContext());
   }
 
   @DELETE
@@ -989,7 +989,7 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
     final SArtifactDependency newDependency = description.replaceIn(buildType.getSettingsEx(), getArtifactDependency(buildType, artifactDepLocator), myServiceLocator);
     buildType.persist("Artifact dependency replaced");
-    return new PropEntityArtifactDep(newDependency, buildType.getSettingsEx(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntityArtifactDep(newDependency, buildType.getSettingsEx(), new Fields(fields), restBeanContext());
   }
 
 
@@ -1074,7 +1074,7 @@ public class BuildTypeRequest {
   public PropEntitiesSnapshotDep getSnapshotDeps(@ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
                                                  @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    return new PropEntitiesSnapshotDep(buildType.getSettingsEx(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntitiesSnapshotDep(buildType.getSettingsEx(), new Fields(fields), restBeanContext());
   }
 
   /**
@@ -1091,7 +1091,7 @@ public class BuildTypeRequest {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
     suppliedEntities.setToBuildType(buildType.getSettingsEx(), myServiceLocator);
     buildType.persist("Snapshot dependency replaced");
-    return new PropEntitiesSnapshotDep(buildType.getSettingsEx(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntitiesSnapshotDep(buildType.getSettingsEx(), new Fields(fields), restBeanContext());
   }
 
   /**
@@ -1110,7 +1110,7 @@ public class BuildTypeRequest {
 
     Dependency createdDependency = description.addTo(buildType.getSettingsEx(), myServiceLocator);
     buildType.persist("Snapshot dependency added");
-    return new PropEntitySnapshotDep(createdDependency, buildType.getSettingsEx(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntitySnapshotDep(createdDependency, buildType.getSettingsEx(), new Fields(fields), restBeanContext());
   }
 
   @GET
@@ -1122,7 +1122,7 @@ public class BuildTypeRequest {
                                               @QueryParam("fields") String fields) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
     final Dependency dependency = PropEntitySnapshotDep.getSnapshotDep(buildType.get(), snapshotDepLocator, myBuildTypeFinder);
-    return new PropEntitySnapshotDep(dependency, buildType.getSettingsEx(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntitySnapshotDep(dependency, buildType.getSettingsEx(), new Fields(fields), restBeanContext());
   }
 
   @DELETE
@@ -1150,7 +1150,7 @@ public class BuildTypeRequest {
     final Dependency dependency = PropEntitySnapshotDep.getSnapshotDep(buildType.get(), snapshotDepLocator, myBuildTypeFinder);
     Dependency createdDependency = description.replaceIn(buildType.getSettingsEx(), dependency, myServiceLocator);
     buildType.persist("Snapshot dependency replaced");
-    return new PropEntitySnapshotDep(createdDependency, buildType.getSettingsEx(), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return new PropEntitySnapshotDep(createdDependency, buildType.getSettingsEx(), new Fields(fields), restBeanContext());
   }
 
 
@@ -1440,7 +1440,7 @@ public class BuildTypeRequest {
                                           @QueryParam("fields") String fields) {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
     return new Investigations(myInvestigationFinder.getInvestigationWrappersForBuildType(buildType),
-                              new PagerDataImpl(InvestigationRequest.getHref(buildType)), new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+                              new PagerDataImpl(InvestigationRequest.getHref(buildType)), new Fields(fields), restBeanContext());
   }
 
   /**
@@ -1542,7 +1542,7 @@ public class BuildTypeRequest {
     SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeLocator, false);
     BuildPromotion build = myBuildFinder.getBuildPromotion(buildType, buildLocator);
 
-    return Build.getFieldValue(build, field, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    return Build.getFieldValue(build, field, restBeanContext());
   }
 
   /**
@@ -1672,7 +1672,7 @@ public class BuildTypeRequest {
   public VCSLabelingOptions setVCSLabelingOptions(@ApiParam(format = LocatorName.BUILD_TYPE) @PathParam("btLocator") String buildTypeLocator,
                                                   VCSLabelingOptions options) {
     final BuildTypeOrTemplate buildType = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator, true);
-    options.applyTo(buildType, new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
+    options.applyTo(buildType, restBeanContext());
     buildType.persist("VCS labeling settings changed");
     return new VCSLabelingOptions();
   }
@@ -1735,6 +1735,11 @@ public class BuildTypeRequest {
     myBuildTypeFinder = myBeanContext.getSingletonService(BuildTypeFinder.class);
     myApiUrlBuilder = beanContext.getApiUrlBuilder();
     myVcsRootFinder = myBeanContext.getSingletonService(VcsRootFinder.class);
+  }
+
+  @NotNull
+  private BeanContext restBeanContext() {
+    return new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder);
   }
 
   public static class BuildTypeSettingsEntityWithParams implements ParametersPersistableEntity {
