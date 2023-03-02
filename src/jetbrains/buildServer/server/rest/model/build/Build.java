@@ -571,6 +571,21 @@ public class Build {
     });
   }
 
+  /**
+   * Experimental
+   */
+  @XmlElement
+  public Properties getStartProperties() {
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("startProperties", false, false), this::resolveStartParameters);
+  }
+
+  @NotNull
+  private Properties resolveStartParameters() {
+    checkCanViewRuntimeData();
+    return new Properties(getStartParametersProvider(myBuildPromotion, myServiceLocator), null,
+                          myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
+  }
+
   @NotNull
   public static ParametersProvider getBuildResultingParameters(@NotNull BuildPromotion buildPromotion, @NotNull ServiceLocator serviceLocator) {
     SBuild build = buildPromotion.getAssociatedBuild();
@@ -580,6 +595,22 @@ public class Build {
         if (parameters == null) {
           parameters = ((BaseBuild)build).getBuildStartParameters();
         }
+        if (parameters != null) {
+          return new MapParametersProviderImpl(parameters);
+        }
+      } catch (ClassCastException ignore) {
+      }
+    }
+    //falling back to recalculated parameters
+    return calculateAllParameters(buildPromotion, serviceLocator.findSingletonService(PasswordsSearcher.class));
+  }
+
+  @NotNull
+  public static ParametersProvider getStartParametersProvider(@NotNull BuildPromotion buildPromotion, @NotNull ServiceLocator serviceLocator) {
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null && build instanceof BaseBuild) {
+      try {
+        Map<String, String> parameters = ((BaseBuild)build).getBuildStartParameters();
         if (parameters != null) {
           return new MapParametersProviderImpl(parameters);
         }
