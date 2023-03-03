@@ -130,7 +130,8 @@ import org.jetbrains.annotations.Nullable;
     "agent", "compatibleAgents"/*q*/,
     "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
     "artifacts"/*rf*/, "issues"/*rf*/,
-    "properties", "resultingProperties", "originalProperties", "attributes", "statistics", "metadata"/*rf*/,
+    "properties", "resultingProperties", "originalProperties", "startProperties",
+    "attributes", "statistics", "metadata"/*rf*/,
     "buildDependencies", "buildArtifactDependencies", "customBuildArtifactDependencies"/*q*/,
     "settingsHash", "currentSettingsHash", "modificationId", "chainModificationId", "replacementIds",
     "related", /*experimental*/
@@ -583,7 +584,7 @@ public class Build {
   private Properties resolveStartParameters() {
     checkCanViewRuntimeData();
     return new Properties(getStartParametersProvider(myBuildPromotion, myServiceLocator), null,
-                          myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
+                          myFields.getNestedField("startProperties", Fields.NONE, Fields.LONG), myBeanContext);
   }
 
   @NotNull
