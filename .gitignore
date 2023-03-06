@@ -11,3 +11,6 @@ rest-api.iws
 # Ignore Gradle build output directory
 /build/
 /target/
+
+# Mac OS system files
+.DS_Store
