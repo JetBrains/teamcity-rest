@@ -40,6 +40,7 @@
       <class name="jetbrains.buildServer.server.rest.request.UserRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.HealthRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.ServerRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.ServerAuthRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.TwoFactorRequestTest" />
       <class name="jetbrains.buildServer.server.rest.request.ChangeRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.NodesRequestTest" />
