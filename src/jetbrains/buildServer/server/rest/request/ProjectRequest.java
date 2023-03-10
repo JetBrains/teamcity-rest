@@ -1032,6 +1032,48 @@ public class ProjectRequest {
     myServerSshKeyManager.addKey(project, fileName, privateKey, configAction);
   }
 
+  /**
+   * Adds new generated SSH key to the specific project.
+   *
+   * @since 2022
+   */
+  @POST
+  @Path("/{projectLocator}/sshKeys/generated")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value = "Generate ssh key", hidden = true)
+  public SshKey generateSshKey(
+    @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator")
+    String projectLocator,
+    @ApiParam @QueryParam("keyName")
+    String keyName,
+    @ApiParam @QueryParam("keyType")
+    String keyType
+  ) {
+    if(!TeamCityProperties.getBooleanOrTrue(SSH_KEY_UPLOAD_ENABLED_PROP)) {
+      throw new NotFoundException("");
+    }
+    if (StringUtil.isEmpty(keyName)) {
+      throw new BadRequestException("The keyName is not specified.");
+    }
+    if (StringUtil.isEmpty(keyType)) {
+      throw new BadRequestException("The keyType is not specified.");
+    }
+
+    try {
+      SProject project = myProjectFinder.getItem(projectLocator);
+      TeamCitySshKey key = myServerSshKeyManager.generateKey(project, keyName, keyType, myConfigActionFactory.createAction("New SSH key generated"));
+      SshKey result = new SshKey();
+      result.setName(key.getName());
+      result.setEncrypted(key.isEncrypted());
+      if (!key.isEncrypted()) {
+        result.setPublicKey(myServerSshKeyManager.getPublicKey(key));
+      }
+      return result;
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException("Invalid keyType", e);
+    }
+  }
+
   private static byte[] toByteArray(InputStream inputStream) throws IOException {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     copy(inputStream, outputStream);
