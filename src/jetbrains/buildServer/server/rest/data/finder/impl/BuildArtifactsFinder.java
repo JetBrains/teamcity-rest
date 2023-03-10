@@ -607,14 +607,16 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
 
   static boolean isWithinHidden(final @NotNull Element data) {
     final String fullName = data.getFullName();
-    return fullName.equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR) ||
-           fullName.startsWith(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR + "/");
+    return fullName.equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR)
+           || fullName.startsWith(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR + "/")
+           || fullName.startsWith(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR + ".");
   }
 
   static boolean isHiddenDir(final @NotNull Element data) {
     final String fullName = data.getFullName();
-    return fullName.equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR) ||
-           fullName.equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR + "/");
+    return fullName.equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR)
+           || fullName.equals(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR + "/")
+           || fullName.startsWith(ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR + ".");
   }
 
   private static class ArtifactsComparator implements Comparator<ArtifactTreeElement> {

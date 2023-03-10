@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.BuildServerCreator;
+import jetbrains.buildServer.ArtifactsConstants;
 import jetbrains.buildServer.BaseTestCase;
 import jetbrains.buildServer.TempFiles;
 import jetbrains.buildServer.server.rest.data.TimeCondition;
@@ -71,7 +72,7 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
   @SuppressWarnings("UnstableApiUsage")
   private void createTestFiles(final File targetDir) throws IOException {
-    final File dotTeamCity = new File(targetDir, ".teamcity");
+    final File dotTeamCity = new File(targetDir, ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR);
     dotTeamCity.mkdir();
     new File(dotTeamCity, "logs").mkdir(); //this is also created by default
     new File(dotTeamCity, "settings").mkdir(); //this is also created by default
@@ -106,6 +107,10 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
                        addFileWithContent("a/b/file3.txt", "content3").
                        addFileWithContent("file4.txt", "content4").
                        build();
+    final File extendedHiddenDir = new File(targetDir, ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR + ".extended");
+    extendedHiddenDir.mkdir();
+    final File underExtendedHiddenDir = new File(extendedHiddenDir, "file.json");
+    underExtendedHiddenDir.createNewFile();
   }
 
   @BeforeClass
@@ -174,14 +179,15 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
     artifacts = getArtifacts("", "hidden:any");
 
-    assertSize(5, artifacts);
+    assertSize(6, artifacts);
     assertContainsByFullName(artifacts, ".teamcity");
+    assertContainsByFullName(artifacts, ".teamcity.extended");
 
     artifacts = getArtifacts("", "hidden:true");
 
-    assertSize(1, artifacts);
+    assertSize(2, artifacts);
     assertContainsByFullName(artifacts, ".teamcity");
-
+    assertContainsByFullName(artifacts, ".teamcity.extended");
 
     artifacts = getArtifacts(".teamcity", "hidden:true");
 
@@ -190,6 +196,10 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
     assertContainsByFullName(artifacts, ".teamcity/settings");
     assertContainsByFullName(artifacts, ".teamcity/properties");
     assertContainsByFullName(artifacts, ".teamcity/dirA");
+
+    artifacts = getArtifacts(".teamcity.extended", "hidden:true");
+    assertSize(1, artifacts);
+    assertContainsByFullName(artifacts, ".teamcity.extended/file.json");
 
 
     artifacts = getArtifacts(".teamcity/dirA", "hidden:true");
@@ -293,8 +303,9 @@ public class BuildArtifactsFinderTest extends BaseTestCase {
 
     artifacts = getArtifacts("", "hidden:true");
 
-    assertSize(1, artifacts);
+    assertSize(2, artifacts);
     assertContainsByFullName(artifacts, ".teamcity");
+    assertContainsByFullName(artifacts, ".teamcity.extended");
 
 
     artifacts = getArtifacts(".teamcity", "hidden:true");
