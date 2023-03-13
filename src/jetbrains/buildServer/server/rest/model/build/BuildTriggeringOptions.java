@@ -34,8 +34,8 @@ import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
   "rebuildDependencies"})
 @ModelDescription(
     value = "Represents the dependency/queue settings with which this build has been started.",
-    externalArticleLink = "https://www.jetbrains.com/help/teamcity/triggering-a-custom-build.html#Run+Custom+Build+dialog",
-    externalArticleName = "Custom Build"
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/running-custom-build.html",
+    externalArticleName = "Running Custom Build"
 )
 public class BuildTriggeringOptions {
     @XmlAttribute public Boolean cleanSources;
