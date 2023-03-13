@@ -38,15 +38,13 @@ public class SshKey {
 
   private Boolean myIsEncrypted;
 
-  private String myPublicKey;
-
   @XmlAttribute
   public String getName() {
     return myName;
   }
 
   public void setName(String name) {
-    myName = name;
+    this.myName = name;
   }
 
   @XmlAttribute
@@ -56,15 +54,6 @@ public class SshKey {
 
   public void setEncrypted(Boolean encrypted) {
     myIsEncrypted = encrypted;
-  }
-
-  @XmlAttribute
-  public String getPublicKey() {
-    return myPublicKey;
-  }
-
-  public void setPublicKey(String publicKey) {
-    myPublicKey = publicKey;
   }
 
 }
