@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.service.core.impl;
 
 import java.util.List;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.service.core.ProjectSshKeyCoreService;
 import jetbrains.buildServer.serverSide.ConfigAction;
@@ -30,18 +31,28 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProjectSshKeyCoreServiceImpl implements ProjectSshKeyCoreService {
 
-  private final ServerSshKeyManager myServerSshKeyManager;
   private final ConfigActionFactory myConfigActionFactory;
+  private final ServiceLocator myServiceLocator;
 
-  public ProjectSshKeyCoreServiceImpl(ServerSshKeyManager serverSshKeyManager, ConfigActionFactory configActionFactory) {
-    myServerSshKeyManager = serverSshKeyManager;
+  public ProjectSshKeyCoreServiceImpl(ConfigActionFactory configActionFactory, ServiceLocator serviceLocator) {
     myConfigActionFactory = configActionFactory;
+    myServiceLocator = serviceLocator;
+  }
+
+  /**
+   * ServerSshKeyManager is a part of other plugin, thish is not guaranteed to be available, so we can not just autowire this bean.
+   * therefore we need to get it from ServiceLocator lazily.
+   * Probably it's worth to create @Lazy bean in spring context of REST API to make its injection be more convenient.
+   * @return
+   */
+  private ServerSshKeyManager getServerSshKeyManager() {
+    return myServiceLocator.getSingletonService(ServerSshKeyManager.class);
   }
 
   @NotNull
   @Override
   public List<TeamCitySshKey> getSshKeys(@NotNull SProject project) {
-    return myServerSshKeyManager.getKeys(project);
+    return getServerSshKeyManager().getKeys(project);
   }
 
   @Override
@@ -53,13 +64,13 @@ public class ProjectSshKeyCoreServiceImpl implements ProjectSshKeyCoreService {
     }
 
     ConfigAction configAction = myConfigActionFactory.createAction("New SSH key uploaded");
-    myServerSshKeyManager.addKey(project, fileName, privateKey, configAction);
+    getServerSshKeyManager().addKey(project, fileName, privateKey, configAction);
   }
 
   @Override
   public void deleteSshKey(@NotNull SProject project, @NotNull String fileName) {
       ConfigAction configAction = myConfigActionFactory.createAction("SSH key deleted");
-      myServerSshKeyManager.removeKey(project, fileName, configAction);
+      getServerSshKeyManager().removeKey(project, fileName, configAction);
   }
 
   private void validateKey(byte[] privateKey) {
