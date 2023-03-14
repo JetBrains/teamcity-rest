@@ -21,7 +21,9 @@ import java.util.*;
 import java.util.function.Predicate;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.RestContext;
 import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
 import jetbrains.buildServer.server.rest.data.finder.impl.BuildFinderTestBase;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -29,11 +31,12 @@ import jetbrains.buildServer.server.rest.model.build.Branch;
 import jetbrains.buildServer.server.rest.model.build.Branches;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.BuildTypeEx;
+import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.SProjectFeatureDescriptor;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.ProjectFeatureDescriptorFactory;
-import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Option;
 import jetbrains.buildServer.vcs.OperationRequestor;
@@ -56,8 +59,6 @@ import static jetbrains.buildServer.vcs.RepositoryStateData.createVersionState;
 public class ProjectRequestTest extends BaseFinderTest<SProject> {
   private ProjectRequest myRequest;
   private BeanContext myBeanContext;
-  private ServerSshKeyManager myServerSshKeyManagerMock;
-  private ConfigActionFactory myConfigActionFactoryMock;
   private DataProvider myDataProviderMock;
   private ApiUrlBuilder myApiUrlBuilderMock;
   private ServiceLocator myServiceLocator;
@@ -67,10 +68,6 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
   public void setUp() throws Exception {
     super.setUp();
     myBeanContext = getBeanContext(myServer);
-    /*
-    myServerSshKeyManagerMock = Mockito.mock(ServerSshKeyManager.class);
-    myConfigActionFactoryMock = Mockito.mock(ConfigActionFactory.class);
-     */
     myDataProviderMock = Mockito.mock(DataProvider.class);
     myApiUrlBuilderMock = Mockito.mock(ApiUrlBuilder.class);
     myRequest = createProjectRequest();
@@ -328,53 +325,6 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
                          "ccc", null, null);
   }
 
-  // TODO @vshefer
-  /*
-  @Test
-  public void testAddSshKey() throws IOException {
-    String prjId = "Project1";
-    getRootProject().createProject(prjId, "Project test 1");
-
-    Path keyFilePath = ResourceUtils.getFile("classpath:rest/sshKeys/id_rsa").toPath();
-    HttpServletRequest mockRequest = createRequest(keyFilePath, MediaType.TEXT_PLAIN);
-
-    myRequest.addSshKey("id:" + prjId, "testprivatekey", mockRequest);
-
-    Mockito.verify(myServerSshKeyManagerMock).addKey(
-      Mockito.argThat(predicate(it -> it.getExternalId().equals(prjId))),
-      Mockito.same("testprivatekey"),
-      AdditionalMatchers.aryEq(Files.readAllBytes(keyFilePath)),
-      Mockito.isNull(ConfigAction.class)
-    );
-  }
-
-  @Test
-  public void testAddSshKey_empty() {
-    String prjId = "Project1";
-    getRootProject().createProject(prjId, "Project test 1");
-
-    // TODO @vshefer
-    //HttpServletRequest mockRequest = new MockHttpServletRequest();
-    HttpServletRequest mockRequest = null;
-
-    //assertExceptionThrown(() -> myRequest.addSshKey("id:" + prjId, "testprivatekey", mockRequest), BadRequestException.class);
-  }
-
-  @NotNull
-  private static HttpServletRequest createRequest(
-    Path bodyPath,
-    String contentType
-  ) throws IOException {
-    // TODO @vshefer
-    //HttpServletRequest mockHttpServletRequest = new FakeHttpServletRequest();
-
-    //mockHttpServletRequest.setContent(Files.readAllBytes(bodyPath));
-    //mockHttpServletRequest.setContentType(contentType);
-    //return mockHttpServletRequest;
-    return null;
-  }
-  */
-
   static class PredicateMatcher<T> extends ArgumentMatcher<T> {
 
 
@@ -462,7 +412,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
   @NotNull
   private ProjectRequest createProjectRequest() {
     return new ProjectRequest(myBeanContext, myServiceLocator, myDataProviderMock, myBuildFinder, myBuildTypeFinder, myProjectFinder, myAgentPoolFinder, myBranchFinder,
-                              myApiUrlBuilderMock, myPermissionChecker, myConfigActionFactoryMock, myServerSshKeyManagerMock);
+                              myApiUrlBuilderMock, myPermissionChecker);
   }
 
   private void setCurrentBranches(final BuildTypeEx bt,

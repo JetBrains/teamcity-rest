@@ -22,7 +22,6 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import java.io.*;
 import java.util.*;
-import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -52,6 +51,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.buildType.NewBuildTypeDescription;
 import jetbrains.buildServer.server.rest.model.project.*;
+import jetbrains.buildServer.server.rest.service.rest.ProjectSshKeyRestService;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -65,8 +65,6 @@ import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
 import jetbrains.buildServer.serverSide.impl.xml.XmlConstants;
-import jetbrains.buildServer.ssh.ServerSshKeyManager;
-import jetbrains.buildServer.ssh.TeamCitySshKey;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -81,16 +79,12 @@ import static java.util.Collections.singleton;
 @Path(ProjectRequest.API_PROJECTS_URL)
 @Api("Project")
 public class ProjectRequest {
-  private static final String SSH_KEY_UPLOAD_ENABLED_PROP = "rest.project.sshKeysManagement.enabled";
+  private static final String SSH_KEYS_MANAGEMENT_ENABLED_PROP = "rest.project.sshKeysManagement.enabled";
   private static final Logger LOG = Logger.getInstance(ProjectRequest.class.getName());
   public static final boolean ID_GENERATION_FLAG = true;
 
-  @SuppressWarnings("NotNullFieldNotInitialized") // initialized by dependency injection via setter.
-  @NotNull private ServiceLocator myServiceLocator;
-  @SuppressWarnings("NotNullFieldNotInitialized") // initialized by dependency injection via serviceLocator setter.
-  @NotNull private ConfigActionFactory myConfigActionFactory;
-  @SuppressWarnings("NotNullFieldNotInitialized") // initialized by dependency injection via serviceLocator setter.
-  @NotNull private ServerSshKeyManager myServerSshKeyManager;
+  @Context @NotNull private ServiceLocator myServiceLocator;
+  @Context @NotNull private ProjectSshKeyRestService myProjectSshKeyRestService;
 
   @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private DataProvider myDataProvider;
@@ -103,29 +97,6 @@ public class ProjectRequest {
 
   @Context @NotNull private PermissionChecker myPermissionChecker;
 
-  @Context
-  public void setServiceLocator(@NotNull ServiceLocator serviceLocator) {
-    myServiceLocator = serviceLocator;
-
-    {
-      /*
-       * This is the workaround to make these fields be injected.
-       * Since injection of beans from ServiceLocator is not supported
-       * (except for beans explicitly defined using Jersey's Provider)
-       * you can not inject this bean directly and workaround is required.
-       * TODO inject using @Autowired or @Context
-       */
-      //noinspection ConstantConditions
-      if (myConfigActionFactory == null) {
-        myConfigActionFactory = serviceLocator.findSingletonService(ConfigActionFactory.class);
-      }
-      //noinspection ConstantConditions
-      if (myServerSshKeyManager == null) {
-        myServerSshKeyManager = serviceLocator.findSingletonService(ServerSshKeyManager.class);
-      }
-    }
-  }
-
   public ProjectRequest(
     @NotNull BeanContext beanContext,
     ServiceLocator serviceLocator,
@@ -136,13 +107,11 @@ public class ProjectRequest {
     AgentPoolFinder agentPoolFinder,
     BranchFinder branchFinder,
     ApiUrlBuilder apiUrlBuilder,
-    PermissionChecker permissionChecker,
-    ConfigActionFactory configActionFactory,
-    ServerSshKeyManager serverSshKeyManager
+    PermissionChecker permissionChecker
   ) {
     myBeanContext = beanContext;
     myDataProvider = dataProvider;
-    setServiceLocator(firstNonNull(serviceLocator, beanContext.getServiceLocator()));
+    myServiceLocator = firstNonNull(serviceLocator, beanContext.getServiceLocator());
     myBuildFinder = firstNonNull(buildFinder, myServiceLocator.findSingletonService(BuildFinder.class));
     myBuildTypeFinder = firstNonNull(buildTypeFinder, myServiceLocator.findSingletonService(BuildTypeFinder.class));
     myProjectFinder = firstNonNull(projectFinder, myServiceLocator.findSingletonService(ProjectFinder.class));
@@ -150,8 +119,6 @@ public class ProjectRequest {
     myBranchFinder = firstNonNull(branchFinder, myServiceLocator.findSingletonService(BranchFinder.class));
     myApiUrlBuilder = firstNonNull(apiUrlBuilder, myServiceLocator.findSingletonService(ApiUrlBuilder.class));
     myPermissionChecker = firstNonNull(permissionChecker, myServiceLocator.findSingletonService(PermissionChecker.class));
-    myConfigActionFactory = firstNonNull(configActionFactory, myServiceLocator.findSingletonService(ConfigActionFactory.class));
-    //myServerSshKeyManager = firstNonNull(serverSshKeyManager, myServiceLocator.findSingletonService(ServerSshKeyManager.class));
   }
 
   /**
@@ -999,11 +966,11 @@ public class ProjectRequest {
   /**
    * Adds new SSH key to the specific project.
    *
-   * @since 2022
+   * @since 2022.10
    */
   @POST
   @Path("/{projectLocator}/sshKeys")
-  @Consumes({"text/plain" /* TODO check mime type */})
+  @Consumes({"text/plain"})
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value = "Upload ssh key", hidden = true)
   public void addSshKey(
@@ -1014,31 +981,45 @@ public class ProjectRequest {
     @Context
     HttpServletRequest request
   ) throws IOException {
-    if(!TeamCityProperties.getBooleanOrTrue(SSH_KEY_UPLOAD_ENABLED_PROP)) {
+    if(!TeamCityProperties.getBooleanOrTrue(SSH_KEYS_MANAGEMENT_ENABLED_PROP)) {
       throw new NotFoundException("");
     }
-    Objects.requireNonNull(fileName);
-
     byte[] privateKey = toByteArray(request.getInputStream());
-
-    try {
-      validateKey(privateKey);
-    } catch (Exception e) {
-      throw new BadRequestException("Invalid key file: " + e.getCause(), e);
-    }
-
-    ConfigAction configAction = myConfigActionFactory.createAction("New SSH key uploaded");
-    SProject project = myProjectFinder.getItem(projectLocator);
-    myServerSshKeyManager.addKey(project, fileName, privateKey, configAction);
+    myProjectSshKeyRestService.addSshKey(projectLocator, fileName, privateKey);
   }
 
-  private static byte[] toByteArray(InputStream inputStream) throws IOException {
+  /**
+   * Deletes SSH key from the project.
+   *
+   * @since 2023.05
+   */
+  @DELETE
+  @Path("/{projectLocator}/sshKeys/{sshKeyName}")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value = "Delete ssh key from project", hidden = true)
+  public void deleteSshKey(
+    @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator")
+    String projectLocator,
+    @ApiParam @PathParam("sshKeyName")
+    String fileName
+  ) {
+    if(!TeamCityProperties.getBooleanOrTrue(SSH_KEYS_MANAGEMENT_ENABLED_PROP)) {
+      throw new NotFoundException("");
+    }
+    myProjectSshKeyRestService.deleteSshKey(projectLocator, fileName);
+  }
+
+  private static byte[] toByteArray(InputStream inputStream) {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    copy(inputStream, outputStream);
+    try {
+      copy(inputStream, outputStream);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
     return outputStream.toByteArray();
   }
 
-  static void copy(InputStream source, OutputStream target) throws IOException {
+  private static void copy(InputStream source, OutputStream target) throws IOException {
     byte[] buf = new byte[8192];
     int length;
     while ((length = source.read(buf)) != -1) {
@@ -1047,9 +1028,9 @@ public class ProjectRequest {
   }
 
   /**
-   * Adds new SSH key to the specific project.
+   * Get ssh keys list for ptoject.
    *
-   * @since 2022
+   * @since 2022.10
    */
   @GET
   @Path("/{projectLocator}/sshKeys")
@@ -1058,39 +1039,13 @@ public class ProjectRequest {
   public SshKeys getSshKeys(
     @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator")
     String projectLocator,
-    @ApiParam @QueryParam("fileName")
-    String fileName, // TODO remove?
     @Context
     HttpServletRequest request
   ) {
-    if(!TeamCityProperties.getBooleanOrTrue(SSH_KEY_UPLOAD_ENABLED_PROP)) {
+    if(!TeamCityProperties.getBooleanOrTrue(SSH_KEYS_MANAGEMENT_ENABLED_PROP)) {
       throw new NotFoundException("");
     }
-    SProject project = myProjectFinder.getItem(projectLocator);
-
-    List<TeamCitySshKey> keys = myServerSshKeyManager.getKeys(project);
-
-    if (keys == null) {
-      return new SshKeys();
-    }
-
-    List<SshKey> sshKeys = keys.stream().map(key -> {
-      SshKey sshKey = new SshKey();
-      sshKey.setName(key.getName());
-      sshKey.setEncrypted(key.isEncrypted());
-      return sshKey;
-    }).collect(Collectors.toList());
-
-    SshKeys result = new SshKeys();
-    result.setSshKeys(sshKeys);
-    return result;
-  }
-
-  private void validateKey(byte[] privateKey) {
-    if (privateKey == null || privateKey.length == 0) {
-      throw new IllegalArgumentException("Empty key file");
-    }
-    // TODO @vshefer validate key file
+    return myProjectSshKeyRestService.getSshKeys(projectLocator);
   }
 
   /**
