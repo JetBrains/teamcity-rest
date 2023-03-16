@@ -24,6 +24,9 @@ import org.jetbrains.annotations.NotNull;
 public interface ProjectSshKeyCoreService {
   @NotNull
   List<TeamCitySshKey> getSshKeys(@NotNull SProject project);
-  void addSshKey(@NotNull SProject project, @NotNull String fileName, @NotNull byte[] privateKey);
-  void deleteSshKey(@NotNull SProject project, @NotNull String fileName);
+  void addSshKey(@NotNull SProject project, @NotNull String keyName, @NotNull byte[] privateKey);
+  TeamCitySshKey generateSshKey(@NotNull SProject project, @NotNull String keyName, @NotNull String keyType);
+  void deleteSshKey(@NotNull SProject project, @NotNull String keyName);
+  @NotNull
+  String getPublicKey(@NotNull TeamCitySshKey key);
 }

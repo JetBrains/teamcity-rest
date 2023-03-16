@@ -989,6 +989,39 @@ public class ProjectRequest {
   }
 
   /**
+   * Adds new generated SSH key to the specific project.
+   *
+   * @since 2022
+   */
+  @POST
+  @Path("/{projectLocator}/sshKeys/generated")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value = "Generate ssh key", hidden = true)
+  public SshKey generateSshKey(
+    @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator")
+    String projectLocator,
+    @ApiParam @QueryParam("keyName")
+    String keyName,
+    @ApiParam @QueryParam("keyType")
+    String keyType
+  ) {
+    if(!TeamCityProperties.getBooleanOrTrue(SSH_KEYS_MANAGEMENT_ENABLED_PROP)) {
+      throw new NotFoundException("");
+    }
+    if (StringUtil.isEmpty(keyName)) {
+      throw new BadRequestException("The keyName is not specified.");
+    }
+    if (StringUtil.isEmpty(keyType)) {
+      throw new BadRequestException("The keyType is not specified.");
+    }
+    try {
+      return myProjectSshKeyRestService.generateSshKey(projectLocator, keyName, keyType);
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException("Invalid keyType", e);
+    }
+  }
+
+  /**
    * Deletes SSH key from the project.
    *
    * @since 2023.05
@@ -1028,7 +1061,7 @@ public class ProjectRequest {
   }
 
   /**
-   * Get ssh keys list for ptoject.
+   * List SSH keys for a project.
    *
    * @since 2022.10
    */

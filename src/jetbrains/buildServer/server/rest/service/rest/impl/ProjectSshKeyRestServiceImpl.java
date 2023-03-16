@@ -50,15 +50,9 @@ public class ProjectSshKeyRestServiceImpl implements ProjectSshKeyRestService {
     SProject project = myProjectFinder.getItem(projectLocator);
     List<TeamCitySshKey> keys = myProjectSshKeyCoreService.getSshKeys(project);
 
-    if (keys == null) {
-      return new SshKeys();
-    }
-
     List<SshKey> sshKeys = keys
       .stream()
-      .map(key -> {
-        return toSshKey(key);
-      })
+      .map(key -> toSshKey(key))
       .collect(Collectors.toList());
 
     SshKeys result = new SshKeys();
@@ -67,16 +61,28 @@ public class ProjectSshKeyRestServiceImpl implements ProjectSshKeyRestService {
   }
 
   @Override
-  public void addSshKey(@NotNull String projectLocator, @NotNull String fileName, @NotNull byte[] privateKey) {
+  public void addSshKey(@NotNull String projectLocator, @NotNull String keyName, @NotNull byte[] privateKey) {
     SProject project = myProjectFinder.getItem(projectLocator);
 
-    myProjectSshKeyCoreService.addSshKey(project, fileName, privateKey);
+    myProjectSshKeyCoreService.addSshKey(project, keyName, privateKey);
+  }
+
+  @NotNull
+  @Override
+  public SshKey generateSshKey(@NotNull String projectLocator, @NotNull String keyName, @NotNull String keyType) {
+    SProject project = myProjectFinder.getItem(projectLocator);
+    TeamCitySshKey key = myProjectSshKeyCoreService.generateSshKey(project, keyName, keyType);
+    SshKey result = toSshKey(key);
+    if (!key.isEncrypted()) {
+      result.setPublicKey(myProjectSshKeyCoreService.getPublicKey(key));
+    }
+    return result;
   }
 
   @Override
-  public void deleteSshKey(@NotNull String projectLocator, @NotNull String fileName) {
+  public void deleteSshKey(@NotNull String projectLocator, @NotNull String keyName) {
     SProject project = myProjectFinder.getItem(projectLocator);
-    myProjectSshKeyCoreService.deleteSshKey(project, fileName);
+    myProjectSshKeyCoreService.deleteSshKey(project, keyName);
   }
 
   @NotNull

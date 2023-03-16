@@ -40,9 +40,9 @@ public class ProjectSshKeyCoreServiceImpl implements ProjectSshKeyCoreService {
   }
 
   /**
-   * ServerSshKeyManager is a part of other plugin, thish is not guaranteed to be available, so we can not just autowire this bean.
+   * ServerSshKeyManager is a part of other plugin, that is not guaranteed to be available, so we can not just autowire this bean.
    * therefore we need to get it from ServiceLocator lazily.
-   * Probably it's worth to create @Lazy bean in spring context of REST API to make its injection be more convenient.
+   * Probably it's worth to create @Lazy bean in spring context of REST API to make its injection more convenient.
    * @return
    */
   private ServerSshKeyManager getServerSshKeyManager() {
@@ -56,7 +56,7 @@ public class ProjectSshKeyCoreServiceImpl implements ProjectSshKeyCoreService {
   }
 
   @Override
-  public void addSshKey(@NotNull SProject project, @NotNull String fileName, @NotNull byte[] privateKey) {
+  public void addSshKey(@NotNull SProject project, @NotNull String keyName, @NotNull byte[] privateKey) {
     try {
       validateKey(privateKey);
     } catch (Exception e) {
@@ -64,13 +64,25 @@ public class ProjectSshKeyCoreServiceImpl implements ProjectSshKeyCoreService {
     }
 
     ConfigAction configAction = myConfigActionFactory.createAction("New SSH key uploaded");
-    getServerSshKeyManager().addKey(project, fileName, privateKey, configAction);
+    getServerSshKeyManager().addKey(project, keyName, privateKey, configAction);
   }
 
   @Override
-  public void deleteSshKey(@NotNull SProject project, @NotNull String fileName) {
+  public TeamCitySshKey generateSshKey(@NotNull SProject project, @NotNull String keyName, @NotNull String keyType) {
+    ConfigAction configAction = myConfigActionFactory.createAction("New SSH key generated");
+    return getServerSshKeyManager().generateKey(project, keyName, keyType, configAction);
+  }
+
+  @Override
+  public void deleteSshKey(@NotNull SProject project, @NotNull String keyName) {
       ConfigAction configAction = myConfigActionFactory.createAction("SSH key deleted");
-      getServerSshKeyManager().removeKey(project, fileName, configAction);
+      getServerSshKeyManager().removeKey(project, keyName, configAction);
+  }
+
+  @NotNull
+  @Override
+  public String getPublicKey(@NotNull TeamCitySshKey key) {
+    return getServerSshKeyManager().getPublicKey(key);
   }
 
   private void validateKey(byte[] privateKey) {

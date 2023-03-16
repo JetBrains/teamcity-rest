@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.service.rest;
 
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
+import jetbrains.buildServer.server.rest.model.project.SshKey;
 import jetbrains.buildServer.server.rest.model.project.SshKeys;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,6 +25,8 @@ import org.jetbrains.annotations.NotNull;
 public interface ProjectSshKeyRestService {
   @NotNull
   SshKeys getSshKeys(@NotNull String projectLocator);
-  void addSshKey(@NotNull String projectLocator, @NotNull String fileName, @NotNull byte[] privateKey);
-  void deleteSshKey(@NotNull String projectLocator, @NotNull String fileName);
+  void addSshKey(@NotNull String projectLocator, @NotNull String keyName, @NotNull byte[] privateKey);
+  @NotNull
+  SshKey generateSshKey(@NotNull String projectLocator, @NotNull String keyName, @NotNull String keyType);
+  void deleteSshKey(@NotNull String projectLocator, @NotNull String keyName);
 }
