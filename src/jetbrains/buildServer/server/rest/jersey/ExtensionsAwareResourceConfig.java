@@ -76,6 +76,31 @@ public class ExtensionsAwareResourceConfig extends DefaultResourceConfig impleme
     return scanners;
   }
 
+  @Override
+  public Object getProperty(String propertyName) {
+    // We may want to add some proper lookup logic here if needed (e.g. have a special annotation with a property name),
+    // but for now let's just add our filter and don't really bother.
+
+    Object result = super.getProperty(propertyName);
+    if(result != null) {
+      return result;
+    }
+
+    if(propertyName.equals("com.sun.jersey.spi.container.ContainerResponseFilters")) {
+      return Collections.singletonList(ThreadNamingContainerResponseFilter.class);
+    }
+
+    return null;
+  }
+
+  @Override
+  public Map<String, Object> getProperties() {
+    HashMap<String, Object> wrapper = new HashMap<>(super.getProperties());
+    wrapper.put("com.sun.jersey.spi.container.ContainerResponseFilters", Collections.singletonList(ThreadNamingContainerResponseFilter.class));
+
+    return wrapper;
+  }
+
   /**
    * Initialize and scan for root resource and provider classes in rest-core and extensions.
    */
