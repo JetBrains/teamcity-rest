@@ -69,8 +69,10 @@ public class ProjectSshKeyCoreServiceImpl implements ProjectSshKeyCoreService {
 
   @Override
   public TeamCitySshKey generateSshKey(@NotNull SProject project, @NotNull String keyName, @NotNull String keyType) {
-    ConfigAction configAction = myConfigActionFactory.createAction("New SSH key generated");
-    return getServerSshKeyManager().generateKey(project, keyName, keyType, configAction);
+    ConfigAction configAction = myConfigActionFactory.createAction("New SSH key with type '" + keyType.toUpperCase() + "' generated");
+    ServerSshKeyManager sshKeyManager = getServerSshKeyManager();
+    byte[] privateKey = sshKeyManager.generatePrivateKey(keyType);
+    return getServerSshKeyManager().addKey(project, keyName, privateKey, configAction);
   }
 
   @Override
