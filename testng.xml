@@ -44,6 +44,12 @@
       <class name="jetbrains.buildServer.server.rest.request.NodesRequestTest" />
       <class name="jetbrains.buildServer.server.rest.request.RoleRequestTest" />
 
+      <class name="jetbrains.buildServer.server.rest.request.versionedSettings.VersionedSettingsRequestStatusTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.versionedSettings.VersionedSettingsRequestActionsTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.versionedSettings.VersionedSettingsRequestConfigTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.versionedSettings.VersionedSettingsRequestContextParamsTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.versionedSettings.VersionedSettingsRequestTokensTest"/>
+
       <class name="jetbrains.buildServer.server.rest.util.BuildQueuePositionDescriptorTest" />
       <class name="jetbrains.buildServer.server.rest.util.BuildQueuePositionModifierTest" />
     </classes>
