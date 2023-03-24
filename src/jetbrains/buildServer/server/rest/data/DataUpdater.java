@@ -233,15 +233,15 @@ public class DataUpdater {
   }
 
   private void addProperties(final SUser user, @NotNull final Properties properties) {
-    if (properties.properties == null) return;
+    if (properties.getProperties() == null) return;
     Map<PropertyKey, String> convertedProperties = convertToUserProperties(properties);
     user.setUserProperties(convertedProperties);
   }
 
   private Map<PropertyKey, String> convertToUserProperties(@Nullable Properties properties) {
     if (properties == null) return null;
-    Map<PropertyKey, String> convertedProperties = new HashMap<PropertyKey, String>(properties.properties.size());
-    for (Property listItem : properties.properties) {
+    Map<PropertyKey, String> convertedProperties = new HashMap<PropertyKey, String>(properties.getProperties().size());
+    for (Property listItem : properties.getProperties()) {
       convertedProperties.put(new SimplePropertyKey(listItem.name), listItem.value);
     }
     return convertedProperties;

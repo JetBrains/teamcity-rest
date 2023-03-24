@@ -398,10 +398,10 @@ public class ProjectFinderTest extends BaseFinderTest<SProject> {
     PropEntityProjectFeature feature = propEntities.get(0);
     assertEquals("uniqueId20",feature.id);
     assertEquals("type20",feature.type);
-    assertEquals(Integer.valueOf(2),feature.properties.count);
-    assertEquals("a",feature.properties.properties.get(0).name);
-    assertEquals("b",feature.properties.properties.get(0).value);
-    assertEquals("c",feature.properties.properties.get(1).name);
-    assertEquals("d",feature.properties.properties.get(1).value);
+    assertEquals(Integer.valueOf(2),feature.properties.getCount());
+    assertEquals("a",feature.properties.getProperties().get(0).name);
+    assertEquals("b",feature.properties.getProperties().get(0).value);
+    assertEquals("c",feature.properties.getProperties().get(1).name);
+    assertEquals("d",feature.properties.getProperties().get(1).value);
   }
 }

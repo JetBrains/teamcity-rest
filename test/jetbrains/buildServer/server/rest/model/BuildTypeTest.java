@@ -82,7 +82,7 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals(bt.getName(), buildType.getName());
     assertEquals(bt.getProjectExternalId(), buildType.getProjectId());
     assertEquals(bt.getProjectName(), buildType.getProjectName());
-    assertEquals(new Integer(0), buildType.getParameters().count);
+    assertEquals(new Integer(0), buildType.getParameters().getCount());
 
     final Investigations investigations = buildType.getInvestigations();
     assertEquals(null, investigations.count);
@@ -417,14 +417,14 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
     BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long"), myBeanContext);
 
-    parameterEquals(find(buildType.getSettings().properties, "artifactRules"), "artifactRules", "bbbb", null);
-    parameterEquals(find(buildType.getSettings().properties, "buildNumberPattern"), "buildNumberPattern", "pattern", true);
-    parameterEquals(find(buildType.getSettings().properties, "allowExternalStatus"), "allowExternalStatus", "false", null);
-    parameterEquals(find(buildType.getSettings().properties, "checkoutDirectory"), "checkoutDirectory", "checkout_bt", null);
-//    parameterEquals(find(buildType.getSettings().properties, "checkoutMode"), "checkoutMode", "ON_AGENT", null); //option set to the same value in bt - API does not make difference so far
-    parameterEquals(find(buildType.getSettings().properties, "shouldFailBuildOnAnyErrorMessage"), "shouldFailBuildOnAnyErrorMessage", "true", true);
-    parameterEquals(find(buildType.getSettings().properties, "executionTimeoutMin"), "executionTimeoutMin", "17", null);
-    assertNull(find(buildType.getSettings().properties, "showDependenciesChanges")); //default value
+    parameterEquals(find(buildType.getSettings().getProperties(), "artifactRules"), "artifactRules", "bbbb", null);
+    parameterEquals(find(buildType.getSettings().getProperties(), "buildNumberPattern"), "buildNumberPattern", "pattern", true);
+    parameterEquals(find(buildType.getSettings().getProperties(), "allowExternalStatus"), "allowExternalStatus", "false", null);
+    parameterEquals(find(buildType.getSettings().getProperties(), "checkoutDirectory"), "checkoutDirectory", "checkout_bt", null);
+//    parameterEquals(find(buildType.getSettings().getProperties(), "checkoutMode"), "checkoutMode", "ON_AGENT", null); //option set to the same value in bt - API does not make difference so far
+    parameterEquals(find(buildType.getSettings().getProperties(), "shouldFailBuildOnAnyErrorMessage"), "shouldFailBuildOnAnyErrorMessage", "true", true);
+    parameterEquals(find(buildType.getSettings().getProperties(), "executionTimeoutMin"), "executionTimeoutMin", "17", null);
+    assertNull(find(buildType.getSettings().getProperties(), "showDependenciesChanges")); //default value
 
     assertEquals(3, buildType.getVcsRootEntries().vcsRootAssignments.size());
     vcsRootEntryEquals(buildType.getVcsRootEntries().vcsRootAssignments.get(0), vcsRoot10.getExternalId(), "", true);
@@ -460,11 +460,11 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     stepsEquals(buildType.getSnapshotDependencies().propEntities.get(1), bt110.getExternalId(), "snapshot_dependency", null, true);
     stepsEquals(buildType.getSnapshotDependencies().propEntities.get(2), bt120.getExternalId(), "snapshot_dependency", null, null);
 
-    assertEquals(4, buildType.getParameters().properties.size());
-    parameterEquals(buildType.getParameters().properties.get(0), "a10", "b", true);
-    parameterEquals(buildType.getParameters().properties.get(1), "a20", "x", null);
-    parameterEquals(buildType.getParameters().properties.get(2), "a30", "x", null);
-    parameterEquals(buildType.getParameters().properties.get(3), "p", "v", true);
+    assertEquals(4, buildType.getParameters().getProperties().size());
+    parameterEquals(buildType.getParameters().getProperties().get(0), "a10", "b", true);
+    parameterEquals(buildType.getParameters().getProperties().get(1), "a20", "x", null);
+    parameterEquals(buildType.getParameters().getProperties().get(2), "a30", "x", null);
+    parameterEquals(buildType.getParameters().getProperties().get(3), "p", "v", true);
 
     assertEquals(4, buildType.getAgentRequirements().propEntities.size());
     stepsEquals(buildType.getAgentRequirements().propEntities.get(0), "req30", "equals", null, null);
@@ -481,8 +481,8 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     {
       BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long"), myBeanContext);
 
-      parameterEquals(find(buildType.getSettings().properties, "buildNumberCounter"), "buildNumberCounter", "1", null);
-      assertEquals(1, buildType.getSettings().properties.size());
+      parameterEquals(find(buildType.getSettings().getProperties(), "buildNumberCounter"), "buildNumberCounter", "1", null);
+      assertEquals(1, buildType.getSettings().getProperties().size());
     }
 
     bt10.setArtifactPaths("bbbb");
@@ -494,16 +494,16 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     {
       BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long"), myBeanContext);
 
-      parameterEquals(find(buildType.getSettings().properties, "artifactRules"), "artifactRules", "bbbb", null);
-//    parameterEquals(find(buildType.getSettings().properties, "allowExternalStatus"), "allowExternalStatus", "false", null); //settings to default value does not set it in API...
-      parameterEquals(find(buildType.getSettings().properties, "checkoutDirectory"), "checkoutDirectory", "checkout_bt", null);
-      parameterEquals(find(buildType.getSettings().properties, "checkoutMode"), "checkoutMode", "ON_SERVER", null);
-      parameterEquals(find(buildType.getSettings().properties, "executionTimeoutMin"), "executionTimeoutMin", "17", null);
+      parameterEquals(find(buildType.getSettings().getProperties(), "artifactRules"), "artifactRules", "bbbb", null);
+//    parameterEquals(find(buildType.getSettings().getProperties(), "allowExternalStatus"), "allowExternalStatus", "false", null); //settings to default value does not set it in API...
+      parameterEquals(find(buildType.getSettings().getProperties(), "checkoutDirectory"), "checkoutDirectory", "checkout_bt", null);
+      parameterEquals(find(buildType.getSettings().getProperties(), "checkoutMode"), "checkoutMode", "ON_SERVER", null);
+      parameterEquals(find(buildType.getSettings().getProperties(), "executionTimeoutMin"), "executionTimeoutMin", "17", null);
 
-      assertNull(find(buildType.getSettings().properties, "allowPersonalBuildTriggering"));
-      assertNull(find(buildType.getSettings().properties, "buildNumberPattern"));
-      assertNull(find(buildType.getSettings().properties, "shouldFailBuildOnAnyErrorMessage"));
-      assertNull(find(buildType.getSettings().properties, "showDependenciesChanges"));
+      assertNull(find(buildType.getSettings().getProperties(), "allowPersonalBuildTriggering"));
+      assertNull(find(buildType.getSettings().getProperties(), "buildNumberPattern"));
+      assertNull(find(buildType.getSettings().getProperties(), "shouldFailBuildOnAnyErrorMessage"));
+      assertNull(find(buildType.getSettings().getProperties(), "showDependenciesChanges"));
     }
 
     bt10.setOption(BuildTypeOptions.BT_ALLOW_PERSONAL_BUILD_TRIGGERING, false);
@@ -514,25 +514,25 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     {
       BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long"), myBeanContext);
 
-      parameterEquals(find(buildType.getSettings().properties, "allowPersonalBuildTriggering"), "allowPersonalBuildTriggering", "false", null);
-      parameterEquals(find(buildType.getSettings().properties, "buildNumberPattern"), "buildNumberPattern", "aaa", null);
-      parameterEquals(find(buildType.getSettings().properties, "shouldFailBuildOnAnyErrorMessage"), "shouldFailBuildOnAnyErrorMessage", "true", null);
-      parameterEquals(find(buildType.getSettings().properties, "showDependenciesChanges"), "showDependenciesChanges", "true", null);
+      parameterEquals(find(buildType.getSettings().getProperties(), "allowPersonalBuildTriggering"), "allowPersonalBuildTriggering", "false", null);
+      parameterEquals(find(buildType.getSettings().getProperties(), "buildNumberPattern"), "buildNumberPattern", "aaa", null);
+      parameterEquals(find(buildType.getSettings().getProperties(), "shouldFailBuildOnAnyErrorMessage"), "shouldFailBuildOnAnyErrorMessage", "true", null);
+      parameterEquals(find(buildType.getSettings().getProperties(), "showDependenciesChanges"), "showDependenciesChanges", "true", null);
     }
 
     {
       BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long,settings($long,$locator(defaults:any))"), myBeanContext);
 
-      assertEquals(25, buildType.getSettings().properties.size());
-      parameterEquals(find(buildType.getSettings().properties, "buildNumberCounter"), "buildNumberCounter", "1", null);
-      parameterEquals(find(buildType.getSettings().properties, "buildNumberPattern"), "buildNumberPattern", "aaa", null);
+      assertEquals(25, buildType.getSettings().getProperties().size());
+      parameterEquals(find(buildType.getSettings().getProperties(), "buildNumberCounter"), "buildNumberCounter", "1", null);
+      parameterEquals(find(buildType.getSettings().getProperties(), "buildNumberPattern"), "buildNumberPattern", "aaa", null);
     }
 
     {
       BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long,settings($long,$locator(defaults:any,name:buildNumberCounter))"), myBeanContext);
 
-      assertEquals(1, buildType.getSettings().properties.size());
-      parameterEquals(find(buildType.getSettings().properties, "buildNumberCounter"), "buildNumberCounter", "1", null);
+      assertEquals(1, buildType.getSettings().getProperties().size());
+      parameterEquals(find(buildType.getSettings().getProperties(), "buildNumberCounter"), "buildNumberCounter", "1", null);
     }
   }
 
@@ -542,15 +542,15 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     bt.addParameter(new SimpleParameter("a", "b"));
     {
       final BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt), Fields.LONG, myBeanContext);
-      assertEquals(new Integer(1), buildType.getParameters().count);
-      assertEquals(1, buildType.getParameters().properties.size());
-      assertEquals("a", buildType.getParameters().properties.get(0).name);
-      assertEquals("b", buildType.getParameters().properties.get(0).value);
+      assertEquals(new Integer(1), buildType.getParameters().getCount());
+      assertEquals(1, buildType.getParameters().getProperties().size());
+      assertEquals("a", buildType.getParameters().getProperties().get(0).name);
+      assertEquals("b", buildType.getParameters().getProperties().get(0).value);
     }
     {
       final BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt), new Fields("parameters($short)"), myBeanContext);
-      assertEquals(new Integer(1), buildType.getParameters().count);
-      assertNull(buildType.getParameters().properties);
+      assertEquals(new Integer(1), buildType.getParameters().getCount());
+      assertNull(buildType.getParameters().getProperties());
     }
   }
 
@@ -589,13 +589,13 @@ public class BuildTypeTest extends BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals("t20", buildType.getTemplates().buildTypes.get(2).getId());
     assertTrue(buildType.getTemplates().buildTypes.get(2).isInherited());
 
-    assertContains(buildType.getParameters().properties.stream().collect(Collectors.toMap(p -> p.name, p -> p.value)),
+    assertContains(buildType.getParameters().getProperties().stream().collect(Collectors.toMap(p -> p.name, p -> p.value)),
                    CollectionsUtil.asMap("a", "1",
                                          "b", "1",
                                          "c", "1",
                                          "d", "1",
                                          "f", "1"));
-    assertContains(buildType.getParameters().properties.stream().filter(p -> p.inherited != null).collect(Collectors.toMap(p -> p.name, p -> p.inherited)),
+    assertContains(buildType.getParameters().getProperties().stream().filter(p -> p.inherited != null).collect(Collectors.toMap(p -> p.name, p -> p.inherited)),
                    CollectionsUtil.asMap("b", true,
                                          "c", true,
                                          "d", true,

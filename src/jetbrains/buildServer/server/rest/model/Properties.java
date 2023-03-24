@@ -16,8 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model;
 
-import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.util.containers.SortedList;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -56,25 +54,11 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "properties")
 @ModelBaseType(ObjectType.LIST)
 public class Properties  implements DefaultValueAware {
-  private static final Logger LOG = Logger.getInstance(Properties.class.getName());
-  private static final Comparator<Property> PROPERTY_COMPARATOR = new Comparator<Property>() {
-    private final CaseInsensitiveStringComparator comp = new CaseInsensitiveStringComparator();
+  private static final String PROPERTY = "property";
 
-    public int compare(final Property o1, final Property o2) {
-      return comp.compare(o1.name, o2.name);
-    }
-  };
-
-  protected static final String PROPERTY = "property";
-  @XmlAttribute
-  public Integer count;
-
-  @XmlAttribute(required = false)
-  @Nullable
-  public String href;
-
-  @XmlElement(name = PROPERTY)
-  public List<Property> properties;
+  private Integer myCount;
+  private String myHref;
+  private List<Property> myProperties;
 
   public Properties() { }
 
@@ -115,55 +99,84 @@ public class Properties  implements DefaultValueAware {
                     ServiceLocator serviceLocator,
                     ApiUrlBuilder apiUrlBuilder) {
     if (parameters == null) {
-      this.count = null;
-      this.properties = null;
+      myCount = null;
+      myProperties = null;
     } else {
-      if (fields.isIncluded(PROPERTY, false, true)) {
-        final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
-        // locator form "fields" is ignored is externalLocator is specified. This is used e.g. in BuildType#getSettings()
-        Locator propertiesLocator = externalLocator != null ? externalLocator : (fields.getLocator() == null ? null : new Locator(fields.getLocator()));
-        Collection<Parameter> parametersCollection = parameters.getParametersCollection(propertiesLocator); // pass locator here
-        final ParameterCondition parameterCondition = ParameterCondition.create(propertiesLocator); // pass locator here and make sure it's used and supported dimensions are preserved
-        if (externalLocator == null && propertiesLocator != null) propertiesLocator.checkLocatorFullyProcessed();
-        this.properties = enforceSorting ? new SortedList<>(PROPERTY_COMPARATOR) : new ArrayList<>();
-        for (Parameter parameter : parametersCollection) {
-          Boolean inherited = parameters.isInherited(parameter.getName());
-          if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
-            this.properties.add(new Property(parameter, inherited, propertyFields, serviceLocator));
+      // Locator from "fields" is ignored is externalLocator is specified. This is used e.g. in BuildType#getSettings()
+      Locator propertiesLocator = externalLocator != null ? externalLocator : (fields.getLocator() == null ? null : new Locator(fields.getLocator()));
+
+      boolean propertyFieldIsIncluded = fields.isIncluded(PROPERTY, false, true);
+      if (propertyFieldIsIncluded || propertiesLocator != null) {
+        List<PossiblyInheritedParam> filteredParameters = getFilteredParameters(parameters, externalLocator, propertiesLocator);
+
+        if(propertyFieldIsIncluded) {
+          Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
+
+          myProperties = new ArrayList<>();
+          for (PossiblyInheritedParam parameter : filteredParameters) {
+            myProperties.add(new Property(parameter.getParameter(), parameter.isInherited(), propertyFields, serviceLocator));
+          }
+          if(enforceSorting) {
+            myProperties.sort(PROPERTY_COMPARATOR);
           }
         }
-        this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), this.properties.size());  //count of the properties included
+        myCount = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), filteredParameters.size());
       } else {
-        this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), parameters.getParametersCollection(null).size()); //actual count when no properties are included
+        myCount = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), parameters.getParametersCollection(null).size()); //actual count when no properties are included
       }
     }
-    this.href = href == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), apiUrlBuilder.transformRelativePath(href));
+    myHref = href == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), apiUrlBuilder.transformRelativePath(href));
   }
 
   public Properties(@NotNull final ParametersProvider paramsProvider, @Nullable String href, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
-    this.href = href == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(href));
+    myHref = href == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().transformRelativePath(href));
 
-    if (fields.isIncluded(PROPERTY, false, true)) {
+    boolean propertyFieldIsIncluded = fields.isIncluded(PROPERTY, false, true);
+    if (propertyFieldIsIncluded || fields.getLocator() != null) {
       final Fields propertyFields = fields.getNestedField(PROPERTY, Fields.NONE, Fields.LONG);
       Locator propertiesLocator = fields.getLocator() == null ? null : new Locator(fields.getLocator());
 
-      Stream<Parameter> parameters;
-      if(propertiesLocator == null) {
-        parameters = Properties.convertToSimpleParameters(paramsProvider.getAll()).stream();
-      } else {
-        final ParameterCondition parameterCondition = ParameterCondition.create(propertiesLocator);
-        propertiesLocator.checkLocatorFullyProcessed();
+      List<Parameter> parameters = getFilteredParameters(paramsProvider, propertiesLocator);
 
-        parameters = parameterCondition.filterAllMatchingParameters(paramsProvider);
+      if(propertyFieldIsIncluded) {
+        myProperties = new ArrayList<>();
+        for(Parameter parameter : parameters) {
+          myProperties.add(new Property(parameter, null, propertyFields, beanContext.getServiceLocator()));
+        }
+        myProperties.sort(PROPERTY_COMPARATOR);
       }
 
-      this.properties = parameters.map(parameter -> new Property(parameter, null, propertyFields, beanContext.getServiceLocator()))
-                                  .sorted(PROPERTY_COMPARATOR).collect(Collectors.toList());
-
-      this.count = this.properties.size();
+      myCount = parameters.size();
     } else {
-      this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), paramsProvider.size()); //actual count when no properties are included
+      myCount = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), paramsProvider.size()); //actual count when no properties are included
     }
+  }
+
+  @XmlAttribute(name = "count")
+  public Integer getCount() {
+    return myCount;
+  }
+
+  public void setCount(@NotNull Integer count) {
+    myCount = count;
+  }
+
+  @XmlAttribute(name = "href", required = false)
+  public String getHref() {
+    return myHref;
+  }
+
+  public void setHref(@NotNull String href) {
+    myHref = href;
+  }
+
+  @XmlElement(name = PROPERTY)
+  public List<Property> getProperties() {
+    return myProperties;
+  }
+
+  public void setProperties(@NotNull List<Property> properties) {
+    myProperties = properties;
   }
 
   @Nullable
@@ -187,11 +200,11 @@ public class Properties  implements DefaultValueAware {
 
   @NotNull
   public Map<String, String> getMap(final Boolean ownOnly) {
-    if (properties == null) {
+    if (myProperties == null) {
       return new HashMap<String, String>();
     }
-    final HashMap<String, String> result = new HashMap<String, String>(properties.size());
-    for (Property property : properties) {
+    final HashMap<String, String> result = new HashMap<String, String>(myProperties.size());
+    for (Property property : myProperties) {
       boolean actualOwn =  property.inherited == null || !property.inherited;
       if (FilterUtil.isIncludedByBooleanFilter(ownOnly, actualOwn)){
         property.isValid();//todo  check for unused type, inherited.
@@ -202,7 +215,7 @@ public class Properties  implements DefaultValueAware {
   }
 
   public boolean isDefault() {
-    return ValueWithDefault.isAllDefault(count, href, properties);
+    return ValueWithDefault.isAllDefault(myCount, myHref, myProperties);
   }
 
   public boolean setTo(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ServiceLocator serviceLocator) {
@@ -215,8 +228,8 @@ public class Properties  implements DefaultValueAware {
     Collection<Parameter> original = ownParameters != null ? ownParameters : holder.getParametersCollection(null);
     try {
       BuildTypeUtil.removeAllParameters(holder);
-      if (properties != null) {
-        for (Property entity : properties) {
+      if (myProperties != null) {
+        for (Property entity : myProperties) {
           entity.addTo(holder, serviceLocator);
         }
       }
@@ -243,13 +256,78 @@ public class Properties  implements DefaultValueAware {
 
   public boolean isSimilar(final Properties that) {
     return that != null &&
-          (count == null || that.count == null || com.google.common.base.Objects.equal(count, that.count)) &&
-          (properties == null || that.properties == null || com.google.common.base.Objects.equal(properties, that.properties));
+           (myCount == null || that.myCount == null || com.google.common.base.Objects.equal(myCount, that.myCount)) &&
+           (myProperties == null || that.myProperties == null || com.google.common.base.Objects.equal(myProperties, that.myProperties));
   }
 
   @NotNull
   public static EntityWithParameters createEntity(@NotNull final Map<String, String> params, @Nullable final Map<String, String> ownParams) {
     return new MapBackedEntityWithParameters(params, ownParams);
   }
+
+  @NotNull
+  private static List<PossiblyInheritedParam> getFilteredParameters(@NotNull EntityWithParameters parameters, @Nullable Locator externalLocator, @Nullable Locator propertiesLocator) {
+    // Important to pass locator to the parameter collection before checking if it is fully processed to allow filtering.
+    Collection<Parameter> parametersCollection = parameters.getParametersCollection(propertiesLocator);
+
+    ParameterCondition parameterCondition = ParameterCondition.create(propertiesLocator);
+    if (externalLocator == null && propertiesLocator != null) {
+      // External locator may have additional fields which are used for pre- or post-filtering,
+      // hence it may not be fully processed at this moment.
+      propertiesLocator.checkLocatorFullyProcessed();
+    }
+
+    List<PossiblyInheritedParam> filteredParameters = new ArrayList<>();
+    for (Parameter parameter : parametersCollection) {
+      Boolean inherited = parameters.isInherited(parameter.getName());
+      if (parameterCondition == null || parameterCondition.parameterMatches(parameter, inherited)) {
+        filteredParameters.add(new PossiblyInheritedParam(parameter, inherited));
+      }
+    }
+    return filteredParameters;
+  }
+
+  @NotNull
+  private static List<Parameter> getFilteredParameters(@NotNull ParametersProvider paramsProvider, @Nullable Locator propertiesLocator) {
+    Stream<Parameter> parameters;
+    if(propertiesLocator == null) {
+      parameters = Properties.convertToSimpleParameters(paramsProvider.getAll()).stream();
+    } else {
+      final ParameterCondition parameterCondition = ParameterCondition.create(propertiesLocator);
+      propertiesLocator.checkLocatorFullyProcessed();
+
+      parameters = parameterCondition.filterAllMatchingParameters(paramsProvider);
+    }
+    return parameters.collect(Collectors.toList());
+  }
+
+  /** The purpose of this class is to prevent calculating the "inherited" flag twice. */
+  private static class PossiblyInheritedParam {
+    private final Parameter myParameter;
+    private final Boolean myInherited;
+
+    public PossiblyInheritedParam(@NotNull Parameter parameter, @Nullable Boolean inherited) {
+      myParameter = parameter;
+      myInherited = inherited;
+    }
+
+    @NotNull
+    public Parameter getParameter() {
+      return myParameter;
+    }
+
+    @Nullable
+    public Boolean isInherited() {
+      return myInherited;
+    }
+  }
+
+  private static final Comparator<Property> PROPERTY_COMPARATOR = new Comparator<Property>() {
+    private final CaseInsensitiveStringComparator comp = new CaseInsensitiveStringComparator();
+
+    public int compare(final Property o1, final Property o2) {
+      return comp.compare(o1.name, o2.name);
+    }
+  };
 
 }

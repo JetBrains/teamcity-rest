@@ -74,8 +74,8 @@ public class BuildTriggerCustomization implements DefaultValueAware {
     if (Boolean.TRUE.equals(enforceCleanCheckoutForDependencies)) {
       customizationSettings.enforceCleanCheckoutForDependencies();
     }
-    if (parameters != null && parameters.properties != null) {
-      for (Property parameter : parameters.properties) {
+    if (parameters != null && parameters.getProperties() != null) {
+      for (Property parameter : parameters.getProperties()) {
         customizationSettings.withBuildParameter(parameter.getFromPosted(serviceLocator));
       }
     }

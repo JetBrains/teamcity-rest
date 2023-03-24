@@ -1043,9 +1043,9 @@ public class BuildType {
       boolean updated = submittedParams.agentRequirements.setToBuildType(buildTypeSettings, serviceLocator);
       result = result || updated;
     }
-    if (submittedParams.settings != null && submittedParams.settings.properties != null) {
+    if (submittedParams.settings != null && submittedParams.settings.getProperties() != null) {
       //need to remove all settings if submittedSettings.properties == null???
-      for (Property property : submittedParams.settings.properties) {
+      for (Property property : submittedParams.settings.getProperties()) {
         try {
           property.addTo(new BuildTypeRequest.BuildTypeSettingsEntityWithParams(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate()), serviceLocator);
           result = true;

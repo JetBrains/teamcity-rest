@@ -24,6 +24,7 @@ import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
+import jetbrains.buildServer.util.TestFor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.Test;
@@ -54,6 +55,16 @@ public class PropertiesTest extends BaseServerTestCase {
   }
 
   @Test
+  @TestFor(issues = "TW-80252")
+  public void testCountWithLocator() {
+    Map<String, String> properties = CollectionsUtil.asMap("a", "b", "aaa", "xxx", "bbb", "yyy", "aAaa", "xXx", "aAa", "xXx");
+
+    // Count is expected to be the same for both 'fields' values regardless if we actually retrieve properties or not.
+    check(properties, "count,$locator(name:aaa)", 1, null);
+    check(properties, "count,property(name,value),$locator(name:aaa)", 1, CollectionsUtil.asMap("aaa", "xxx"));
+  }
+
+  @Test
   public void testSecure() {
     Property property = new Property(new MockParameter("aaa", "bbb", "password"), false, Fields.LONG, myFixture);
     assertEquals("aaa", property.name);
@@ -66,24 +77,24 @@ public class PropertiesTest extends BaseServerTestCase {
                      @Nullable final Map<String, String> output) {
     Properties result = new Properties(input, null, new Fields(fields), BaseFinderTest.getBeanContext(myFixture));
 
-    assertEquals("Count does not match for " + describeProperties(result),outputCount == null ? null : Integer.valueOf(outputCount), result.count);
+    assertEquals("Count does not match for " + describeProperties(result),outputCount == null ? null : Integer.valueOf(outputCount), result.getCount());
     if (output != null) {
-      assertNotNull(result.properties);
-      assertEquals(describeProperties(result), output.size(), result.properties.size());
+      assertNotNull(result.getProperties());
+      assertEquals(describeProperties(result), output.size(), result.getProperties().size());
       int i = 0;
       for (Map.Entry<String, String> stringStringEntry : output.entrySet()) {
-        assertEquals("Name differs at position " + (i+1) + "\n" + describeProperties(result), stringStringEntry.getKey(), result.properties.get(i).name);
-        assertEquals("Value differs at position " + (i+1) + "\n" + describeProperties(result), stringStringEntry.getValue(), result.properties.get(i).value);
+        assertEquals("Name differs at position " + (i+1) + "\n" + describeProperties(result), stringStringEntry.getKey(), result.getProperties().get(i).name);
+        assertEquals("Value differs at position " + (i+1) + "\n" + describeProperties(result), stringStringEntry.getValue(), result.getProperties().get(i).value);
         i++;
       }
     } else {
-      assertNull(result.properties);
+      assertNull(result.getProperties());
     }
   }
 
   @NotNull
   private String describeProperties(final Properties result) {
-    return LogUtil.describe(CollectionsUtil.convertCollection(result.properties, new Converter<Loggable, Property>() {
+    return LogUtil.describe(CollectionsUtil.convertCollection(result.getProperties(), new Converter<Loggable, Property>() {
       public Loggable createFrom(@NotNull final Property source) {
         return new Loggable() {
           @NotNull

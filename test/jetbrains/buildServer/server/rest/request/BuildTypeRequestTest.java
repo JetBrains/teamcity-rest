@@ -16,10 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.requirements.Requirement;
@@ -29,6 +26,7 @@ import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.*;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -75,18 +73,18 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     final String btLocator = "id:" + buildType1.getExternalId();
 
-    assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
+    assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().size());
     myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("a4", "b"), false, Fields.LONG, myFixture), "$long");
-    assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
+    assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().size());
     myBuildTypeRequest.getParametersSubResource(btLocator).deleteParameter("a3");
-    assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
+    assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().size());
 
     {
       Properties submitted = new Properties();
       Property p10 = new Property();
       p10.name = "n1";
       p10.value = null;
-      submitted.properties = Arrays.asList(p10);
+      submitted.setProperties(Arrays.asList(p10));
 
       checkException(BadRequestException.class, new Runnable() {
         public void run() {
@@ -94,7 +92,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
         }
       }, null);
 
-      assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
+      assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().size());
       assertEquals(3, buildType1.getParameters().size());
     }
 
@@ -111,7 +109,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     {
       Properties submitted = new Properties();
-      submitted.properties = Arrays.asList(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture));
+      submitted.setProperties(Arrays.asList(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture)));
 
       checkException(BadRequestException.class, new Runnable() {
         public void run() {
@@ -119,7 +117,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
         }
       }, null);
 
-      assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
+      assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().size());
       assertEquals(3, buildType1.getParameters().size());
     }
 
@@ -140,7 +138,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       }
     }, null);
 
-    assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
+    assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().size());
     assertEquals(3, buildType1.getParameters().size());
 
     myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(new Properties(), "$long");
@@ -161,21 +159,21 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     final String btLocator = "id:" + buildType1.getExternalId();
     final String templateLocator = "id:" + buildType1.getTemplate().getExternalId() + ",templateFlag:true";
 
-    assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
-    assertEquals(3, myBuildTypeRequest.getParametersSubResource(templateLocator).getParameters(null, "$long,property($long)").properties.size());
+    assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().size());
+    assertEquals(3, myBuildTypeRequest.getParametersSubResource(templateLocator).getParameters(null, "$long,property($long)").getProperties().size());
 
     myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("a4", "b"), false, Fields.LONG, myFixture), "$long");
-    assertEquals(5, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
-    assertEquals(3, myBuildTypeRequest.getParametersSubResource(templateLocator).getParameters(null, "$long,property($long)").properties.size());
+    assertEquals(5, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().size());
+    assertEquals(3, myBuildTypeRequest.getParametersSubResource(templateLocator).getParameters(null, "$long,property($long)").getProperties().size());
 
     myBuildTypeRequest.getParametersSubResource(btLocator).deleteParameter("a4");
-    assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
-    assertEquals("b10", myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.get(0).value);
+    assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().size());
+    assertEquals("b10", myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().get(0).value);
 
     myBuildTypeRequest.getParametersSubResource(btLocator).deleteParameter("a1"); //param from template is not deleted, but reset
-    assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
-    assertEquals("a7", myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.get(0).value);
-    assertEquals(3, myBuildTypeRequest.getParametersSubResource(templateLocator).getParameters(null, "$long,property($long)").properties.size());
+    assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().size());
+    assertEquals("a7", myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().get(0).value);
+    assertEquals(3, myBuildTypeRequest.getParametersSubResource(templateLocator).getParameters(null, "$long,property($long)").getProperties().size());
   }
 
   @Test
@@ -192,8 +190,8 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     final String btLocator = "id:" + buildType1.getExternalId();
     final String templateLocator = "id:" + buildType1.getTemplate().getExternalId() + ",templateFlag:true";
 
-    assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
-    assertEquals(3, myBuildTypeRequest.getParametersSubResource(templateLocator).getParameters(null, "$long,property($long)").properties.size());
+    assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").getProperties().size());
+    assertEquals(3, myBuildTypeRequest.getParametersSubResource(templateLocator).getParameters(null, "$long,property($long)").getProperties().size());
 
     buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
       private int myTriggerOnCall = 1;
@@ -210,7 +208,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     {
       Properties submitted = new Properties();
-      submitted.properties = Arrays.asList(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture));
+      submitted.setProperties(Arrays.asList(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture)));
 
       checkException(BadRequestException.class, new Runnable() {
         public void run() {
@@ -235,7 +233,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     {
       Properties submitted = new Properties();
-      submitted.properties = Arrays.asList(new Property(new SimpleParameter("t1", "new"), false, Fields.LONG, myFixture));
+      submitted.setProperties(Arrays.asList(new Property(new SimpleParameter("t1", "new"), false, Fields.LONG, myFixture)));
 
       checkException(BadRequestException.class, new Runnable() {
         public void run() {
@@ -321,7 +319,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     final String btLocator = "id:" + buildType1.getExternalId();
 
     TypedParametersSubResource parametersSubResource = myBuildTypeRequest.getParametersSubResource(btLocator);
-    assertEquals(2, parametersSubResource.getParameters(null, "$long,property($long)").properties.size());
+    assertEquals(2, parametersSubResource.getParameters(null, "$long,property($long)").getProperties().size());
     {
       Property parameter = parametersSubResource.getParameter("a1", "$long");
       assertEquals("a1", parameter.name);
@@ -450,8 +448,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       Property prop = new Property();
       prop.name = "x";
       //no value
-      properties.properties = new ArrayList<>();
-      properties.properties.add(prop);
+      properties.setProperties(Collections.singletonList(prop));
       assertExceptionThrown(() -> myBuildTypeRequest.replaceStepParameters(btLocator, buildRunner1.getId(), properties, "$long"), BadRequestException.class);
     }
 
@@ -460,8 +457,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       Property prop = new Property();
       prop.name = "";
       prop.value = "y";
-      properties.properties = new ArrayList<>();
-      properties.properties.add(prop);
+      properties.setProperties(Collections.singletonList(prop));
       assertExceptionThrown(() -> myBuildTypeRequest.replaceStepParameters(btLocator, buildRunner1.getId(), properties, "$long"), BadRequestException.class);
     }
 
@@ -470,8 +466,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       Property prop = new Property();
       prop.name = "x";
       prop.value = "y";
-      properties.properties = new ArrayList<>();
-      properties.properties.add(prop);
+      properties.setProperties(Collections.singletonList(prop));
       assertEquals("b", buildType1.findBuildRunnerById(buildRunner1.getId()).getParameters().get("a"));
       myBuildTypeRequest.replaceStepParameters(btLocator, buildRunner1.getId(), properties, "$long");
       assertEquals("y", buildType1.findBuildRunnerById(buildRunner1.getId()).getParameters().get("x"));
@@ -737,7 +732,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted.type = "not-exists";
       submitted.disabled = true;
       submitted.properties = new Properties();
-      submitted.properties.properties = Arrays.asList(new Property(new SimpleParameter("property-name", "aaa"), false, Fields.LONG, myFixture));
+      submitted.properties.setProperties(Collections.singletonList(new Property(new SimpleParameter("property-name", "aaa"), false, Fields.LONG, myFixture)));
       String newId = myBuildTypeRequest.addAgentRequirement(btLocator, "$long", submitted).id;
       assertEquals(4, myBuildTypeRequest.getAgentRequirements(btLocator, "$long,agent-requirement($long)").propEntities.size());
       assertTrue(myBuildTypeRequest.getAgentRequirements(btLocator, "$long,agent-requirement($long)").propEntities.get(3).disabled);
@@ -805,9 +800,9 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted.sourceBuildType = new BuildType();
       submitted.sourceBuildType.setId(buildType2.getExternalId());
       submitted.properties = new Properties();
-      submitted.properties.properties = Arrays.asList(new Property(new SimpleParameter("revisionName", "aaa"), false, Fields.LONG, myFixture),
-                                                      new Property(new SimpleParameter("revisionValue", "aaa"), false, Fields.LONG, myFixture),
-                                                      new Property(new SimpleParameter("pathRules", "aaa"), false, Fields.LONG, myFixture));
+      submitted.properties.setProperties(Arrays.asList(new Property(new SimpleParameter("revisionName", "aaa"), false, Fields.LONG, myFixture),
+                                                       new Property(new SimpleParameter("revisionValue", "aaa"), false, Fields.LONG, myFixture),
+                                                       new Property(new SimpleParameter("pathRules", "aaa"), false, Fields.LONG, myFixture)));
       submitted.disabled = true;
       String newId = myBuildTypeRequest.addArtifactDep(btLocator, "$long", submitted).id;
       assertEquals(4, myBuildTypeRequest.getArtifactDeps(btLocator, "$long,artifact-dependencies($long)").propEntities.size());
@@ -835,9 +830,9 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted1.sourceBuildType = new BuildType();
       submitted1.sourceBuildType.setId(buildType2.getExternalId());
       submitted1.properties = new Properties();
-      submitted1.properties.properties = Arrays.asList(new Property(new SimpleParameter("revisionName", "aaa"), false, Fields.LONG, myFixture),
-                                                       new Property(new SimpleParameter("revisionValue", "aaa"), false, Fields.LONG, myFixture),
-                                                       new Property(new SimpleParameter("pathRules", "aaa"), false, Fields.LONG, myFixture));
+      submitted1.properties.setProperties(Arrays.asList(new Property(new SimpleParameter("revisionName", "aaa"), false, Fields.LONG, myFixture),
+                                                        new Property(new SimpleParameter("revisionValue", "aaa"), false, Fields.LONG, myFixture),
+                                                        new Property(new SimpleParameter("pathRules", "aaa"), false, Fields.LONG, myFixture)));
       submitted.propEntities = Arrays.asList(submitted1);
 
       checkException(BadRequestException.class, new Runnable() {
@@ -869,9 +864,9 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted.sourceBuildType = new BuildType();
       submitted.sourceBuildType.setId(buildType2.getExternalId());
       submitted.properties = new Properties();
-      submitted.properties.properties = Arrays.asList(new Property(new SimpleParameter("revisionName", "aaa"), false, Fields.LONG, myFixture),
-                                                      new Property(new SimpleParameter("revisionValue", "aaa"), false, Fields.LONG, myFixture),
-                                                      new Property(new SimpleParameter("pathRules", "aaa"), false, Fields.LONG, myFixture));
+      submitted.properties.setProperties(Arrays.asList(new Property(new SimpleParameter("revisionName", "aaa"), false, Fields.LONG, myFixture),
+                                                       new Property(new SimpleParameter("revisionValue", "aaa"), false, Fields.LONG, myFixture),
+                                                       new Property(new SimpleParameter("pathRules", "aaa"), false, Fields.LONG, myFixture)));
       checkException(BadRequestException.class, new Runnable() {
         public void run() {
           myBuildTypeRequest.addArtifactDep(btLocator, "$long", submitted);
@@ -1115,7 +1110,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     {
       Properties parameters = buildType.getParameters();
-      parameters.properties.get(1).value = null;
+      parameters.getProperties().get(1).value = null;
       buildType.setParameters(parameters);
 
       BuildType buildType_copy = myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec());
@@ -1129,7 +1124,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     {
       Properties parameters = buildType.getParameters();
-      parameters.properties.get(0).type.rawValue = "text";
+      parameters.getProperties().get(0).type.rawValue = "text";
       buildType.setParameters(parameters);
       checkException(BadRequestException.class, () -> myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec()), null);
       buildType.setParameters(buildType.getParameters()); //reset params
@@ -1138,13 +1133,13 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     {
       {
         Properties parameters = buildType.getParameters();
-        parameters.properties.get(0).inherited = null;
+        parameters.getProperties().get(0).inherited = null;
         buildType.setParameters(parameters);
       }
       checkException(BadRequestException.class, () -> myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec()), null);
       {
         Properties parameters = buildType.getParameters();
-        parameters.properties.get(0).inherited = false;
+        parameters.getProperties().get(0).inherited = false;
         buildType.setParameters(parameters);
       }
       checkException(BadRequestException.class, () -> myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec()), null);
@@ -1153,7 +1148,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     {
       Properties parameters = buildType.getParameters();
-      parameters.properties.get(0).value = "secret";
+      parameters.getProperties().get(0).value = "secret";
       buildType.setParameters(parameters);
 
       BuildType buildType_copy = myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec());
@@ -1167,7 +1162,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
 
     {
       Properties parameters = buildType.getParameters();
-      parameters.properties.get(0).value = "secret2";
+      parameters.getProperties().get(0).value = "secret2";
       buildType.setParameters(parameters);
 
       BuildType buildType_copy = myBuildTypeRequest.addBuildType(buildType, Fields.LONG.getFieldsSpec());
@@ -1247,10 +1242,10 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     // get buildType
     BuildType buildType = new BuildType(new BuildTypeOrTemplate(bt10), new Fields("$long"), getBeanContext(myServer));
 
-    assertNull(buildType.getParameters().properties.get(0).value);
+    assertNull(buildType.getParameters().getProperties().get(0).value);
 
     project10.addParameter(parameterFactory.createTypedParameter("a_pwd", "", "password"));
-    assertEquals("", buildType.getParameters().properties.get(0).value);
+    assertEquals("", buildType.getParameters().getProperties().get(0).value);
 
    }
 
@@ -1405,7 +1400,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   public static void assertCollectionEquals(final String description, @Nullable final Properties actual, final Property... expected) {
-    BuildTest.assertEquals(description, actual == null ? null : actual.properties, PROPERTY_EQUALS, Property::toString,
+    BuildTest.assertEquals(description, actual == null ? null : actual.getProperties(), PROPERTY_EQUALS, Property::toString,
                            Property::toString, expected);
   }
 
