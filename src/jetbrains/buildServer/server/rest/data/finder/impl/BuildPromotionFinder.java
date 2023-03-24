@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data.finder.impl;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -823,7 +824,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     MultiCheckerFilter<BuildPromotion> filterByEachTag = new MultiCheckerFilter<>();
     for (String singleTag : tags) {
-      filterByEachTag.add(item -> TagFinder.isIncluded(item, singleTag, myUserFinder));
+      Predicate<BuildPromotion> filter = TagFinder.getPromotionFilter(singleTag, myUserFinder);
+      filterByEachTag.add(filter::test);
     }
 
     return filterByEachTag;
