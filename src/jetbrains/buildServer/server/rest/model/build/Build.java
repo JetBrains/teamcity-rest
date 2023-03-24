@@ -1919,7 +1919,8 @@ public class Build {
 
     List<BuildTypeEx> buildTypes = new ArrayList<>();
     buildTypes.add((BuildTypeEx)topBuildType);
-    if (TeamCityProperties.getBooleanOrTrue("rest.triggerBuild.applyCustomRevisionsToDependencies")) {
+    if (TeamCityProperties.getBooleanOrTrue("rest.triggerBuild.applyCustomRevisionsToDependencies") ||
+        ((BuildTypeEx)topBuildType).getBooleanInternalParameter("rest.triggerBuild.applyCustomRevisionsToDependencies")) {
       ((BuildTypeEx)topBuildType).traverseDependencies(bt -> {
         buildTypes.add(bt);
         return DependencyConsumer.Result.CONTINUE;
