@@ -17,7 +17,10 @@
 package jetbrains.buildServer.server.rest.data.finder.impl;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -197,10 +200,11 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
       } else {
         availableAgentTypes = myVirtualAgentsManager.getAvailableAgentTypes(Objects.requireNonNull(buildTypeOrTemplate.getTemplate()));
       }
-      Set<SAgentType> agentTypes = availableAgentTypes.keySet();
-      return agentTypes.stream()
-                       .map(it -> findRespectiveCloudImage(it.getAgentTypeKey()))
-                       .filter(it -> it != null);
+      return availableAgentTypes.entrySet().stream()
+                                .filter(it -> it.getValue().getResult().isCompatible())
+                                .map(it -> it.getKey())
+                                .map(it -> findRespectiveCloudImage(it.getAgentTypeKey()))
+                                .filter(it -> it != null);
     }
 
     @Nullable
