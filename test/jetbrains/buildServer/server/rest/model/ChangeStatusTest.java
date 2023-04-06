@@ -30,7 +30,10 @@ import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
 import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
-import jetbrains.buildServer.serverSide.impl.*;
+import jetbrains.buildServer.serverSide.impl.BuildPromotionImpl;
+import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
+import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.StandardProperties;
@@ -262,7 +265,7 @@ public class ChangeStatusTest extends BaseFinderTest {
 
     ChangeStatus status = new ChangeStatus(
       myFixture.getChangeStatusProvider().getMergedChangeStatus(m20),
-      Fields.ALL_NESTED,
+      new Fields("finishedBuilds,successfulBuilds,failedBuilds,compilationErrorBuilds(build(id),count)"),
       getBeanContext(myFixture)
     );
 
@@ -285,7 +288,7 @@ public class ChangeStatusTest extends BaseFinderTest {
 
     ChangeStatus status = new ChangeStatus(
       myFixture.getChangeStatusProvider().getMergedChangeStatus(m20),
-      Fields.ALL_NESTED,
+      new Fields("finishedBuilds,successfulBuilds,failedBuilds,criticalBuilds(build(id),count)"),
       getBeanContext(myFixture)
     );
 
@@ -310,7 +313,7 @@ public class ChangeStatusTest extends BaseFinderTest {
 
     ChangeStatus status = new ChangeStatus(
       myFixture.getChangeStatusProvider().getMergedChangeStatus(m20),
-      Fields.ALL_NESTED,
+      new Fields("finishedBuilds,successfulBuilds,failedBuilds,criticalBuilds(count),notCriticalBuilds(build(id),count)"),
       getBeanContext(myFixture)
     );
 
@@ -334,7 +337,7 @@ public class ChangeStatusTest extends BaseFinderTest {
 
     ChangeStatus status = new ChangeStatus(
       myFixture.getChangeStatusProvider().getMergedChangeStatus(m20),
-      Fields.ALL_NESTED,
+      new Fields("finishedBuilds,successfulBuilds,failedBuilds,criticalBuilds(count),notCriticalBuilds(count),newTestsFailedBuilds(build(id),count)"),
       getBeanContext(myFixture)
     );
 

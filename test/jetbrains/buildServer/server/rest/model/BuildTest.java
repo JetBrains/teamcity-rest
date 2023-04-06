@@ -872,7 +872,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
     artifactsLogger.waitForQueuePersisting();
 
-    Build build2model = new Build(build2, Fields.ALL_NESTED, getBeanContext(myFixture));
+    Build build2model = new Build(build2, new Fields("downloadedArtifacts(unfilteredCount,count,downloadInfo(count,build(id),artifactInfo(**)))"), getBeanContext(myFixture));
     jetbrains.buildServer.server.rest.model.build.downloadedArtifacts.DownloadedArtifacts build2Artifacts = build2model.getDownloadedArtifacts();
     assertEquals("There is 1 build as a source of artifacts", 1, (int) build2Artifacts.getUnfilteredCount());
     assertEquals("There is 1 build as a source of artifacts", 1, (int) build2Artifacts.getCount());
@@ -918,7 +918,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
     myFixture.getSecurityContext().setAuthorityHolder(user);
 
-    Build build2model = new Build(build2, Fields.ALL_NESTED, getBeanContext(myFixture));
+    Build build2model = new Build(build2, new Fields("downloadedArtifacts(unfilteredCount,count,downloadInfo)"), getBeanContext(myFixture));
 
     jetbrains.buildServer.server.rest.model.build.downloadedArtifacts.DownloadedArtifacts build2Artifacts = build2model.getDownloadedArtifacts();
     assertEquals("There are 2 builds as a source of artifacts", 2, (int) build2Artifacts.getUnfilteredCount());

@@ -45,6 +45,7 @@ import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
@@ -91,6 +92,8 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
   private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
   @LocatorDimension(value = "compatibleBuildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator")
   private static final Dimension<List<BuildTypeOrTemplate>> COMPATIBLE_BUILD_TYPE = new Dimension<>("compatibleBuildType");
+  @LocatorDimension(value = "compatibleBuildPromotion", format = LocatorName.BUILD, notes = "Build promotion locator")
+  private static final Dimension<List<BuildPromotion>> COMPATIBLE_BUILD_PROMOTION = new Dimension<>("compatibleBuildPromotion");
 
   @NotNull
   private final ServiceLocator myServiceLocator;
@@ -160,6 +163,9 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
         .filter((buildTypes, cloudImage) -> findCompatibleCloudImages(buildTypes).anyMatch(cloudImage::equals))
         .toItems(buildTypes -> findCompatibleCloudImages(buildTypes).collect(Collectors.toList()));
 
+      dimensionBuildPromotions(COMPATIBLE_BUILD_PROMOTION, myServiceLocator)
+        .toItems(buildPromotions -> findCompatibleCloudImagesForBuildPromotions(buildPromotions).collect(Collectors.toList()));
+
       dimensionWithFinder(PROFILE, () -> myServiceLocator.getSingletonService(CloudProfileFinder.class), "profiles of the images")
         .valueForDefaultFilter(item -> Collections.singleton(myCloudUtil.getProfile(item)))
         .toItems(profiles -> profiles.stream().flatMap(profile -> myCloudUtil.getImages(profile).stream()).collect(Collectors.toList()));
@@ -192,6 +198,12 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
         .flatMap(it -> findCompatibleCloudImages(it));
     }
 
+    private Stream<CloudImage> findCompatibleCloudImagesForBuildPromotions(List<BuildPromotion> buildPromotions) {
+      return buildPromotions
+        .stream()
+        .flatMap(it -> findCompatibleCloudImages(it));
+    }
+
     @NotNull
     private Stream<CloudImage> findCompatibleCloudImages(BuildTypeOrTemplate buildTypeOrTemplate) {
       Map<SAgentType, VirtualAgentCompatibilityResult> availableAgentTypes;
@@ -200,6 +212,18 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
       } else {
         availableAgentTypes = myVirtualAgentsManager.getAvailableAgentTypes(Objects.requireNonNull(buildTypeOrTemplate.getTemplate()));
       }
+      return getCompatibleCloudImages(availableAgentTypes);
+    }
+
+    @NotNull
+    private Stream<CloudImage> findCompatibleCloudImages(BuildPromotion build) {
+      Map<SAgentType, VirtualAgentCompatibilityResult> availableAgentTypes;
+      availableAgentTypes = myVirtualAgentsManager.getAvailableAgentTypes(Objects.requireNonNull(build));
+      return getCompatibleCloudImages(availableAgentTypes);
+    }
+
+    @NotNull
+    private Stream<CloudImage> getCompatibleCloudImages(Map<SAgentType, VirtualAgentCompatibilityResult> availableAgentTypes) {
       return availableAgentTypes.entrySet().stream()
                                 .filter(it -> it.getValue().getResult().isCompatible())
                                 .map(it -> it.getKey())
@@ -297,6 +321,11 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
     } else {
       return Locator.getStringLocator(COMPATIBLE_BUILD_TYPE.name, BuildTypeFinder.getLocator(Objects.requireNonNull(buildType.getTemplate())));
     }
+  }
+
+  @NotNull
+  public static String getCompatibleBuildPromotionLocator(final BuildPromotion buildType) {
+      return Locator.getStringLocator(COMPATIBLE_BUILD_PROMOTION.name, BuildPromotionFinder.getLocator(Objects.requireNonNull(buildType)));
   }
 }
 

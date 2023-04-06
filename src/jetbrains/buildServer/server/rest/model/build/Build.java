@@ -32,12 +32,14 @@ import jetbrains.buildServer.BuildAgent;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.artifacts.RevisionRule;
 import jetbrains.buildServer.artifacts.RevisionRules;
+import jetbrains.buildServer.clouds.CloudImage;
 import jetbrains.buildServer.controllers.changes.ChangesBean;
 import jetbrains.buildServer.controllers.changes.ChangesPopupUtil;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.PasswordParametersFilterCore;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
@@ -60,6 +62,7 @@ import jetbrains.buildServer.server.rest.model.change.BuildChanges;
 import jetbrains.buildServer.server.rest.model.change.Changes;
 import jetbrains.buildServer.server.rest.model.change.Revision;
 import jetbrains.buildServer.server.rest.model.change.Revisions;
+import jetbrains.buildServer.server.rest.model.cloud.CloudImages;
 import jetbrains.buildServer.server.rest.model.files.FileApiUrlBuilder;
 import jetbrains.buildServer.server.rest.model.files.Files;
 import jetbrains.buildServer.server.rest.model.issue.IssueUsages;
@@ -128,6 +131,7 @@ import org.jetbrains.annotations.Nullable;
     "queuedDate", "startDate"/*rf*/, "finishDate"/*f*/,
     "triggered", "lastChanges", "changes", "revisions", "versionedSettingsRevision", "artifactDependencyChanges" /*experimental*/,
     "agent", "compatibleAgents"/*q*/,
+    "compatibleCloudImages", /*q*/
     "testOccurrences"/*rf*/, "problemOccurrences"/*rf*/,
     "artifacts"/*rf*/, "issues"/*rf*/,
     "properties", "resultingProperties", "originalProperties", "startProperties",
@@ -175,6 +179,7 @@ public class Build {
   @Nullable private Entries myAttributes;
   @Nullable private BuildType myBuildType;
   @Nullable private Changes myLastChanges;
+  @Nullable private CloudImages myCompatibleCloudImages;
 
   /**
    * Used only when posting for triggering a build
@@ -249,6 +254,7 @@ public class Build {
     if (myFields.isIncluded("lastChanges", false, true)) {
       myLastChanges = ValueWithDefault.decideDefault(myFields.isIncluded("lastChanges", false), this::resolveLastChanges);
     }
+    myCompatibleCloudImages = ValueWithDefault.decideDefault(myFields.isIncluded("compatibleCloudImages", false, false), this::resolveCompatibleCloudImages);
 
   }
 
@@ -290,6 +296,23 @@ public class Build {
 
   private long resolvePromotionId() {
     return myBuildPromotion.getId();
+  }
+
+  @Nullable
+  @XmlElement(name = "compatibleCloudImages")
+  public CloudImages getCompatibleCloudImages() {
+    return myCompatibleCloudImages;
+  }
+
+  public void setCompatibleCloudImages(@Nullable CloudImages compatibleCloudImages) {
+    myCompatibleCloudImages = compatibleCloudImages;
+  }
+
+  public CloudImages resolveCompatibleCloudImages() {
+    Fields fields = myFields.getNestedField("compatibleCloudImages");
+    CloudImageFinder cloudImageFinder = myBeanContext.getSingletonService(CloudImageFinder.class);
+    PagedSearchResult<CloudImage> items = cloudImageFinder.getItems(CloudImageFinder.getCompatibleBuildPromotionLocator(myBuildPromotion));
+    return new CloudImages(CachingValue.simple(items.getEntries()), null, fields, myBeanContext);
   }
 
   public enum BuildState {
