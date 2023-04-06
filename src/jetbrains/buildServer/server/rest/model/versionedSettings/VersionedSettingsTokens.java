@@ -49,4 +49,8 @@ public class VersionedSettingsTokens {
   public List<VersionedSettingsToken> getTokens() {
     return myTokens;
   }
+
+  public void setTokens(List<VersionedSettingsToken> tokens) {
+    myTokens = tokens;
+  }
 }

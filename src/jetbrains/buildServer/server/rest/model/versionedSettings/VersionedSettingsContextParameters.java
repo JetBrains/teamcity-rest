@@ -63,4 +63,8 @@ public class VersionedSettingsContextParameters {
     return myParameters;
   }
 
+  public void setParameters(Collection<VersionedSettingsContextParameter> parameters) {
+    myParameters = parameters;
+  }
+
 }

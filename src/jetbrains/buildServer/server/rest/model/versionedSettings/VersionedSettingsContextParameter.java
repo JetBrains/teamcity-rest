@@ -55,4 +55,12 @@ public class VersionedSettingsContextParameter {
     return myValue;
   }
 
+  public void setName(String name) {
+    myName = name;
+  }
+
+  public void setValue(String value) {
+    myValue = value;
+  }
+
 }
