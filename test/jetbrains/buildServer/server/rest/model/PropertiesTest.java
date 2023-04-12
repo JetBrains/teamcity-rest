@@ -23,7 +23,6 @@ import jetbrains.buildServer.serverSide.MockParameter;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.TestFor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -94,15 +93,14 @@ public class PropertiesTest extends BaseServerTestCase {
 
   @NotNull
   private String describeProperties(final Properties result) {
-    return LogUtil.describe(CollectionsUtil.convertCollection(result.getProperties(), new Converter<Loggable, Property>() {
-      public Loggable createFrom(@NotNull final Property source) {
-        return new Loggable() {
-          @NotNull
-          public String describe(final boolean verbose) {
-            return source.name + "=" + source.value;
-          }
-        };
-      }
-    }), "\n", "", "");
+    return LogUtil.describe(
+      CollectionsUtil.convertCollection(result.getProperties(), PropertiesTest::describeProperty),
+      "\n", "", ""
+    );
   }
+
+  private static Loggable describeProperty(@NotNull Property source) {
+    return __ -> source.name + "=" + source.value;
+  }
+
 }

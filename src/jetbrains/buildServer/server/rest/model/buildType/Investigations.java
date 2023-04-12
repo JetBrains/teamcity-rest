@@ -16,7 +16,13 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import io.swagger.annotations.ExtensionProperty;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -24,20 +30,11 @@ import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author Yegor.Yarko
@@ -62,14 +59,12 @@ public class Investigations implements DefaultValueAware {
   public Investigations(@Nullable final Collection<InvestigationWrapper> itemsP,
                         @Nullable final PagerData pagerData, @NotNull final Fields fields,
                         @NotNull final BeanContext beanContext) {
-    items = itemsP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("investigation", false), new ValueWithDefault.Value<List<Investigation>>() {
-      public List<Investigation> get() {
+    items = itemsP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("investigation", false), () -> {
         final ArrayList<Investigation> result = new ArrayList<Investigation>(itemsP.size());
         for (InvestigationWrapper item : itemsP) {
           result.add(new Investigation(item, fields.getNestedField("investigation", Fields.NONE, Fields.LONG), beanContext));
         }
         return result;
-      }
     });
 
     count = itemsP == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("count", true), itemsP.size());

@@ -16,6 +16,12 @@
 
 package jetbrains.buildServer.server.rest.model.problem;
 
+import java.util.ArrayList;
+import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.OccurrencesSummary;
@@ -26,13 +32,6 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author Yegor.Yarko
@@ -70,19 +69,18 @@ public class ProblemOccurrences extends OccurrencesSummary {
                             @Nullable final Integer ignored,
                             @Nullable final Integer muted,
                             @Nullable final String shortHref,
-                            @Nullable final PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+                            @Nullable final PagerData pagerData,
+                            @NotNull final Fields fields,
+                            @NotNull final BeanContext beanContext) {
     super(passed, failed, newFailed, ignored, muted, fields);
     if (itemsP != null) {
-      items = ValueWithDefault.decideDefault(fields.isIncluded("problemOccurrence", false), new ValueWithDefault.Value<List<ProblemOccurrence>>() {
-        @Nullable
-        public List<ProblemOccurrence> get() {
+      items = ValueWithDefault.decideDefault(fields.isIncluded("problemOccurrence", false), () -> {
           final ArrayList<ProblemOccurrence> result = new ArrayList<ProblemOccurrence>(itemsP.size());
           Fields occurrenceFields = fields.getNestedField("problemOccurrence");
           for (BuildProblem item : itemsP) {
             result.add(new ProblemOccurrence(item, beanContext, occurrenceFields));
           }
           return result;
-        }
       });
       this.count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count", true), itemsP.size());
     } else {

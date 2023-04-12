@@ -66,25 +66,19 @@ public class Node {
     current = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("current"), node.isCurrent());
 
     if (canViewSettings) {
-      enabledResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("enabledResponsibilities", false), new ValueWithDefault.Value<EnabledResponsibilities>() {
-        public EnabledResponsibilities get() {
+      enabledResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("enabledResponsibilities", false), () -> {
           final Fields nestedFields = fields.getNestedField("enabledResponsibilities", Fields.NONE, Fields.LONG);
           return new EnabledResponsibilities(node, nestedFields);
-        }
       });
 
-      disabledResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("disabledResponsibilities", false), new ValueWithDefault.Value<DisabledResponsibilities>() {
-        public DisabledResponsibilities get() {
+      disabledResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("disabledResponsibilities", false), () -> {
           final Fields nestedFields = fields.getNestedField("disabledResponsibilities", Fields.NONE, Fields.LONG);
           return new DisabledResponsibilities(node, nestedFields);
-        }
       });
 
-      effectiveResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("effectiveResponsibilities", false), new ValueWithDefault.Value<EffectiveResponsibilities>() {
-        public EffectiveResponsibilities get() {
+      effectiveResponsibilities = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("effectiveResponsibilities", false), () -> {
           final Fields nestedFields = fields.getNestedField("effectiveResponsibilities", Fields.NONE, Fields.LONG);
           return new EffectiveResponsibilities(node, nestedFields);
-        }
       });
     } else {
       enabledResponsibilities = null;

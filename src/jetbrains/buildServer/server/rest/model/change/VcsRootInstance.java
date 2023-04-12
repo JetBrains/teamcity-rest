@@ -25,7 +25,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.DataProvider;
@@ -143,24 +142,18 @@ public class VcsRootInstance {
 
   @XmlAttribute
   public String getLastVersion() {
-    return check(ValueWithDefault.decideDefault(myFields.isIncluded("lastVersion", false), new ValueWithDefault.Value<String>() {
-      @Nullable
-      public String get() {
+    return check(ValueWithDefault.decideDefault(myFields.isIncluded("lastVersion", false), () -> {
         final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
         return currentRevision != null ? currentRevision.getDisplayVersion() : null;
-      }
     }));
   }
 
   @XmlAttribute
   public String getLastVersionInternal() {
     return check(ValueWithDefault.decideDefault(myFields.isIncluded("lastVersionInternal", false, TeamCityProperties.getBoolean("rest.internalMode")),
-                                                new ValueWithDefault.Value<String>() {
-                                                  @Nullable
-                                                  public String get() {
+                                                () -> {
                                                     final RepositoryVersion currentRevision = myRoot.getLastUsedRevision();
                                                     return currentRevision != null ? currentRevision.getVersion() : null;
-                                                  }
                                                 }));
   }
 
@@ -196,10 +189,7 @@ public class VcsRootInstance {
 
   @XmlElement
   public Items getRepositoryIdStrings() {
-    return check(ValueWithDefault.decideDefault(myFields.isIncluded("repositoryIdStrings", false, false), new ValueWithDefault.Value<Items>() {
-      @Nullable
-      @Override
-      public Items get() {
+    return check(ValueWithDefault.decideDefault(myFields.isIncluded("repositoryIdStrings", false, false), () -> {
         ArrayList<String> result = new ArrayList<>();
         try {
           Collection<VcsMappingElement> vcsMappingElements = VcsRoot.getRepositoryMappings(myRoot, myBeanContext.getSingletonService(VcsManager.class));
@@ -212,7 +202,6 @@ public class VcsRootInstance {
           //ignore
         }
         return null;
-      }
     }));
   }
 

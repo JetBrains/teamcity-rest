@@ -32,6 +32,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.QueuedBuild;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.agent.ServerProvidedProperties;
 import jetbrains.buildServer.controllers.ActionErrors;
 import jetbrains.buildServer.controllers.FileSecurityUtil;
@@ -112,11 +113,18 @@ public class BuildRequest {
   public static final String API_BUILDS_URL = Constants.API_URL + BUILDS_ROOT_REQUEST_PATH;
   public static final String ARTIFACTS = "/artifacts";
 
-  @Context @NotNull public BuildFinder myBuildFinder;
-  @Context @NotNull public BuildPromotionFinder myBuildPromotionFinder;
-  @Context @NotNull public BuildTypeFinder myBuildTypeFinder;
-  @Context @NotNull public PermissionChecker myPermissionChecker;
-  @Context @NotNull public BeanContext myBeanContext;
+  @Context @NotNull private BuildFinder myBuildFinder;
+  @Context @NotNull private BuildPromotionFinder myBuildPromotionFinder;
+  @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
+  @Context @NotNull private PermissionChecker myPermissionChecker;
+  @Context @NotNull private ServiceLocator myServiceLocator;
+  @Context @NotNull private BeanContext myBeanContext;
+  @Context @NotNull private UserFinder myUserFinder;
+
+  @NotNull
+  private TagsManager getTagsManager() {
+    return myBeanContext.getSingletonService(TagsManager.class);
+  }
 
   public static String getHref() {
     return API_BUILDS_URL;
@@ -292,7 +300,7 @@ public class BuildRequest {
                                                @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildPromotionFinder.getItem(buildLocator);
     myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build);
-    return new Properties(Build.getBuildResultingParameters(build, myBeanContext.getServiceLocator()), null, new Fields(fields), myBeanContext);
+    return new Properties(Build.getBuildResultingParameters(build, myServiceLocator), null, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -303,7 +311,7 @@ public class BuildRequest {
                              @PathParam("propertyName") String propertyName) {
     BuildPromotion build = myBuildPromotionFinder.getItem(buildLocator);
     myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build);
-    return BuildTypeUtil.getParameter(propertyName, Build.getBuildResultingParameters(build, myBeanContext.getServiceLocator()), true, true, myBeanContext.getServiceLocator());
+    return BuildTypeUtil.getParameter(propertyName, Build.getBuildResultingParameters(build, myServiceLocator), true, true, myServiceLocator);
   }
 
   /**
@@ -454,7 +462,7 @@ public class BuildRequest {
   @Produces("text/plain")
   @ApiOperation(value="Update the number of the matching build.",nickname="setBuildNumber")
   public String setBuildNumber(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator, String value) {
-    SRunningBuild runningBuild = Build.getRunningBuild(myBuildFinder.getBuildPromotion(null, buildLocator), myBeanContext.getServiceLocator());
+    SRunningBuild runningBuild = Build.getRunningBuild(myBuildFinder.getBuildPromotion(null, buildLocator), myServiceLocator);
     if (runningBuild == null) {
       throw new BadRequestException("Cannot set number for a build which is not running");
     }
@@ -484,7 +492,7 @@ public class BuildRequest {
       throw new NotFoundException("Cannot find a build using locator: " + buildLocator);
     }
 
-    VcsLabelManager labelManager = myBeanContext.getSingletonService(VcsLabelManager.class);
+    VcsLabelManager labelManager = myServiceLocator.getSingletonService(VcsLabelManager.class);
     Fields returnFields = new Fields(fields);
     return new VcsLabels(labelManager.getLabels(build).stream()
                                      .map(l -> new VcsLabel(l, returnFields, myBeanContext))
@@ -517,7 +525,7 @@ public class BuildRequest {
       throw new NotFoundException("Cannot find a build using locator: " + buildLocator);
     }
 
-    VcsLabelManager labelManager = myBeanContext.getSingletonService(VcsLabelManager.class);
+    VcsLabelManager labelManager = myServiceLocator.getSingletonService(VcsLabelManager.class);
     List<VcsRootInstance> roots;
 
     if (vcsRootLocator == null) {
@@ -555,7 +563,7 @@ public class BuildRequest {
   @Produces("text/plain")
   @ApiOperation(value="Update the build status of the matching build.",nickname="setBuildStatusText")
   public String setBuildStatusText(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator, String value) {
-    RunningBuildEx runningBuild = (RunningBuildEx)Build.getRunningBuild(myBuildFinder.getBuildPromotion(null, buildLocator), myBeanContext.getServiceLocator());
+    RunningBuildEx runningBuild = (RunningBuildEx)Build.getRunningBuild(myBuildFinder.getBuildPromotion(null, buildLocator), myServiceLocator);
     if (runningBuild == null) {
       throw new BadRequestException("Cannot set status text for a build which is not running");
     }
@@ -660,7 +668,7 @@ public class BuildRequest {
                                  @ApiParam(format = LocatorName.TAG) @QueryParam("locator") String tagLocator,
                                  @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
-    return new Tags(new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build).getItems(tagLocator, TagFinder.getDefaultLocator()).getEntries(),
+    return new Tags(new TagFinder(myUserFinder, build).getItems(tagLocator, TagFinder.getDefaultLocator()).getEntries(),
                     new Fields(fields), myBeanContext);
   }
 
@@ -677,11 +685,11 @@ public class BuildRequest {
                                  Tags tags,
                                  @QueryParam("fields") String fields, @Context HttpServletRequest request) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
-    final TagFinder tagFinder = new TagFinder(myBeanContext.getSingletonService(UserFinder.class), build);
-    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
+    final TagFinder tagFinder = new TagFinder(myUserFinder, build);
+    final TagsManager tagsManager = getTagsManager();
 
     tagsManager.removeTagDatas(build, tagFinder.getItems(tagLocator, TagFinder.getDefaultLocator()).getEntries());
-    List<TagData> postedTagDatas = tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class));
+    List<TagData> postedTagDatas = tags.getFromPosted(myUserFinder);
     tagsManager.addTagDatas(build, postedTagDatas);
 
     return new Tags(postedTagDatas, new Fields(fields), myBeanContext); // returning the tags posted as the default locator might not match the tags just created
@@ -701,9 +709,9 @@ public class BuildRequest {
                              Tags tags,
                              @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
-    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
+    final TagsManager tagsManager = getTagsManager();
 
-    final List<TagData> tagsPosted = tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class));
+    final List<TagData> tagsPosted = tags.getFromPosted(myUserFinder);
     tagsManager.addTagDatas(build, tagsPosted);
     return new Tags(tagsPosted, new Fields(fields), myBeanContext);
   }
@@ -726,7 +734,7 @@ public class BuildRequest {
       throw new BadRequestException("Cannot apply empty tag, should have non empty request body");
     }
     BuildPromotion build = myBuildFinder.getBuildPromotion(null, buildLocator);
-    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
+    final TagsManager tagsManager = getTagsManager();
 
     tagsManager.addTagDatas(build, Collections.singleton(TagData.createPublicTag(tagName)));
     return tagName;
@@ -927,7 +935,7 @@ public class BuildRequest {
     if (build == null) {
       throw new NotFoundException("No finished build associated with promotion id " + buildPromotion.getId());
     }
-    BuildProblemData problemDetails = problemOccurrence.getFromPosted(myBeanContext.getServiceLocator());
+    BuildProblemData problemDetails = problemOccurrence.getFromPosted(myServiceLocator);
     build.addBuildProblem(problemDetails);
     return new ProblemOccurrence(myBeanContext.getSingletonService(ProblemOccurrenceFinder.class).getProblem(build, problemDetails), myBeanContext, new Fields(fields));
   }
@@ -1222,8 +1230,8 @@ public class BuildRequest {
   public MultipleOperationResult addTagsMultipleToBuild(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                                         Tags tags,
                                                         @QueryParam("fields") String fields) {
-    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
-    final List<TagData> tagsPosted = tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class));
+    final TagsManager tagsManager = getTagsManager();
+    final List<TagData> tagsPosted = tags.getFromPosted(myUserFinder);
     return processMultiple(buildLocator, (build) -> tagsManager.addTagDatas(build, tagsPosted), new Fields(fields));
   }
 
@@ -1240,8 +1248,8 @@ public class BuildRequest {
   public MultipleOperationResult removeTagsMultiple(@ApiParam(format = LocatorName.BUILD) @PathParam("buildLocator") String buildLocator,
                                                     Tags tags,
                                                     @QueryParam("fields") String fields) {
-    final TagsManager tagsManager = myBeanContext.getSingletonService(TagsManager.class);
-    final List<TagData> tagsPosted = tags.getFromPosted(myBeanContext.getSingletonService(UserFinder.class));
+    final TagsManager tagsManager = getTagsManager();
+    final List<TagData> tagsPosted = tags.getFromPosted(myUserFinder);
     return processMultiple(buildLocator, (build) -> tagsManager.removeTagDatas(build, tagsPosted), new Fields(fields));
   }
 
@@ -1360,7 +1368,7 @@ public class BuildRequest {
       @Override
       @NotNull
       public Element getElement(@NotNull final String path, @NotNull Purpose purpose) {
-        return AggregatedBuildArtifactsElementBuilder.getBuildAggregatedArtifactElement(path, builds.getEntries(), myBeanContext.getServiceLocator());
+        return AggregatedBuildArtifactsElementBuilder.getBuildAggregatedArtifactElement(path, builds.getEntries(), myServiceLocator);
       }
 
       @NotNull
@@ -1502,7 +1510,7 @@ public class BuildRequest {
     if (StringUtil.isEmpty(date)) {
       throw new BadRequestException("Body should contain finish date");
     }
-    TimeService timeService = myBeanContext.getSingletonService(TimeService.class);
+    TimeService timeService = myServiceLocator.getSingletonService(TimeService.class);
     Date finishTime = !StringUtil.isEmpty(date) ? TimeWithPrecision.parse(date, timeService).getTime() : new Date(timeService.now());
     return finishBuild(buildLocator, finishTime);
   }
@@ -1790,10 +1798,10 @@ public class BuildRequest {
     @NotNull
     public Element getElement(@NotNull final String path, @NotNull Purpose purpose) {
       if (purpose == Purpose.SERVE_CONTENT) {
-        return BuildArtifactsFinder.getArtifactElementToServeContent(myBuildPromotion, path, myBeanContext.getServiceLocator());
+        return BuildArtifactsFinder.getArtifactElementToServeContent(myBuildPromotion, path, myServiceLocator);
       }
 
-      return BuildArtifactsFinder.getArtifactElement(myBuildPromotion, path, myBeanContext.getServiceLocator());
+      return BuildArtifactsFinder.getArtifactElement(myBuildPromotion, path, myServiceLocator);
     }
 
     @NotNull

@@ -33,6 +33,8 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static jetbrains.buildServer.server.rest.data.util.LazyUtil.lazy;
+
 /**
  * @author Yegor.Yarko
  *         Date: 28.11.13
@@ -64,12 +66,7 @@ public class Fields {
     myFieldsSpec = RestContext.getThreadLocalStringPool().reuse(actualFieldsSpec);
     myRestrictedFields = restrictedFields != null ? new HashMap<String, Fields>(restrictedFields) : Collections.emptyMap();
     myContext = context;
-    myFieldsSpecLocator = new Lazy<Locator>() {
-      @Override
-      protected Locator createValue() {
-        return computeParsedCustomFields();
-      }
-    };
+    myFieldsSpecLocator = lazy(() -> computeParsedCustomFields());
   }
 
   public Fields (@Nullable String fieldsSpec){

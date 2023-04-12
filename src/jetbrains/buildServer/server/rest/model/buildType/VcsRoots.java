@@ -69,16 +69,13 @@ public class VcsRoots {
                   @Nullable final PagerData pagerData,
                   @NotNull final Fields fields,
                   @NotNull final BeanContext beanContext) {
-    vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcs-root", false), new ValueWithDefault.Value<List<VcsRoot>>() {
-      @Nullable
-      public List<VcsRoot> get() {
+    vcsRoots = ValueWithDefault.decideDefault(fields.isIncluded("vcs-root", false), () -> {
         final ArrayList<VcsRoot> items = new ArrayList<VcsRoot>(serverVcsRoots.size());
         Fields nestedFields = fields.getNestedField("vcs-root");
         for (jetbrains.buildServer.vcs.SVcsRoot root : serverVcsRoots) {
           items.add(new VcsRoot(root, nestedFields, beanContext));
         }
         return items;
-      }
     });
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), serverVcsRoots.size());
 

@@ -17,23 +17,18 @@
 package jetbrains.buildServer.server.rest.model.change;
 
 import com.intellij.openapi.diagnostic.Logger;
-import io.swagger.annotations.ExtensionProperty;
+import java.util.ArrayList;
+import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
-import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.vcs.VcsFileModification;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author Yegor.Yarko
@@ -59,10 +54,7 @@ public class FileChanges {
   public FileChanges(@NotNull final List<? extends VcsFileModification> fileChanges, final @NotNull Fields fields) {
     count = ValueWithDefault.decideDefault(fields.isIncluded("count", true), fileChanges.size()); // this can differ from the actual number of sub-elements included
 
-    files = ValueWithDefault.decideDefault(fields.isIncluded("file", true), new ValueWithDefault.Value<List<FileChange>>() {
-      @Nullable
-      @Override
-      public List<FileChange> get() {
+    files = ValueWithDefault.decideDefault(fields.isIncluded("file", true), () -> {
         final int resultSizeLimit = TeamCityProperties.getInteger(REST_BEANS_FILES_NESTED_FILE_ITEMS_LIMIT, 5000);
         int resultSize = Math.min(fileChanges.size(), resultSizeLimit);
         ArrayList<FileChange> result = new ArrayList<>(resultSize);
@@ -76,7 +68,6 @@ public class FileChanges {
           result.add(new FileChange(file, fields.getNestedField("file", Fields.LONG, Fields.LONG).removeRestrictedField("file"))); //Using removeRestrictedField as inside is also a "file"
         }
         return result;
-      }
     });
   }
 }

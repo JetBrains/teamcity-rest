@@ -22,7 +22,6 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
-
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
 import jetbrains.buildServer.responsibility.TestNameResponsibilityEntry;
@@ -68,8 +67,7 @@ public class ProblemTarget {
 
     anyProblem = ValueWithDefault.decideDefault(fields.isIncluded("anyProblem"), false);
     if (investigation.getTestRE() != null) {
-      tests = ValueWithDefault.decideDefault(fields.isIncluded("tests", false), new ValueWithDefault.Value<Tests>() {
-        public Tests get() {
+      tests = ValueWithDefault.decideDefault(fields.isIncluded("tests", false), () -> {
           @NotNull final TestNameResponsibilityEntry testRE = investigation.getTestRE();
 
           final STest foundTest = beanContext.getSingletonService(TestFinder.class).findTest(testRE.getTestNameId());
@@ -77,15 +75,12 @@ public class ProblemTarget {
             throw new InvalidStateException("Cannot find test for investigation. Test name id: '" + testRE.getTestNameId() + "'.");
           }
           return new Tests(Collections.singletonList(foundTest), null, beanContext, fields.getNestedField("tests", Fields.NONE, Fields.LONG));
-        }
       });
     } else if (investigation.getProblemRE() != null) {
-      problems = ValueWithDefault.decideDefault(fields.isIncluded("problems", false), new ValueWithDefault.Value<Problems>() {
-        public Problems get() {
+      problems = ValueWithDefault.decideDefault(fields.isIncluded("problems", false), () -> {
           final BuildProblemResponsibilityEntry problemRE = investigation.getProblemRE();
           return new Problems(Collections.singletonList(new ProblemWrapper(problemRE.getBuildProblemInfo().getId(), beanContext.getServiceLocator())),
                               null, fields.getNestedField("problems", Fields.NONE, Fields.LONG), beanContext);
-        }
       });
     }
   }
@@ -94,17 +89,16 @@ public class ProblemTarget {
                        @NotNull final Fields fields,
                        @NotNull final BeanContext beanContext) {
     anyProblem = ValueWithDefault.decideDefault(fields.isIncluded("anyProblem"), false);
-    tests = ValueWithDefault.decideDefault(fields.isIncluded("tests", false), new ValueWithDefault.Value<Tests>() {
-      public Tests get() {
+    tests = ValueWithDefault.decideDefault(fields.isIncluded("tests", false), () -> {
         return new Tests(item.getTests(), null, beanContext, fields.getNestedField("tests", Fields.NONE, Fields.LONG)); //todo: use TestFinder (ensure sorting) and support $locator
-      }
     });
-    problems = ValueWithDefault.decideDefault(fields.isIncluded("problems", false), new ValueWithDefault.Value<Problems>() {
-      public Problems get() {
-        return new Problems(ProblemFinder.getProblemWrappers(item.getBuildProblemIds(), beanContext.getServiceLocator()),  //todo: use ProblemFinder (ensure sorting) and support $locator
-                            null, fields.getNestedField("problems", Fields.NONE, Fields.LONG), beanContext);
-      }
-    });
+    problems = ValueWithDefault.decideDefault(fields.isIncluded("problems", false), () ->
+      new Problems(
+        ProblemFinder.getProblemWrappers(item.getBuildProblemIds(), beanContext.getServiceLocator()), //todo: use ProblemFinder (ensure sorting) and support $locator
+        null,
+        fields.getNestedField("problems", Fields.NONE, Fields.LONG), beanContext
+      )
+    );
   }
 
   @NotNull

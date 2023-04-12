@@ -20,6 +20,8 @@ import java.util.function.BooleanSupplier;
 import jetbrains.buildServer.util.impl.Lazy;
 import org.jetbrains.annotations.NotNull;
 
+import static jetbrains.buildServer.server.rest.data.util.LazyUtil.lazy;
+
 public class AgentPoolPermissions {
   private final Lazy<Boolean> myAuthorizeAgents;
   private final Lazy<Boolean> myManageProjects;
@@ -31,32 +33,10 @@ public class AgentPoolPermissions {
                               @NotNull BooleanSupplier manageProjects,
                               @NotNull BooleanSupplier enableAgents,
                               @NotNull BooleanSupplier manageAgents, boolean managePool) {
-    myAuthorizeAgents = new Lazy<Boolean>() {
-      @Override
-      protected Boolean createValue() {
-        return authorizeAgents.getAsBoolean();
-      }
-    };
-    myManageProjects = new Lazy<Boolean>() {
-      @Override
-      protected Boolean createValue() {
-        return manageProjects.getAsBoolean();
-      }
-    };
-    myEnableAgents = new Lazy<Boolean>() {
-      @Override
-      protected Boolean createValue() {
-        return enableAgents.getAsBoolean();
-      }
-    };
-
-    myManageAgents = new Lazy<Boolean>() {
-      @Override
-      protected Boolean createValue() {
-        return manageAgents.getAsBoolean();
-      }
-    };
-
+    myAuthorizeAgents = lazy(() -> authorizeAgents.getAsBoolean());
+    myManageProjects = lazy(() -> manageProjects.getAsBoolean());
+    myEnableAgents = lazy(() -> enableAgents.getAsBoolean());
+    myManageAgents = lazy(() -> manageAgents.getAsBoolean());
     myManagePool = managePool;
   }
 

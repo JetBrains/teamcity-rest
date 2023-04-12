@@ -200,13 +200,11 @@ public class Project {
     );
 
     final CachingValue<BuildTypeFinder> buildTypeFinder = CachingValue.simple(() -> beanContext.getSingletonService(BuildTypeFinder.class));
-    buildTypes = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("buildTypes", false), new ValueWithDefault.Value<BuildTypes>() {
-      public BuildTypes get() {
+    buildTypes = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("buildTypes", false), () -> {
         final Fields buildTypesFields = fields.getNestedField("buildTypes", Fields.NONE, Fields.LONG);
         final String buildTypesLocator = buildTypesFields.getLocator();
         final List<BuildTypeOrTemplate> buildTypes = buildTypeFinder.get().getBuildTypesPaged(project, buildTypesLocator, true).getEntries();
         return new BuildTypes(buildTypes, null, buildTypesFields, beanContext);
-      }
     });
 
     CachingValue<Boolean> canViewSettings = CachingValue.simple(() -> {
@@ -215,14 +213,12 @@ public class Project {
       return !shouldRestrictSettingsViewing(project, permissionChecker); //use lazy calculation in order not to have performance impact when no related fields are retrieved
     });
 
-    templates = ValueWithDefault.decideDefault(fields.isIncluded("templates", false), new ValueWithDefault.Value<BuildTypes>() {
-      public BuildTypes get() {
+    templates = ValueWithDefault.decideDefault(fields.isIncluded("templates", false), () -> {
         if (!canViewSettings.get()) return null;
         final Fields templateFields = fields.getNestedField("templates", Fields.NONE, Fields.LONG);
         final String templatesLocator = templateFields.getLocator();
         final List<BuildTypeOrTemplate> templates = buildTypeFinder.get().getBuildTypesPaged(project, templatesLocator, false).getEntries();
         return new BuildTypes(templates, null, templateFields, beanContext);
-      }
     });
 
     defaultTemplate = ValueWithDefault.decideDefault(
@@ -255,15 +251,12 @@ public class Project {
         return new PropEntitiesProjectFeature(project, nestedFields.getLocator(), nestedFields, beanContext);
       });
 
-
-    projects = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("projects", false), new ValueWithDefault.Value<Projects>() {
-      public Projects get() {
+    projects = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("projects", false), () -> {
         final Fields projectsFields = fields.getNestedField("projects", Fields.NONE, Fields.LONG);
         final String projectsLocator = projectsFields.getLocator();
         final ProjectFinder projectFinder = beanContext.getSingletonService(ProjectFinder.class);
         final List<SProject> projects = projectFinder.getItems(project, projectsLocator).getEntries();
         return new Projects(projects, null, projectsFields, beanContext);
-      }
     });
 
     cloudProfiles = ValueWithDefault.decideDefault(fields.isIncluded("cloudProfiles", false, false), () -> {
@@ -289,19 +282,10 @@ public class Project {
 
     final boolean forceParentAttributes = TeamCityProperties.getBoolean("rest.beans.project.addParentProjectAttributes");
     parentProjectName = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectName", false, false),
-                                                       () -> Util.resolveNull(actualParentProject.get(), new Function<SProject, String>() {
-                                                         @Override
-                                                         public String apply(final SProject v) {
-                                                           return v.getFullName();
-                                                         }
-                                                       }));
+                                                       () -> Util.resolveNull(actualParentProject.get(), v -> v.getFullName()));
     parentProjectInternalId = ValueWithDefault.decideDefault(forceParentAttributes || fields.isIncluded("parentProjectInternalId", includeInternal, includeInternal),
-                                                             () -> Util.resolveNull(actualParentProject.get(), new Function<SProject, String>() {
-                                                               @Override
-                                                               public String apply(final SProject v) {
-                                                                 return v.getProjectId();
-                                                               }
-                                                             }));
+                                                             () -> Util.resolveNull(actualParentProject.get(), v -> v.getProjectId()));
+
   }
 
   @XmlAttribute(name = "uuid")

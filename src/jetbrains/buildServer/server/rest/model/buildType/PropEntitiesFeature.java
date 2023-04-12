@@ -16,30 +16,25 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import io.swagger.annotations.ExtensionProperty;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author Yegor.Yarko
@@ -60,16 +55,10 @@ public class PropEntitiesFeature {
 
   public PropEntitiesFeature(final BuildTypeSettingsEx buildType, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
     final Collection<SBuildFeatureDescriptor> buildFeatures = buildType.getBuildFeatures();
-    propEntities = ValueWithDefault.decideDefault(fields.isIncluded("feature"), new ValueWithDefault.Value<List<PropEntityFeature>>() {
-      @Nullable
-      public List<PropEntityFeature> get() {
-        return CollectionsUtil.convertCollection(buildFeatures, new Converter<PropEntityFeature, SBuildFeatureDescriptor>() {
-          public PropEntityFeature createFrom(@NotNull final SBuildFeatureDescriptor source) {
-            return new PropEntityFeature(source, buildType, fields.getNestedField("feature", Fields.NONE, Fields.LONG), beanContext);
-          }
-        });
-      }
-    });
+    propEntities = ValueWithDefault.decideDefault(fields.isIncluded("feature"), () ->
+      CollectionsUtil.convertCollection(buildFeatures, source ->
+        new PropEntityFeature(source, buildType, fields.getNestedField("feature", Fields.NONE, Fields.LONG), beanContext))
+    );
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), buildFeatures.size());
   }
 
