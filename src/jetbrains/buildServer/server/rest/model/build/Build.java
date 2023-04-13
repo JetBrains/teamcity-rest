@@ -56,6 +56,7 @@ import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.model.agent.Agents;
 import jetbrains.buildServer.server.rest.model.build.approval.ApprovalInfo;
 import jetbrains.buildServer.server.rest.model.build.downloadedArtifacts.DownloadedArtifacts;
+import jetbrains.buildServer.server.rest.model.build.matrix.MatrixConfiguration;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.PropEntitiesArtifactDep;
 import jetbrains.buildServer.server.rest.model.change.BuildChanges;
@@ -151,6 +152,7 @@ import org.jetbrains.annotations.Nullable;
     "queuedWaitReasons", /*q experimental */
     "downloadedArtifacts", /*rf experimental*/
     "parallelized", /*qrf experimental */
+    "matrixConfiguration",  /*qrf experimental */
     "firstBuildWithSameChanges"
   })
 @ModelDescription("Represents a build instance.")
@@ -1603,6 +1605,15 @@ public class Build {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("parallelized", false, false),
       () -> SplitBuildsFeatureUtil.isParallelizedBuild(myBuildPromotion)
+    );
+  }
+
+  @ModelExperimental
+  @XmlElement(name = "matrixConfiguration")
+  public MatrixConfiguration getMatrixConfiguration() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("matrixConfiguration"),
+      () -> new MatrixConfiguration(myBuildPromotion, myFields.getNestedField("matrixConfiguration"), myBeanContext)
     );
   }
 

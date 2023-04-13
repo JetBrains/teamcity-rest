@@ -52,6 +52,7 @@
 
       <class name="jetbrains.buildServer.server.rest.util.BuildQueuePositionDescriptorTest" />
       <class name="jetbrains.buildServer.server.rest.util.BuildQueuePositionModifierTest" />
+      <class name="jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtilTest"/>
     </classes>
   </test>
   <test name="Rest API Model Test" preserve-order="false">
