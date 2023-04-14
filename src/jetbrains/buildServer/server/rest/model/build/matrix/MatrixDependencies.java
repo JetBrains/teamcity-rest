@@ -27,7 +27,7 @@ import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import org.jetbrains.annotations.NotNull;
 
-@XmlType(name = "matrixDependency")
+@XmlType(name = "matrixDependencies")
 public class MatrixDependencies {
   private Integer myCount;
   private List<MatrixDependency> myDeps;
