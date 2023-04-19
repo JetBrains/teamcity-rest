@@ -514,13 +514,13 @@ public class BuildFinderTest extends BuildFinderTestBase {
 
     PagedSearchResult<SQueuedBuild> result = myQueuedBuildFinder.getItems("id:" + id2);
 
-    assertEquals(1, result.myEntries.size());
-    assertEquals(id2, result.myEntries.get(0).getBuildPromotion().getId());
+    assertEquals(1, result.getEntries().size());
+    assertEquals(id2, result.getEntries().get(0).getBuildPromotion().getId());
 
     result = myQueuedBuildFinder.getItems("id:" + id1);
 
-    assertEquals(1, result.myEntries.size());
-    assertEquals(id2, result.myEntries.get(0).getBuildPromotion().getId());
+    assertEquals(1, result.getEntries().size());
+    assertEquals(id2, result.getEntries().get(0).getBuildPromotion().getId());
   }
 
   @Test

@@ -252,7 +252,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
   @NotNull
   private Set<ProblemWrapper> getProblemsByBuilds(@NotNull final String buildLocator) {
     LinkedHashSet<ProblemWrapper> result = new LinkedHashSet<>();
-    List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).myEntries;
+    List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).getEntries();
     for (BuildPromotion build : builds) {
       result.addAll(CollectionsUtil.convertCollection(ProblemOccurrenceFinder.getProblemOccurrences(build),
                                                       buildProblem -> new ProblemWrapper(buildProblem.getId(), buildProblem.getBuildProblemData(), myServiceLocator)));

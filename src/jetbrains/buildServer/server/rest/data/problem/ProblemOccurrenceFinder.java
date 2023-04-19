@@ -154,7 +154,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
-      List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotions(null, buildDimension).myEntries;
+      List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotions(null, buildDimension).getEntries();
       if (builds.size() != 1) {
         return null;
       }
@@ -182,7 +182,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
   public ItemHolder<BuildProblem> getPrefilteredItems(@NotNull final Locator locator) {
     String buildDimension = locator.getSingleDimensionValue(BUILD);
     if (buildDimension != null) {
-      List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
+      List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).getEntries();
       List<ItemHolder<BuildProblem>> result = new ArrayList<>();
       for (BuildPromotion build : builds) {
         List<BuildProblem> buildProblemOccurrences = getProblemOccurrences(build);
@@ -199,7 +199,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
 
     String problemDimension = locator.getSingleDimensionValue(PROBLEM);
     if (problemDimension != null) {
-      return getProblemOccurrences(myProblemFinder.getItems(problemDimension).myEntries);
+      return getProblemOccurrences(myProblemFinder.getItems(problemDimension).getEntries());
     }
 
     Boolean currentlyMutedDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENTLY_MUTED);
@@ -233,7 +233,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       String problemDimension = locator.getSingleDimensionValue(PROBLEM);
       if (problemDimension != null) {
         final PagedSearchResult<ProblemWrapper> problems = myProblemFinder.getItems(problemDimension);
-        final HashSet<Integer> problemIds = problems.myEntries.stream().map(problem -> problem.getId().intValue()).collect(Collectors.toCollection(HashSet::new));
+        final HashSet<Integer> problemIds = problems.getEntries().stream().map(problem -> problem.getId().intValue()).collect(Collectors.toCollection(HashSet::new));
         result.add(item -> problemIds.contains(item.getId()));
       }
     }
@@ -257,7 +257,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
     if (locator.isUnused(BUILD)) {
       String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
-        List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
+        List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).getEntries();
         result.add(item -> builds.contains(item.getBuildPromotion()));
       }
     }

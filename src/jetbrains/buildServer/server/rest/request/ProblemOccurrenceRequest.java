@@ -20,6 +20,10 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.Locator;
@@ -40,11 +44,6 @@ import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import org.jetbrains.annotations.NotNull;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
 
 /**
  * @author Yegor.Yarko
@@ -99,7 +98,7 @@ public class ProblemOccurrenceRequest {
                                         @Context HttpServletRequest request) {
     final PagedSearchResult<BuildProblem> result = myProblemOccurrenceFinder.getItems(locatorText);
 
-    return new ProblemOccurrences(result.myEntries,
+    return new ProblemOccurrences(result.getEntries(),
                                   uriInfo.getRequestUri().toString(),
                                   new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
                                   new Fields(fields),

@@ -134,7 +134,7 @@ public class TestScopeTreeCollector {
                (!promotion.isCompositeBuild() || promotion.isCompositeBuild() && SplitBuildsFeatureUtil.isParallelizedBuild(promotion));
       })
       .flatMap(promotion -> {
-        Stream<STestRun> testRunStream = myTestOccurrenceFinder.getItems(String.format(testRunsLocator, promotion.getAssociatedBuildId())).myEntries.stream();
+        Stream<STestRun> testRunStream = myTestOccurrenceFinder.getItems(String.format(testRunsLocator, promotion.getAssociatedBuildId())).getEntries().stream();
 
         Stream<TestScope> scopeStream = myScopeCollector.groupByClass(testRunStream, new TestScopeFilterImpl(Collections.emptyList(), ""));
 

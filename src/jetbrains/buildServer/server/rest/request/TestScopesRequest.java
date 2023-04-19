@@ -77,7 +77,7 @@ public class TestScopesRequest {
 
     PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), items, locatorText, "locator");
 
-    return new TestScopes(items.myEntries, new Fields(fields), pager, uriInfo, myBeanContext);
+    return new TestScopes(items.getEntries(), new Fields(fields), pager, uriInfo, myBeanContext);
   }
 
   // Very highly experimental

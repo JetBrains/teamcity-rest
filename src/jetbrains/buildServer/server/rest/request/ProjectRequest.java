@@ -164,7 +164,7 @@ public class ProjectRequest {
                                 @Context UriInfo uriInfo, @Context HttpServletRequest request) {
     final PagedSearchResult<SProject> result = myProjectFinder.getItems(locator);
     final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
-    return new Projects(result.myEntries, pager, new Fields(fields), myBeanContext);
+    return new Projects(result.getEntries(), pager, new Fields(fields), myBeanContext);
   }
 
   @POST
@@ -817,7 +817,7 @@ public class ProjectRequest {
     if (projects.projects != null) {
       for (Project postedProject : projects.projects) {
         final String locatorFromPosted = postedProject.getLocatorFromPosted();
-        List<SProject> items = myProjectFinder.getItems(project, locatorFromPosted).myEntries;
+        List<SProject> items = myProjectFinder.getItems(project, locatorFromPosted).getEntries();
         if (items.isEmpty()) {
           throw new BadRequestException("No direct sub-projects in project found by locator '" + locatorFromPosted + "'");
         }
@@ -890,7 +890,7 @@ public class ProjectRequest {
     final SProject project = myProjectFinder.getItem(projectLocator);
     String updatedBranchLocator = BranchFinder.patchLocatorWithBuildType(branchesLocator, BuildTypeFinder.patchLocator(null, project));
     Fields fields = new Fields(fieldsSpec);
-    return new Branches(myBranchFinder.getItems(updatedBranchLocator).myEntries, null, fields, myBeanContext);
+    return new Branches(myBranchFinder.getItems(updatedBranchLocator).getEntries(), null, fields, myBeanContext);
   }
 
   /**

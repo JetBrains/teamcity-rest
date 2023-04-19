@@ -121,7 +121,7 @@ public abstract class AbstractFinder<ITEM> extends FinderImpl<ITEM> implements F
   @NotNull
   public PagedSearchResult<ITEM> getItemsNotEmpty(@Nullable final String locatorText) {
     PagedSearchResult<ITEM> result = super.getItems(locatorText);
-    if (result.myEntries.isEmpty()) {
+    if (result.getEntries().isEmpty()) {
       throw new NotFoundException("Nothing is found by locator '" + locatorText + "'.");
     }
     return result;

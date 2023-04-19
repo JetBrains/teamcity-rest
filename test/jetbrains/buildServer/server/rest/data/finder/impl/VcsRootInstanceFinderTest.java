@@ -241,14 +241,14 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
       attachVcsRoot(bt, vcsRoot);
     }
 
-    assertEquals(3, getFinder().getItems("count:3").myEntries.size());
-    assertEquals(15, getFinder().getItems(null).myEntries.size());
+    assertEquals(3, getFinder().getItems("count:3").getEntries().size());
+    assertEquals(15, getFinder().getItems(null).getEntries().size());
 
-    assertEquals(5, getFinder().getItems("start:10").myEntries.size());
-    assertEquals(10, getFinder().getItems("lookupLimit:10").myEntries.size());
+    assertEquals(5, getFinder().getItems("start:10").getEntries().size());
+    assertEquals(10, getFinder().getItems("lookupLimit:10").getEntries().size());
 
     setInternalProperty("rest.defaultPageSize", "12");
-    assertEquals(12, getFinder().getItems(null).myEntries.size());
+    assertEquals(12, getFinder().getItems(null).getEntries().size());
   }
 
   @SuppressWarnings("ConstantConditions")
@@ -269,44 +269,44 @@ public class VcsRootInstanceFinderTest extends BaseFinderTest<VcsRootInstance> {
     final SBuildType bt2 = project10.createBuildType("id2", "name 2");
     attachVcsRoot(bt2, vcsRoot2);
 
-    assertEquals(2, getFinder().getItems("status:not_monitored").myEntries.size());
-    assertEquals(0, getFinder().getItems("status:scheduled").myEntries.size());
-    assertEquals(0, getFinder().getItems("status:started").myEntries.size());
-    assertEquals(0, getFinder().getItems("status:finished").myEntries.size());
-    assertEquals(0, getFinder().getItems("status:unknown").myEntries.size());
+    assertEquals(2, getFinder().getItems("status:not_monitored").getEntries().size());
+    assertEquals(0, getFinder().getItems("status:scheduled").getEntries().size());
+    assertEquals(0, getFinder().getItems("status:started").getEntries().size());
+    assertEquals(0, getFinder().getItems("status:finished").getEntries().size());
+    assertEquals(0, getFinder().getItems("status:unknown").getEntries().size());
 
     ((VcsRootInstanceEx)bt.getVcsRootInstances().get(0)).setStatus(VcsRootStatus.Type.FINISHED);
 
-    assertEquals(1, getFinder().getItems("status:not_monitored").myEntries.size());
-    assertEquals(0, getFinder().getItems("status:scheduled").myEntries.size());
-    assertEquals(0, getFinder().getItems("status:started").myEntries.size());
-    assertEquals(1, getFinder().getItems("status:finished").myEntries.size());
-    assertEquals(0, getFinder().getItems("status:unknown").myEntries.size());
+    assertEquals(1, getFinder().getItems("status:not_monitored").getEntries().size());
+    assertEquals(0, getFinder().getItems("status:scheduled").getEntries().size());
+    assertEquals(0, getFinder().getItems("status:started").getEntries().size());
+    assertEquals(1, getFinder().getItems("status:finished").getEntries().size());
+    assertEquals(0, getFinder().getItems("status:unknown").getEntries().size());
 
     ((VcsRootInstanceEx)bt2.getVcsRootInstances().get(0)).setStatus(VcsRootStatus.Type.STARTED);
 
-    assertEquals(0, getFinder().getItems("status:not_monitored").myEntries.size());
-    assertEquals(0, getFinder().getItems("status:scheduled").myEntries.size());
-    assertEquals(1, getFinder().getItems("status:started").myEntries.size());
-    assertEquals(1, getFinder().getItems("status:finished").myEntries.size());
-    assertEquals(0, getFinder().getItems("status:unknown").myEntries.size());
+    assertEquals(0, getFinder().getItems("status:not_monitored").getEntries().size());
+    assertEquals(0, getFinder().getItems("status:scheduled").getEntries().size());
+    assertEquals(1, getFinder().getItems("status:started").getEntries().size());
+    assertEquals(1, getFinder().getItems("status:finished").getEntries().size());
+    assertEquals(0, getFinder().getItems("status:unknown").getEntries().size());
 
     checkExceptionOnItemsSearch(BadRequestException.class, "status:aaa");
 
-    assertEquals(1, getFinder().getItems("status:(current:(status:started))").myEntries.size());
+    assertEquals(1, getFinder().getItems("status:(current:(status:started))").getEntries().size());
 
     ((VcsRootInstanceEx)bt2.getVcsRootInstances().get(0)).setStatus(VcsRootStatus.Type.FINISHED);
 
-    assertEquals(2, getFinder().getItems("status:(current:(status:finished))").myEntries.size());
-    assertEquals(1, getFinder().getItems("status:(previous:(status:started))").myEntries.size());
+    assertEquals(2, getFinder().getItems("status:(current:(status:finished))").getEntries().size());
+    assertEquals(1, getFinder().getItems("status:(previous:(status:started))").getEntries().size());
 
     time.jumpTo(10);
 
-    assertEquals(0, getFinder().getItems("status:(current:(timestamp:-2s))").myEntries.size());
-    assertEquals(2, getFinder().getItems("status:(current:(timestamp:-20s))").myEntries.size());
+    assertEquals(0, getFinder().getItems("status:(current:(timestamp:-2s))").getEntries().size());
+    assertEquals(2, getFinder().getItems("status:(current:(timestamp:-20s))").getEntries().size());
 
-    assertEquals(0, getFinder().getItems("checkingForChangesFinishDate:-2s").myEntries.size());
-    assertEquals(2, getFinder().getItems("checkingForChangesFinishDate:-20s").myEntries.size());
+    assertEquals(0, getFinder().getItems("checkingForChangesFinishDate:-2s").getEntries().size());
+    assertEquals(2, getFinder().getItems("checkingForChangesFinishDate:-20s").getEntries().size());
   }
 
   private VcsRootInstance attachVcsRoot(final SBuildType buildType, final SVcsRoot vcsRoot) {

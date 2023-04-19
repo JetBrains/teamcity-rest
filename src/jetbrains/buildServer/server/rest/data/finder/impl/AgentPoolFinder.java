@@ -153,7 +153,7 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
     final Collection<Integer> agentTypeIds = myServiceLocator.getSingletonService(AgentTypeStorage.class).getAgentTypeIdsByPool(agentPool.getAgentPoolId());
 
     //todo: support cloud agents here
-    final List<SBuildAgent> allAgents = myAgentFinder.getItems(Locator.getStringLocator(AgentFinder.DEFAULT_FILTERING, "false")).myEntries;
+    final List<SBuildAgent> allAgents = myAgentFinder.getItems(Locator.getStringLocator(AgentFinder.DEFAULT_FILTERING, "false")).getEntries();
     return CollectionsUtil.filterCollection(allAgents, agent -> agentTypeIds.contains(agent.getAgentTypeId()));
   }
 
@@ -222,6 +222,6 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
   }
 
   public Collection<AgentPool> getPoolsForProject(@NotNull final SProject project) {
-    return getItems(getLocator(project)).myEntries;
+    return getItems(getLocator(project)).getEntries();
   }
 }

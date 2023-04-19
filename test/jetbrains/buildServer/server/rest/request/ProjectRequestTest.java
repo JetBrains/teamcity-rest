@@ -385,7 +385,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
         new RestContext(z -> null).run(() -> {
           for (int j = 0; j < 100; j++) {
             final PagedSearchResult<SProject> result = myProjectFinder.getItems(locator);
-            Projects projects = new Projects(result.myEntries, null, new Fields(fields), myBeanContext);
+            Projects projects = new Projects(result.getEntries(), null, new Fields(fields), myBeanContext);
 
             projects.projects.stream()
                              .flatMap(p -> p.buildTypes.buildTypes.stream())

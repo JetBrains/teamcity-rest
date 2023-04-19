@@ -25,11 +25,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ArtifactsConstants;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.util.FilterUtil;
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.TimeCondition;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
+import jetbrains.buildServer.server.rest.data.util.FilterUtil;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
 import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
@@ -200,7 +200,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
       throw new BadRequestException("Cannot provide children list for file '" + initialElement.getFullName() + "'." + additionalMessage);
     }
 
-    return new BuildArtifactsFinder(initialElement, serviceLocator.getSingletonService(TimeCondition.class)).getItems(filesLocator).myEntries;
+    return new BuildArtifactsFinder(initialElement, serviceLocator.getSingletonService(TimeCondition.class)).getItems(filesLocator).getEntries();
   }
 
   @NotNull

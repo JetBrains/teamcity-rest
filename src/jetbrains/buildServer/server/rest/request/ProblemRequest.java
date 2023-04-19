@@ -19,6 +19,10 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
@@ -31,11 +35,6 @@ import jetbrains.buildServer.server.rest.model.problem.Problems;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import org.jetbrains.annotations.NotNull;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
 
 /**
  * @author Yegor.Yarko
@@ -76,7 +75,7 @@ public class ProblemRequest {
                               @Context HttpServletRequest request) {
     final PagedSearchResult<ProblemWrapper> result = myProblemFinder.getItems(locatorText);
 
-    return new Problems(result.myEntries,
+    return new Problems(result.getEntries(),
                         new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
                         new Fields(fields),
                         myBeanContext);

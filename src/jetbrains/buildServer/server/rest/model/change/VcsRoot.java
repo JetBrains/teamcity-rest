@@ -172,7 +172,7 @@ public class VcsRoot {
       );
 
       vcsRootInstances = ValueWithDefault.decideDefault(fields.isIncluded("vcsRootInstances", false), () -> new VcsRootInstances(
-        CachingValue.simple(() -> beanContext.getSingletonService(VcsRootInstanceFinder.class).getItems(VcsRootInstanceFinder.getLocatorByVcsRoot(root)).myEntries),
+        CachingValue.simple(() -> beanContext.getSingletonService(VcsRootInstanceFinder.class).getItems(VcsRootInstanceFinder.getLocatorByVcsRoot(root)).getEntries()),
         new PagerDataImpl(VcsRootInstanceRequest.getVcsRootInstancesHref(root)), fields.getNestedField("vcsRootInstances"), beanContext)
       );
 

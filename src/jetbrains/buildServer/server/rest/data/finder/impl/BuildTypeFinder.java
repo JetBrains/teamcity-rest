@@ -287,7 +287,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     if (locator.isUnused(DIMENSION_PROJECT)) {
       final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
       if (projectLocator != null) {
-        final List<SProject> projects = myProjectFinder.getItems(projectLocator).myEntries;
+        final List<SProject> projects = myProjectFinder.getItems(projectLocator).getEntries();
         if (projects.size() == 1) {
           final SProject internalProject = projects.iterator().next();
           result.add(item -> internalProject.getProjectId().equals(item.getProject().getProjectId()));
@@ -314,7 +314,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     if (locator.isUnused(BUILD)) {
       String buildLocator = locator.getSingleDimensionValue(BUILD);
       if (buildLocator != null) {
-        List<BuildPromotion> builds = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItems(buildLocator).myEntries;
+        List<BuildPromotion> builds = myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItems(buildLocator).getEntries();
         Set<String> buldTypeIds = builds.stream().map(build -> build.getBuildType()).filter(Objects::nonNull).map(buildType -> buildType.getInternalId()).collect(Collectors.toSet());
         result.add(item -> buldTypeIds.contains(item.getInternalId()));
       }
@@ -322,7 +322,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
 
     final String compatibleAagentLocator = locator.getSingleDimensionValue(COMPATIBLE_AGENT); //experimental
     if (compatibleAagentLocator != null) {
-      final List<SBuildAgent> agents = myAgentFinder.getItems(compatibleAagentLocator).myEntries;
+      final List<SBuildAgent> agents = myAgentFinder.getItems(compatibleAagentLocator).getEntries();
       result.add(item -> {
           if (item.getBuildType() == null) return false;
           for (SBuildAgent agent : agents) {
@@ -337,7 +337,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       result.add(item -> {
           if (item.getBuildType() == null) return false;
           long count = 0;
-          for (SBuildAgent agent : myAgentFinder.getItems(null).myEntries) { //or should process unauthorized as well?
+          for (SBuildAgent agent : myAgentFinder.getItems(null).getEntries()) { //or should process unauthorized as well?
             if (AgentFinder.canActuallyRun(agent, item.getBuildType()) && agent.isRegistered() && agent.isAuthorized() && agent.isEnabled()) count++;
             if (count > compatibleAgentsCount) return false;
           }
@@ -406,14 +406,14 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     final String snapshotDependencies = locator.getSingleDimensionValue(SNAPSHOT_DEPENDENCY);
     if (snapshotDependencies != null) {
       final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<>(this, new SnapshotDepsTraverser(myPermissionChecker));
-      final List<BuildTypeOrTemplate> boundingList = graphFinder.getItems(snapshotDependencies).myEntries;
+      final List<BuildTypeOrTemplate> boundingList = graphFinder.getItems(snapshotDependencies).getEntries();
       result.add(item -> boundingList.contains(item));
     }
 
     final String artifactDependencies = locator.getSingleDimensionValue(ARTIFACT_DEPENDENCY);
     if (artifactDependencies != null) {
       final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<>(this, new ArtifactDepsTraverser(myPermissionChecker));
-      final List<BuildTypeOrTemplate> boundingList = graphFinder.getItems(artifactDependencies).myEntries;
+      final List<BuildTypeOrTemplate> boundingList = graphFinder.getItems(artifactDependencies).getEntries();
       result.add(item -> boundingList.contains(item));
     }
 
@@ -446,7 +446,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     if (locator.isUnused(VCS_ROOT_DIMENSION)) {
       final String vcsRoot = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
       if (vcsRoot != null) {
-        final Set<SVcsRoot> vcsRoots = new HashSet<>(myServiceLocator.getSingletonService(VcsRootFinder.class).getItems(vcsRoot).myEntries);
+        final Set<SVcsRoot> vcsRoots = new HashSet<>(myServiceLocator.getSingletonService(VcsRootFinder.class).getItems(vcsRoot).getEntries());
         result.add(item -> {
             for (VcsRootInstanceEntry vcsRootInstanceEntry : item.getVcsRootInstanceEntries()) {
               if (vcsRoots.contains(vcsRootInstanceEntry.getVcsRoot().getParent())) return true;
@@ -460,7 +460,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
       final String vcsRootInstance = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE_DIMENSION);
       if (vcsRootInstance != null) {
         final Set<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances =
-          new HashSet<>(myServiceLocator.getSingletonService(VcsRootInstanceFinder.class).getItems(vcsRootInstance).myEntries);
+          new HashSet<>(myServiceLocator.getSingletonService(VcsRootInstanceFinder.class).getItems(vcsRootInstance).getEntries());
         result.add(item -> {
             for (VcsRootInstanceEntry vcsRootInstanceEntry : item.getVcsRootInstanceEntries()) {
               if (vcsRootInstances.contains(vcsRootInstanceEntry.getVcsRoot())) return true;
@@ -495,18 +495,18 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     final String snapshotDependencies = locator.getSingleDimensionValue(SNAPSHOT_DEPENDENCY);
     if (snapshotDependencies != null) {
       final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new SnapshotDepsTraverser(myPermissionChecker));
-      return ItemHolder.of(graphFinder.getItems(snapshotDependencies).myEntries);
+      return ItemHolder.of(graphFinder.getItems(snapshotDependencies).getEntries());
     }
 
     final String artifactDependencies = locator.getSingleDimensionValue(ARTIFACT_DEPENDENCY);
     if (artifactDependencies != null) {
       final GraphFinder<BuildTypeOrTemplate> graphFinder = new GraphFinder<BuildTypeOrTemplate>(this, new ArtifactDepsTraverser(myPermissionChecker));
-      return ItemHolder.of(graphFinder.getItems(artifactDependencies).myEntries);
+      return ItemHolder.of(graphFinder.getItems(artifactDependencies).getEntries());
     }
 
     final String vcsRoot = locator.getSingleDimensionValue(VCS_ROOT_DIMENSION);
     if (vcsRoot != null) {
-      final Set<SVcsRoot> vcsRoots = new HashSet<SVcsRoot>(myServiceLocator.getSingletonService(VcsRootFinder.class).getItems(vcsRoot).myEntries);
+      final Set<SVcsRoot> vcsRoots = new HashSet<SVcsRoot>(myServiceLocator.getSingletonService(VcsRootFinder.class).getItems(vcsRoot).getEntries());
       final VcsManager vcsManager = myServiceLocator.getSingletonService(VcsManager.class);
       final LinkedHashSet<BuildTypeOrTemplate> result = new LinkedHashSet<BuildTypeOrTemplate>();
       for (SVcsRoot root : vcsRoots) {
@@ -521,7 +521,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     final String vcsRootInstance = locator.getSingleDimensionValue(VCS_ROOT_INSTANCE_DIMENSION);
     if (vcsRootInstance != null) {
       final Set<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances =
-        new HashSet<jetbrains.buildServer.vcs.VcsRootInstance>(myServiceLocator.getSingletonService(VcsRootInstanceFinder.class).getItems(vcsRootInstance).myEntries);
+        new HashSet<jetbrains.buildServer.vcs.VcsRootInstance>(myServiceLocator.getSingletonService(VcsRootInstanceFinder.class).getItems(vcsRootInstance).getEntries());
       final List<SBuildType> result = new ArrayList<SBuildType>();
       for (jetbrains.buildServer.vcs.VcsRootInstance root : vcsRootInstances) {
         result.addAll(root.getUsages().keySet());
@@ -548,7 +548,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     List<SProject> projects = null;
     final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
     if (projectLocator != null) {
-      projects = myProjectFinder.getItems(projectLocator).myEntries;
+      projects = myProjectFinder.getItems(projectLocator).getEntries();
     }
     SProject affectedProject = null;
     final String affectedProjectLocator = locator.getSingleDimensionValue(AFFECTED_PROJECT);
@@ -595,7 +595,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
     List<SProject> projects = null;
     final String projectLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
     if (projectLocator != null) {
-      projects = myProjectFinder.getItems(projectLocator).myEntries;
+      projects = myProjectFinder.getItems(projectLocator).getEntries();
     }
     return getBuildTypesSelectedForUser(user, ProjectFinder.getSelectedByUserMode(modeLocator, ProjectFinder.SelectedByUserMode.SELECTED_AND_UNKNOWN), projects);
   }
@@ -675,7 +675,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
   @NotNull
   public List<SBuildType> getBuildTypes(@Nullable final SProject project, @Nullable final String buildTypeLocator) {
     final PagedSearchResult<BuildTypeOrTemplate> items = getBuildTypesPaged(project, buildTypeLocator, true);
-    return CollectionsUtil.convertCollection(items.myEntries, source -> {
+    return CollectionsUtil.convertCollection(items.getEntries(), source -> {
         if (project != null && !source.getProject().equals(project)) {
           throw new BadRequestException("Found " + LogUtil.describe(source.getBuildType()) + " but it does not belong to project " + LogUtil.describe(project) + ".");
         }

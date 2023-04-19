@@ -17,8 +17,13 @@
 package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
-import jetbrains.buildServer.server.rest.data.finder.impl.HealthItemFinder;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.finder.impl.HealthItemFinder;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.PagerDataImpl;
@@ -30,12 +35,6 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.healthStatus.ItemCategory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.UriInfo;
 
 @Path(HealthRequest.API_SUB_URL)
 @Api(value = "health")
@@ -65,7 +64,7 @@ public class HealthRequest {
                                         @Context @NotNull final HttpServletRequest request) {
     final PagedSearchResult<ItemCategory> pagedItems = myHealthItemFinder.getCategories(locator);
     final PagerData pagerData = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedItems, locator, "locator");
-    return new HealthCategories(pagedItems.myEntries, pagerData, new Fields(fields), myBeanContext);
+    return new HealthCategories(pagedItems.getEntries(), pagerData, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -85,7 +84,7 @@ public class HealthRequest {
                                     @Context @NotNull final HttpServletRequest request) {
     final PagedSearchResult<jetbrains.buildServer.serverSide.healthStatus.HealthStatusItem> pagedItems = myHealthItemFinder.getItems(locator);
     final PagerData pagerData = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedItems, locator, "locator");
-    return new HealthItems(pagedItems.myEntries, pagerData, new Fields(fields), myBeanContext);
+    return new HealthItems(pagedItems.getEntries(), pagerData, new Fields(fields), myBeanContext);
   }
 
   public void initForTests(@NotNull final BeanContext ctx) {

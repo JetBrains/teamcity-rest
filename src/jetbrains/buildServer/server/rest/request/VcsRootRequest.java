@@ -19,9 +19,18 @@ package jetbrains.buildServer.server.rest.request;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.VcsRootFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.VcsRootInstanceFinder;
@@ -43,14 +52,6 @@ import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 
 /* todo: investigate logging issues:
     - disable initialization lines into stdout
@@ -91,7 +92,7 @@ public class VcsRootRequest {
                              @Context UriInfo uriInfo,
                              @Context HttpServletRequest request) {
     final PagedSearchResult<SVcsRoot> vcsRoots = myVcsRootFinder.getItems(locatorText);
-    return new VcsRoots(vcsRoots.myEntries,
+    return new VcsRoots(vcsRoots.getEntries(),
                         new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRoots, locatorText, "locator"),
                         new Fields(fields),
                         myBeanContext);

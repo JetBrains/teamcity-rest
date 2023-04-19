@@ -111,7 +111,7 @@ public class ProblemOccurrencesTreeCollector {
     final String problemsLocator = "build:%d,type:(snapshotDependencyProblem:false)";
     Stream<BuildProblem> problemStream = promotionStream
       .filter(promotion -> promotion.getAssociatedBuild() != null)
-      .flatMap(promotion -> myProblemOccurrenceFinder.getItems(String.format(problemsLocator, promotion.getAssociatedBuild().getBuildId())).myEntries.stream());
+      .flatMap(promotion -> myProblemOccurrenceFinder.getItems(String.format(problemsLocator, promotion.getAssociatedBuild().getBuildId())).getEntries().stream());
 
     List<LeafInfo<BuildProblem, ProblemCounters>> problems = groupProblems(problemStream);
 
@@ -141,7 +141,7 @@ public class ProblemOccurrencesTreeCollector {
 
   private ScopeTree<BuildProblem, ProblemCounters> getTreeByLocator(@NotNull Locator fullLocator) {
     String problemsLocator = prepareLocator(fullLocator);
-    List<LeafInfo<BuildProblem, ProblemCounters>> problems = groupProblems(myProblemOccurrenceFinder.getItems(problemsLocator).myEntries.stream());
+    List<LeafInfo<BuildProblem, ProblemCounters>> problems = groupProblems(myProblemOccurrenceFinder.getItems(problemsLocator).getEntries().stream());
 
     return new ScopeTree<>(
       new ProblemScope(SProject.ROOT_PROJECT_ID, SProject.ROOT_PROJECT_ID, ProblemScopeType.PROJECT),

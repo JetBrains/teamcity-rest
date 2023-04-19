@@ -70,7 +70,7 @@ public class InvestigationRequestTest extends BaseFinderTest<InvestigationWrappe
     investigation.resolution.type = Resolution.ResolutionType.manually;
     investigation.resolution.time = "20900512T163700";
 
-    assertEmpty(myInvestigationFinder.getItems(null).myEntries);
+    assertEmpty(myInvestigationFinder.getItems(null).getEntries());
 
     createBuildWithFailedTest("testname");
 
@@ -78,7 +78,7 @@ public class InvestigationRequestTest extends BaseFinderTest<InvestigationWrappe
 
     assertEquals("testname", result.target.tests.items.get(0).name);
 
-    List<InvestigationWrapper> currentInvestigations = myInvestigationFinder.getItems(null).myEntries;
+    List<InvestigationWrapper> currentInvestigations = myInvestigationFinder.getItems(null).getEntries();
     assertEquals(1, currentInvestigations.size());
 
     InvestigationWrapper investigationWrapper = currentInvestigations.get(0);
@@ -93,6 +93,6 @@ public class InvestigationRequestTest extends BaseFinderTest<InvestigationWrappe
 
     myRequest.deleteInstance(investigationWrapper.getId());
 
-    assertEmpty(myInvestigationFinder.getItems(null).myEntries);
+    assertEmpty(myInvestigationFinder.getItems(null).getEntries());
   }
 }

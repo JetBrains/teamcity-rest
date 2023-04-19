@@ -163,7 +163,7 @@ public class BuildFinder {
     final PagerData pagerData = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult,
                                               locatorText == null ? null : resultingLocatorText,
                                               locatorParameterName);
-    return Builds.createFromPrefilteredBuildPromotions(pagedResult.myEntries, pagerData, fields, beanContext);
+    return Builds.createFromPrefilteredBuildPromotions(pagedResult.getEntries(), pagerData, fields, beanContext);
   }
 
   @NotNull
@@ -407,7 +407,7 @@ public class BuildFinder {
     Collection<SBuildAgent> agents = null;
     final String agentLocator = buildLocator.getSingleDimensionValue("agent");
     if (agentLocator != null){
-      agents = myAgentFinder.getItems(agentLocator).myEntries;
+      agents = myAgentFinder.getItems(agentLocator).getEntries();
     }
     return new GenericBuildsFilter(actualBuildType,
                                    project,

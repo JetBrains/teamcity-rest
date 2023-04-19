@@ -25,13 +25,13 @@ import org.jetbrains.annotations.Nullable;
  *         Date: 26.03.13
  */
 public class PagedSearchResult<T> {
-  @NotNull public final List<T> myEntries;
-  public final int myActualCount;
-  @Nullable public final Long myStart;
-  @Nullable public final Integer myCount;
-  @Nullable public final Long myActuallyProcessedCount;
-  public final boolean myLookupLimitReached;
-  @Nullable public final Long myLookupLimit;
+  @NotNull private final List<T> myEntries;
+  private final int myActualCount;
+  @Nullable private final Long myStart;
+  @Nullable private final Integer myCount;
+  @Nullable private final Long myActuallyProcessedCount;
+  private final boolean myLookupLimitReached;
+  @Nullable private final Long myLookupLimit;
   @Nullable private T myLastProcessedItem;
 
   public PagedSearchResult(@NotNull final List<T> entries, @Nullable final Long requestedStart, @Nullable final Integer requestedCount) {

@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.util.*;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
@@ -147,7 +146,7 @@ public class FinderImplTest extends BaseFinderTest<String> {
       final String prefixed = locator.getSingleDimensionValue("prefixed");
       if (prefixed != null) {
         final TestItemFinder newSequence = new TestItemFinder(myDefaultCount, testItems.stream().toArray(l -> new String[l]));
-        return ItemHolder.of(newSequence.getItems(prefixed).myEntries.stream().map(s -> "_" + s).collect(Collectors.toList()));
+        return ItemHolder.of(newSequence.getItems(prefixed).getEntries().stream().map(s -> "_" + s).collect(Collectors.toList()));
       }
       // .stream().map(s -> new StringBuilder(s).reverse().toString()).toArray(s -> new String[s])
 

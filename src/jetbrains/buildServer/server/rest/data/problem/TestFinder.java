@@ -18,7 +18,10 @@ package jetbrains.buildServer.server.rest.data.problem;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.ParameterCondition;
+import jetbrains.buildServer.server.rest.data.ValueCondition;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.BuildPromotionFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.BuildTypeFinder;
@@ -208,7 +211,7 @@ public class TestFinder extends AbstractFinder<STest> {
   @NotNull
   private TreeSet<STest> getTestsByBuilds(@NotNull final String buildLocator) {
     TreeSet<STest> result = new TreeSet<>();
-    List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).myEntries;
+    List<BuildPromotion> builds = myBuildPromotionFinder.getItems(buildLocator).getEntries();
     for (BuildPromotion build : builds) {
       SBuild associatedBuild = build.getAssociatedBuild();
       if (associatedBuild != null){
@@ -276,7 +279,7 @@ public class TestFinder extends AbstractFinder<STest> {
       }
       String muteAffectedProjectLocatorText = muteAffectedLocator.getSingleDimensionValue("project");
       if (muteAffectedProjectLocatorText != null) {
-        List<SProject> projects = myProjectFinder.getItems(muteAffectedProjectLocatorText).myEntries;
+        List<SProject> projects = myProjectFinder.getItems(muteAffectedProjectLocatorText).getEntries();
         result.add(item -> {
           CurrentMuteInfo muteInfo = item.getCurrentMuteInfo();
           if (muteInfo == null) return false;

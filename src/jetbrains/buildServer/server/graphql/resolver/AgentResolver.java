@@ -153,7 +153,7 @@ public class AgentResolver extends ModelResolver<Agent> {
 
   @NotNull
   private Stream<SBuildType> getByCompatible(@Nullable Boolean compatible, @NotNull SBuildAgent agent) {
-    Stream<SBuildType> allBuildTypes = myBuildTypeFinder.getItems(null).myEntries
+    Stream<SBuildType> allBuildTypes = myBuildTypeFinder.getItems(null).getEntries()
       .stream()
       .filter(BuildTypeOrTemplate::isBuildType)
       .map(BuildTypeOrTemplate::getBuildType)

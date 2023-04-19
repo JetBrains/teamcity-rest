@@ -26,7 +26,9 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.clouds.server.TerminateInstanceReason;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.CloudInstanceData;
+import jetbrains.buildServer.server.rest.data.CloudUtil;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.finder.impl.CloudImageFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.CloudInstanceFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.CloudProfileFinder;
@@ -118,7 +120,7 @@ public class CloudRequest {
     final PagedSearchResult<CloudInstanceData> result = myCloudInstanceFinder.getItems(locator);
 
     final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
-    return new CloudInstances(CachingValue.simple(() -> result.myEntries), pager,  new Fields(fields), myBeanContext);
+    return new CloudInstances(CachingValue.simple(() -> result.getEntries()), pager, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -170,7 +172,7 @@ public class CloudRequest {
     final PagedSearchResult<jetbrains.buildServer.clouds.CloudImage> result = myCloudImageFinder.getItems(locator);
 
     final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
-    return new CloudImages(CachingValue.simple(() -> result.myEntries), pager, new Fields(fields), myBeanContext);
+    return new CloudImages(CachingValue.simple(() -> result.getEntries()), pager, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -195,7 +197,7 @@ public class CloudRequest {
     final PagedSearchResult<jetbrains.buildServer.clouds.CloudProfile> result = myCloudProfileFinder.getItems(locator);
 
     final PagerData pager = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locator, "locator");
-    return new CloudProfiles(result.myEntries, pager,  new Fields(fields), myBeanContext);
+    return new CloudProfiles(result.getEntries(), pager, new Fields(fields), myBeanContext);
   }
 
   @GET

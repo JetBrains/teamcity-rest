@@ -471,22 +471,22 @@ public class BuildTypeFinderTest extends BaseFinderTest<BuildTypeOrTemplate> {
 
     PagedSearchResult<BuildTypeOrTemplate> result = myBuildTypeFinder.getBuildTypesPaged(project10, null, true);
 
-    assertEquals(String.valueOf(result.myEntries), 2, result.myEntries.size());
+    assertEquals(String.valueOf(result.getEntries()), 2, result.getEntries().size());
 
     result = myBuildTypeFinder.getBuildTypesPaged(project10, null, false);
-    assertEquals(String.valueOf(result.myEntries), 1, result.myEntries.size());
+    assertEquals(String.valueOf(result.getEntries()), 1, result.getEntries().size());
 
     result = myBuildTypeFinder.getBuildTypesPaged(project10, "name:xxx", true);
-    assertEquals(Arrays.asList(p10_bt10), result.myEntries);
+    assertEquals(Arrays.asList(p10_bt10), result.getEntries());
 
     result = myBuildTypeFinder.getBuildTypesPaged(project10, "templateFlag:any", false);
-    assertEquals(3, result.myEntries.size());
+    assertEquals(3, result.getEntries().size());
 
     result = myBuildTypeFinder.getBuildTypesPaged(project10, "project:$any", true);
-    assertEquals(getDescription(result.myEntries), 4, result.myEntries.size());
+    assertEquals(getDescription(result.getEntries()), 4, result.getEntries().size());
 
     result = myBuildTypeFinder.getBuildTypesPaged(project10, "project:$any,affectedProject:(id:" + project10.getExternalId() +")", true);
-    assertEquals(getDescription(result.myEntries), 3, result.myEntries.size());
+    assertEquals(getDescription(result.getEntries()), 3, result.getEntries().size());
   }
 
   @Test

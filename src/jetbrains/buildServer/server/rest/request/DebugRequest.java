@@ -196,8 +196,8 @@ public class DebugRequest {
                                                      @Context @NotNull final BeanContext beanContext) {
     //todo: check whether permission checks are necessary
     final PagedSearchResult<VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
-    myDataProvider.getChangesCheckingService().forceCheckingFor(vcsRootInstances.myEntries, getRequestor(requestor));
-    return new VcsRootInstances(CachingValue.simple(vcsRootInstances.myEntries), null, new Fields(fields), beanContext);
+    myDataProvider.getChangesCheckingService().forceCheckingFor(vcsRootInstances.getEntries(), getRequestor(requestor));
+    return new VcsRootInstances(CachingValue.simple(vcsRootInstances.getEntries()), null, new Fields(fields), beanContext);
   }
 
   @NotNull
@@ -856,7 +856,7 @@ public class DebugRequest {
       public List<BuildPromotion> getItems(@Nullable final String locator) {
         if (locator != null) throw new BadRequestException("Builds locator is not supported here");
         BuildTypeFinder buildTypeFinder = myServiceLocator.getSingletonService(BuildTypeFinder.class);
-        Set<String> buildTypeIds = buildTypeFinder.getBuildTypesPaged(null, buildTypeLocator, true).myEntries.stream().map(bt -> bt.getInternalId()).collect(Collectors.toSet());
+        Set<String> buildTypeIds = buildTypeFinder.getBuildTypesPaged(null, buildTypeLocator, true).getEntries().stream().map(bt -> bt.getInternalId()).collect(Collectors.toSet());
         List<BuildPromotion> buildPromotions = new ArrayList<>(1000);
         myServiceLocator.getSingletonService(BuildPromotionManagerImpl.class).traverseCachedBuildTypePromotions(buildTypeIds, item -> buildPromotions.add(item));
         return buildPromotions;
@@ -888,7 +888,7 @@ public class DebugRequest {
   public void resetCacheProjectMutes(@QueryParam("project") final String projectLocator) {
     myPermissionChecker.checkGlobalPermission(Permission.MANAGE_SERVER_INSTALLATION);
     ProblemMutingServiceImpl problemMutingService = myServiceLocator.getSingletonService(ProblemMutingServiceImpl.class);
-    myServiceLocator.getSingletonService(ProjectFinder.class).getItems(projectLocator).myEntries.forEach(problemMutingService::invalidateProjectMutesCache);
+    myServiceLocator.getSingletonService(ProjectFinder.class).getItems(projectLocator).getEntries().forEach(problemMutingService::invalidateProjectMutesCache);
   }
 
   /**

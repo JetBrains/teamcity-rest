@@ -64,7 +64,7 @@ public class NodesRequest {
   @ApiOperation(value = "Get all TeamCity nodes.", nickname = "getAllNodes")
   public Nodes getAllNodes(@ApiParam(format = LocatorName.TEAMCITY_NODE) @QueryParam("locator") String locator, @QueryParam("fields") String fields) {
     return executeSafely(() -> {
-      return new Nodes(myFinder.getItems(locator).myEntries, new Fields(fields), myPermissionChecker);
+      return new Nodes(myFinder.getItems(locator).getEntries(), new Fields(fields), myPermissionChecker);
     });
   }
 
@@ -134,7 +134,7 @@ public class NodesRequest {
       NodeResponsibility responsibility = NodeResponsibility.valueOf(name);
       boolean respState = Boolean.parseBoolean(state);
       if (responsibility == NodeResponsibility.MAIN_NODE && respState) {
-        List<TeamCityNode> mainNodes = myFinder.getItems(String.format("role:%s,state:%s", Node.NodeRole.main_node.name(), Node.NodeState.online.name())).myEntries;
+        List<TeamCityNode> mainNodes = myFinder.getItems(String.format("role:%s,state:%s", Node.NodeRole.main_node.name(), Node.NodeState.online.name())).getEntries();
         if (!mainNodes.isEmpty()) {
           throw new BadRequestException("Cannot enable main node responsibility while there is online main node, main node id: " + mainNodes.get(0).getId());
         }

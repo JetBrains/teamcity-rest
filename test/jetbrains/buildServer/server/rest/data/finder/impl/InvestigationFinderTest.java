@@ -83,8 +83,8 @@ public class InvestigationFinderTest extends BaseFinderTest<InvestigationWrapper
 
 
     final PagedSearchResult<InvestigationWrapper> result = myInvestigationFinder.getItems((String)null);
-    assertEquals(1, result.myEntries.size());
-    final InvestigationWrapper investigation1 = result.myEntries.get(0);
+    assertEquals(1, result.getEntries().size());
+    final InvestigationWrapper investigation1 = result.getEntries().get(0);
     assertEquals(true, investigation1.isBuildType());
     assertEquals(false, investigation1.isProblem());
     assertEquals(false, investigation1.isTest());
@@ -103,7 +103,7 @@ public class InvestigationFinderTest extends BaseFinderTest<InvestigationWrapper
     myFixture.getResponsibilityFacadeEx().setBuildTypeResponsibility(myBuildType, createRespEntry(ResponsibilityEntry.State.TAKEN, myUser));
 
     final PagedSearchResult<InvestigationWrapper> ivestigationWrappers = myInvestigationFinder.getItems((String)null);
-     final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.ALL_NESTED, getBeanContext(myServer));
+     final Investigations investigations = new Investigations(ivestigationWrappers.getEntries(), null, Fields.ALL_NESTED, getBeanContext(myServer));
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
@@ -127,7 +127,7 @@ public class InvestigationFinderTest extends BaseFinderTest<InvestigationWrapper
                                                                     createRespEntry(ResponsibilityEntry.State.TAKEN, myUser));
 
     final PagedSearchResult<InvestigationWrapper> ivestigationWrappers = myInvestigationFinder.getItems((String)null);
-    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.LONG, getBeanContext(myServer));
+    final Investigations investigations = new Investigations(ivestigationWrappers.getEntries(), null, Fields.LONG, getBeanContext(myServer));
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);
@@ -156,7 +156,7 @@ public class InvestigationFinderTest extends BaseFinderTest<InvestigationWrapper
 
     final PagedSearchResult<InvestigationWrapper> ivestigationWrappers = myInvestigationFinder.getItems((String)null);
 
-    final Investigations investigations = new Investigations(ivestigationWrappers.myEntries, null, Fields.LONG, getBeanContext(myServer));
+    final Investigations investigations = new Investigations(ivestigationWrappers.getEntries(), null, Fields.LONG, getBeanContext(myServer));
 
     assertEquals(1, investigations.count.longValue());
     final Investigation investigation = investigations.items.get(0);

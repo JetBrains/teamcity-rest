@@ -109,7 +109,7 @@ public class Query implements GraphQLQueryResolver {
   @NotNull
   public AgentsConnection agents(@Nullable AgentsFilter filter, @NotNull DataFetchingEnvironment env) {
     String locatorText = (filter != null && filter.getAuthorized() != null) ? "authorized:" + filter.getAuthorized().toString() : null;
-    List<SBuildAgent> result = myAgentFinder.getItems(locatorText).myEntries;
+    List<SBuildAgent> result = myAgentFinder.getItems(locatorText).getEntries();
 
     // TODO: implement me
     return null;

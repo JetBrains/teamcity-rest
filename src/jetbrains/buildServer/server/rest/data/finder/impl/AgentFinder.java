@@ -237,7 +237,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       final String cloudInstanceLocator = locator.getSingleDimensionValue(CLOUD_INSTANCE);
       if (cloudInstanceLocator != null) {
         List<CloudInstance> instances = myServiceLocator.getSingletonService(CloudInstanceFinder.class)
-                                                        .getItems(cloudInstanceLocator).myEntries.stream().map(CloudInstanceData::getInstance).collect(Collectors.toList());
+                                                        .getItems(cloudInstanceLocator).getEntries().stream().map(CloudInstanceData::getInstance).collect(Collectors.toList());
         result.add(a -> instances.stream().anyMatch(i -> i.containsAgent(a)));
         /* CloudInstance might not have equals/hashcode, if it does, it would be better to use in a set like below
         Set<CloudInstance> instances = myServiceLocator.getSingletonService(CloudInstanceFinder.class).getItems(cloudInstanceLocator).myEntries.stream().map(i -> i.getInstance()).collect(
@@ -280,7 +280,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
   @NotNull
   private Set<SBuildAgent> getBuildRelatedAgents(@NotNull final String buildDimension) {
     BuildPromotionFinder finder = myServiceLocator.getSingletonService(BuildPromotionFinder.class);
-    List<BuildPromotion> builds = finder.getItems(buildDimension).myEntries;
+    List<BuildPromotion> builds = finder.getItems(buildDimension).getEntries();
     //agents with the same id can be returned (not existing agents)
     TreeSet<SBuildAgent> result = new TreeSet<>(AGENT_COMPARATOR);
     for (BuildPromotion build : builds) {
@@ -322,7 +322,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
       }
       String compatibleBuild = compatibleLocator.getSingleDimensionValue(COMPATIBLE_BUILD);
       if (compatibleBuild != null) {
-        return CompatibleLocatorParseResult.fromBuilds(myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItems(compatibleBuild).myEntries);
+        return CompatibleLocatorParseResult.fromBuilds(myServiceLocator.getSingletonService(BuildPromotionFinder.class).getItems(compatibleBuild).getEntries());
       }
     } finally {
       compatibleLocator.checkLocatorFullyProcessed();
@@ -518,7 +518,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
     final String cloudInstanceLocator = locator.getSingleDimensionValue(CLOUD_INSTANCE);
     if (cloudInstanceLocator != null) {
       CloudInstanceFinder cloudInstanceFinder = myServiceLocator.getSingletonService(CloudInstanceFinder.class);
-      Stream<SBuildAgent> agents = cloudInstanceFinder.getItems(cloudInstanceLocator).myEntries.stream().map(CloudInstanceData::getAgent).filter(Objects::nonNull).distinct();
+      Stream<SBuildAgent> agents = cloudInstanceFinder.getItems(cloudInstanceLocator).getEntries().stream().map(CloudInstanceData::getAgent).filter(Objects::nonNull).distinct();
       return ItemHolder.of(agents);
     }
 

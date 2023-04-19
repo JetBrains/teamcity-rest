@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.MockTimeService;
 import jetbrains.buildServer.groups.SUserGroup;
 import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
-import jetbrains.buildServer.server.rest.data.finder.impl.UserFinder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -91,13 +90,13 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
     final SUser user2 = createUser(String.valueOf(user1.getId()));
 
     check("id:" + user1.getId(), user1);
-    assertEquals(Long.valueOf(1), getFinder().getItems("id:" + user1.getId()).myActuallyProcessedCount);
+    assertEquals(Long.valueOf(1), getFinder().getItems("id:" + user1.getId()).getActuallyProcessedCount());
 
     checkExceptionOnItemSearch(NotFoundException.class, "id:" + user1.getId() + "1");
     checkExceptionOnItemsSearch(NotFoundException.class, "id:" + user1.getId() + "1");
 
     check("username:" + user2.getUsername(), user2);
-    assertEquals(Long.valueOf(1), getFinder().getItems("username:" + user2.getUsername()).myActuallyProcessedCount);
+    assertEquals(Long.valueOf(1), getFinder().getItems("username:" + user2.getUsername()).getActuallyProcessedCount());
 
     check("username:" + "user1", user1);
     check("id:" + user1.getId() + ",username:" + "USER1", user1);

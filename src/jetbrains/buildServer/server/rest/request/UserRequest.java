@@ -85,7 +85,7 @@ public class UserRequest {
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value = "Get all users.", nickname = "getAllUsers")
   public Users serveUsers(@QueryParam("locator") String locator, @QueryParam("fields") String fields) {
-    return new Users(myUserFinder.getItems(locator).myEntries, new Fields(fields), myBeanContext);
+    return new Users(myUserFinder.getItems(locator).getEntries(), new Fields(fields), myBeanContext);
   }
 
   @POST

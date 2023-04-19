@@ -125,7 +125,7 @@ public class TestScopesCollector {
 
   @NotNull
   private Stream<TestScope> groupByScope(@NotNull PagedSearchResult<STestRun> testRuns, @NotNull TestScopeFilter filter, @NotNull String scopeName) {
-    Stream<STestRun> testRunStream = testRuns.myEntries.stream();
+    Stream<STestRun> testRunStream = testRuns.getEntries().stream();
     Stream<TestScope> scopes;
     switch (scopeName) {
       case "suite":

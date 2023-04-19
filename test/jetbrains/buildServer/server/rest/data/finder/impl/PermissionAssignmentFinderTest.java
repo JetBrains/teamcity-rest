@@ -152,16 +152,16 @@ public class PermissionAssignmentFinderTest extends BaseFinderTest<PermissionAss
     myUser1.addRole(RoleScope.globalScope(), getSysAdminRole());
     String projectId = myProject1.getProjectId();
 
-    List<PermissionAssignmentData> all = getFinder().getItems(null).myEntries;
+    List<PermissionAssignmentData> all = getFinder().getItems(null).getEntries();
     assertTrue(all.contains(pa(Permission.VIEW_PROJECT)));
     assertTrue(all.contains(pa(Permission.CHANGE_OWN_PROFILE)));
 
-    List<PermissionAssignmentData> global = getFinder().getItems("global:true").myEntries;
+    List<PermissionAssignmentData> global = getFinder().getItems("global:true").getEntries();
     assertEquals(all.size(), global.size());
 
     checkUnordered("global:false");
 
-    List<PermissionAssignmentData> project1Permissions = getFinder().getItems("project:" + projectId).myEntries;
+    List<PermissionAssignmentData> project1Permissions = getFinder().getItems("project:" + projectId).getEntries();
     assertEquals(Arrays.stream(Permission.values()).filter(p -> p.isProjectAssociationSupported()).count(), project1Permissions.size());
 
     checkUnordered("permission:" + "run_build", pa(Permission.RUN_BUILD));

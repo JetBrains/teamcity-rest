@@ -1229,10 +1229,10 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     SBuild build100 = build().in(buildConf2).failed().finish();
 
     PagedSearchResult<BuildPromotion> promotions = myBuildPromotionFinder.getBuildPromotions(buildConf, null);
-    assertEquals(3, promotions.myEntries.size());
+    assertEquals(3, promotions.getEntries().size());
 
     promotions = myBuildPromotionFinder.getBuildPromotions(buildConf, "buildType:$any,status:FAILURE");
-    assertEquals(2, promotions.myEntries.size());
+    assertEquals(2, promotions.getEntries().size());
   }
 
   @Test
@@ -1694,8 +1694,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "and:(status:FAILURE,start:1),property:(name:a,value:10)"); //start in logic filtering is not supported
     checkExceptionOnBuildsSearch(LocatorProcessException.class, "not:(status:FAILURE,start:1),property:(name:a,value:10)"); //start in logic filtering is not supported
 
-    assertEquals(Long.valueOf(1), checkMultipleBuilds("item:(id:" + build20.getId() + "),status:FAILURE", build20).myActuallyProcessedCount);
-    assertEquals(Long.valueOf(4), checkMultipleBuilds("or:(id:" + build20.getId() + "),status:FAILURE", build20).myActuallyProcessedCount);
+    assertEquals(Long.valueOf(1), checkMultipleBuilds("item:(id:" + build20.getId() + "),status:FAILURE", build20).getActuallyProcessedCount());
+    assertEquals(Long.valueOf(4), checkMultipleBuilds("or:(id:" + build20.getId() + "),status:FAILURE", build20).getActuallyProcessedCount());
   }
 
   @Test
@@ -2470,13 +2470,13 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       result = myFixture.getSecurityContext().runAs(user, () -> myBuildPromotionFinder.getItems(locator));
       assertEquals(
         "All personal builds must be included when user property value is set to true.",
-        3, result.myEntries.size()
+        3, result.getEntries().size()
       );
       user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "false");
       result = myFixture.getSecurityContext().runAs(user, () -> myBuildPromotionFinder.getItems(locator));
       assertEquals(
         "Only current user's personal build must be included when user property value is set to false.",
-        2, result.myEntries.size()
+        2, result.getEntries().size()
       );
     }
 
@@ -2488,13 +2488,13 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       result = myFixture.getSecurityContext().runAs(user, () -> myBuildPromotionFinder.getItems(locator));
       assertEquals(
         "Both personal builds must be included when user property value is set to true.",
-        2, result.myEntries.size()
+        2, result.getEntries().size()
       );
       user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "false");
       result = myFixture.getSecurityContext().runAs(user, () -> myBuildPromotionFinder.getItems(locator));
       assertEquals(
         "Only current user's personal build must be included when user property value is set to false.",
-        1, result.myEntries.size()
+        1, result.getEntries().size()
       );
     }
 
@@ -2506,13 +2506,13 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
       result = myFixture.getSecurityContext().runAs(user, () -> myBuildPromotionFinder.getItems(locator));
       assertEquals(
         "None personal builds must be included when dimension is set to false",
-        1, result.myEntries.size()
+        1, result.getEntries().size()
       );
       user.setUserProperty(StandardProperties.SHOW_ALL_PERSONAL_BUILDS, "false");
       result = myFixture.getSecurityContext().runAs(user, () -> myBuildPromotionFinder.getItems(locator));
       assertEquals(
         "None personal builds must be included when dimension is set to false.",
-        1, result.myEntries.size()
+        1, result.getEntries().size()
       );
     }
   }
@@ -2676,14 +2676,14 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   private void checkBuilds(final String locator, final long actuallyProcessedLimit, final BuildPromotion[] builds) {
     final PagedSearchResult<BuildPromotion> result = checkMultipleBuilds(locator, builds);
     //noinspection ConstantConditions
-    assertTrue("Actually processed count (" + result.myActuallyProcessedCount + ") is more than expected limit " + actuallyProcessedLimit,
-                 (long)result.myActuallyProcessedCount <= actuallyProcessedLimit);
+    assertTrue("Actually processed count (" + result.getActuallyProcessedCount() + ") is more than expected limit " + actuallyProcessedLimit,
+               (long)result.getActuallyProcessedCount() <= actuallyProcessedLimit);
 
   }
 
   private PagedSearchResult<BuildPromotion> checkMultipleBuilds(final String locator, final BuildPromotion... builds) {
     final PagedSearchResult<BuildPromotion> searchResult = myBuildPromotionFinder.getItems(locator);
-    final List<BuildPromotion> result = searchResult.myEntries;
+    final List<BuildPromotion> result = searchResult.getEntries();
     final String expected = getPromotionsDescription(Arrays.asList(builds));
     final String actual = getPromotionsDescription(result);
     assertEquals("For locator \"" + locator + "\"\n" +
@@ -2710,7 +2710,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   protected void checkNoBuildsFound(final String locator) {
-    final List<BuildPromotion> result = myBuildPromotionFinder.getItems(locator).myEntries;
+    final List<BuildPromotion> result = myBuildPromotionFinder.getItems(locator).getEntries();
     if (!result.isEmpty()) {
       fail("For locator \"" + locator + "\" expected NotFoundException but found " + LogUtil.describe(result) + "");
     }

@@ -763,7 +763,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     List<SVcsModificationOrChangeDescriptor> items = getFinder()
       .getItems("build:" + build2.getBuildId() + ",changesFromDependencies:true,vcsRoot:(id:" + root1.getExternalId() + ")")
-      .myEntries;
+      .getEntries();
     assertEquals("There is exactly one change coming from dependency.", 1, items.size());
 
     ChangeDescriptor descriptor = items.get(0).getChangeDescriptor();
@@ -802,7 +802,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     List<SVcsModificationOrChangeDescriptor> items = getFinder()
       .getItems("buildType:buildConf2,changesFromDependencies:true,vcsRoot:(id:" + root1.getExternalId() + ")")
-      .myEntries;
+      .getEntries();
     assertEquals("There is exactly one pending change coming from dependency.", 1, items.size());
 
     ChangeDescriptor descriptor = items.get(0).getChangeDescriptor();
@@ -959,7 +959,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root1).description(description1).by("user1").version("1"));
     myFixture.addModification(modification().in(root1).description(description2).by("user1").version("2").parentVersions("1"));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("comment:contains:hello").myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("comment:contains:hello").getEntries();
     assertEquals(1, result.size());
     assertEquals(description1, result.get(0).getSVcsModification().getDescription());
   }
@@ -974,7 +974,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root1).description(description1).by("user1").version("1"));
     myFixture.addModification(modification().in(root1).description(description2).by("user1").version("2").parentVersions("1"));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("comment:(value:HELLO,ignoreCase:true,matchType:contains)").myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("comment:(value:HELLO,ignoreCase:true,matchType:contains)").getEntries();
     assertEquals(1, result.size());
     assertEquals(description1, result.get(0).getSVcsModification().getDescription());
   }
@@ -989,7 +989,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root1).description(description1).by("user1").version("1"));
     myFixture.addModification(modification().in(root1).description(description2).by("user1").version("2").parentVersions("1"));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("comment:" + description1).myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("comment:" + description1).getEntries();
     assertEquals(1, result.size());
     assertEquals(description1, result.get(0).getSVcsModification().getDescription());
   }
@@ -1006,7 +1006,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root1).description(description1).by("user1").version("1"));
     myFixture.addModification(modification().in(root1).description(description2).by("user1").version("2").parentVersions("1"));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("comment:" + description1).myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("comment:" + description1).getEntries();
     assertEquals(1, result.size());
     assertEquals(description1, result.get(0).getSVcsModification().getDescription());
   }
@@ -1021,7 +1021,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile1).version("1"));
     myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile2).version("2").parentVersions("1"));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("file:path:contains:A").myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("file:path:contains:A").getEntries();
     assertEquals(1, result.size());
     assertEquals(changedFile1, result.get(0).getSVcsModification().getChanges().get(0).getFileName());
   }
@@ -1036,7 +1036,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile1).version("1"));
     myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile2).version("2").parentVersions("1"));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("file:path:(value:ILEa,ignoreCase:true,matchType:contains)").myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("file:path:(value:ILEa,ignoreCase:true,matchType:contains)").getEntries();
     assertEquals(1, result.size());
     assertEquals(changedFile1, result.get(0).getSVcsModification().getChanges().get(0).getFileName());
   }
@@ -1051,7 +1051,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile1).version("1"));
     myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile2).version("2").parentVersions("1"));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("file:path:" + changedFile1).myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("file:path:" + changedFile1).getEntries();
     assertEquals(1, result.size());
     assertEquals(changedFile1, result.get(0).getSVcsModification().getChanges().get(0).getFileName());
   }
@@ -1068,7 +1068,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile1).version("1"));
     myFixture.addModification(modification().in(root1).by("user1").withChangedFile(changedFile2).version("2").parentVersions("1"));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("file:path:" + changedFile1).myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("file:path:" + changedFile1).getEntries();
     assertEquals(1, result.size());
     assertEquals(changedFile1, result.get(0).getSVcsModification().getChanges().get(0).getFileName());
   }
@@ -1083,7 +1083,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root1).by("user1").version(version1));
     myFixture.addModification(modification().in(root1).by("user1").version(version2).parentVersions(version1));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("version:(value:3,ignoreCase:false,matchType:contains)").myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("version:(value:3,ignoreCase:false,matchType:contains)").getEntries();
     assertEquals(1, result.size());
     assertEquals(version1, result.get(0).getSVcsModification().getVersion());
   }
@@ -1098,7 +1098,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root1).by("user1").version(version1));
     myFixture.addModification(modification().in(root1).by("user1").version(version2).parentVersions(version1));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("version:" + version1).myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("version:" + version1).getEntries();
     assertEquals(1, result.size());
     assertEquals(version1, result.get(0).getSVcsModification().getVersion());
   }
@@ -1121,10 +1121,10 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root1).by("user1").version(version));
     myFixture.addModification(modification().in(root2).by("user1").version(version));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("unique:true").myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("unique:true").getEntries();
     assertEquals(1, result.size());
 
-    List<SVcsModificationOrChangeDescriptor> resultWithDuplicate = myChangeFinder.getItems("count:10").myEntries;
+    List<SVcsModificationOrChangeDescriptor> resultWithDuplicate = myChangeFinder.getItems("count:10").getEntries();
     assertEquals( 2, resultWithDuplicate.size());
   }
 
@@ -1148,8 +1148,8 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     // Include user dimension to the locator to ensure that we filter by project and not retrieve items by project.
     // Check both projects to ensure that we find what we want for any order we obtain modifications
-    assertEquals(1, myChangeFinder.getItems("unique:true,user:user1,project:project1").myEntries.size());
-    assertEquals(1, myChangeFinder.getItems("unique:true,user:user1,project:project2").myEntries.size());
+    assertEquals(1, myChangeFinder.getItems("unique:true,user:user1,project:project1").getEntries().size());
+    assertEquals(1, myChangeFinder.getItems("unique:true,user:user1,project:project2").getEntries().size());
   }
 
   @Test
@@ -1178,7 +1178,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     List<SVcsModificationOrChangeDescriptor> result = myFixture.getSecurityContext().runAs(
       user1,
-      () -> myChangeFinder.getItems("username:user1").myEntries
+      () -> myChangeFinder.getItems("username:user1").getEntries()
     );
     assertEquals("Only one change is visible to the user.",1, result.size());
   }
@@ -1202,7 +1202,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     SVcsModification modInParent = myFixture.addModification(modification().in(root1).version("12345"));
     SVcsModification modInChild = myFixture.addModification(modification().in(root2).version("12345"));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("project:" + project.getExternalId()).myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("project:" + project.getExternalId()).getEntries();
     assertEquals("Only one change is in build configuration directly in parent project.", 1, result.size());
     assertEquals("Only change from parentBt should be visible.", modInParent.getId(), result.get(0).getSVcsModification().getId());
   }
@@ -1226,7 +1226,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     SVcsModification modInParent = myFixture.addModification(modification().in(root1).version("12345"));
     SVcsModification modInChild = myFixture.addModification(modification().in(root2).version("12345"));
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("affectedProject:" + project.getExternalId()).myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("affectedProject:" + project.getExternalId()).getEntries();
     assertEquals("Changes from all build configurations (direct and indirect) in parent project should be visible.", 2, result.size());
   }
 
@@ -1252,10 +1252,10 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
     List<SVcsModificationOrChangeDescriptor> result;
 
-    result = myChangeFinder.getItems("username:user1,project:" + subproject.getExternalId()).myEntries;
+    result = myChangeFinder.getItems("username:user1,project:" + subproject.getExternalId()).getEntries();
     assertEquals("Change from VcsRoot root in parent project should be visible.", 1, result.size());
 
-    result = myChangeFinder.getItems("user:(id:" + user1.getId() + "),project:" + subproject.getExternalId()).myEntries;
+    result = myChangeFinder.getItems("user:(id:" + user1.getId() + "),project:" + subproject.getExternalId()).getEntries();
     assertEquals("Change from VcsRoot root in parent project should be visible.", 1, result.size());
   }
 
@@ -1278,7 +1278,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
     myFixture.addModification(modification().in(root).by("user1").version("12345"));
 
 
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("username:user1,buildType:" + btHead.getExternalId()+ ",pending:true,changesFromDependencies:true").myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems("username:user1,buildType:" + btHead.getExternalId() + ",pending:true,changesFromDependencies:true").getEntries();
     assertEquals("Change from VcsRoot in dependent buildType should be visible.", 1, result.size());
   }
 
@@ -1302,7 +1302,7 @@ public class ChangeFinderTest extends BaseFinderTest<SVcsModificationOrChangeDes
 
 
     String locator = String.format("user:(id:%d),buildType:%s,pending:true,changesFromDependencies:true", user.getId(), btHead.getExternalId());
-    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems(locator).myEntries;
+    List<SVcsModificationOrChangeDescriptor> result = myChangeFinder.getItems(locator).getEntries();
     assertEquals("Change from VcsRoot in dependent buildType should be visible.", 1, result.size());
   }
 

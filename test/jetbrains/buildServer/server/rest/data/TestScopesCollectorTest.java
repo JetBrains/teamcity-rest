@@ -37,9 +37,9 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
     String locator = "scopeType:package,testOccurrences:(build:(id:" + build10.getBuildId() + "))";
     PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.locator(locator));
 
-    assertEquals(4, result.myEntries.size());
+    assertEquals(4, result.getEntries().size());
 
-    Set<String> packages = result.myEntries.stream()
+    Set<String> packages = result.getEntries().stream()
                                            .peek(scope -> assertEquals(1, scope.getTestRuns().size()))
                                            .peek(scope -> scope.getName().equals(scope.getPackage()))
                                            .map(scope -> scope.getPackage())
@@ -63,9 +63,9 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
     String locator = "scopeType:class,testOccurrences:(build:(id:" + build10.getBuildId() + "))";
     PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.locator(locator));
 
-    assertEquals("Although there are only class1 and class 2, packageA.classX and packageB.classX are expected to be different", 4, result.myEntries.size());
+    assertEquals("Although there are only class1 and class 2, packageA.classX and packageB.classX are expected to be different", 4, result.getEntries().size());
 
-    Set<String> classes = result.myEntries.stream()
+    Set<String> classes = result.getEntries().stream()
                                            .peek(scope -> assertEquals(1, scope.getTestRuns().size()))
                                            .peek(scope -> scope.getName().equals(scope.getClass1()))
                                            .map(scope -> scope.getClass1())
@@ -90,11 +90,11 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
                                           .finish();
 
     PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.createPotentiallyEmptyLocator("testOccurrences:(build:(id:" + build10.getBuildId() + ")),scopeType:suite"));
-    for(TestScope scope : result.myEntries) {
+    for(TestScope scope : result.getEntries()) {
       assertEquals(2, scope.getTestRuns().size());
     }
 
-    Set<String> suites = result.myEntries.stream()
+    Set<String> suites = result.getEntries().stream()
                                          .peek(scope -> assertEquals(2, scope.getTestRuns().size()))
                                          .peek(scope -> scope.getName().equals(scope.getSuite()))
                                          .map(scope -> scope.getSuite())
@@ -123,8 +123,8 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
     PagedSearchResult<TestScope> result = myTestScopesCollector.getPagedItems(Locator.createPotentiallyEmptyLocator(
       "testOccurrences:(build:(id:" + build10.getBuildId() + ")),scopeType:suite,suite:(value:($base64:c3VpdGUxOiA=),matchType:equals)"
     ));
-    assertEquals(1, result.myEntries.size());
-    assertEquals("suite1: ", result.myEntries.get(0).getName());
+    assertEquals(1, result.getEntries().size());
+    assertEquals("suite1: ", result.getEntries().get(0).getName());
   }
 
   @Test
@@ -134,8 +134,8 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
       "testOccurrences:(build:(affectedProject:(name:project))),scopeType:suite"
     ));
 
-    assertEquals(3, result.myEntries.size());
-    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertEquals(3, result.getEntries().size());
+    Set<String> resultNames = result.getEntries().stream().map(s -> s.getName()).collect(Collectors.toSet());
     assertContains(resultNames, "suite0: ");
     assertContains(resultNames, "suite1: ");
     assertContains(resultNames, "suite2: ");
@@ -153,8 +153,8 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
     // suite1: packageB
     // suite2: packageC
     // suite2: packageA
-    assertEquals(5, result.myEntries.size());
-    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertEquals(5, result.getEntries().size());
+    Set<String> resultNames = result.getEntries().stream().map(s -> s.getName()).collect(Collectors.toSet());
     assertContains(resultNames, "packageA");
     assertContains(resultNames, "packageB");
     assertContains(resultNames, "packageC");
@@ -174,8 +174,8 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
     // suite1: packageB.class1
     // suite2: packageC.class2
     // suite2: packageA.class3
-    assertEquals(6, result.myEntries.size());
-    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertEquals(6, result.getEntries().size());
+    Set<String> resultNames = result.getEntries().stream().map(s -> s.getName()).collect(Collectors.toSet());
     assertContains(resultNames, "class1");
     assertContains(resultNames, "class2");
     assertContains(resultNames, "class3");
@@ -194,8 +194,8 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
     // suite1: packageA.class2
     // suite1: packageB.class1
     // suite2: packageC.class2
-    assertEquals(5, result.myEntries.size());
-    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertEquals(5, result.getEntries().size());
+    Set<String> resultNames = result.getEntries().stream().map(s -> s.getName()).collect(Collectors.toSet());
     assertContains(resultNames, "class1");
     assertContains(resultNames, "class2");
   }
@@ -210,8 +210,8 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
     // suite0: packageZ.classZ
     // suite1: packageB.class1
     // suite2: packageC.class2
-    assertEquals(3, result.myEntries.size());
-    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertEquals(3, result.getEntries().size());
+    Set<String> resultNames = result.getEntries().stream().map(s -> s.getName()).collect(Collectors.toSet());
     assertContains(resultNames, "class1");
     assertContains(resultNames, "class2");
     assertContains(resultNames, "classZ");
@@ -225,8 +225,8 @@ public class TestScopesCollectorTest extends BaseTestScopesCollectorTest {
     ));
 
     // suite2: packageA.class3
-    assertEquals(1, result.myEntries.size());
-    Set<String> resultNames = result.myEntries.stream().map(s -> s.getName()).collect(Collectors.toSet());
+    assertEquals(1, result.getEntries().size());
+    Set<String> resultNames = result.getEntries().stream().map(s -> s.getName()).collect(Collectors.toSet());
     assertContains(resultNames, "class3");
   }
 

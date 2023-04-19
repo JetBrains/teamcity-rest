@@ -362,8 +362,8 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     check("currentlyFailing:true", TEST_MATCHER, t("aaa", Status.FAILURE, 1), t("aaa", Status.FAILURE, 1));
     check("currentlyFailing:true,buildType:(id:" + buildType1.getExternalId() + ")", TEST_MATCHER, t("aaa", Status.FAILURE, 1));
 
-    STestRun testRun1 = getFinder().getItems("currentlyFailing:true").myEntries.get(0);
-    STestRun testRun2 = getFinder().getItems("currentlyFailing:true").myEntries.get(1);
+    STestRun testRun1 = getFinder().getItems("currentlyFailing:true").getEntries().get(0);
+    STestRun testRun2 = getFinder().getItems("currentlyFailing:true").getEntries().get(1);
     assertEquals(testRun1.getBuildId(), build10.getBuildId());
     assertEquals(testRun2.getBuildId(), build20.getBuildId());
 
@@ -457,9 +457,9 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
           t("ddd", Status.NORMAL, 8));
 
     {
-      int testRunId = myTestOccurrenceFinder.getItems("build:(id:" + build10.getBuildId() + ")").myEntries.get(0).getTestRunId();
+      int testRunId = myTestOccurrenceFinder.getItems("build:(id:" + build10.getBuildId() + ")").getEntries().get(0).getTestRunId();
       check("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")", TEST_MATCHER, t("aaa", Status.FAILURE, 1));
-      assertEquals(testRunId, myTestOccurrenceFinder.getItems("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")").myEntries.get(0).getTestRunId());
+      assertEquals(testRunId, myTestOccurrenceFinder.getItems("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")").getEntries().get(0).getTestRunId());
       assertEquals(testRunId, myTestOccurrenceFinder.getItem("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")").getTestRunId());
     }
 
@@ -474,9 +474,9 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
           t("ddd", Status.NORMAL, 8));
 
     {
-      int testRunId = myTestOccurrenceFinder.getItems("build:(id:" + build10.getBuildId() + "),expandInvocations:true").myEntries.get(2).getTestRunId();
+      int testRunId = myTestOccurrenceFinder.getItems("build:(id:" + build10.getBuildId() + "),expandInvocations:true").getEntries().get(2).getTestRunId();
       check("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")", TEST_MATCHER, t("aaa", Status.FAILURE, 6));
-      assertEquals(testRunId, myTestOccurrenceFinder.getItems("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")").myEntries.get(0).getTestRunId());
+      assertEquals(testRunId, myTestOccurrenceFinder.getItems("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")").getEntries().get(0).getTestRunId());
       assertEquals(testRunId, myTestOccurrenceFinder.getItem("build:(id:" + build10.getBuildId() + "),id:(" + testRunId + ")").getTestRunId());
     }
 
@@ -856,7 +856,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     assertEquals(
       "Test invocations must be expanded.",
       2,
-      result.myEntries.size()
+      result.getEntries().size()
     );
   }
 
@@ -872,12 +872,12 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     String locator = String.format("test:%d,buildType:%s,expandInvocations:false", testNameId, bt1.getExternalId());
 
     PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locator);
-    assertEquals(1, result.myEntries.size());
-    assertEquals("Test runs must be merged", MultiTestRun.class, result.myEntries.get(0).getClass());
+    assertEquals(1, result.getEntries().size());
+    assertEquals("Test runs must be merged", MultiTestRun.class, result.getEntries().get(0).getClass());
     assertEquals(
       "Merged test run must contain 2 invocations",
       2,
-      ((MultiTestRun) result.myEntries.get(0)).getTestRuns().size()
+      ((MultiTestRun) result.getEntries().get(0)).getTestRuns().size()
     );
   }
 
@@ -896,7 +896,7 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     assertEquals(
       "Test invocations must be expanded.",
       2,
-      result.myEntries.size()
+      result.getEntries().size()
     );
   }
 
@@ -912,12 +912,12 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     String locator = String.format("test:%d,affectedProject:%s,expandInvocations:false", testNameId, bt1.getProject().getExternalId());
 
     PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locator);
-    assertEquals(1, result.myEntries.size());
-    assertEquals("Test runs must be merged", MultiTestRun.class, result.myEntries.get(0).getClass());
+    assertEquals(1, result.getEntries().size());
+    assertEquals("Test runs must be merged", MultiTestRun.class, result.getEntries().get(0).getClass());
     assertEquals(
       "Merged test run must contain 2 invocations",
       2,
-      ((MultiTestRun) result.myEntries.get(0)).getTestRuns().size()
+      ((MultiTestRun) result.getEntries().get(0)).getTestRuns().size()
     );
   }
 

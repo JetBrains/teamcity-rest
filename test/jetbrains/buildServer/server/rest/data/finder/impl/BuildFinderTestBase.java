@@ -57,7 +57,7 @@ public class BuildFinderTestBase extends BaseFinderTest<SBuild> {
   }
 
   public void checkMultipleBuilds(final @Nullable String locator, final SBuild... builds) {
-    final List<BuildPromotion> result = myBuildFinder.getBuilds(null, locator).myEntries;
+    final List<BuildPromotion> result = myBuildFinder.getBuilds(null, locator).getEntries();
     final String expected = getPromotionsDescription(getPromotions(builds));
     final String actual = getPromotionsDescription(result);
     assertEquals("For builds locator \"" + locator + "\"\n" +
@@ -113,7 +113,7 @@ public class BuildFinderTestBase extends BaseFinderTest<SBuild> {
   }
 
   protected void checkNoBuildsFound(@Nullable final String locator) {
-    final List<BuildPromotion> result = myBuildFinder.getBuilds(null, locator).myEntries;
+    final List<BuildPromotion> result = myBuildFinder.getBuilds(null, locator).getEntries();
     if (!result.isEmpty()) {
       fail("For builds locator \"" + locator + "\" expected NotFoundException but found " + LogUtil.describe(result) + "");
     }

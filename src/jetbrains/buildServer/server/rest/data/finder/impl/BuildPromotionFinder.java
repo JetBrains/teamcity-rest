@@ -487,9 +487,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
       if (branches != null) {
         //branches found - use them
-        Set<String> branchNames = getBranchNamesSet(branches.myEntries);
-        Set<String> branchDisplayNames = getBranchDisplayNamesSet(branches.myEntries);
-        boolean defaultBranchIncluded = branches.myEntries.stream().anyMatch(Branch::isDefaultBranch);
+        Set<String> branchNames = getBranchNamesSet(branches.getEntries());
+        Set<String> branchDisplayNames = getBranchDisplayNamesSet(branches.getEntries());
+        boolean defaultBranchIncluded = branches.getEntries().stream().anyMatch(Branch::isDefaultBranch);
         result.add(item -> {
             final Branch buildBranch = BranchData.fromBuild(item);
             return (defaultBranchIncluded && buildBranch.isDefaultBranch()) || branchNames.contains(buildBranch.getName()) || branchDisplayNames.contains(buildBranch.getDisplayName());
@@ -518,7 +518,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (locator.isUnused(AGENT)) {
       final String agentLocator = locator.getSingleDimensionValue(AGENT);
       if (agentLocator != null) {
-        Set<Integer> agentIds = myAgentFinder.getItemsNotEmpty(agentLocator).myEntries.stream().map(agent -> agent.getId()).filter(i -> i != Agent.UNKNOWN_AGENT_ID).collect(Collectors.toSet());
+        Set<Integer> agentIds = myAgentFinder.getItemsNotEmpty(agentLocator).getEntries().stream().map(agent -> agent.getId()).filter(i -> i != Agent.UNKNOWN_AGENT_ID).collect(Collectors.toSet());
         result.add(item -> {
           final SQueuedBuild queuedBuild = item.getQueuedBuild(); //for queued build using compatible agents
           if (queuedBuild != null) {
@@ -549,7 +549,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
     final String compatibleAgentLocator = locator.getSingleDimensionValue(COMPATIBLE_AGENT);
     if (compatibleAgentLocator != null) {
-      List<SBuildAgent> agents = myAgentFinder.getItems(compatibleAgentLocator).myEntries;
+      List<SBuildAgent> agents = myAgentFinder.getItems(compatibleAgentLocator).getEntries();
       result.add(build -> agents.stream().anyMatch(agent -> myAgentFinder.canActuallyRun(agent, build)));
     }
 
@@ -557,7 +557,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (compatibleAgentsCount != null) {
       result.add(item -> {
           long count = 0;
-          for (SBuildAgent agent : myAgentFinder.getItems(null).myEntries) { //or should process unauthorized as well?
+          for (SBuildAgent agent : myAgentFinder.getItems(null).getEntries()) { //or should process unauthorized as well?
             if (myAgentFinder.canActuallyRun(agent, item)) count++;
             if (count > compatibleAgentsCount) return false;
           }
@@ -657,7 +657,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final String graphLocator = locator.getSingleDimensionValue(ORDERED);
       if (graphLocator != null) {
         final GraphFinder<BuildPromotion> graphFinder = new BuildPromotionOrderedFinder(BuildPromotionFinder.this);
-        final Set<BuildPromotion> filter = new HashSet<>(graphFinder.getItems(graphLocator).myEntries);
+        final Set<BuildPromotion> filter = new HashSet<>(graphFinder.getItems(graphLocator).getEntries());
         result.add(filter::contains);
       }
     }
@@ -1014,7 +1014,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       if (testOccurrence != null) {
         TestOccurrenceFinder testOccurrenceFinder = myServiceLocator.getSingletonService(TestOccurrenceFinder.class);
         Set<Long> buildPromotionIds =
-          testOccurrenceFinder.getItems(testOccurrence).myEntries.stream().map(sTestRun -> sTestRun.getBuild().getBuildPromotion().getId()).collect(Collectors.toSet());
+          testOccurrenceFinder.getItems(testOccurrence).getEntries().stream().map(sTestRun -> sTestRun.getBuild().getBuildPromotion().getId()).collect(Collectors.toSet());
         result.add(item -> buildPromotionIds.contains(item.getBuildPromotion().getId()));
       }
     }
@@ -1024,7 +1024,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       TestFinder testFinder = myServiceLocator.getSingletonService(TestFinder.class);
       result.add(item -> {
         String locator1 = new Locator(test).setDimension(TestFinder.BUILD, getLocator(item.getBuildPromotion())).setDimension(PagerData.COUNT, "1").getStringRepresentation();
-        return !testFinder.getItems(locator1).myEntries.isEmpty();
+        return !testFinder.getItems(locator1).getEntries().isEmpty();
       });
     }
 
@@ -1137,7 +1137,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       for (Locator partialLocator : partialLocators) {
         partialLocator.setDimensionIfNotPresent(PagerData.COUNT, "1");  //limit to single item per strob item by default
         final String finalBuildLocator = Locator.createLocator(strobBuildLocator, partialLocator, new String[]{}).getStringRepresentation();
-        strobResult.add(ItemHolder.of(getItems(finalBuildLocator).myEntries));
+        strobResult.add(ItemHolder.of(getItems(finalBuildLocator).getEntries()));
       }
       strobLocator.checkLocatorFullyProcessed();
       return ItemHolder.concat(strobResult);
@@ -1171,7 +1171,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     if (graphLocator != null) {
       final GraphFinder<BuildPromotion> graphFinder = new BuildPromotionOrderedFinder(this);
       //consider performance optimization by converting id to build only on actual retrieve (use GraphFinder<Int/buildId>)
-      return ItemHolder.of(graphFinder.getItems(graphLocator).myEntries);
+      return ItemHolder.of(graphFinder.getItems(graphLocator).getEntries());
     }
 
     final String snapshotDepDimension = locator.getSingleDimensionValue(SNAPSHOT_DEP);
@@ -1271,13 +1271,13 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final String testOccurrence = locator.getSingleDimensionValue(TEST_OCCURRENCE);
     if (testOccurrence != null) {
       TestOccurrenceFinder testOccurrenceFinder = myServiceLocator.getSingletonService(TestOccurrenceFinder.class);
-      return ItemHolder.of(testOccurrenceFinder.getItems(testOccurrence).myEntries.stream().map(sTestRun -> sTestRun.getBuild().getBuildPromotion()));
+      return ItemHolder.of(testOccurrenceFinder.getItems(testOccurrence).getEntries().stream().map(sTestRun -> sTestRun.getBuild().getBuildPromotion()));
     }
 
     SBuildAgent agent;
     final String agentLocator = locator.getSingleDimensionValue(AGENT);
     if (agentLocator != null) {
-      List<SBuildAgent> agents = myAgentFinder.getItemsNotEmpty(agentLocator).myEntries;
+      List<SBuildAgent> agents = myAgentFinder.getItemsNotEmpty(agentLocator).getEntries();
       if (agents.size() == 1) {
         agent = agents.get(0);
       } else {  //only if builds processor cannot handle this
@@ -1645,7 +1645,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
 
       final PagedSearchResult<ITEM> items = strobTypeFinder.getItems(patchedStrobDimensionValue);
-      for (ITEM item : items.myEntries) {
+      for (ITEM item : items.getEntries()) {
         result.add(new Locator(strobBuildLocator).setDimensionIfNotPresent(strobDimension, strobTypeFinder.getCanonicalLocator(item)));
       }
     }
@@ -1806,7 +1806,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @NotNull
   private List<BuildPromotion> getSnapshotRelatedBuilds(@NotNull final String snapshotDepDimension) {
     final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, SNAPSHOT_DEPENDENCIES_TRAVERSER);
-    final List<BuildPromotion> result = graphFinder.getItems(snapshotDepDimension).myEntries;
+    final List<BuildPromotion> result = graphFinder.getItems(snapshotDepDimension).getEntries();
     sortBuildPromotions(result);
     return result; //todo: patch branch locator, personal, etc.???
   }
@@ -1814,7 +1814,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @NotNull
   private List<BuildPromotion> getArtifactRelatedBuilds(@NotNull final String depDimension, @NotNull final Locator locator) {
     final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, new ArtifactDepsTraverser(locator));
-    final List<BuildPromotion> result = graphFinder.getItems(depDimension).myEntries;
+    final List<BuildPromotion> result = graphFinder.getItems(depDimension).getEntries();
     sortBuildPromotions(result);
     return result; //todo: patch branch locator, personal, etc.???
   }
@@ -1822,7 +1822,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @NotNull
   private List<BuildPromotion> getSnapshotDepProblemBuilds(@NotNull final String locator) {
     final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, mySnapshotDepProblemsTraverser);
-    final List<BuildPromotion> result = graphFinder.getItems(locator).myEntries;
+    final List<BuildPromotion> result = graphFinder.getItems(locator).getEntries();
     sortBuildPromotions(result);
     return result;
   }
@@ -2117,7 +2117,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       @NotNull
       @Override
       public List<BuildPromotion> getItems(@Nullable final String locatorText) {
-        return BuildPromotionFinder.this.getItems(locatorText).myEntries;
+        return BuildPromotionFinder.this.getItems(locatorText).getEntries();
       }
 
       @Nullable

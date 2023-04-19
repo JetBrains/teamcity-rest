@@ -480,7 +480,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
       }
       try {
         //return branches even if myBranchFinder.isAnyBranch(branchDimension)) as the only proper way for now to get changes is to iterate the branches
-        return myBranchFinder.getItems(buildType, branchDimension).myEntries;
+        return myBranchFinder.getItems(buildType, branchDimension).getEntries();
       } catch (LocatorProcessException e) {
         throw new BadRequestException("Error in branch locator '" + branchDimension + "': " + e.getMessage(), e);
       }
@@ -550,12 +550,12 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
     final String graphLocator = locator.getSingleDimensionValue(DAG_TRAVERSE);
     if (graphLocator != null) {
       final GraphFinder<SVcsModification> graphFinder = new GraphFinder<>(
-        locatorText -> getItems(locatorText).myEntries.stream().map(SVcsModificationOrChangeDescriptor::getSVcsModification).collect(Collectors.toList()),
+        locatorText -> getItems(locatorText).getEntries().stream().map(SVcsModificationOrChangeDescriptor::getSVcsModification).collect(Collectors.toList()),
         new ChangesGraphTraverser()
       );
 
       graphFinder.setDefaultLookupLimit(1000L);
-      return wrapModifications(graphFinder.getItems(graphLocator).myEntries);
+      return wrapModifications(graphFinder.getItems(graphLocator).getEntries());
     }
 
     Long sinceChangeId = null;

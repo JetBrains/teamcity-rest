@@ -29,7 +29,10 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.finder.FinderImpl;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
 import jetbrains.buildServer.server.rest.data.finder.impl.BuildArtifactsFinder;
@@ -89,7 +92,7 @@ public class VcsRootInstanceRequest {
                                          @Context UriInfo uriInfo,
                                          @Context HttpServletRequest request) {
     final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstanceLocator);
-    return new VcsRootInstances(CachingValue.simple(((Collection<jetbrains.buildServer.vcs.VcsRootInstance>)vcsRootInstances.myEntries)),
+    return new VcsRootInstances(CachingValue.simple(((Collection<jetbrains.buildServer.vcs.VcsRootInstance>)vcsRootInstances.getEntries())),
                                 new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances, vcsRootInstanceLocator, "locator"),
                                 new Fields(fields),
                                 myBeanContext);
@@ -218,7 +221,7 @@ public class VcsRootInstanceRequest {
     boolean nothingFound;
     try {
       vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
-      nothingFound = vcsRootInstances.myEntries.isEmpty();
+      nothingFound = vcsRootInstances.getEntries().isEmpty();
     } catch (NotFoundException e) {
       nothingFound = true;
     }
@@ -235,19 +238,19 @@ public class VcsRootInstanceRequest {
                                                                API_VCS_ROOT_INSTANCES_URL + "?locator=" + Locator.HELP_DIMENSION + "' URL.").build();
     }
 
-    myDataProvider.getChangesCheckingService().forceCheckingFor(vcsRootInstances.myEntries, OperationRequestor.COMMIT_HOOK);
+    myDataProvider.getChangesCheckingService().forceCheckingFor(vcsRootInstances.getEntries(), OperationRequestor.COMMIT_HOOK);
     StringBuilder okMessage = new StringBuilder();
     okMessage.append("Scheduled checking for changes for");
     if (vcsRootInstances.isNextPageAvailable()) {
-      okMessage.append(" first ").append(vcsRootInstances.myActualCount).append(" VCS roots.");
-      if (vcsRootInstances.myCount != null && vcsRootInstances.myActualCount >= vcsRootInstances.myCount) {
+      okMessage.append(" first ").append(vcsRootInstances.getActualCount()).append(" VCS roots.");
+      if (vcsRootInstances.getCount() != null && vcsRootInstances.getActualCount() >= vcsRootInstances.getCount()) {
         okMessage.append(" You can add '" + PagerData.COUNT + ":X' to cover more roots.");
       }
-      if (vcsRootInstances.myLookupLimit != null && vcsRootInstances.myLookupLimitReached) {
+      if (vcsRootInstances.getLookupLimit() != null && vcsRootInstances.getLookupLimitReached()) {
         okMessage.append(" You can add '" + FinderImpl.DIMENSION_LOOKUP_LIMIT + ":X' to cover more roots.");
       }
     } else {
-      okMessage.append(" ").append(vcsRootInstances.myEntries.size()).append(" VCS roots.");
+      okMessage.append(" ").append(vcsRootInstances.getEntries().size()).append(" VCS roots.");
     }
     okMessage.append(" (Server time: ").append(ISODateTimeFormat.basicDateTime().print(requestStartTime.getTime())).append(")"); //format supported by TimeWithPrecision, can later be used in filtering
     return Response.status(Response.Status.ACCEPTED).entity(okMessage.toString()).build();  //can also add "in XX projects"
@@ -272,13 +275,13 @@ public class VcsRootInstanceRequest {
                                                      @Context @NotNull final BeanContext beanContext) {
     //todo: check whether permission checks are necessary
     final PagedSearchResult<jetbrains.buildServer.vcs.VcsRootInstance> vcsRootInstances = myVcsRootInstanceFinder.getItems(vcsRootInstancesLocator);
-    myDataProvider.getChangesCheckingService().forceCheckingFor(vcsRootInstances.myEntries, getRequestor(requestor));
+    myDataProvider.getChangesCheckingService().forceCheckingFor(vcsRootInstances.getEntries(), getRequestor(requestor));
     PagerData pagerData = new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), vcsRootInstances, vcsRootInstancesLocator, "locator");
 
     //return 202 Accepted
     //return something which can be used to track progress (like get list of instances which has not yet compleed since the queuing
     //consider returning URL in href which will list the instances which has not yet been checked since the request
-    return new VcsRootInstances(CachingValue.simple(vcsRootInstances.myEntries), pagerData, new Fields(fields), beanContext);
+    return new VcsRootInstances(CachingValue.simple(vcsRootInstances.getEntries()), pagerData, new Fields(fields), beanContext);
   }
 
   @NotNull

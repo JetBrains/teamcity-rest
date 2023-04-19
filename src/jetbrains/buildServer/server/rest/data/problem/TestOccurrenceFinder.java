@@ -241,7 +241,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
       String buildDimension = locator.getSingleDimensionValue(BUILD);
       if (buildDimension != null) {
-        List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
+        List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).getEntries();
         if (builds.size() != 1) {
           return null;
         }
@@ -402,7 +402,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       locator.setDimension(INCLUDE_PERSONAL, Locator.BOOLEAN_TRUE);
       locator.setDimension(INCLUDE_ALL_PERSONAL, Locator.BOOLEAN_TRUE);
 
-      List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
+      List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).getEntries();
 
       Boolean expandInvocations = locator.getSingleDimensionValueAsBoolean(EXPAND_INVOCATIONS);  //getting the dimension early in order not to get "dimension is unknown" for it in case of early exit
       String testDimension = locator.getSingleDimensionValue(TEST);
@@ -422,7 +422,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       for (BuildPromotion build : builds) {
         SBuild associatedBuild = build.getAssociatedBuild();
         if (associatedBuild != null) {
-          Set<Long> allTestNameIds = tests.myEntries.stream().map(STest::getTestNameId).collect(Collectors.toSet());
+          Set<Long> allTestNameIds = tests.getEntries().stream().map(STest::getTestNameId).collect(Collectors.toSet());
           final List<STestRun> allTests = getBuildStatistics(associatedBuild, locator).getAllTests();
           for (STestRun item : allTests) {
             if (allTestNameIds.contains(item.getTest().getTestNameId())) {
@@ -439,10 +439,10 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
 
       if (locator.isAnyPresent(BUILD_TYPE)) {
-        return getTestRunsByBuildType(tests.myEntries, locator);
+        return getTestRunsByBuildType(tests.getEntries(), locator);
       }
       final SProject affectedProject = getAffectedProject(locator);
-      return getItemsByAffectedProject(affectedProject, tests.myEntries, locator);
+      return getItemsByAffectedProject(affectedProject, tests.getEntries(), locator);
     }
 
     Boolean currentDimension = locator.lookupSingleDimensionValueAsBoolean(CURRENT);
@@ -593,7 +593,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       if (testDimension != null) {
         final PagedSearchResult<STest> tests = myTestFinder.getItems(testDimension);
         final HashSet<Long> testNameIds = new HashSet<>();
-        for (STest test : tests.myEntries) {
+        for (STest test : tests.getEntries()) {
           testNameIds.add(test.getTestNameId());
         }
         result.add(item -> testNameIds.contains(item.getTest().getTestNameId()));
@@ -608,7 +608,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
         locator.setDimensionIfNotPresent(INCLUDE_PERSONAL, Boolean.toString(searchByBuildId));
 
         //todo: use buildPromotionFinder, use filter; drop personal builds filtering in test history
-        List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
+        List<BuildPromotion> builds = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).getEntries();
         result.add(item -> builds.contains(item.getBuild().getBuildPromotion()));
       }
     }
@@ -762,7 +762,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       return TestOccurrencesCachedInfo.empty();
     }
 
-    List<BuildPromotion> buildPromotions = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).myEntries;
+    List<BuildPromotion> buildPromotions = myBuildPromotionFinder.getBuildPromotionsWithLegacyFallback(null, buildDimension).getEntries();
     if(buildPromotions.size() != 1) {
       // If there is not a single build to the criteria,
       return TestOccurrencesCachedInfo.empty();

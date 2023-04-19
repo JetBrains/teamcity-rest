@@ -25,7 +25,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrencesCachedInfo;
 import jetbrains.buildServer.server.rest.data.util.FilterItemProcessor;
@@ -109,7 +110,7 @@ public class TestOccurrenceRequest {
                                                                           pagingFilter.getStart(), pagingFilter.getCount(), processor.getProcessedItemsCount(),
                                                                           pagingFilter.getLookupLimit(), pagingFilter.isLookupLimitReached(), pagingFilter.getLastProcessedItem());
 
-        return new TestOccurrences(pagedResult.myEntries, null,
+        return new TestOccurrences(pagedResult.getEntries(), null,
                                    uriInfo == null ? null : uriInfo.getRequestUri().toString(),
                                    uriInfo == null ? null : new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), pagedResult, locatorText, "locator"),
                                    new Fields(fields), myBeanContext);
@@ -120,7 +121,7 @@ public class TestOccurrenceRequest {
 
     final PagedSearchResult<STestRun> result = myTestOccurrenceFinder.getItems(locatorText);
 
-    return new TestOccurrences(result.myEntries,
+    return new TestOccurrences(result.getEntries(),
                                null,
                                uriInfo == null ? null : uriInfo.getRequestUri().toString(),
                                uriInfo == null ? null : new PagerDataImpl(uriInfo.getRequestUriBuilder(), request.getContextPath(), result, locatorText, "locator"),
