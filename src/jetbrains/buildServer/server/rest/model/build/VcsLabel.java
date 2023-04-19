@@ -66,7 +66,7 @@ public class VcsLabel {
   }
 
   @XmlAttribute
-  @ApiModelProperty(allowableValues = "none, set, is being set, failed, disabled for the vcs root, not supported yet for the vcs")
+  @ApiModelProperty(allowableValues = "UNKNOWN, SUCCESSFUL_SET, IS_BEING_SET, FAILED, DISABLED_FOR_THE_ROOT, LABELING_NOT_SUPPORTED")
   public String getStatus() {
     boolean isIncluded = myFields.isIncluded("status", false, true);
     return ValueWithDefault.decideDefault(isIncluded, myRealLabel.getStatus().toString());
