@@ -60,7 +60,9 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
 @XmlRootElement(name = "vcs-root-instance")
 @XmlType(name = "vcs-root-instance", propOrder = {"id", "vcsRootId", "vcsRootInternalId", "name", "vcsName",
   "modificationCheckInterval", "commitHookMode", "lastVersion", "lastVersionInternal", "href",
-  "parent", "status", "repositoryState", "properties", "repositoryIdStrings"})
+  "parent", "status", "repositoryState", "properties", "repositoryIdStrings",
+  "projectLocator" /* never returned. used only for POST */,
+})
 @SuppressWarnings("PublicField")
 @ModelDescription(
     value = "Represents a relation between a VCS root and unique settings set for this root.",

@@ -45,7 +45,9 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "problem")
 @XmlType(name = "problem", propOrder = {"id", "type", "identity", "href",
-  "description"/*experimental*/, "mutes", "investigations", "problemOccurrences"})
+  "description"/*experimental*/, "mutes", "investigations", "problemOccurrences",
+  "locator" /* never returned. used only for POST */,
+})
 @ModelDescription("Represents an issue with the test.")
 public class Problem {
   @XmlAttribute public String id;

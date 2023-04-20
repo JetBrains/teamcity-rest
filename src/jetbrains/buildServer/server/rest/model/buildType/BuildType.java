@@ -80,7 +80,9 @@ import org.jetbrains.annotations.Nullable;
   "links", "project", "templates", "template" /*deprecated*/, "vcsRootEntries", "settings", "parameters", "steps", "features", "triggers", "snapshotDependencies",
   "artifactDependencies", "agentRequirements",
   "branches", "builds", "investigations", "compatibleAgents", "compatibleCloudImages",
-  "vcsRootInstances", "externalStatusAllowed", "pauseComment" /*experimental*/})
+  "vcsRootInstances", "externalStatusAllowed", "pauseComment" /*experimental*/,
+  "locator" /* never returned. used only for POST */,
+})
 @ModelDescription(
     value = "Represents a build configuration.",
     externalArticleLink = "https://www.jetbrains.com/help/teamcity/creating-and-editing-build-configurations.html",

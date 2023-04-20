@@ -71,7 +71,10 @@ import static jetbrains.buildServer.serverSide.impl.projectSources.SmallPatchCac
  */
 @XmlRootElement(name = "vcs-root")
 @XmlType(name = "vcs-root", propOrder = { "id", "internalId", "uuid", "name","vcsName", "modificationCheckInterval", "href",
-  "project", "properties", "vcsRootInstances" , "repositoryIdStrings"})  //todo: add webUrl
+  "project", "properties", "vcsRootInstances" , "repositoryIdStrings",
+  "locator" /* never returned. used only for POST */,
+  "projectLocator" /* never returned. used only for POST */,
+})  //todo: add webUrl
 @SuppressWarnings("PublicField")
 @ModelDescription(
     value = "Represents a VCS root.",

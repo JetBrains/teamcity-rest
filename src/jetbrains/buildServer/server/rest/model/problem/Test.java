@@ -51,7 +51,10 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings("PublicField")
 @XmlRootElement(name = "test")
-@XmlType(name = "test", propOrder = {"id", "name", "mutes", "investigations", "testOccurrences", "parsedTestName"})
+@XmlType(name = "test", propOrder = {"id", "name", "mutes", "investigations", "testOccurrences", "parsedTestName",
+  "href",
+  "locator" /* never returned. used only for POST */,
+})
 @ModelDescription("Represents a test.")
 public class Test {
   @XmlAttribute public String id;

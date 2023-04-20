@@ -79,7 +79,9 @@ import org.jetbrains.annotations.Nullable;
   "storesProjectSettings",
   "status",
   "mergedInfo",
-  "commiter"
+  "commiter",
+  "canEditComment",
+  "locator" /* never returned. used only for POST */,
 })
 @ModelDescription(
     value = "Represents a VCS change (commit).",

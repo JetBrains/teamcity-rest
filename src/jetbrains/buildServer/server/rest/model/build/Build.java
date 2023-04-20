@@ -153,7 +153,8 @@ import org.jetbrains.annotations.Nullable;
     "downloadedArtifacts", /*rf experimental*/
     "parallelized", /*qrf experimental */
     "matrixConfiguration",  /*qrf experimental */
-    "firstBuildWithSameChanges"
+    "firstBuildWithSameChanges",
+    "locator" /* never returned. used only for POST */,
   })
 @ModelDescription("Represents a build instance.")
 public class Build {

@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.model.project;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -62,7 +61,9 @@ import org.jetbrains.annotations.Nullable;
 @XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "virtual", "description",
   "href", "webUrl",
   "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects", "cloudProfiles",
-  "ancestorProjects"})
+  "ancestorProjects",
+  "locator" /* never returned. used only for POST */,
+})
 @SuppressWarnings("PublicField")
 @ModelDescription(
   value = "Represents a project.",

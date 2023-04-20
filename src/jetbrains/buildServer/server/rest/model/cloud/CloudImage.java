@@ -48,10 +48,10 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "cloudImage")
 @XmlType(
   name = "cloudImage",
-  propOrder = {"id", "name", "href", "profile", "instances", "errorMessage", "agentTypeId", "agentPoolId", "operatingSystemName"}
+  propOrder = {"id", "name", "href", "profile", "instances", "errorMessage", "agentTypeId", "agentPoolId", "operatingSystemName",
+    "locator" /* never returned. used only for POST */,
+  }
 )
-
-@SuppressWarnings("PublicField")
 @ModelDescription(
     value = "Represents a cloud instance image saved with a profile.",
     externalArticleLink = "https://www.jetbrains.com/help/teamcity/agent-cloud-profile.html",

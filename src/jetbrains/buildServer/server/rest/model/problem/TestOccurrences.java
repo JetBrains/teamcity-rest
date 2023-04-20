@@ -49,7 +49,8 @@ import org.jetbrains.annotations.Nullable;
   "nextHref",
   "prevHref",
   "items",
-  "testCounters"
+  "testCounters",
+  "ignored", "failed", "passed", "newFailed", "muted"
 })
 @ModelBaseType(ObjectType.PAGINATED)
 public class TestOccurrences {

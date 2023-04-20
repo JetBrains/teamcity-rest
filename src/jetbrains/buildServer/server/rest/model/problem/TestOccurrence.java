@@ -17,17 +17,16 @@
 package jetbrains.buildServer.server.rest.model.problem;
 
 import com.intellij.openapi.diagnostic.Logger;
+import io.swagger.annotations.ApiModelProperty;
 import java.util.ArrayList;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
-import io.swagger.annotations.ApiModelProperty;
 import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.util.FilterItemProcessor;
 import jetbrains.buildServer.server.rest.data.util.PagingItemFilter;
-import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -35,11 +34,11 @@ import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.server.rest.request.TestOccurrenceRequest;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldStrategy;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldRule;
-import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldStrategySupported;
 import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldInclusionChecker;
+import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldRule;
+import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldStrategy;
+import jetbrains.buildServer.server.rest.util.fieldInclusion.FieldStrategySupported;
 import jetbrains.buildServer.serverSide.MultiTestRun;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.STestRun;
@@ -57,7 +56,9 @@ import static jetbrains.buildServer.serverSide.BuildStatisticsOptions.ALL_TESTS_
 @XmlRootElement(name = "testOccurrence")
 @XmlType(name = "testOccurrence", propOrder = {"id", "name", "status", "ignored", "duration", "runOrder"/*experimental*/, "newFailure"/*experimental*/, "muted", "currentlyMuted", "currentlyInvestigated",
   "href",
-  "ignoreDetails", "details", "test", "mute", "build", "firstFailed", "nextFixed", "invocations", "metadata"})
+  "ignoreDetails", "details", "test", "mute", "build", "firstFailed", "nextFixed", "invocations", "metadata",
+  "logAnchor",
+})
 @ModelDescription("Represents a relation between a test and the specific build.")
 @FieldStrategySupported
 public class TestOccurrence {

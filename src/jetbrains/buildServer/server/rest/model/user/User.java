@@ -55,7 +55,9 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "user")
 @XmlType(name = "user", propOrder = {"username", "name", "id", "email", "lastLogin", "password", "hasPassword", "realm" /*obsolete*/, "href",
   "properties", "roles", "groups",
-  "locator"/*only when triggering*/, "avatars"})
+  "locator"/*only when triggering*/, "avatars",
+  "enabled2FA"
+})
 @ModelDescription(
     value = "Represents a user.",
     externalArticleLink = "https://www.jetbrains.com/help/teamcity/user-account.html",
