@@ -64,6 +64,7 @@ public class TwoFactorRequest {
     try {
       myKeysUpdater.confirmCredentials(myUserFinder.getCurrentUser(), UUID.fromString(uuid), password);
       TwoFactorAuthUtil.setTwoFactorCompletion(request);  // TODO: attempt to prevent instant kick after enabled 2FA without context request
+      TwoFactorAuthUtil.saveSensitiveSettingsEntryTime(request);  // TW-80499
     } catch (TwoFactorConfirmationException e) {
       throw new BadRequestException(e.getMessage());
     }
