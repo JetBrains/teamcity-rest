@@ -44,7 +44,7 @@ import static org.testng.AssertJUnit.fail;
  * This class is a replacement for static analysis tool.
  * Tests in this class go through all model classes via reflection and verify if the class sctructure is valid.
  */
-public class RenameMeModelsStaticAnalysisTest {
+public class ModelsStaticAnalysisTest {
 
   private List<Class<?>> modelTypes;
 
@@ -55,10 +55,6 @@ public class RenameMeModelsStaticAnalysisTest {
       || cl.isAnnotationPresent(ModelBaseType.class)
       || cl.isAnnotationPresent(XmlRootElement.class)
     );
-  }
-
-  @Test
-  public void testDummyTest() {
   }
 
   @DataProvider(name= "modelTypes")

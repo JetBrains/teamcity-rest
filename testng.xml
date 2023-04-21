@@ -67,7 +67,7 @@
       <class name="jetbrains.buildServer.server.rest.model.AgentTest"/>
       <class name="jetbrains.buildServer.server.rest.model.PagerDataImplTest"/>
       <class name="jetbrains.buildServer.server.rest.model.PropertiesTest"/>
-      <class name="jetbrains.buildServer.server.rest.model.RenameMeModelsStaticAnalysisTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.ModelsStaticAnalysisTest"/>
     </classes>
   </test>
   <test name="GraphQL API Test" preserve-order="false">
