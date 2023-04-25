@@ -17,7 +17,7 @@
 package jetbrains.buildServer.server.rest.model.buildType;
 
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -31,10 +31,10 @@ public interface PropEntityEdit<T> {
    * otherwise the settings is added.
    */
   @NotNull
-  T addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator);
+  T addTo(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ServiceLocator serviceLocator);
 
   @NotNull
-  T replaceIn(@NotNull final BuildTypeSettingsEx buildType, @NotNull final T entityToReplace, @NotNull final ServiceLocator serviceLocator);
+  T replaceIn(@NotNull final BuildTypeOrTemplate buildType, @NotNull final T entityToReplace, @NotNull final ServiceLocator serviceLocator);
   //todo: currently, snapshot deps and agent requirements consider "inherited" attribute on replacemnt (can skip adding if there is alike entity in the template) and others don't - might need unifying
 
 //  static void removeFrom(@NotNull final BuildTypeSettings buildType, @NotNull final T entity);

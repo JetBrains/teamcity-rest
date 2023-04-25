@@ -21,11 +21,13 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildFeatureDescriptorFactory;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -50,7 +52,7 @@ public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBui
   }
 
   @NotNull
-  public SBuildFeatureDescriptor addToInternal(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+  public SBuildFeatureDescriptor addToInternalUnsafe(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     SBuildFeatureDescriptor result = addToInternalMain(buildType, serviceLocator);
     if (disabled != null) {
       buildType.setEnabled(result.getId(), !disabled);
@@ -59,7 +61,7 @@ public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBui
   }
 
   @NotNull
-  public SBuildFeatureDescriptor addToInternalMain(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+  private SBuildFeatureDescriptor addToInternalMain(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created build feature cannot have empty 'type'.");
     }
@@ -120,35 +122,44 @@ public class PropEntityFeature extends PropEntity implements PropEntityEdit<SBui
 
   @NotNull
   @Override
-  public SBuildFeatureDescriptor addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
-    PropEntitiesFeature.Storage original = new PropEntitiesFeature.Storage(buildType);
+  public SBuildFeatureDescriptor addTo(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
+
+    PropEntitiesFeature.Storage original = new PropEntitiesFeature.Storage(settings);
     try {
-      return addToInternal(buildType, serviceLocator);
+      return addToInternalUnsafe(settings, serviceLocator);
     } catch (Exception e) {
-      original.apply(buildType);
+      original.apply(settings);
       throw e;
     }
   }
 
   @NotNull
   @Override
-  public SBuildFeatureDescriptor replaceIn(@NotNull final BuildTypeSettingsEx buildType,
+  public SBuildFeatureDescriptor replaceIn(@NotNull final BuildTypeOrTemplate buildType,
                                            @NotNull final SBuildFeatureDescriptor feature,
                                            @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build feature cannot have empty 'type'.");
     }
-    if (properties != null && !buildType.updateBuildFeature(feature.getId(), type, properties.getMap())) {
+
+    if (properties != null && !settings.updateBuildFeature(feature.getId(), type, properties.getMap())) {
       throw new InvalidStateException("Update failed");
     }
     if (disabled != null) {
-      buildType.setEnabled(feature.getId(), !disabled);
+      settings.setEnabled(feature.getId(), !disabled);
     }
-    return BuildTypeUtil.getBuildTypeFeatureOrNull(buildType, feature.getId());
+    return BuildTypeUtil.getBuildTypeFeatureOrNull(settings, feature.getId());
   }
 
-  public static void removeFrom(final BuildTypeSettings buildType, final SBuildFeatureDescriptor feature) {
-    buildType.removeBuildFeature(feature.getId());
+  public static void removeFrom(final BuildTypeOrTemplate buildType, final SBuildFeatureDescriptor feature, final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
+
+    settings.removeBuildFeature(feature.getId());
   }
 
   private String getDetails(final BuildTypeSettings buildType, final SBuildFeatureDescriptor newBuildFeature, final Exception e) {

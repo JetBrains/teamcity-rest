@@ -16,14 +16,14 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.DefaultValueAware;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
@@ -116,7 +116,10 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
   /**
    * @return true if buildTypeSettings is modified
    */
-  public boolean setToBuildType(final @NotNull BuildTypeSettingsEx buildTypeSettings, final @NotNull ServiceLocator serviceLocator) {
+  public boolean setToBuildType(final @NotNull BuildTypeOrTemplate target, final @NotNull ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(target);
+    BuildTypeSettingsEx buildTypeSettings = target.getSettingsEx();
+
     PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(buildTypeSettings);
     try {
       List<SArtifactDependency> deps = new ArrayList<>();
@@ -135,12 +138,12 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
       return true; // cannot actually determine if modified or not
     } catch (Exception e) {
       //restore previous state
-      original.apply(buildTypeSettings);
+      original.applyUnsafe(buildTypeSettings);
       throw new BadRequestException("Error setting artifact dependencies", e);
     }
   }
 
-  public static class Storage{
+  public static class Storage {
     public final List<SArtifactDependency> deps = new ArrayList<>();
     public final Map<String, Boolean> enabledData = new HashMap<>();
 
@@ -151,7 +154,12 @@ public class PropEntitiesArtifactDep implements DefaultValueAware {
       }
     }
 
-    public void apply(final @NotNull BuildTypeSettings buildTypeSettings){
+    /**
+     * <b>Does not check if current user can edit given settings!</b>
+     * <br/>
+     * Apply stored artifact dependencies (including enabled/disabled state) to given buildTypeSettings.
+     */
+    void applyUnsafe(final @NotNull BuildTypeSettings buildTypeSettings) {
       buildTypeSettings.setArtifactDependencies(deps);
       for (Map.Entry<String, Boolean> entry : enabledData.entrySet()) {
         buildTypeSettings.setEnabled(entry.getKey(), entry.getValue());

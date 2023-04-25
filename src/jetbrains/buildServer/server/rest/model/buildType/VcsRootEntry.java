@@ -21,7 +21,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -32,6 +33,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.InvalidVcsRootScopeException;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -82,18 +84,22 @@ public class VcsRootEntry {
 
   //see also PropEntityEdit
   @NotNull
-  public SVcsRoot addTo(@NotNull final BuildTypeSettings buildType, @NotNull final VcsRootFinder vcsRootFinder) {
-    VcsRootEntries.Storage original = new VcsRootEntries.Storage(buildType);
+  public SVcsRoot addTo(@NotNull final BuildTypeOrTemplate buildType, @NotNull final VcsRootFinder vcsRootFinder, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx buildTypeSettings = buildType.getSettingsEx();
+
+    VcsRootEntries.Storage original = new VcsRootEntries.Storage(buildTypeSettings);
     try {
-      return addToInternal(buildType, vcsRootFinder);    } catch (Exception e) {
+      return addToInternalUnsafe(buildTypeSettings, vcsRootFinder);
+    } catch (Exception e) {
       //restore original settings
-      original.apply(buildType);
+      original.applyUnsafe(buildTypeSettings);
       throw new BadRequestException("Error replacing items", e);
     }
   }
 
   @NotNull
-  public SVcsRoot addToInternal(@NotNull final BuildTypeSettings buildType, @NotNull final VcsRootFinder vcsRootFinder) {
+  public SVcsRoot addToInternalUnsafe(@NotNull final BuildTypeSettings buildType, @NotNull final VcsRootFinder vcsRootFinder) {
     if (vcsRoot == null){
       throw new BadRequestException("Element vcs-root should be specified.");
     }
@@ -109,15 +115,19 @@ public class VcsRootEntry {
   }
 
   @NotNull
-  public SVcsRoot replaceIn(@NotNull final BuildTypeSettings buildType, @NotNull final SVcsRoot entityToReplace, @NotNull final VcsRootFinder vcsRootFinder){
-    if (!buildType.containsVcsRoot(entityToReplace.getId())) {
+  public SVcsRoot replaceIn(@NotNull final BuildTypeOrTemplate buildType, @NotNull final SVcsRoot entityToReplace, @NotNull final VcsRootFinder vcsRootFinder, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx buildTypeSettings = buildType.getSettingsEx();
+
+    if (!buildTypeSettings.containsVcsRoot(entityToReplace.getId())) {
       throw new NotFoundException("VCS root with id '" + entityToReplace.getExternalId() + "' is not attached to the build type.");
     }
     if (vcsRoot == null){
       throw new BadRequestException("No VCS root is specified in the entry description.");
     }
-    buildType.removeVcsRoot(entityToReplace);
-    return addToInternal(buildType, vcsRootFinder);
+
+    buildTypeSettings.removeVcsRoot(entityToReplace);
+    return addToInternalUnsafe(buildTypeSettings, vcsRootFinder);
   }
 }
 

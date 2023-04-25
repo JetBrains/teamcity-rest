@@ -16,10 +16,7 @@
 
 package jetbrains.buildServer.server.rest.request;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.requirements.Requirement;
@@ -29,6 +26,7 @@ import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.model.*;
+import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.model.buildType.*;
 import jetbrains.buildServer.server.rest.model.change.VcsRoot;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -54,7 +52,7 @@ import static jetbrains.buildServer.util.Util.map;
  * @author Yegor.Yarko
  *         Date: 01/04/2016
  */
-public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
+public class BuildTypeRequestTest extends BaseFinderTest<BuildTypeOrTemplate> {
   private BuildTypeRequest myBuildTypeRequest;
 
   @Override
@@ -88,57 +86,31 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       p10.value = null;
       submitted.properties = Arrays.asList(p10);
 
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(submitted, "$long");
-        }
-      }, null);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(submitted, "$long"), null);
 
       assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
       assertEquals(3, buildType1.getParameters().size());
     }
 
-    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
-      private int myTriggerOnCall = 1;
-
-      @Override
-      public void textValueChanged() {
-        if (--myTriggerOnCall == 0) {
-          throw new RuntimeException("I need error here ");
-        }
-      }
-    });
+    buildType1.getSettings().addListener(new TextValueChangedListener());
 
     {
       Properties submitted = new Properties();
       submitted.properties = Arrays.asList(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture));
 
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(submitted, "$long");
-        }
-      }, null);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(submitted, "$long"), null);
 
       assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
       assertEquals(3, buildType1.getParameters().size());
     }
 
-    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
-      private int myTriggerOnCall = 1;
+    buildType1.getSettings().addListener(new TextValueChangedListener());
 
-      @Override
-      public void textValueChanged() {
-        if (--myTriggerOnCall == 0) {
-          throw new RuntimeException("I need error here ");
-        }
-      }
-    });
-
-    checkException(RuntimeException.class, new Runnable() {
-      public void run() {
-        myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture), "$long");
-      }
-    }, null);
+    checkException(
+      RuntimeException.class,
+      () -> myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture), "$long"),
+      null
+    );
 
     assertEquals(3, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
     assertEquals(3, buildType1.getParameters().size());
@@ -195,16 +167,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     assertEquals(4, myBuildTypeRequest.getParametersSubResource(btLocator).getParameters(null, "$long,property($long)").properties.size());
     assertEquals(3, myBuildTypeRequest.getParametersSubResource(templateLocator).getParameters(null, "$long,property($long)").properties.size());
 
-    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
-      private int myTriggerOnCall = 1;
-
-      @Override
-      public void textValueChanged() {
-        if (--myTriggerOnCall == 0) {
-          throw new RuntimeException("I need error here ");
-        }
-      }
-    });
+    buildType1.getSettings().addListener(new TextValueChangedListener());
 
     assertEquals(3, buildType1.getOwnParameters().size());
 
@@ -212,11 +175,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       Properties submitted = new Properties();
       submitted.properties = Arrays.asList(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture));
 
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(submitted, "$long");
-        }
-      }, null);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(submitted, "$long"), null);
 
       assertEquals(4, buildType1.getParameters().size());
       assertEquals(3, buildType1.getOwnParameters().size());
@@ -237,33 +196,20 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       Properties submitted = new Properties();
       submitted.properties = Arrays.asList(new Property(new SimpleParameter("t1", "new"), false, Fields.LONG, myFixture));
 
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(submitted, "$long");
-        }
-      }, null);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.getParametersSubResource(btLocator).setParameters(submitted, "$long"), null);
 
       assertEquals(4, buildType1.getParameters().size());
       assertEquals(3, buildType1.getOwnParameters().size());
     }
 
-    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
-      private int myTriggerOnCall = 1;
-
-      @Override
-      public void textValueChanged() {
-        if (--myTriggerOnCall == 0) {
-          throw new RuntimeException("I need error here ");
-        }
-      }
-    });
+    buildType1.getSettings().addListener(new TextValueChangedListener());
 
     {
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("t1", "new"), false, Fields.LONG, myFixture), "$long");
-        }
-      }, null);
+      checkException(
+        BadRequestException.class,
+        () -> myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("t1", "new"), false, Fields.LONG, myFixture), "$long"),
+        null
+      );
 
       assertEquals(4, buildType1.getParameters().size());
       assertEquals(3, buildType1.getOwnParameters().size());
@@ -284,22 +230,13 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       buildType1.removeParameter("t1");
     }
 
-    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
-      private int myTriggerOnCall = 1;
+    buildType1.getSettings().addListener(new TextValueChangedListener());
 
-      @Override
-      public void textValueChanged() {
-        if (--myTriggerOnCall == 0) {
-          throw new RuntimeException("I need error here ");
-        }
-      }
-    });
-
-    checkException(RuntimeException.class, new Runnable() {
-      public void run() {
-        myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture), "$long");
-      }
-    }, null);
+    checkException(
+      RuntimeException.class,
+      () -> myBuildTypeRequest.getParametersSubResource(btLocator).setParameter(new Property(new SimpleParameter("n1", "v1"), false, Fields.LONG, myFixture), "$long"),
+      null
+    );
 
     assertEquals(4, buildType1.getParameters().size());
     assertEquals(3, buildType1.getOwnParameters().size());
@@ -392,11 +329,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted2.type = "b";
       submitted.propEntities = Arrays.asList(submitted1, submitted2);
 
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.replaceSteps(btLocator, "$long", submitted);
-        }
-      }, null);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.replaceSteps(btLocator, "$long", submitted), null);
 
       assertEquals(3, myBuildTypeRequest.getSteps(btLocator, "$long,step($long)").propEntities.size());
       assertEquals(3, buildType1.getBuildRunners().size());
@@ -418,11 +351,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       PropEntityStep submitted = new PropEntityStep();
       submitted.type = "a";
 
-      checkException(RuntimeException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.addStep(btLocator, "$long", submitted);
-        }
-      }, null);
+      checkException(RuntimeException.class, () -> myBuildTypeRequest.addStep(btLocator, "$long", submitted), null);
 
       assertEquals(3, myBuildTypeRequest.getSteps(btLocator, "$long,step($long)").propEntities.size());
       assertEquals(3, buildType1.getBuildRunners().size());
@@ -504,16 +433,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     }
 
 
-    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
-      private int myTriggerOnCall = 1;
-
-      @Override
-      public void afterAddVcsRoot(@NotNull final SVcsRoot vcsRoot) {
-        if (--myTriggerOnCall == 0) {
-          throw new RuntimeException("I need error here ");
-        }
-      }
-    });
+    buildType1.getSettings().addListener(new AfterAddVcsRootListener());
 
     {
       VcsRootEntries submitted = new VcsRootEntries();
@@ -522,37 +442,20 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted1.vcsRoot.id = newRootId;
       submitted.vcsRootAssignments = Arrays.asList(submitted1);
 
-      checkException(RuntimeException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.replaceVcsRootEntries(btLocator, submitted, "$long");
-        }
-      }, null);
+      checkException(RuntimeException.class, () -> myBuildTypeRequest.replaceVcsRootEntries(btLocator, submitted, "$long"), null);
 
       assertEquals(3, myBuildTypeRequest.getVcsRootEntries(btLocator, "$long,vcs-root-entry($long)").vcsRootAssignments.size());
       assertEquals(3, buildType1.getVcsRootEntries().size());
     }
 
-    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
-      private int myTriggerOnCall = 1;
-
-      @Override
-      public void afterAddVcsRoot(@NotNull final SVcsRoot vcsRoot) {
-        if (--myTriggerOnCall == 0) {
-          throw new RuntimeException("I need error here ");
-        }
-      }
-    });
+    buildType1.getSettings().addListener(new AfterAddVcsRootListener());
 
     {
       VcsRootEntry submitted = new VcsRootEntry();
       submitted.vcsRoot = new VcsRoot();
       submitted.vcsRoot.id = newRootId;
 
-      checkException(RuntimeException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.addVcsRootEntry(btLocator, submitted, "$long");
-        }
-      }, null);
+      checkException(RuntimeException.class, () -> myBuildTypeRequest.addVcsRootEntry(btLocator, submitted, "$long"), null);
 
       assertEquals(3, myBuildTypeRequest.getVcsRootEntries(btLocator, "$long,vcs-root-entry($long)").vcsRootAssignments.size());
       assertEquals(3, buildType1.getVcsRootEntries().size());
@@ -597,37 +500,20 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted2.type = buildFeature.getType();
       submitted.propEntities = Arrays.asList(submitted1, submitted2); // two features of the type with isMultipleFeaturesPerBuildTypeAllowed==false will produce error on adding
 
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.replaceFeatures(btLocator, "$long", submitted);
-        }
-      }, null);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.replaceFeatures(btLocator, "$long", submitted), null);
 
       assertEquals(3, myBuildTypeRequest.getFeatures(btLocator, "$long,feature($long)").propEntities.size());
       assertEquals(3, buildType1.getBuildFeatures().size());
       assertFalse(buildType1.isEnabled(disabledFeatureId));
     }
 
-    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
-      private int myTriggerOnCall = 1;
-
-      @Override
-      public void textValueChanged() {
-        if (--myTriggerOnCall == 0) {
-          throw new RuntimeException("I need error here ");
-        }
-      }
-    });
+    buildType1.getSettings().addListener(new TextValueChangedListener());
 
     {
       PropEntityFeature submitted = new PropEntityFeature();
       submitted.type = buildFeature.getType();
 
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.addFeature(btLocator, "$long", submitted);
-        }
-      }, null);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.addFeature(btLocator, "$long", submitted), null);
 
       assertEquals(3, myBuildTypeRequest.getFeatures(btLocator, "$long,feature($long)").propEntities.size());
       assertEquals(3, buildType1.getBuildFeatures().size());
@@ -658,17 +544,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       assertEquals(3, myBuildTypeRequest.getTriggers(btLocator, "$long,trigger($long)").propEntities.size());
     }
 
-    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
-      private boolean myAlreadyThrown = false;
-
-      @Override
-      public void afterAddBuildTrigger(@NotNull final BuildTriggerDescriptor btd) {
-        if (!myAlreadyThrown) {
-          myAlreadyThrown = true;
-          throw new RuntimeException("I need error here ");
-        }
-      }
-    });
+    buildType1.getSettings().addListener(new AfterAddBuildTriggerListener());
 
     {
       PropEntitiesTrigger submitted = new PropEntitiesTrigger();
@@ -678,38 +554,20 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted2.type = "triggerType1";
       submitted.propEntities = Arrays.asList(submitted1, submitted2);
 
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.replaceTriggers(btLocator, "$long", submitted);
-        }
-      }, null);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.replaceTriggers(btLocator, "$long", submitted), null);
 
       assertEquals(3, myBuildTypeRequest.getTriggers(btLocator, "$long,trigger($long)").propEntities.size());
       assertEquals(3, buildType1.getBuildTriggersCollection().size());
       assertFalse(buildType1.isEnabled(disabledTriggerId));
     }
 
-    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
-      private boolean myAlreadyThrown = false;
-
-      @Override
-      public void afterAddBuildTrigger(@NotNull final BuildTriggerDescriptor btd) {
-        if (!myAlreadyThrown) {
-          myAlreadyThrown = true;
-          throw new RuntimeException("I need error here ");
-        }
-      }
-    });
+    buildType1.getSettings().addListener(new AfterAddBuildTriggerListener());
 
     {
       PropEntityTrigger submitted = new PropEntityTrigger();
       submitted.type = "triggerType1";
 
-      checkException(RuntimeException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.addTrigger(btLocator, "$long", submitted);
-        }
-      }, null);
+      checkException(RuntimeException.class, () -> myBuildTypeRequest.addTrigger(btLocator, "$long", submitted), null);
 
       assertEquals(3, myBuildTypeRequest.getTriggers(btLocator, "$long,trigger($long)").propEntities.size());
       assertEquals(3, buildType1.getBuildTriggersCollection().size());
@@ -753,11 +611,9 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted2.type = "agentRequirementType1";
       submitted.propEntities = Arrays.asList(submitted1, submitted2);
 
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.replaceAgentRequirements(btLocator, "$long",
-                                                    submitted); // error will be reported: BadRequestException: No name is specified. Make sure 'property-name' property is present and has not empty value
-        }
+      checkException(BadRequestException.class, () -> {
+        // error will be reported: BadRequestException: No name is specified. Make sure 'property-name' property is present and has not empty value
+        myBuildTypeRequest.replaceAgentRequirements(btLocator, "$long", submitted);
       }, null);
 
       assertEquals(3, myBuildTypeRequest.getAgentRequirements(btLocator, "$long,agent-requirement($long)").propEntities.size());
@@ -768,11 +624,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
     {
       PropEntityAgentRequirement submitted = new PropEntityAgentRequirement();
       submitted.type = "agentRequirementType1";
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.addAgentRequirement(btLocator, "$long", submitted);
-        }
-      }, null);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.addAgentRequirement(btLocator, "$long", submitted), null);
 
       assertEquals(3, myBuildTypeRequest.getAgentRequirements(btLocator, "$long,agent-requirement($long)").propEntities.size());
       assertEquals(3, buildType1.getRequirements().size());
@@ -816,17 +668,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       assertEquals(3, myBuildTypeRequest.getArtifactDeps(btLocator, "$long,artifact-dependencies($long)").propEntities.size());
     }
 
-    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
-      private boolean myAlreadyThrown = false;
-
-      @Override
-      public void textValueChanged() {
-        if (!myAlreadyThrown) {
-          myAlreadyThrown = true;
-          throw new RuntimeException("I need error here ");
-        }
-      }
-    });
+    buildType1.getSettings().addListener(new TextValueChangedListener());
 
     {
       PropEntitiesArtifactDep submitted = new PropEntitiesArtifactDep();
@@ -840,28 +682,14 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
                                                        new Property(new SimpleParameter("pathRules", "aaa"), false, Fields.LONG, myFixture));
       submitted.propEntities = Arrays.asList(submitted1);
 
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.replaceArtifactDeps(btLocator, "$long", submitted);
-        }
-      }, null);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.replaceArtifactDeps(btLocator, "$long", submitted), null);
 
       assertEquals(3, myBuildTypeRequest.getArtifactDeps(btLocator, "$long,artifact-dependencies($long)").propEntities.size());
       assertEquals(3, buildType1.getArtifactDependencies().size());
       assertFalse(buildType1.isEnabled(disabledId));
     }
 
-    buildType1.getSettings().addListener(new BuildTypeSettingsAdapter() {
-      private boolean myAlreadyThrown = false;
-
-      @Override
-      public void textValueChanged() {
-        if (!myAlreadyThrown) {
-          myAlreadyThrown = true;
-          throw new RuntimeException("I need error here ");
-        }
-      }
-    });
+    buildType1.getSettings().addListener(new TextValueChangedListener());
 
     {
       PropEntityArtifactDep submitted = new PropEntityArtifactDep();
@@ -872,12 +700,8 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted.properties.properties = Arrays.asList(new Property(new SimpleParameter("revisionName", "aaa"), false, Fields.LONG, myFixture),
                                                       new Property(new SimpleParameter("revisionValue", "aaa"), false, Fields.LONG, myFixture),
                                                       new Property(new SimpleParameter("pathRules", "aaa"), false, Fields.LONG, myFixture));
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.addArtifactDep(btLocator, "$long", submitted);
-        }
-      }, null);
 
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.addArtifactDep(btLocator, "$long", submitted), null);
       assertEquals(3, myBuildTypeRequest.getArtifactDeps(btLocator, "$long,artifact-dependencies($long)").propEntities.size());
       assertEquals(3, buildType1.getArtifactDependencies().size());
       assertFalse(buildType1.isEnabled(disabledId));
@@ -922,11 +746,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted1.sourceBuildType.setId(buildType1.getExternalId());
       submitted.propEntities = Arrays.asList(submitted1);
 
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.replaceSnapshotDeps(btLocator, "$long", submitted);
-        }
-      }, null);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.replaceSnapshotDeps(btLocator, "$long", submitted), null);
 
       assertNotNull(myBuildTypeRequest.getSnapshotDeps(btLocator, "$long,snapshot-dependencies($long)").propEntities);
       assertEquals(3, myBuildTypeRequest.getSnapshotDeps(btLocator, "$long,snapshot-dependencies($long)").propEntities.size());
@@ -939,11 +759,7 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
       submitted.sourceBuildType = new BuildType();
       submitted.sourceBuildType.setId(buildType1.getExternalId());
 
-      checkException(BadRequestException.class, new Runnable() {
-        public void run() {
-          myBuildTypeRequest.addSnapshotDep(btLocator, "$long", submitted);
-        }
-      }, null);
+      checkException(BadRequestException.class, () -> myBuildTypeRequest.addSnapshotDep(btLocator, "$long", submitted), null);
 
       assertNotNull(myBuildTypeRequest.getSnapshotDeps(btLocator, "$long,snapshot-dependencies($long)").propEntities);
       assertEquals(3, myBuildTypeRequest.getSnapshotDeps(btLocator, "$long,snapshot-dependencies($long)").propEntities.size());
@@ -1410,4 +1226,38 @@ public class BuildTypeRequestTest extends  BaseFinderTest<BuildTypeOrTemplate> {
   }
 
   protected static final BuildTest.EqualsTest<Property, Property> PROPERTY_EQUALS = (o1, o2) -> o1.equals(o2);
+
+  private static class TextValueChangedListener extends BuildTypeSettingsAdapter {
+    private int myTriggerOnCall = 1;
+
+    @Override
+    public void textValueChanged() {
+      if (--myTriggerOnCall == 0) {
+        throw new RuntimeException("I need error here ");
+      }
+    }
+  }
+
+  private static class AfterAddVcsRootListener extends BuildTypeSettingsAdapter {
+    private int myTriggerOnCall = 1;
+
+    @Override
+    public void afterAddVcsRoot(@NotNull final SVcsRoot vcsRoot) {
+      if (--myTriggerOnCall == 0) {
+        throw new RuntimeException("I need error here ");
+      }
+    }
+  }
+
+  private static class AfterAddBuildTriggerListener extends BuildTypeSettingsAdapter {
+    private boolean myAlreadyThrown = false;
+
+    @Override
+    public void afterAddBuildTrigger(@NotNull final BuildTriggerDescriptor btd) {
+      if (!myAlreadyThrown) {
+        myAlreadyThrown = true;
+        throw new RuntimeException("I need error here ");
+      }
+    }
+  }
 }

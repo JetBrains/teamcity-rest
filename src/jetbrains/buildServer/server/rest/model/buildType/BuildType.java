@@ -1002,37 +1002,38 @@ public class BuildType {
       buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getBuildType().attachToTemplate(templateFromPosted.getTemplate());
     }
 
-    BuildTypeSettingsEx buildTypeSettings = buildTypeOrTemplatePatcher.getBuildTypeOrTemplate().getSettingsEx();
+    BuildTypeOrTemplate buildTypeOrTemplate = buildTypeOrTemplatePatcher.getBuildTypeOrTemplate();
+    BuildTypeSettingsEx buildTypeSettings = buildTypeOrTemplate.getSettingsEx();
     if (submittedParams.vcsRootEntries != null) {
-      boolean updated = submittedParams.vcsRootEntries.setToBuildType(buildTypeSettings, serviceLocator);
+      boolean updated = submittedParams.vcsRootEntries.setToBuildType(buildTypeOrTemplate, serviceLocator);
       result = result || updated;
     }
     if (submittedParams.parameters != null) {
-      boolean updated = submittedParams.parameters.setTo(buildTypeOrTemplatePatcher.getBuildTypeOrTemplate(), serviceLocator);
+      boolean updated = submittedParams.parameters.setTo(buildTypeOrTemplate, serviceLocator);
       result = result || updated;
     }
     if (submittedParams.steps != null) {
-      boolean updated = submittedParams.steps.setToBuildType(buildTypeSettings, serviceLocator);
+      boolean updated = submittedParams.steps.setToBuildType(buildTypeOrTemplate, serviceLocator);
       result = result || updated;
     }
     if (submittedParams.features != null) {
-      boolean updated = submittedParams.features.setToBuildType(buildTypeSettings, serviceLocator);
+      boolean updated = submittedParams.features.setToBuildType(buildTypeOrTemplate, serviceLocator);
       result = result || updated;
     }
     if (submittedParams.triggers != null) {
-      boolean updated = submittedParams.triggers.setToBuildType(buildTypeSettings, serviceLocator);
+      boolean updated = submittedParams.triggers.setToBuildType(buildTypeOrTemplate, serviceLocator);
       result = result || updated;
     }
     if (submittedParams.snapshotDependencies != null) {
-      boolean updated = submittedParams.snapshotDependencies.setToBuildType(buildTypeSettings, serviceLocator);
+      boolean updated = submittedParams.snapshotDependencies.setToBuildType(buildTypeOrTemplate, serviceLocator);
       result = result || updated;
     }
     if (submittedParams.artifactDependencies != null) {
-      boolean updated = submittedParams.artifactDependencies.setToBuildType(buildTypeSettings, serviceLocator);
+      boolean updated = submittedParams.artifactDependencies.setToBuildType(buildTypeOrTemplate, serviceLocator);
       result = result || updated;
     }
     if (submittedParams.agentRequirements != null) {
-      boolean updated = submittedParams.agentRequirements.setToBuildType(buildTypeSettings, serviceLocator);
+      boolean updated = submittedParams.agentRequirements.setToBuildType(buildTypeOrTemplate, serviceLocator);
       result = result || updated;
     }
     if (submittedParams.settings != null && submittedParams.settings.properties != null) {
@@ -1055,6 +1056,8 @@ public class BuildType {
         String newValue = TypedFinderBuilder.getEnumValue(submittedParams.type, BuildTypeOptions.BuildConfigurationType.class).name();
         modified = !previousValue.equalsIgnoreCase(newValue);
         if (modified) {
+          serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildTypeOrTemplate);
+
           buildTypeSettings.setOption(BuildTypeOptions.BT_BUILD_CONFIGURATION_TYPE, newValue);
         }
       } catch (IllegalArgumentException e) {

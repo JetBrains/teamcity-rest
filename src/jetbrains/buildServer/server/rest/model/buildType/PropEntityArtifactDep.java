@@ -25,6 +25,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.artifacts.RevisionRule;
 import jetbrains.buildServer.artifacts.RevisionRules;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -34,6 +35,7 @@ import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
+import jetbrains.buildServer.serverSide.auth.AccessChecker;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -129,22 +131,25 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
 
   @NotNull
   @Override
-  public SArtifactDependency addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
-    PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(buildType);
+  public SArtifactDependency addTo(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settingsEx = buildType.getSettingsEx();
+
+    PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(settingsEx);
     try {
-      final List<SArtifactDependency> dependencies = new ArrayList<SArtifactDependency>(buildType.getArtifactDependencies());
-      SArtifactDependency result = addToInternal(buildType, serviceLocator);
+      final List<SArtifactDependency> dependencies = new ArrayList<SArtifactDependency>(settingsEx.getArtifactDependencies());
+      SArtifactDependency result = addToInternal(settingsEx, serviceLocator);
       dependencies.add(result);
-      buildType.setArtifactDependencies(dependencies); //todo: use  buildType.addArtifactDependency, see TW-45262
+      settingsEx.setArtifactDependencies(dependencies); //todo: use  buildType.addArtifactDependency, see TW-45262
       return result;
     } catch (Exception e) {
-      original.apply(buildType);
+      original.applyUnsafe(settingsEx);
       throw new BadRequestException("Error adding artifact dependency: " + e.toString(), e);
     }
   }
 
   @NotNull
-  public SArtifactDependency addToInternal(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+  private SArtifactDependency addToInternal(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     SArtifactDependency result = addToInternalMain(buildType, serviceLocator);
     if (disabled != null) {
       buildType.setEnabled(result.getId(), !disabled);
@@ -192,10 +197,13 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
 
   @NotNull
   @Override
-  public SArtifactDependency replaceIn(@NotNull final BuildTypeSettingsEx buildType, @NotNull final SArtifactDependency originalDep, @NotNull final ServiceLocator serviceLocator) {
+  public SArtifactDependency replaceIn(@NotNull final BuildTypeOrTemplate buildType, @NotNull final SArtifactDependency originalDep, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
+
     final SArtifactDependency newDependency = createDependency(null, serviceLocator);
 
-    PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(buildType);
+    PropEntitiesArtifactDep.Storage original = new PropEntitiesArtifactDep.Storage(settings);
     final List<SArtifactDependency> newDependencies = new ArrayList<>(original.deps.size());
     for (SArtifactDependency currentDependency : original.deps) {
       if (currentDependency.equals(originalDep)) {
@@ -205,22 +213,25 @@ public class PropEntityArtifactDep extends PropEntity implements PropEntityEdit<
       }
     }
     try {
-      buildType.setArtifactDependencies(newDependencies);
-      buildType.setEnabled(newDependency.getId(), disabled == null || !disabled);
+      settings.setArtifactDependencies(newDependencies);
+      settings.setEnabled(newDependency.getId(), disabled == null || !disabled);
     } catch (Exception e) {
       //restore
-      original.apply(buildType);
+      original.applyUnsafe(settings);
       throw new BadRequestException("Error updating artifact dependencies: " + e.toString(), e);
     }
     return newDependency;
   }
 
-  public static void removeFrom(@NotNull final BuildTypeSettings buildType, @NotNull final SArtifactDependency artifactDependency) {
-    final List<SArtifactDependency> dependencies = buildType.getArtifactDependencies();
+  public static void removeFrom(@NotNull final BuildTypeOrTemplate buildType, @NotNull final SArtifactDependency artifactDependency, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
+
+    final List<SArtifactDependency> dependencies = settings.getArtifactDependencies();
     if (!dependencies.remove(artifactDependency)) {
       throw new NotFoundException("Specified artifact dependency is not found in the build type.");
     }
-    buildType.setArtifactDependencies(dependencies);
+    settings.setArtifactDependencies(dependencies);
   }
 
   @NotNull

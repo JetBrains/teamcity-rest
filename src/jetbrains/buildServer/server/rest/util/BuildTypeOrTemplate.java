@@ -202,12 +202,14 @@ public class BuildTypeOrTemplate implements Loggable {
     if ("id".equals(field)) {
       if (value != null){
         myBuildTypeIdentity.setExternalId(value);
-      }else{
+      } else {
         throw new BadRequestException("Id cannot be empty");
       }
       return;
-    } else if ("uuid".equals(field)) {
-      serviceLocator.getSingletonService(PermissionChecker.class).checkPermission(Permission.EDIT_PROJECT, get());
+    }
+
+    if ("uuid".equals(field)) {
+      serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(this);
       if (value == null) {
         throw new BadRequestException("UUID cannot be empty");
       }
@@ -222,7 +224,7 @@ public class BuildTypeOrTemplate implements Loggable {
       if (value != null){
         setName(value);
         myBuildTypeIdentity.schedulePersisting("Name changed");
-      }else{
+      } else {
         throw new BadRequestException("Name cannot be empty");
       }
       return;
@@ -231,6 +233,7 @@ public class BuildTypeOrTemplate implements Loggable {
       myBuildTypeIdentity.schedulePersisting("Description changed");
       return;
     }
+
     if (myBuildType!=null){
       if ("paused".equals(field)){
         //TeamCity API: why not use current user by default?
@@ -252,7 +255,7 @@ public class BuildTypeOrTemplate implements Loggable {
     } else if ("internalId".equals(field)) {
       return getInternalId();
     } else if ("uuid".equals(field)) {
-      beanContext.getSingletonService(PermissionChecker.class).checkPermission(Permission.EDIT_PROJECT, get());
+      beanContext.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(this);
       return ((BuildTypeIdentityEx)myBuildTypeIdentity).getEntityId().getConfigId();
     } else if ("description".equals(field)) {
       return getDescription();

@@ -19,8 +19,10 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.util.text.StringUtil;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
@@ -165,6 +167,15 @@ public class PermissionChecker {
       return true;
     }
     return AuthUtil.hasReadAccessTo(authorityHolder, change);
+  }
+
+  public void checkCanEditBuildTypeOrTemplate(@NotNull BuildTypeOrTemplate target) {
+    AccessChecker accessChecker = mySecurityContext.getAccessChecker();
+    if(target.isBuildType()) {
+      accessChecker.checkCanEditBuildType(Objects.requireNonNull(target.getBuildType()));
+    } else {
+      accessChecker.checkCanEditTemplate(Objects.requireNonNull(target.getTemplate()));
+    }
   }
 
   public boolean isPermissionGranted(@NotNull final Permission permission, @Nullable final String internalProjectId) {

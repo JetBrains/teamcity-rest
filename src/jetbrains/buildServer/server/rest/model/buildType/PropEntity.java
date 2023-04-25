@@ -24,11 +24,13 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.PathTransformer;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.Properties;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.ParametersDescriptor;
@@ -128,9 +130,11 @@ public class PropEntity {
     throw new BadRequestException("Only 'disabled' setting names is supported. '" + name + "' unknown.");
   }
 
-  public static void setSetting(@NotNull final BuildTypeSettings buildType, @NotNull final String id, final String name, final String value) {
+  public static void setSetting(@NotNull final BuildTypeOrTemplate buildType, @NotNull ServiceLocator serviceLocator, @NotNull final String id, final String name, final String value) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+
     if ("disabled".equals(name)) {
-      buildType.setEnabled(id, !Boolean.parseBoolean(value));
+      buildType.getSettingsEx().setEnabled(id, !Boolean.parseBoolean(value));
     } else {
       throw new BadRequestException("Only 'disabled' setting names is supported. '" + name + "' unknown.");
     }

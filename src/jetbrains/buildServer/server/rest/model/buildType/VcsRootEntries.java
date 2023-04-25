@@ -16,8 +16,13 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import io.swagger.annotations.ExtensionProperty;
+import java.util.ArrayList;
+import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -28,15 +33,10 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
+import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author Yegor.Yarko
@@ -70,24 +70,27 @@ public class VcsRootEntries {
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), vcsRootEntries.size());
   }
 
-  public boolean setToBuildType(final BuildTypeSettings buildTypeSettings, final ServiceLocator serviceLocator) {
+  public boolean setToBuildType(final BuildTypeOrTemplate buildType, final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx buildTypeSettings = buildType.getSettingsEx();
+
     Storage original = new Storage(buildTypeSettings);
     try {
       removeAllFrom(buildTypeSettings);
       if (vcsRootAssignments != null) {
         for (VcsRootEntry entity : vcsRootAssignments) {
-          entity.addToInternal(buildTypeSettings, serviceLocator.getSingletonService(VcsRootFinder.class));
+          entity.addToInternalUnsafe(buildTypeSettings, serviceLocator.getSingletonService(VcsRootFinder.class));
         }
       }
       return true;
     } catch (Exception e) {
       //restore original settings
-      original.apply(buildTypeSettings);
+      original.applyUnsafe(buildTypeSettings);
       throw new BadRequestException("Error setting VCS roots", e);
     }
   }
 
-  public static void removeAllFrom(final BuildTypeSettings buildType) {
+  private static void removeAllFrom(final BuildTypeSettings buildType) {
     for (jetbrains.buildServer.vcs.VcsRootEntry entry : buildType.getVcsRootEntries()) {
       buildType.removeVcsRoot((SVcsRoot)entry.getVcsRoot()); //TeamCity open API issue
     }
@@ -100,7 +103,7 @@ public class VcsRootEntries {
       entities = buildTypeSettings.getVcsRootEntries();
     }
 
-    public void apply(final @NotNull BuildTypeSettings buildTypeSettings) {
+    public void applyUnsafe(final @NotNull BuildTypeSettings buildTypeSettings) {
       removeAllFrom(buildTypeSettings);
       for (jetbrains.buildServer.vcs.VcsRootEntry entity : entities) {
         buildTypeSettings.addVcsRoot((SVcsRoot)entity.getVcsRoot());  //TeamCity open API issue

@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.data.VcsRootFinder;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -61,6 +62,7 @@ public class VCSLabelingOptions {
     if (type == null) {
       throw new BadRequestException("Labeling type is not specified.");
     }
+    context.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
 
     BuildTypeSettings buildTypeSettings = buildType.get();
     for (SBuildFeatureDescriptor feature: buildTypeSettings.getBuildFeatures()) {

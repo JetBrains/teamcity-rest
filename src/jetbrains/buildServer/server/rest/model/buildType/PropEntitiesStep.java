@@ -16,14 +16,14 @@
 
 package jetbrains.buildServer.server.rest.model.buildType;
 
-import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
-import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -73,27 +73,30 @@ public class PropEntitiesStep {
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), buildRunners.size());
   }
 
-  public boolean setToBuildType(@NotNull final BuildTypeSettingsEx buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
-    Storage original = new Storage(buildTypeSettings);
+  public boolean setToBuildType(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
+
+    Storage original = new Storage(settings);
     try {
-      removeAllSteps(buildTypeSettings);
+      removeAllSteps(settings);
       if (propEntities != null) {
         String[] runnersOrder = new String[propEntities.size()];
         boolean needToChangeOrder = false;
         int i = 0;
         for (PropEntityStep entity : propEntities) {
-          SBuildRunnerDescriptor result = entity.addToInternal(buildTypeSettings, serviceLocator);
+          SBuildRunnerDescriptor result = entity.addToInternalUnsafe(settings, serviceLocator);
           runnersOrder[i] = result.getId();
-          List<SBuildRunnerDescriptor> currentRunners = buildTypeSettings.getBuildRunners();
+          List<SBuildRunnerDescriptor> currentRunners = settings.getBuildRunners();
           if (!needToChangeOrder && (currentRunners.size() < i + 1 || !currentRunners.get(i).getId().equals(result.getId()))) needToChangeOrder = true;
           i++;
         }
-        if (needToChangeOrder) buildTypeSettings.applyRunnersOrder(runnersOrder);
+        if (needToChangeOrder) settings.applyRunnersOrder(runnersOrder);
       }
       return true;
     } catch (Exception e) {
       //restore original settings
-      original.apply(buildTypeSettings);
+      original.apply(settings);
       throw new BadRequestException("Error replacing items", e);
     }
   }
