@@ -26,11 +26,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.requirements.Requirement;
 import jetbrains.buildServer.requirements.RequirementType;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
 import jetbrains.buildServer.serverSide.RequirementFactory;
@@ -96,16 +98,19 @@ public class PropEntityAgentRequirement extends PropEntity implements PropEntity
 
   @NotNull
   @Override
-  public Requirement addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
-    Requirement result = addToMain(buildType, serviceLocator);
+  public Requirement addTo(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
+
+    Requirement result = addToMain(settings, serviceLocator);
     if (disabled != null) {
-      buildType.setEnabled(result.getId(), !disabled);
+      settings.setEnabled(result.getId(), !disabled);
     }
     return result;
   }
 
   @NotNull
-  public Requirement addToMain(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+  private Requirement addToMain(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     final Map<String, String> propertiesMap = properties == null ? Collections.emptyMap() : properties.getMap();
     String propertyName = propertiesMap.get(NAME_PROPERTY_NAME);
     if (StringUtil.isEmpty(propertyName)) {
@@ -170,20 +175,25 @@ public class PropEntityAgentRequirement extends PropEntity implements PropEntity
 
   @NotNull
   @Override
-  public Requirement replaceIn(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Requirement entityToReplace, @NotNull final ServiceLocator serviceLocator) {
-    PropEntitiesAgentRequirement.Storage original = new PropEntitiesAgentRequirement.Storage(buildType);
-    buildType.removeRequirement(entityToReplace);
+  public Requirement replaceIn(@NotNull final BuildTypeOrTemplate buildType, @NotNull final Requirement entityToReplace, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
+
+    PropEntitiesAgentRequirement.Storage original = new PropEntitiesAgentRequirement.Storage(settings);
+    settings.removeRequirement(entityToReplace);
 
     try {
       return addTo(buildType, serviceLocator);
     } catch (Exception e) {
       //restore
-      original.apply(buildType);
+      original.apply(settings);
       throw new BadRequestException("Error setting new agent requirement", e);
     }
   }
 
-  public static void removeFrom(@NotNull final BuildTypeSettings buildType, @NotNull final Requirement requirement) {
-    buildType.removeRequirement(requirement);
+  public static void removeFrom(@NotNull final BuildTypeOrTemplate buildType, @NotNull final Requirement requirement, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+
+    buildType.getSettingsEx().removeRequirement(requirement);
   }
 }

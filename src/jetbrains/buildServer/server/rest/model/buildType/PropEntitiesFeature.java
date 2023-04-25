@@ -24,11 +24,13 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -62,13 +64,16 @@ public class PropEntitiesFeature {
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), buildFeatures.size());
   }
 
-  public boolean setToBuildType(@NotNull final BuildTypeSettingsEx buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
+  public boolean setToBuildType(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx buildTypeSettings = buildType.getSettingsEx();
+
     Storage original = new Storage(buildTypeSettings);
     removeAllFeatures(buildTypeSettings);
     try {
       if (propEntities != null) {
         for (PropEntityFeature entity : propEntities) {
-          entity.addToInternal(buildTypeSettings, serviceLocator);
+          entity.addToInternalUnsafe(buildTypeSettings, serviceLocator);
         }
       }
       return true;

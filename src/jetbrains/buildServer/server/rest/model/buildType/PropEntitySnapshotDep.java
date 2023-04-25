@@ -25,6 +25,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.finder.impl.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -110,7 +111,9 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
 
   @NotNull
   @Override
-  public Dependency addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+  public Dependency addTo(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
     if (!SNAPSHOT_DEPENDENCY_TYPE_NAME.equals(type)) {
       throw new BadRequestException("Snapshot dependency should have type '" + SNAPSHOT_DEPENDENCY_TYPE_NAME + "'.");
     }
@@ -120,7 +123,7 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
     String buildTypeIdDependOn = getBuildTypeExternalIdForDependency(sourceBuildType, buildTypeIdFromProperty, serviceLocator);
     BuildTypeUtil.checkCanUseBuildTypeAsDependency(buildTypeIdDependOn, serviceLocator);
 
-    Dependency similar = getInheritedOrSameIdSimilar(buildType, serviceLocator);
+    Dependency similar = getInheritedOrSameIdSimilar(settings, serviceLocator);
     if (inherited != null && inherited && similar != null) {
       return similar;
     }
@@ -131,7 +134,7 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
     }
 
     //todo: (TeamCity) for some reason API does not report adding dependency with same id. Seems like it just ignores the call
-    if (getSnapshotDepOrNull(buildType, buildTypeIdDependOn) != null) {
+    if (getSnapshotDepOrNull(settings, buildTypeIdDependOn) != null) {
       throw new BadRequestException("Snapshot dependency on build type with id '" + buildTypeIdDependOn + "' already exists.");
     }
 
@@ -142,11 +145,11 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
       }
     }
     try {
-      buildType.addDependency(result);
+      settings.addDependency(result);
     } catch (CyclicDependencyFoundException e) {
       throw new BadRequestException("Error adding dependency", e);
     }
-    return getSnapshotDep(buildType, result.getDependOnExternalId(), serviceLocator.getSingletonService(BuildTypeFinder.class));
+    return getSnapshotDep(settings, result.getDependOnExternalId(), serviceLocator.getSingletonService(BuildTypeFinder.class));
   }
 
   @Nullable
@@ -165,20 +168,24 @@ public class PropEntitySnapshotDep extends PropEntity implements PropEntityEdit<
 
   @NotNull
   @Override
-  public Dependency replaceIn(@NotNull final BuildTypeSettingsEx buildType, @NotNull final Dependency entityToReplace, @NotNull final ServiceLocator serviceLocator) {
-    buildType.removeDependency(entityToReplace);
+  public Dependency replaceIn(@NotNull final BuildTypeOrTemplate buildType, @NotNull final Dependency entityToReplace, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
+    settings.removeDependency(entityToReplace);
 
     try {
       return addTo(buildType, serviceLocator);
     } catch (Exception e) {
       //restore
-      buildType.addDependency(entityToReplace);
+      settings.addDependency(entityToReplace);
       throw new BadRequestException("Error updating snapshot dependency", e);
     }
   }
 
-  public static void removeFrom(final BuildTypeSettings buildType, final Dependency dependency) {
-    buildType.removeDependency(dependency);
+  public static void removeFrom(final BuildTypeOrTemplate buildType, final Dependency dependency, final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+
+    buildType.getSettingsEx().removeDependency(dependency);
   }
 
   @NotNull

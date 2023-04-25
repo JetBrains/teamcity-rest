@@ -209,7 +209,7 @@ public class BuildTypeOrTemplate implements Loggable {
     }
 
     if ("uuid".equals(field)) {
-      serviceLocator.getSingletonService(PermissionChecker.class).checkPermission(Permission.EDIT_PROJECT, get());
+      serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(this);
       if (value == null) {
         throw new BadRequestException("UUID cannot be empty");
       }
@@ -259,7 +259,7 @@ public class BuildTypeOrTemplate implements Loggable {
     } else if ("internalId".equals(field)) {
       return getInternalId();
     } else if ("uuid".equals(field)) {
-      beanContext.getSingletonService(PermissionChecker.class).checkPermission(Permission.EDIT_PROJECT, get());
+      beanContext.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(this);
       return ((BuildTypeIdentityEx)myBuildTypeIdentity).getEntityId().getConfigId();
     } else if ("description".equals(field)) {
       return getDescription();

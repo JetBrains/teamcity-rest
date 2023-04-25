@@ -19,9 +19,12 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.util.text.StringUtil;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.*;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
@@ -133,10 +136,6 @@ public class PermissionChecker {
     checkProjectPermission(permission, internalProjectId, null);
   }
 
-  public void checkPermission(@NotNull final Permission permission, @NotNull final BuildTypeSettings buildTypeSettings) throws AuthorizationFailedException{
-    checkProjectPermission(permission, buildTypeSettings.getProject().getProjectId());
-  }
-
   public void checkPermission(@NotNull final Permission permission, @NotNull final BuildPromotion buildPromotion) throws AuthorizationFailedException {
     try {
       final SBuildType buildType = buildPromotion.getBuildType();
@@ -174,6 +173,15 @@ public class PermissionChecker {
 // There are no separate permissions for reading groups and roles
   public void checkViewAllUsersPermission() {
     checkGlobalPermissionAnyOf(new Permission[]{Permission.VIEW_USER_PROFILE, Permission.CHANGE_USER});
+  }
+
+  public void checkCanEditBuildTypeOrTemplate(@NotNull BuildTypeOrTemplate target) {
+    AccessChecker accessChecker = mySecurityContext.getAccessChecker();
+    if(target.isBuildType()) {
+      accessChecker.checkCanEditBuildType(Objects.requireNonNull(target.getBuildType()));
+    } else {
+      accessChecker.checkCanEditTemplate(Objects.requireNonNull(target.getTemplate()));
+    }
   }
 
   public boolean isPermissionGranted(@NotNull final Permission permission, @Nullable final String internalProjectId) {

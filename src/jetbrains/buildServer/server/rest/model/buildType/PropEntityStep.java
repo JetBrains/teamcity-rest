@@ -21,12 +21,14 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -41,7 +43,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "step")
 @ModelDescription("Represents a build step.")
-public class PropEntityStep extends PropEntity implements PropEntityEdit<SBuildRunnerDescriptor>{
+public class PropEntityStep extends PropEntity implements PropEntityEdit<SBuildRunnerDescriptor> {
   public PropEntityStep() {
   }
 
@@ -54,19 +56,22 @@ public class PropEntityStep extends PropEntity implements PropEntityEdit<SBuildR
 
   @NotNull
   @Override
-  public SBuildRunnerDescriptor addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
-    PropEntitiesStep.Storage original = new PropEntitiesStep.Storage(buildType);
+  public SBuildRunnerDescriptor addTo(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
+
+    PropEntitiesStep.Storage original = new PropEntitiesStep.Storage(settings);
     try {
-      return addToInternal(buildType, serviceLocator);
+      return addToInternalUnsafe(settings, serviceLocator);
     } catch (Exception e) {
       //restore original settings
-      original.apply(buildType);
+      original.apply(settings);
       throw new BadRequestException("Error replacing items", e);
     }
   }
 
   @NotNull
-  public SBuildRunnerDescriptor addToInternal(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+  public SBuildRunnerDescriptor addToInternalUnsafe(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     SBuildRunnerDescriptor result = addToInternalMain(buildType, serviceLocator);
     if (disabled != null) {
       buildType.setEnabled(result.getId(), !disabled);
@@ -112,26 +117,30 @@ public class PropEntityStep extends PropEntity implements PropEntityEdit<SBuildR
 
   @NotNull
   @Override
-  public SBuildRunnerDescriptor replaceIn(@NotNull final BuildTypeSettingsEx buildType, @NotNull SBuildRunnerDescriptor step, @NotNull final ServiceLocator serviceLocator) {
+  public SBuildRunnerDescriptor replaceIn(@NotNull final BuildTypeOrTemplate buildType, @NotNull SBuildRunnerDescriptor step, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Created step cannot have empty 'type'.");
     }
 
-    if (!buildType.updateBuildRunner(step.getId(), StringUtil.isEmpty(name) ? "" : name, type, properties != null ? properties.getMap() : Collections.<String, String>emptyMap())) {
+    if (!settings.updateBuildRunner(step.getId(), StringUtil.isEmpty(name) ? "" : name, type, properties != null ? properties.getMap() : Collections.<String, String>emptyMap())) {
       throw new InvalidStateException("Update failed");
     }
     if (disabled != null) {
-      buildType.setEnabled(step.getId(), !disabled);
+      settings.setEnabled(step.getId(), !disabled);
     }
-    SBuildRunnerDescriptor result = buildType.findBuildRunnerById(step.getId());
+    SBuildRunnerDescriptor result = settings.findBuildRunnerById(step.getId());
     if (result == null){
       throw new OperationException("Cannot find build step by id '" + step.getId() + "' after successful addition");
     }
     return result;
   }
 
-  public static void removeFrom(@NotNull final BuildTypeSettings buildTypeSettings, @NotNull final SBuildRunnerDescriptor step) {
-    buildTypeSettings.removeBuildRunner(step.getId());
+  public static void removeFrom(@NotNull final BuildTypeOrTemplate buildType, @NotNull final SBuildRunnerDescriptor step, @NotNull ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+
+    buildType.getSettingsEx().removeBuildRunner(step.getId());
   }
 
   public static String getSetting(final BuildTypeSettings buildType, final BuildRunnerDescriptor step, final String name) {
@@ -144,14 +153,18 @@ public class PropEntityStep extends PropEntity implements PropEntityEdit<SBuildR
     throw new BadRequestException("Only 'name'and 'disabled' setting names are supported. '" + name + "' unknown.");
   }
 
-  public static void setSetting(final BuildTypeSettings buildType,
+  public static void setSetting(final BuildTypeOrTemplate buildType,
                                 final BuildRunnerDescriptor step,
+                                final ServiceLocator serviceLocator,
                                 final String name,
                                 final String value) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
+
     if ("name".equals(name)) {
-      buildType.updateBuildRunner(step.getId(), value, step.getType(), step.getParameters());
+      settings.updateBuildRunner(step.getId(), value, step.getType(), step.getParameters());
     } else if ("disabled".equals(name)) {
-      buildType.setEnabled(step.getId(), !Boolean.parseBoolean(value));
+      settings.setEnabled(step.getId(), !Boolean.parseBoolean(value));
     } else {
       throw new BadRequestException("Only 'name'and 'disabled' setting names are supported. '" + name + "' unknown.");
     }

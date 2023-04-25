@@ -19,12 +19,14 @@ package jetbrains.buildServer.server.rest.model.buildType;
 import io.swagger.annotations.ExtensionProperty;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.requirements.Requirement;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
 import jetbrains.buildServer.server.rest.swagger.constants.ObjectType;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -73,13 +75,16 @@ public class PropEntitiesAgentRequirement {
     count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), requirements.size());
   }
 
-  public boolean setToBuildType(@NotNull final BuildTypeSettingsEx buildTypeSettings, @NotNull final ServiceLocator serviceLocator) {
+  public boolean setToBuildType(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx buildTypeSettings = buildType.getSettingsEx();
+
     Storage original = new Storage(buildTypeSettings);
     try {
       removeAll(buildTypeSettings);
       if (propEntities != null) {
         for (PropEntityAgentRequirement entity : propEntities) {
-          entity.addTo(buildTypeSettings, serviceLocator);
+          entity.addTo(buildType, serviceLocator);
         }
       }
       return true;

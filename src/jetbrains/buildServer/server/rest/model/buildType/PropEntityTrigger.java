@@ -25,12 +25,14 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.buildTriggers.BuildCustomizationSettings;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptor;
 import jetbrains.buildServer.buildTriggers.BuildTriggerDescriptorFactory;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.BuildTypeSettings;
 import jetbrains.buildServer.serverSide.BuildTypeSettingsEx;
@@ -63,19 +65,22 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
 
   @NotNull
   @Override
-  public BuildTriggerDescriptor addTo(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
-    PropEntitiesTrigger.Storage original = new PropEntitiesTrigger.Storage(buildType);
+  public BuildTriggerDescriptor addTo(@NotNull final BuildTypeOrTemplate buildType, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
+
+    PropEntitiesTrigger.Storage original = new PropEntitiesTrigger.Storage(settings);
     try {
-      return addToInternal(buildType, serviceLocator);
+      return addToInternalUnsafe(settings, serviceLocator);
     } catch (Exception e) {
       //restore original settings
-      original.apply(buildType);
+      original.apply(settings);
       throw new BadRequestException("Error replacing items", e);
     }
   }
 
   @NotNull
-  public BuildTriggerDescriptor addToInternal(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+  public BuildTriggerDescriptor addToInternalUnsafe(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     BuildTriggerDescriptor result = addToInternalMain(buildType, serviceLocator);   //todo: disabled is done twice, adds within  addToInternalMain unlike artifact dependencies
     if (disabled != null) {
       buildType.setEnabled(result.getId(), !disabled);
@@ -84,7 +89,7 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
   }
 
   @NotNull
-  public BuildTriggerDescriptor addToInternalMain(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
+  private BuildTriggerDescriptor addToInternalMain(@NotNull final BuildTypeSettingsEx buildType, @NotNull final ServiceLocator serviceLocator) {
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build trigger cannot have empty 'type'.");
     }
@@ -132,24 +137,28 @@ public class PropEntityTrigger extends PropEntity implements PropEntityEdit<Buil
   }
 
   @NotNull
-  public BuildTriggerDescriptor replaceIn(@NotNull final BuildTypeSettingsEx buildType, @NotNull final BuildTriggerDescriptor trigger, @NotNull final ServiceLocator serviceLocator) {
+  @Override
+  public BuildTriggerDescriptor replaceIn(@NotNull final BuildTypeOrTemplate buildType, @NotNull final BuildTriggerDescriptor trigger, @NotNull final ServiceLocator serviceLocator) {
+    serviceLocator.getSingletonService(PermissionChecker.class).checkCanEditBuildTypeOrTemplate(buildType);
+    BuildTypeSettingsEx settings = buildType.getSettingsEx();
     if (StringUtil.isEmpty(type)) {
       throw new BadRequestException("Build trigger cannot have empty 'type'.");
     }
+
     if ((properties != null || buildTriggerCustomization != null)) {
       BuildTriggerDescriptor triggerDescriptor = serviceLocator.getSingletonService(BuildTriggerDescriptorFactory.class).createTriggerDescriptor(trigger.getId(), trigger.getTriggerName(),
                                                                                                     properties != null ? properties.getMap() : Collections.emptyMap(),
                                                                                                     buildTriggerCustomization != null
                                                                                                     ? buildTriggerCustomization.toBuildCustomizationSettings(serviceLocator)
                                                                                                     : BuildCustomizationSettings.empty());
-      if (!buildType.updateBuildTrigger(triggerDescriptor)) {
+      if (!settings.updateBuildTrigger(triggerDescriptor)) {
         throw new OperationException("Update failed");
       }
     }
     if (disabled != null) {
-      buildType.setEnabled(trigger.getId(), !disabled);
+      settings.setEnabled(trigger.getId(), !disabled);
     }
-    BuildTriggerDescriptor result = buildType.findTriggerById(trigger.getId());
+    BuildTriggerDescriptor result = settings.findTriggerById(trigger.getId());
     if (result == null){
       throw new OperationException("Cannot find just added trigger with id '" + trigger.getId() + "'");
     }
