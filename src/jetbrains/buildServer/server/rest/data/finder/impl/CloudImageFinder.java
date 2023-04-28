@@ -47,6 +47,7 @@ import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeKey;
@@ -212,20 +213,25 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
       } else {
         availableAgentTypes = myVirtualAgentsManager.getAvailableAgentTypes(Objects.requireNonNull(buildTypeOrTemplate.getTemplate()));
       }
-      return getCompatibleCloudImages(availableAgentTypes);
+      return getCompatibleCloudImages(availableAgentTypes, buildTypeOrTemplate.getProject());
     }
 
     @NotNull
     private Stream<CloudImage> findCompatibleCloudImages(BuildPromotion build) {
       Map<SAgentType, VirtualAgentCompatibilityResult> availableAgentTypes;
       availableAgentTypes = myVirtualAgentsManager.getAvailableAgentTypes(Objects.requireNonNull(build));
-      return getCompatibleCloudImages(availableAgentTypes);
+      SBuildType buildType = build.getBuildType();
+      if (buildType == null) {
+        return Stream.empty();
+      }
+      return getCompatibleCloudImages(availableAgentTypes, buildType.getProject());
     }
 
     @NotNull
-    private Stream<CloudImage> getCompatibleCloudImages(Map<SAgentType, VirtualAgentCompatibilityResult> availableAgentTypes) {
+    private Stream<CloudImage> getCompatibleCloudImages(Map<SAgentType, VirtualAgentCompatibilityResult> availableAgentTypes, SProject project) {
       return availableAgentTypes.entrySet().stream()
                                 .filter(it -> it.getValue().getResult().isCompatible())
+                                .filter(it -> it.getKey().getPolicy().getAllowedProjects().contains(project.getProjectId()))
                                 .map(it -> it.getKey())
                                 .map(it -> findRespectiveCloudImage(it.getAgentTypeKey()))
                                 .filter(it -> it != null);
