@@ -52,10 +52,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.cleanup.ServerCleanupManager;
 import jetbrains.buildServer.serverSide.impl.MainConfigManager;
-import jetbrains.buildServer.serverSide.maintenance.BackupConfig;
-import jetbrains.buildServer.serverSide.maintenance.BackupProcess;
-import jetbrains.buildServer.serverSide.maintenance.BackupProcessManager;
-import jetbrains.buildServer.serverSide.maintenance.MaintenanceProcessAlreadyRunningException;
+import jetbrains.buildServer.serverSide.maintenance.*;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.Element;
@@ -211,12 +208,19 @@ public class ServerRequest {
   @Produces({"text/plain"})
   @ApiOperation(value = "Get the latest backup status.", nickname = "getBackupStatus")
   public String getBackupStatus() {
+    MaintenanceLock maintenanceLock = myServiceLocator.getSingletonService(MaintenanceLock.class);
+    MaintenanceLock.ProcessInfo process = maintenanceLock.getCurrentProcess();
+    if (process == null || process.getKind() != MaintenanceProcessKind.Backup) return  "Idle";
+
     BackupProcessManager backupManager = myServiceLocator.getSingletonService(BackupProcessManager.class);
-    final BackupProcess backupProcess = backupManager.getCurrentBackupProcess();
-    if (backupProcess == null) {
-      return "Idle";
+    BackupProcess backupProcess = backupManager.getCurrentBackupProcess();
+
+    if (backupProcess != null) {
+      return backupProcess.getProgressStatus().name();
     }
-    return backupProcess.getProgressStatus().name();
+
+    // we don't know the actual stage if the backup is running on another node
+    return ProgressStatus.Running.name();
   }
 
   /**
