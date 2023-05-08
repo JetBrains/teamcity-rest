@@ -207,6 +207,11 @@ public class VersionedSettingsConfig {
     return myImportDecision;
   }
 
+  @SuppressWarnings("unused")
+  public void setImportDecision(ImportDecision importDecision) {
+    myImportDecision = importDecision;
+  }
+
 
   public enum BuildSettingsMode {
     alwaysUseCurrent(jetbrains.buildServer.serverSide.impl.versionedSettings.VersionedSettingsConfig.BuildSettingsMode.ALWAYS_USE_CURRENT),
