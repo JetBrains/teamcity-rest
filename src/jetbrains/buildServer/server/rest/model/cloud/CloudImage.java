@@ -31,8 +31,10 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.Util;
+import jetbrains.buildServer.server.rest.model.agent.AgentType;
 import jetbrains.buildServer.server.rest.request.CloudRequest;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelExperimental;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.CachingValue;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -48,7 +50,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "cloudImage")
 @XmlType(
   name = "cloudImage",
-  propOrder = {"id", "name", "href", "profile", "instances", "errorMessage", "agentTypeId", "agentPoolId", "operatingSystemName",
+  propOrder = {"id", "name", "href", "profile", "instances", "errorMessage", "agentTypeId", "agentType", "agentPoolId", "operatingSystemName",
     "locator" /* never returned. used only for POST */,
   }
 )
@@ -130,6 +132,19 @@ public class CloudImage {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("agentTypeId", false, false),
       () -> myAgentType.get().map(SAgentType::getAgentTypeId).orElse(null)
+    );
+  }
+
+  @Nullable
+  @ModelExperimental
+  @XmlElement(name = "agentType")
+  public AgentType getAgentType() {
+    return ValueWithDefault.decideDefault(
+      myFields.isIncluded("agentType", false, false),
+      () -> myAgentType
+        .get()
+        .map(agentType -> new AgentType(agentType, myFields.getNestedField("agentType"), myBeanContext.getServiceLocator(), myBeanContext.getApiUrlBuilder()))
+        .orElse(null)
     );
   }
 
