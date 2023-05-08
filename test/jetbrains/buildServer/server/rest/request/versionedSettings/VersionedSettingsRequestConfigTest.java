@@ -36,7 +36,7 @@ public class VersionedSettingsRequestConfigTest extends VersionedSettingsRequest
     config.setFormat("xml");
     config.setAllowUIEditing(true);
     config.setStoreSecureValuesOutsideVcs(true);
-    config.setSyncronizationMode(VersionedSettingsConfig.SyncronizationMode.enabled);
+    config.setSynchronizationMode(VersionedSettingsConfig.SynchronizationMode.enabled);
     config.setBuildSettingsMode(VersionedSettingsConfig.BuildSettingsMode.useFromVCS);
 
     SUser user = createAdmin("user");
@@ -94,7 +94,7 @@ public class VersionedSettingsRequestConfigTest extends VersionedSettingsRequest
         new ConfigFields(true, true, true, true, true, true, true)
       },
       {
-        "syncronizationMode",
+        "synchronizationMode",
         new ConfigFields(true, false, false, false, false, false, false)
       },
       {
@@ -126,7 +126,7 @@ public class VersionedSettingsRequestConfigTest extends VersionedSettingsRequest
     makeLoggedIn(user);
 
     VersionedSettingsConfig config = myRequest.getVersionedSettingsConfig(myProject.getExternalId(), fields);
-    assertEquals(config.getSyncronizationMode(), configFields.isSyncModePresent ? VersionedSettingsConfig.SyncronizationMode.enabled : null);
+    assertEquals(config.getSynchronizationMode(), configFields.isSyncModePresent ? VersionedSettingsConfig.SynchronizationMode.enabled : null);
     assertEquals(config.getVcsRootId(), configFields.isVcsRootPresent ? "vcs_root_id" : null);
     assertEquals(config.getFormat(), configFields.isFormatPresent ? "xml" : null);
     assertEquals(config.getAllowUIEditing(), configFields.isAllowUIEditingPresent ? true : null);
