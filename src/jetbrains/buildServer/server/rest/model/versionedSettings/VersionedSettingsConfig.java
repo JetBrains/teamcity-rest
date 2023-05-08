@@ -39,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
 )
 public class VersionedSettingsConfig {
 
-  private SyncronizationMode mySyncronizationMode;
+  private SynchronizationMode mySynchronizationMode;
 
   private String myVcsRootId;
 
@@ -63,8 +63,8 @@ public class VersionedSettingsConfig {
   }
 
   public VersionedSettingsConfig(@NotNull VersionedSettingsBean versionedSettingsBean, @NotNull Fields fields) {
-    mySyncronizationMode = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("syncronizationMode"),
-                                                                   SyncronizationMode.fromBeanString(versionedSettingsBean.getSynchronizationMode()));
+    mySynchronizationMode = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("synchronizationMode"),
+                                                                   SynchronizationMode.fromBeanString(versionedSettingsBean.getSynchronizationMode()));
     myVcsRootId = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("vcsRootId"), () -> {
       SVcsRoot vcsRoot = versionedSettingsBean.getConfiguredVcsRoot();
       return vcsRoot == null ? null : vcsRoot.getExternalId();
@@ -91,7 +91,7 @@ public class VersionedSettingsConfig {
 
   public String getFieldValue(@NotNull String fieldName) {
     switch (fieldName) {
-      case "syncronizationMode": return String.valueOf(mySyncronizationMode);
+      case "synchronizationMode": return String.valueOf(mySynchronizationMode);
       case "vcsRootId": return String.valueOf(myVcsRootId);
       case "showSettingsChanges": return String.valueOf(myShowSettingsChanges);
       case "buildSettingsMode": return String.valueOf(myBuildSettingsMode);
@@ -105,8 +105,8 @@ public class VersionedSettingsConfig {
 
   public void setFieldValue(@NotNull String fieldName, @Nullable String newValue) {
     switch (fieldName) {
-      case "syncronizationMode":
-        mySyncronizationMode = newValue == null ? null : SyncronizationMode.valueOf(newValue);
+      case "synchronizationMode":
+        mySynchronizationMode = newValue == null ? null : SynchronizationMode.valueOf(newValue);
         return;
       case "vcsRootId":
         myVcsRootId = newValue;
@@ -134,13 +134,13 @@ public class VersionedSettingsConfig {
     }
   }
 
-  @XmlAttribute(name = "syncronizationMode")
-  public SyncronizationMode getSyncronizationMode() {
-    return mySyncronizationMode;
+  @XmlAttribute(name = "synchronizationMode")
+  public SynchronizationMode getSynchronizationMode() {
+    return mySynchronizationMode;
   }
 
-  public void setSyncronizationMode(SyncronizationMode syncronizationMode) {
-    mySyncronizationMode = syncronizationMode;
+  public void setSynchronizationMode(SynchronizationMode synchronizationMode) {
+    mySynchronizationMode = synchronizationMode;
   }
 
   @XmlAttribute(name = "vcsRootId")
@@ -246,7 +246,7 @@ public class VersionedSettingsConfig {
   }
 
 
-  public enum SyncronizationMode {
+  public enum SynchronizationMode {
     useParentProjectSettings("default"),
     disabled("disabled"),
     enabled("enabled");
@@ -254,7 +254,7 @@ public class VersionedSettingsConfig {
     @NotNull
     private final String myParamValue;
 
-    SyncronizationMode(@NotNull String paramValue) {
+    SynchronizationMode(@NotNull String paramValue) {
       myParamValue = paramValue;
     }
 
@@ -264,9 +264,9 @@ public class VersionedSettingsConfig {
     }
 
     @Nullable
-    static SyncronizationMode fromBeanString(@NotNull String syncronizationModeString) {
-       return Arrays.stream(SyncronizationMode.values())
-                    .filter(mode -> mode.myParamValue.equals(syncronizationModeString))
+    static SynchronizationMode fromBeanString(@NotNull String synchronizationModeString) {
+       return Arrays.stream(SynchronizationMode.values())
+                    .filter(mode -> mode.myParamValue.equals(synchronizationModeString))
                     .findFirst()
                     .orElse(null);
     }

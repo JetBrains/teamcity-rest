@@ -65,10 +65,10 @@ public class VersionedSettingsConfigsServiceImpl implements VersionedSettingsCon
     SUser user = (SUser) myPermissionChecker.getCurrent().getAssociatedUser();
     checkAccess(project, user);
 
-    if (versionedSettingsConfig.getSyncronizationMode() == null) {
-      throw new OperationException("Mandatory 'syncronizationMode' property is not specified.");
+    if (versionedSettingsConfig.getSynchronizationMode() == null) {
+      throw new OperationException("Mandatory 'synchronizationMode' property is not specified.");
     }
-    final String syncronizationMode = versionedSettingsConfig.getSyncronizationMode().getParamValue();
+    final String synchronizationMode = versionedSettingsConfig.getSynchronizationMode().getParamValue();
     final String vcsRoodId = versionedSettingsConfig.getVcsRootId();
     final boolean showSettingsChanges = versionedSettingsConfig.getShowSettingsChanges() != null && versionedSettingsConfig.getShowSettingsChanges();  // false by default
     final boolean useCredentialsStorage = versionedSettingsConfig.getStoreSecureValuesOutsideVcs() == null || versionedSettingsConfig.getStoreSecureValuesOutsideVcs();  // true by default
@@ -88,7 +88,7 @@ public class VersionedSettingsConfigsServiceImpl implements VersionedSettingsCon
     VersionedSettingsConfigUpdater.Result updateConfigResult = myVersionedSettingsConfigUpdater.updateConfig(
       project,
       user,
-      syncronizationMode,
+      synchronizationMode,
       vcsRoodId,
       showSettingsChanges,
       useCredentialsStorage,
