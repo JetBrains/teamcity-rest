@@ -312,6 +312,10 @@ public class Build {
   }
 
   public CloudImages resolveCompatibleCloudImages() {
+    if(myQueuedBuild == null || myQueuedBuild.getBuildPromotion().isCompositeBuild()) {
+      return null;
+    }
+
     Fields fields = myFields.getNestedField("compatibleCloudImages");
     CloudImageFinder cloudImageFinder = myBeanContext.getSingletonService(CloudImageFinder.class);
     PagedSearchResult<CloudImage> items = cloudImageFinder.getItems(CloudImageFinder.getCompatibleBuildPromotionLocator(myBuildPromotion));
@@ -1283,7 +1287,7 @@ public class Build {
 
   @XmlElement(name = "compatibleAgents")
   public Agents getCompatibleAgents() {
-    if (myQueuedBuild == null) {
+    if (myQueuedBuild == null || myQueuedBuild.getBuildPromotion().isCompositeBuild()) {
       return null;
     }
 
