@@ -127,9 +127,6 @@ public class NodesRequest {
 
     return executeSafely(() -> {
       TeamCityNode node = myFinder.getItem(nodeLocator);
-      if (node.isMainNode()) {
-        throw new BadRequestException("Main node responsibilities cannot be changed");
-      }
 
       NodeResponsibility responsibility = NodeResponsibility.valueOf(name);
       boolean respState = Boolean.parseBoolean(state);
