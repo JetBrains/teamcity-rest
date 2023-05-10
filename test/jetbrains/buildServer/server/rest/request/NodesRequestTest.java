@@ -277,17 +277,13 @@ public class NodesRequestTest extends BaseFinderTest<TeamCityNode> {
     }
   }
 
-  public void do_not_allow_to_change_responsibility_of_the_main_node() {
+  public void allow_to_change_responsibility_of_the_main_node() {
     SUser user = createAdmin("admin");
     assertTrue(user.isPermissionGrantedGlobally(Permission.CHANGE_SERVER_SETTINGS));
     makeLoggedIn(user);
 
-    try {
-      myRequest.changeNodeResponsibility("role:main_node", NodeResponsibility.CAN_PROCESS_BUILD_MESSAGES.name(), "false");
-      fail("Exception expected");
-    } catch (BadRequestException e) {
-      assertTrue(e.getMessage().contains("Main node responsibilities cannot be changed"));
-    }
+    EnabledResponsibilities result = myRequest.changeNodeResponsibility("role:main_node", NodeResponsibility.CAN_PROCESS_BUILD_MESSAGES.name(), "false");
+    assertFalse(result.responsibilities.contains(new Responsibility(NodeResponsibility.CAN_PROCESS_BUILD_MESSAGES, Fields.LONG)));
   }
 
   public void do_not_allow_to_change_main_node_responsibility_if_main_node_is_online() {
