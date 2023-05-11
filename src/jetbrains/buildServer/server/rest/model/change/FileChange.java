@@ -16,13 +16,12 @@
 
 package jetbrains.buildServer.server.rest.model.change;
 
+import javax.xml.bind.annotation.XmlAttribute;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.vcs.VcsFileModification;
 import org.jetbrains.annotations.NotNull;
-
-import javax.xml.bind.annotation.XmlAttribute;
 
 /**
  * @author Yegor.Yarko
@@ -45,7 +44,7 @@ public class FileChange {
   @XmlAttribute(name = "directory")
   public Boolean directory;
 
-  FileChange() {
+  public FileChange() {
   }
 
   public FileChange(final @NotNull VcsFileModification vcsFileModification, final @NotNull Fields fields) {

@@ -80,6 +80,12 @@ public class ChangeStatus {
   private BuildsCollector myNewTestsFailedCollector;
   private BuildsCollector myNotCriticalCollector;
 
+  public ChangeStatus() {
+    myFields = null;
+    myChangeStatus = null;
+    myBeanContext = null;
+  }
+
   public ChangeStatus(@NotNull jetbrains.buildServer.vcs.ChangeStatus mergedStatus, @NotNull Fields fields, @NotNull final BeanContext beanContext) {
     myFields = fields;
     myChangeStatus = mergedStatus;

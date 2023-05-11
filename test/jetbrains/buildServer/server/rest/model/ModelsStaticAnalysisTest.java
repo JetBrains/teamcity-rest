@@ -64,26 +64,35 @@ public class ModelsStaticAnalysisTest {
 
   @Test(dataProvider = "modelTypes")
   public void testXmlPropertiesAreDistinct(Class<?> type) {
-      List<ModelProperty> propertyNamesAnnotated = getPropertyNamesAnnotated(type);
-      List<String> duplicatePropertyReports = propertyNamesAnnotated
-        .stream()
-        .collect(Collectors.groupingBy(it -> it.getFinalXmlName()))
-        .entrySet()
-        .stream()
-        .filter(name2property -> name2property.getValue().size() > 1)
-        .map(name2property -> name2property.getKey() + " met " + name2property.getValue().size() + " times")
-        .collect(Collectors.toList());
-      if (!duplicatePropertyReports.isEmpty()) {
-        fail(type.getName() + " has duplicating xml properties: " + duplicatePropertyReports);
-      }
+    List<ModelProperty> propertyNamesAnnotated = getPropertyNamesAnnotated(type);
+    List<String> duplicatePropertyReports = propertyNamesAnnotated
+      .stream()
+      .collect(Collectors.groupingBy(it -> it.getFinalXmlName()))
+      .entrySet()
+      .stream()
+      .filter(name2property -> name2property.getValue().size() > 1)
+      .map(name2property -> name2property.getKey() + " met " + name2property.getValue().size() + " times")
+      .collect(Collectors.toList());
+    if (!duplicatePropertyReports.isEmpty()) {
+      fail(type.getName() + " has duplicating xml properties: " + duplicatePropertyReports);
+    }
   }
 
   @Test(dataProvider = "modelTypes")
   public void testPropertiesAreListedInXmlTypeAnnotation(Class<?> type) {
-      List<ModelProperty> propertyNamesAnnotated = getPropertyNamesAnnotated(type);
-      if (type.isAnnotationPresent(XmlType.class)) {
-        validateXmlTypeAnnotation(type, propertyNamesAnnotated.stream().map(ModelProperty::getJavaName).collect(Collectors.toList()));
-      }
+    List<ModelProperty> propertyNamesAnnotated = getPropertyNamesAnnotated(type);
+    if (type.isAnnotationPresent(XmlType.class)) {
+      validateXmlTypeAnnotation(type, propertyNamesAnnotated.stream().map(ModelProperty::getJavaName).collect(Collectors.toList()));
+    }
+  }
+
+  @Test(dataProvider = "modelTypes")
+  public void testHasNoArgsConstructor(Class<?> type) {
+    try {
+      type.getConstructor();
+    } catch (NoSuchMethodException e) {
+      fail("Model class " + type.getName() + " should have default or no-args constructor.");
+    }
   }
 
   private List<ModelProperty> getPropertyNamesAnnotated(Class<?> type) {
