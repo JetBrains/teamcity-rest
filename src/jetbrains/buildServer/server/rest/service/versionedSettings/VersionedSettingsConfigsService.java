@@ -31,4 +31,6 @@ public interface VersionedSettingsConfigsService {
 
   void setVersionedSettingsConfig(@NotNull SProject project, @NotNull VersionedSettingsConfig versionedSettingsConfig);
 
+  void checkEnabled(@NotNull SProject project);
+
 }

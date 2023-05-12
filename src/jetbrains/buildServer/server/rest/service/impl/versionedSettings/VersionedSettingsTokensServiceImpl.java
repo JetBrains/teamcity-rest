@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import jetbrains.buildServer.controllers.project.VersionedSettingsTokensControllerHelper;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.versionedSettings.VersionedSettingsToken;
@@ -86,7 +87,12 @@ public class VersionedSettingsTokensServiceImpl implements VersionedSettingsToke
   @Override
   public void deleteTokens(@NotNull SProject project, @NotNull VersionedSettingsTokens versionedSettingsTokens) {
     checkPermissions(project);
-    List<String> tokensList = versionedSettingsTokens.getTokens().stream().map(token -> token.getName()).collect(Collectors.toList());
+    if (versionedSettingsTokens.getTokens().stream().anyMatch(token -> myVersionedSettingsTokensControllerHelper.isTokenUsed(project, token.getName()))) {
+      throw new BadRequestException("Cannot delete used tokens");
+    }
+    List<String> tokensList = versionedSettingsTokens.getTokens().stream()
+                                                     .map(token -> token.getName())
+                                                     .collect(Collectors.toList());
     myVersionedSettingsTokensControllerHelper.removeTokensFromProject(project, tokensList);
   }
 
