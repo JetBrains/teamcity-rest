@@ -70,7 +70,7 @@ public class VersionedSettingsRequest {
   @ApiOperation(value = "Get current status of Versioned Settings.", nickname = "getVersionedSettingsStatus")
   public VersionedSettingsStatus getStatus(@ApiParam(format = LocatorName.PROJECT) @PathParam("locator") String projectLocator,
                                            @QueryParam("fields") String fields) {
-    SProject project = myProjectFinder.getItem(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     VersionedSettingsBean versionedSettingsBean = myVersionedSettingsBeanCollector.getItem(project);
     VersionedSettingsBean.VersionedSettingsStatusBean status = versionedSettingsBean.getStatus();
     if (status == null) {
@@ -84,7 +84,7 @@ public class VersionedSettingsRequest {
   @Path("/contextParameters")
   @ApiOperation(value = "Get Versioned Settings Context Parameters.", nickname = "getVersionedSettingsContextParameters")
   public VersionedSettingsContextParameters getContextParameters(@ApiParam(format = LocatorName.PROJECT) @PathParam("locator") String projectLocator) {
-    SProject project = myProjectFinder.getItem(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     Map<String, String> paramsMap = getVersionedSettingsManager().readConfig(project).getDslContextParameters();
     return new VersionedSettingsContextParameters(paramsMap);
   }
@@ -106,7 +106,7 @@ public class VersionedSettingsRequest {
   @ApiOperation(value = "Get Versioned Settings Tokens.", nickname = "getVersionedSettingsTokens")
   public VersionedSettingsTokens getTokens(@ApiParam(format = LocatorName.PROJECT) @PathParam("locator") String projectLocator,
                                            @QueryParam("status") String status) {
-    SProject project = myProjectFinder.getItem(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     return myVersionedSettingsTokensService.getTokens(project, status);
   }
 
@@ -138,7 +138,7 @@ public class VersionedSettingsRequest {
   @ApiOperation(value = "Get a list of projects that are affected by Load Settings from VCS action.", nickname = "getVersionedSettingsProjectsToLoad")
   public Projects getProjectsToLoad(@ApiParam(format = LocatorName.PROJECT) @PathParam("locator") String projectLocator,
                                     @QueryParam("fields") String fields) {
-    SProject project = myProjectFinder.getItem(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     myVersionedSettingsConfigsService.checkEnabled(project);
     try {
       Set<SProject> projectsToLoadSettingsFromVcs = getVersionedSettingsActions().getProjectsToLoadSettingsFromVcs(project);
@@ -198,7 +198,7 @@ public class VersionedSettingsRequest {
   @ApiOperation(value = "Get Versioned Settings config.", nickname = "getVersionedSettingsConfig")
   public VersionedSettingsConfig getVersionedSettingsConfig(@ApiParam(format = LocatorName.PROJECT) @PathParam("locator") String projectLocator,
                                                             @QueryParam("fields") String fields) {
-    SProject project = myProjectFinder.getItem(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     return myVersionedSettingsConfigsService.getVersionedSettingsConfig(project, new Fields(fields));
   }
 
@@ -221,7 +221,7 @@ public class VersionedSettingsRequest {
   @ApiOperation(value = "Get Versioned Settings config parameter value.", nickname = "getVersionedSettingsConfigParameter")
   public String getVersionedSettingsConfigParameter(@ApiParam(format = LocatorName.PROJECT) @PathParam("locator") String projectLocator,
                                                     @PathParam("name") String paramName) {
-    SProject project = myProjectFinder.getItem(projectLocator);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
     VersionedSettingsConfig versionedSettingsConfig = myVersionedSettingsConfigsService.getVersionedSettingsConfig(project, new Fields(null));
     if (versionedSettingsConfig == null) {
       throw new OperationException("Versioned Settings feature is not found for project " + project.getExternalId());
