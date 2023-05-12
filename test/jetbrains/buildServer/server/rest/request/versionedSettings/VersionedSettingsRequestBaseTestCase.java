@@ -79,7 +79,8 @@ public class VersionedSettingsRequestBaseTestCase extends BaseFinderTest<SProjec
         }
       },
       myProjectManager,
-      myFixture.getSingletonService(ConverterChangesStorage.class)
+      myFixture.getSingletonService(ConverterChangesStorage.class),
+      myFixture.getSingletonService(OutdatedProjectSettingsHealthReport.class)
     );
     VersionedSettingsTokensService versionedSettingsTokensService = new VersionedSettingsTokensServiceImpl(
       new VersionedSettingsTokensControllerHelper(myFixture.getSingletonService(ProjectCredentialsStorage.class)),

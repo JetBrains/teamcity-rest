@@ -22,6 +22,7 @@ import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.impl.versionedSettings.ConverterChangesStorage;
 import jetbrains.buildServer.serverSide.impl.versionedSettings.CurrentVersionTracker;
+import jetbrains.buildServer.serverSide.impl.versionedSettings.OutdatedProjectSettingsHealthReport;
 import jetbrains.buildServer.serverSide.impl.versionedSettings.VersionedSettingsStatusTracker;
 import jetbrains.buildServer.serverSide.versionedSettings.VersionedSettingsManager;
 import jetbrains.buildServer.vcs.VcsRegistry;
@@ -48,6 +49,7 @@ public class VersionedSettingsBeanCollector {
   @NotNull private final VcsContextLocator myVcsContextLocator;
   @NotNull private final ProjectManager myProjectManager;
   @NotNull private final ConverterChangesStorage myConverterChangesStorage;
+  @NotNull private final OutdatedProjectSettingsHealthReport myOutdatedSettingsReport;
 
   public VersionedSettingsBeanCollector(@NotNull VersionedSettingsManager versionedSettingsManager,
                                         @NotNull CurrentVersionTracker currentVersionTracker,
@@ -55,7 +57,8 @@ public class VersionedSettingsBeanCollector {
                                         @NotNull VcsRegistry vcsRegistry,
                                         @NotNull VcsContextLocator vcsContextLocator,
                                         @NotNull ProjectManager projectManager,
-                                        @NotNull ConverterChangesStorage converterChangesStorage) {
+                                        @NotNull ConverterChangesStorage converterChangesStorage,
+                                        @NotNull OutdatedProjectSettingsHealthReport outdatedProjectSettingsHealthReport) {
     myVersionedSettingsManager = versionedSettingsManager;
     myCurrentVersionTracker = currentVersionTracker;
     myStatusTracker = statusTracker;
@@ -63,6 +66,7 @@ public class VersionedSettingsBeanCollector {
     myVcsContextLocator = vcsContextLocator;
     myProjectManager = projectManager;
     myConverterChangesStorage = converterChangesStorage;
+    myOutdatedSettingsReport = outdatedProjectSettingsHealthReport;
   }
 
   /**
@@ -79,6 +83,7 @@ public class VersionedSettingsBeanCollector {
                                      myVcsRegistry,
                                      myVcsContextLocator,
                                      myProjectManager,
-                                     myConverterChangesStorage);
+                                     myConverterChangesStorage,
+                                     myOutdatedSettingsReport);
   }
 }
