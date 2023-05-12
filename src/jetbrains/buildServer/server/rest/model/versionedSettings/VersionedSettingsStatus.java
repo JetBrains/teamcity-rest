@@ -47,6 +47,8 @@ public class VersionedSettingsStatus {
 
   private List<VersionedSettingsError> myErrors;
 
+  private Boolean myDslOutdated;
+
 
   @SuppressWarnings("unused")
   public VersionedSettingsStatus() {
@@ -57,7 +59,9 @@ public class VersionedSettingsStatus {
     myType = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("type"),
                                                      versionedSettingsStatus.isWarn() ? StatusType.warn : StatusType.info);
     myTimestamp = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("timestamp"), versionedSettingsStatus.getTimestamp().toString());
-    myMessage = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("message"), versionedSettingsStatus.getDescription());
+    myMessage = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("message"),
+                                                        versionedSettingsStatus.getDescription() +
+                                                        (versionedSettingsStatus.isDslOutdated() ? ". DSL scripts should be updated." : ""));
     List<String> beanMissingContextParams = versionedSettingsStatus.getRequiredContextParameters();
     myMissingContextParameters = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("missingContextParameters"),
                                                                          beanMissingContextParams.isEmpty() ? null : beanMissingContextParams);
@@ -66,6 +70,7 @@ public class VersionedSettingsStatus {
       configErrors.isEmpty() ? null : configErrors.stream()
                                                   .map(error -> new VersionedSettingsError(error, fields.getNestedField("versionedSettingsError")))
                                                   .collect(Collectors.toList()));
+    myDslOutdated = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("dslOutdated"), versionedSettingsStatus.isDslOutdated() ? true : null);
   }
 
   @XmlAttribute(name = "type")
@@ -81,6 +86,11 @@ public class VersionedSettingsStatus {
   @XmlAttribute(name = "message")
   public String getMessage() {
     return myMessage;
+  }
+
+  @XmlAttribute(name = "dslOutdated")
+  public Boolean getDslOutdated() {
+    return myDslOutdated;
   }
 
   @XmlAttribute(name = "missingContextParameters")
