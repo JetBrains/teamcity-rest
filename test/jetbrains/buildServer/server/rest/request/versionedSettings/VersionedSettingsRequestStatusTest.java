@@ -20,8 +20,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.versionedSettings.VersionedSettingsError;
 import jetbrains.buildServer.server.rest.model.versionedSettings.VersionedSettingsStatus;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.impl.versionedSettings.VersionedSettingsStatusTracker;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -156,6 +158,17 @@ public class VersionedSettingsRequestStatusTest extends VersionedSettingsRequest
     } else {
       assertNull(status.getErrors());
     }
+  }
+
+  @Test(expectedExceptions = AccessDeniedException.class)
+  public void testNotEnoughPermissions() {
+    makeLoggedIn(createUser("user"));
+    myRequest.getStatus(myProject.getExternalId(), null);
+  }
+
+  @Test(expectedExceptions = BadRequestException.class)
+  public void testNotEnabled() {
+    myRequest.getStatus(myProjectManager.getRootProject().getExternalId(), null);
   }
 
 

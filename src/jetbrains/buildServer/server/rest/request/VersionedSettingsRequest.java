@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.versionedSettings.VersionedSettingsBeanCollector;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.project.Projects;
@@ -73,7 +74,7 @@ public class VersionedSettingsRequest {
     VersionedSettingsBean versionedSettingsBean = myVersionedSettingsBeanCollector.getItem(project);
     VersionedSettingsBean.VersionedSettingsStatusBean status = versionedSettingsBean.getStatus();
     if (status == null) {
-      return null;
+      throw new BadRequestException("Versioned Settings were never been enabled in this project.");
     }
     return new VersionedSettingsStatus(versionedSettingsBean.getStatus(), new Fields(fields));
   }
@@ -138,6 +139,7 @@ public class VersionedSettingsRequest {
   public Projects getProjectsToLoad(@ApiParam(format = LocatorName.PROJECT) @PathParam("locator") String projectLocator,
                                     @QueryParam("fields") String fields) {
     SProject project = myProjectFinder.getItem(projectLocator);
+    myVersionedSettingsConfigsService.checkEnabled(project);
     try {
       Set<SProject> projectsToLoadSettingsFromVcs = getVersionedSettingsActions().getProjectsToLoadSettingsFromVcs(project);
       return new Projects(new ArrayList<>(projectsToLoadSettingsFromVcs), null, new Fields(fields), new BeanContext(myFactory, myServiceLocator, myApiUrlBuilder));
@@ -182,6 +184,7 @@ public class VersionedSettingsRequest {
   @ApiOperation(value = "Check for changes in Versioned Settings.", nickname = "checkForVersionedSettingsChanges")
   public void checkForChanges(@ApiParam(format = LocatorName.PROJECT) @PathParam("locator") String projectLocator) {
     SProject project = myProjectFinder.getItem(projectLocator);
+    myVersionedSettingsConfigsService.checkEnabled(project);
     try {
       getVersionedSettingsActions().checkForChanges(project);
     } catch (VersionedSettingsActions.VersionedSettingsActionException e) {

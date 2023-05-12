@@ -21,6 +21,7 @@ import jetbrains.buildServer.controllers.project.VersionedSettingsConfigUpdater;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.versionedSettings.VersionedSettingsBeanCollector;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -105,6 +106,13 @@ public class VersionedSettingsConfigsServiceImpl implements VersionedSettingsCon
         throw new OperationException("VCS Root already contains project. Add 'importDecision' parameter " +
                                      "with 'overrideInVCS' value to override settings in VCS with current server settings," +
                                      "or 'importFromVCS' to import settings from VCS and override current server settings.");
+    }
+  }
+
+  @Override
+  public void checkEnabled(@NotNull SProject project) {
+    if (!myVersionedSettingsBeanCollector.getItem(project).isSyncEnabled()) {
+      throw new BadRequestException("Versioned Settings are disabled for this project.");
     }
   }
 
