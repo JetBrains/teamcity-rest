@@ -29,7 +29,6 @@ import jetbrains.buildServer.server.rest.data.RangeLimit;
 import jetbrains.buildServer.server.rest.data.util.FilterUtil;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
-import jetbrains.buildServer.server.rest.model.build.Build;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.CollectionsUtil;
@@ -296,7 +295,7 @@ public class GenericBuildsFilter implements BuildsFilter {
     }
 
     if (myParameterCondition != null){
-      if (!myParameterCondition.matches(Build.getBuildResultingParameters(build.getBuildPromotion(), myServiceLocator))) {
+      if (!myParameterCondition.matches(BuildParametersUtil.getResultingParameters(build.getBuildPromotion()))) {
         return false;
       }
     }

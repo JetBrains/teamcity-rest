@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data.finder.impl;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -25,8 +26,10 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.zip.GZIPOutputStream;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.MockTimeService;
+import jetbrains.buildServer.agent.AgentRuntimeProperties;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.server.rest.data.Locator;
@@ -991,12 +994,14 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
-  public void testLookupLimit() {
+  public void testLookupLimit() throws IOException {
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
     final BuildTypeImpl buildConf2 = registerBuildType("buildConf2", "project");
 
-    final SFinishedBuild finishedBuild03 = build().in(buildConf1).parameter("a", "b").finish();
+    final SFinishedBuild finishedBuild03 = build().in(buildConf1).finish();
+    writeFinalParameters(finishedBuild03, map("a", "b"));
     final SFinishedBuild finishedBuild05 = build().in(buildConf2).finish();
+    writeFinalParameters(finishedBuild05, map());
 
     for (int i = 0; i < 100; i++) {
       build().in(buildConf1).finish();
@@ -1236,16 +1241,29 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
-  public void testParametersCondition() {
+  public void testParametersCondition() throws IOException {
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
 
     final SFinishedBuild finishedBuild05 = build().in(buildConf1).finish();
-    final SFinishedBuild finishedBuild10 = build().in(buildConf1).parameter("a", "10").parameter("b", "10").parameter("aa", "15").finish();
-    final SFinishedBuild finishedBuild20 = build().in(buildConf1).parameter("b", "20").parameter("myProp1", "randomValue#mPWh1dEHNVHVPhE17nwzYJng").finish();
-    final SFinishedBuild finishedBuild30 = build().in(buildConf1).parameter("c", "20").parameter("myProp2", "randomValue#mPWh1dEHNVHVPhE17nwzYJng").finish();
-    final SFinishedBuild finishedBuild35 = build().in(buildConf1).parameter("c", "10").finish();
-    final SFinishedBuild finishedBuild40 = build().in(buildConf1).parameter("zzz", "30").finish();
-    final SFinishedBuild finishedBuild50 = build().in(buildConf1).parameter("aa", "10").parameter("aaa", "10").finish();
+    writeFinalParameters(finishedBuild05, map());
+
+    final SFinishedBuild finishedBuild10 = build().in(buildConf1).finish();
+    writeFinalParameters(finishedBuild10, map("a", "10", "b", "10", "aa", "15"));
+
+    final SFinishedBuild finishedBuild20 = build().in(buildConf1).finish();
+    writeFinalParameters(finishedBuild20, map("b", "20", "myProp1", "randomValue#mPWh1dEHNVHVPhE17nwzYJng"));
+
+    final SFinishedBuild finishedBuild30 = build().in(buildConf1).finish();
+    writeFinalParameters(finishedBuild30, map("c", "20", "myProp2", "randomValue#mPWh1dEHNVHVPhE17nwzYJng"));
+
+    final SFinishedBuild finishedBuild35 = build().in(buildConf1).finish();
+    writeFinalParameters(finishedBuild35, map("c", "10"));
+
+    final SFinishedBuild finishedBuild40 = build().in(buildConf1).finish();
+    writeFinalParameters(finishedBuild40, map("zzz", "30"));
+
+    final SFinishedBuild finishedBuild50 = build().in(buildConf1).finish();
+    writeFinalParameters(finishedBuild50, map("aa", "10", "aaa", "10"));
 
     checkBuilds("property:(name:a)", getBuildPromotions(finishedBuild10));
     checkBuilds("property:(name:b)", getBuildPromotions(finishedBuild20, finishedBuild10));
@@ -1641,13 +1659,18 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
   }
 
   @Test
-  public void testLogicDimensions() {
+  public void testLogicDimensions() throws IOException {
     final BuildTypeImpl buildConf1 = registerBuildType("buildConf1", "project");
 
     final BuildPromotion build10 = build().in(buildConf1).finish().getBuildPromotion();
-    final BuildPromotion build20 = build().in(buildConf1).failed().parameter("a", "10").parameter("b", "10").parameter("aa", "15").finish().getBuildPromotion();
-    final BuildPromotion build30 = build().in(buildConf1).failed().parameter("a", "20").finish().getBuildPromotion();
-    final BuildPromotion build40 = build().in(buildConf1).parameter("a", "30").parameter("b", "20").finish().getBuildPromotion();
+    final BuildPromotion build20 = build().in(buildConf1).failed().finish().getBuildPromotion();
+    writeFinalParameters(build20.getAssociatedBuild(), map("a", "10", "b", "10", "aa", "15"));
+
+    final BuildPromotion build30 = build().in(buildConf1).failed().finish().getBuildPromotion();
+    writeFinalParameters(build30.getAssociatedBuild(), map("a", "20"));
+
+    final BuildPromotion build40 = build().in(buildConf1).finish().getBuildPromotion();
+    writeFinalParameters(build40.getAssociatedBuild(), map("a", "30", "b", "20"));
 
     checkBuilds(null, build40, build30, build20, build10);
 

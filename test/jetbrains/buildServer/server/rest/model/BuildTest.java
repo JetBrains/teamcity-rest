@@ -24,6 +24,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import jetbrains.BuildServerCreator;
 import jetbrains.buildServer.AgentRestrictorType;
 import jetbrains.buildServer.ArtifactsConstants;
 import jetbrains.buildServer.artifacts.ArtifactDependency;
@@ -1756,6 +1757,31 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     List<BuildRevision> depRevisions = bt2Bp.getRevisions();
     assertTrue(bt2Bp.isChangeCollectingNeeded());
     assertEquals(0, depRevisions.size());
+  }
+
+  @Test
+  @TestFor(issues = "TW-81244")
+  public void testNoParametersForQueuedBuild() {
+    SQueuedBuild queuedBuild = build().in(myBuildType).parameter("some_param", "value").addToQueue();
+
+    Build model = new Build(queuedBuild.getBuildPromotion(), new Fields("resultingProperties(**),startProperties(**)"), getBeanContext(myFixture));
+
+    assertEquals(new Integer(0), model.getResultingProperties().getCount());
+    assertEquals(new Integer(0), model.getStartProperties().getCount());
+  }
+
+  @Test
+  @TestFor(issues = "TW-81244")
+  public void testNoParametersForRunningCompositeBuild() {
+    BuildTypeEx bt = myProject.createBuildType("composite"); BuildServerCreator.makeComposite(bt);
+
+    SRunningBuild runningBuild = build().in(bt).parameter("some_param", "value").run();
+
+    Build model = new Build(runningBuild.getBuildPromotion(), new Fields("resultingProperties(**),startProperties(**)"), getBeanContext(myFixture));
+
+    assertEquals(new Integer(0), model.getResultingProperties().getCount());
+    assertEquals(new Integer(0), model.getStartProperties().getCount());
+    assertFalse(runningBuild.isFinished());
   }
 
   private void ensureChangesDetected() {

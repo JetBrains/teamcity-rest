@@ -35,13 +35,11 @@ import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.clouds.CloudImage;
 import jetbrains.buildServer.controllers.changes.ChangesBean;
 import jetbrains.buildServer.controllers.changes.ChangesPopupUtil;
-import jetbrains.buildServer.parameters.ParametersProvider;
-import jetbrains.buildServer.parameters.PasswordParametersFilterCore;
-import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.ParameterCondition;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.data.build.BuildParametersUtil;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.change.BuildChangeData;
 import jetbrains.buildServer.server.rest.data.change.SVcsModificationOrChangeDescriptor;
@@ -87,7 +85,6 @@ import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.buildDistribution.WaitReason;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
-import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import jetbrains.buildServer.serverSide.impl.DownloadedArtifactsLoggerImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.approval.ApprovableBuildManager;
@@ -96,14 +93,12 @@ import jetbrains.buildServer.serverSide.impl.changeProviders.ArtifactDependencyC
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.metadata.BuildMetadataEntry;
 import jetbrains.buildServer.serverSide.metadata.impl.MetadataStorageEx;
-import jetbrains.buildServer.serverSide.parameters.types.PasswordsSearcher;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.serverSide.vcs.VcsLabelManager;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.PasswordReplacer;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.browser.Element;
 import jetbrains.buildServer.vcs.*;
@@ -645,11 +640,14 @@ public class Build {
 
   @XmlElement
   public Properties getOriginalProperties() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("originalProperties", false), () -> {
-      checkCanViewRuntimeData();
-      return new Properties(Properties.createEntity(myBuildPromotion.getDefaultParameters(), null), null,
-                            null, myFields.getNestedField("originalProperties", Fields.NONE, Fields.LONG), myBeanContext);
-    });
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("originalProperties", false), this::resolveOriginalParameters);
+  }
+
+  @NotNull
+  private Properties resolveOriginalParameters() {
+    checkCanViewRuntimeData();
+    return new Properties(Properties.createEntity(myBuildPromotion.getDefaultParameters(), null), null,
+                          null, myFields.getNestedField("originalProperties", Fields.NONE, Fields.LONG), myBeanContext);
   }
 
   /**
@@ -657,11 +655,17 @@ public class Build {
    */
   @XmlElement
   public Properties getResultingProperties() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("resultingProperties", false, false), () -> {
-      checkCanViewRuntimeData();
-      return new Properties(getBuildResultingParameters(myBuildPromotion, myServiceLocator), null,
-                            myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
-    });
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(
+      myFields.isIncluded("resultingProperties", false, false),
+      this::resolveResultingParameters
+    );
+  }
+
+  @NotNull
+  private Properties resolveResultingParameters() {
+    checkCanViewRuntimeData();
+    return new Properties(BuildParametersUtil.getResultingParameters(myBuildPromotion), null,
+                          myFields.getNestedField("resultingProperties", Fields.NONE, Fields.LONG), myBeanContext);
   }
 
   /**
@@ -675,59 +679,8 @@ public class Build {
   @NotNull
   private Properties resolveStartParameters() {
     checkCanViewRuntimeData();
-    return new Properties(getStartParametersProvider(myBuildPromotion, myServiceLocator), null,
+    return new Properties(BuildParametersUtil.getStartParameters(myBuildPromotion), null,
                           myFields.getNestedField("startProperties", Fields.NONE, Fields.LONG), myBeanContext);
-  }
-
-  @NotNull
-  public static ParametersProvider getBuildResultingParameters(@NotNull BuildPromotion buildPromotion, @NotNull ServiceLocator serviceLocator) {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null && build instanceof BaseBuild) {
-      try {
-        Map<String, String> parameters = ((BaseBuild)build).getBuildFinishParameters();
-        if (parameters == null) {
-          parameters = ((BaseBuild)build).getBuildStartParameters();
-        }
-        if (parameters != null) {
-          return new MapParametersProviderImpl(parameters);
-        }
-      } catch (ClassCastException ignore) {
-      }
-    }
-    //falling back to recalculated parameters
-    return calculateAllParameters(buildPromotion, serviceLocator.findSingletonService(PasswordsSearcher.class));
-  }
-
-  @NotNull
-  public static ParametersProvider getStartParametersProvider(@NotNull BuildPromotion buildPromotion, @NotNull ServiceLocator serviceLocator) {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null && build instanceof BaseBuild) {
-      try {
-        Map<String, String> parameters = ((BaseBuild)build).getBuildStartParameters();
-        if (parameters != null) {
-          return new MapParametersProviderImpl(parameters);
-        }
-      } catch (ClassCastException ignore) {
-      }
-    }
-    //falling back to recalculated parameters
-    return calculateAllParameters(buildPromotion, serviceLocator.findSingletonService(PasswordsSearcher.class));
-  }
-
-  private static ParametersProvider calculateAllParameters(@NotNull final BuildPromotion buildPromotion, @NotNull PasswordsSearcher searcher) {
-    Set<String> passwords = searcher.collectPasswords(buildPromotion);
-    ParametersProvider provider = ((BuildPromotionEx)buildPromotion).getParametersProvider();
-    if (passwords.isEmpty()) {
-      return provider;
-    }
-    PasswordReplacer passwordReplacer = PasswordParametersFilterCore.createPasswordReplacer(passwords);
-    return new ParametersProvider() {
-      @Nullable @Override public String get(@NotNull final String key) { return Util.resolveNull(provider.get(key), passwordReplacer::replacePasswords);}
-      @Override public int size() { return provider.size();}
-      @Override public Map<String, String> getAll() {
-        return provider.getAll().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> passwordReplacer.replacePasswords(e.getValue())));
-      }
-    };
   }
 
   @XmlElement

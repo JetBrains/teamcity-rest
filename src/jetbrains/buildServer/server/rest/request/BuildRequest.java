@@ -44,6 +44,7 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.parameters.ProcessingResult;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.build.BuildParametersUtil;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.*;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
@@ -300,7 +301,7 @@ public class BuildRequest {
                                                @QueryParam("fields") String fields) {
     BuildPromotion build = myBuildPromotionFinder.getItem(buildLocator);
     myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build);
-    return new Properties(Build.getBuildResultingParameters(build, myServiceLocator), null, new Fields(fields), myBeanContext);
+    return new Properties(BuildParametersUtil.getResultingParameters(build), null, new Fields(fields), myBeanContext);
   }
 
   @GET
@@ -311,7 +312,7 @@ public class BuildRequest {
                              @PathParam("propertyName") String propertyName) {
     BuildPromotion build = myBuildPromotionFinder.getItem(buildLocator);
     myPermissionChecker.checkPermission(Permission.VIEW_BUILD_RUNTIME_DATA, build);
-    return BuildTypeUtil.getParameter(propertyName, Build.getBuildResultingParameters(build, myServiceLocator), true, true, myServiceLocator);
+    return BuildTypeUtil.getParameter(propertyName, BuildParametersUtil.getResultingParameters(build), true, true, myServiceLocator);
   }
 
   /**
