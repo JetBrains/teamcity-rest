@@ -28,6 +28,7 @@ import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.build.BuildParametersUtil;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.finder.*;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
@@ -60,7 +61,6 @@ import jetbrains.buildServer.serverSide.metadata.impl.MetadataStorageEx;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.StandardProperties;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -601,7 +601,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       result.add(item -> {
           if (!Build.canViewRuntimeData(myPermissionChecker, item)) return false;
           //does not correspond to Build.getProperties() which includes less parameters
-          return parameterCondition.matches(Build.getBuildResultingParameters(item, myServiceLocator)); //TeamCity open API issue
+          return parameterCondition.matches(BuildParametersUtil.getResultingParameters(item)); //TeamCity open API issue
       });
     }
 

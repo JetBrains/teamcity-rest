@@ -17,12 +17,15 @@
 package jetbrains.buildServer.server.rest.data.finder;
 
 import com.intellij.openapi.util.Pair;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.zip.GZIPOutputStream;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.agent.AgentRuntimeProperties;
 import jetbrains.buildServer.artifacts.RevisionRules;
 import jetbrains.buildServer.log.Loggable;
 import jetbrains.buildServer.responsibility.ResponsibilityFacadeEx;
@@ -45,8 +48,10 @@ import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
 import jetbrains.buildServer.serverSide.healthStatus.HealthStatusProvider;
 import jetbrains.buildServer.serverSide.healthStatus.HealthStatusReportLocator;
 import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
+import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.impl.PublishedPropertiesLoader;
 import jetbrains.buildServer.serverSide.mute.LowLevelProblemMutingService;
 import jetbrains.buildServer.serverSide.mute.LowLevelProblemMutingServiceImpl;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
@@ -337,6 +342,26 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     SArtifactDependency dep = myFixture.getSingletonService(ArtifactDependencyFactory.class).createArtifactDependency(dependOn, ARTIFACT_DEP_FILE_NAME, RevisionRules.LAST_FINISHED_RULE);
     dependent.addArtifactDependency(dep);
     return dep;
+  }
+
+  protected void writeFinalParameters(@NotNull final SBuild build, @NotNull final Map<String, String> params) throws IOException {
+    final HashMap<String, String> resultingMap = new HashMap<String, String>(params);
+    resultingMap.putAll(build.getParametersProvider().getAll());
+
+    final File file = new File(build.getArtifactsDirectory(), PublishedPropertiesLoader.BUILD_PROPERTIES_DIR + "build.finish.properties.gz");
+    file.getParentFile().mkdirs();
+    final Properties finalProps = new Properties();
+
+    resultingMap.forEach((k, v) -> finalProps.setProperty(k, v));
+    if (!resultingMap.containsKey(AgentRuntimeProperties.BUILD_ID)) {
+      finalProps.setProperty(AgentRuntimeProperties.BUILD_ID, String.valueOf(build.getBuildId()));
+    }
+
+    try (GZIPOutputStream gz = new GZIPOutputStream(new FileOutputStream(file))) {
+      finalProps.store(gz, "Created on the server at: " + new Date() + ", node id: " + CurrentNodeInfo.getNodeId());
+    }
+
+    ((BaseBuild)build).resetBuildFinalParameters();
   }
 
   public interface Matcher<S, T> {

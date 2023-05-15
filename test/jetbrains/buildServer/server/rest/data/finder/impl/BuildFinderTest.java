@@ -440,10 +440,17 @@ public class BuildFinderTest extends BuildFinderTestBase {
   @Test
   public void testPropertyDimension() throws Exception {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-    final SFinishedBuild build1 = build().in(buildConf).parameter("a", "x").finish();
+    final SFinishedBuild build1 = build().in(buildConf).finish();
+    writeFinalParameters(build1, map("a", "x"));
+
     final SFinishedBuild build2 = build().in(buildConf).failed().finish();
-    final SFinishedBuild build3 = build().in(buildConf).parameter("a", "y").finish();
-    final SFinishedBuild build4 = build().in(buildConf).parameter("b", "x").finish();
+    writeFinalParameters(build2, map());
+
+    final SFinishedBuild build3 = build().in(buildConf).finish();
+    writeFinalParameters(build3, map("a", "y"));
+
+    final SFinishedBuild build4 = build().in(buildConf).finish();
+    writeFinalParameters(build4, map("b", "x"));
 
     checkBuilds("buildType:(id:" + buildConf.getExternalId() + ")", build4, build3, build2, build1);
     checkBuilds("pinned:any", build4, build3, build2, build1);
@@ -456,12 +463,23 @@ public class BuildFinderTest extends BuildFinderTestBase {
   @Test
   public void testLookupLimitDimension() throws Exception {
     final BuildTypeImpl buildConf = registerBuildType("buildConf1", "project");
-    final SFinishedBuild build1 = build().in(buildConf).parameter("a", "x").finish();
-    final SFinishedBuild build2 = build().in(buildConf).failed().parameter("a", "x").finish();
-    final SFinishedBuild build3 = build().in(buildConf).parameter("a", "x").finish();
+    final SFinishedBuild build1 = build().in(buildConf).finish();
+    writeFinalParameters(build1, map("a", "x"));
+
+    final SFinishedBuild build2 = build().in(buildConf).failed().finish();
+    writeFinalParameters(build2, map("a", "x"));
+
+    final SFinishedBuild build3 = build().in(buildConf).finish();
+    writeFinalParameters(build3, map("a", "x"));
+
     final SFinishedBuild build4 = build().in(buildConf).failed().finish();
-    final SFinishedBuild build5 = build().in(buildConf).parameter("a", "x").finish();
+    writeFinalParameters(build4, map());
+
+    final SFinishedBuild build5 = build().in(buildConf).finish();
+    writeFinalParameters(build5, map("a", "x"));
+
     final SFinishedBuild build6 = build().in(buildConf).finish();
+    writeFinalParameters(build6, map());
 
     final String baseLocator = "status:SUCCESS,property:(name:a)";
     checkBuilds(baseLocator, build5, build3, build1);
