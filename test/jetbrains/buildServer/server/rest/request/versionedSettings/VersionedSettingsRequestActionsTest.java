@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request.versionedSettings;
 
 import java.util.function.Supplier;
 import jetbrains.buildServer.controllers.project.VersionedSettingsActions;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.model.project.Projects;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.impl.ConfigActionFactoryEx;
@@ -102,7 +103,7 @@ public class VersionedSettingsRequestActionsTest extends VersionedSettingsReques
     doTestUpdateFromVcs();
   }
 
-  @Test(expectedExceptions = AccessDeniedException.class)
+  @Test(expectedExceptions = AuthorizationFailedException.class)
   public void testLoadSettingsFromVCSWithNoUser() {
     loginAsUserWithOnlyViewProjectPermission();
     doTestUpdateFromVcs();
