@@ -88,7 +88,7 @@ public class VersionedSettingsTokensServiceImpl implements VersionedSettingsToke
   public void deleteTokens(@NotNull SProject project, @NotNull VersionedSettingsTokens versionedSettingsTokens) {
     checkPermissions(project);
     if (versionedSettingsTokens.getTokens().stream().anyMatch(token -> myVersionedSettingsTokensControllerHelper.isTokenUsed(project, token.getName()))) {
-      throw new BadRequestException("Cannot delete used tokens");
+      throw new BadRequestException("Cannot delete tokens in use");
     }
     List<String> tokensList = versionedSettingsTokens.getTokens().stream()
                                                      .map(token -> token.getName())
