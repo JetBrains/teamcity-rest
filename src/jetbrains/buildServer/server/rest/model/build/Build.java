@@ -640,7 +640,7 @@ public class Build {
 
   @XmlElement
   public Properties getOriginalProperties() {
-    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("originalProperties", false), this::resolveOriginalParameters);
+    return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("originalProperties", false, false), this::resolveOriginalParameters);
   }
 
   @NotNull
