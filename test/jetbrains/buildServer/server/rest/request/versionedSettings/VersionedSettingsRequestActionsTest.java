@@ -109,6 +109,14 @@ public class VersionedSettingsRequestActionsTest extends VersionedSettingsReques
     doTestUpdateFromVcs();
   }
 
+  @Test(expectedExceptions = AccessDeniedException.class)
+  public void testCheckForChangesNoPermission() {
+    SVcsRoot vcsRoot = myProject.createVcsRoot(myMockVcsSupport.getName(), "ext", "name");
+    myFixture.enableVersionedSettings(myProject, vcsRoot);
+    loginAsUserWithOnlyViewProjectPermission();
+    myRequest.checkForChanges(myProject.getExternalId());
+  }
+
   private void doTestUpdateFromVcs() {
     SVcsRoot vcsRoot = myProject.createVcsRoot(myMockVcsSupport.getName(), "ext", "name");
     myFixture.enableVersionedSettings(myProject, vcsRoot);
