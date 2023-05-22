@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.model.build;
 
 import com.intellij.openapi.diagnostic.Logger;
+import io.swagger.annotations.ApiModelProperty;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
@@ -624,6 +625,7 @@ public class Build {
   }
 
   @XmlElement
+  @ApiModelProperty(value = "User Defined Parameters. Includes parameters, added via \"Run Cutsom Build\". See also originalProperties")
   public Properties getProperties() {
     return myProperties;
   }
@@ -639,6 +641,7 @@ public class Build {
   }
 
   @XmlElement
+  @ApiModelProperty(value = "User Defined Parameters, taken from BuildType. See also properties")
   public Properties getOriginalProperties() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("originalProperties", false, false), this::resolveOriginalParameters);
   }
@@ -654,6 +657,7 @@ public class Build {
    * Experimental
    */
   @XmlElement
+  @ApiModelProperty(value = "Actual Parameters on Agent after build finish. See also startProperies")
   public Properties getResultingProperties() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(
       myFields.isIncluded("resultingProperties", false, false),
@@ -672,6 +676,7 @@ public class Build {
    * Experimental
    */
   @XmlElement
+  @ApiModelProperty(value = "Actual Parameters on Agent on build start. See also resultingProperies")
   public Properties getStartProperties() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("startProperties", false, false), this::resolveStartParameters);
   }
