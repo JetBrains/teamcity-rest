@@ -90,7 +90,7 @@ public class VersionedSettingsRequest {
   }
 
 
-  @POST
+  @PUT
   @Path("/contextParameters")
   @ApiOperation(value = "Set Versioned Settings Context Parameters.", nickname = "setVersionedSettingsContextParameters")
   public VersionedSettingsContextParameters setContextParameters(@ApiParam(format = LocatorName.PROJECT) @PathParam("locator") String projectLocator,
