@@ -74,7 +74,7 @@ public class VersionedSettingsRequest {
     VersionedSettingsBean versionedSettingsBean = myVersionedSettingsBeanCollector.getItem(project);
     VersionedSettingsBean.VersionedSettingsStatusBean status = versionedSettingsBean.getStatus();
     if (status == null) {
-      throw new BadRequestException("Versioned Settings were never been enabled in this project.");
+      throw new BadRequestException("Versioned Settings have never been enabled in this project.");
     }
     return new VersionedSettingsStatus(versionedSettingsBean.getStatus(), new Fields(fields));
   }
