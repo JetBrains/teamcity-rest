@@ -625,7 +625,7 @@ public class Build {
   }
 
   @XmlElement
-  @ApiModelProperty(value = "User Defined Parameters. Includes parameters, added via \"Run Cutsom Build\". See also originalProperties")
+  @ApiModelProperty(value = "Parameters defined by users. Includes parameters added in custom builds. See \"originalProperties\" for more information.")
   public Properties getProperties() {
     return myProperties;
   }
@@ -641,7 +641,7 @@ public class Build {
   }
 
   @XmlElement
-  @ApiModelProperty(value = "User Defined Parameters, taken from BuildType. See also properties")
+  @ApiModelProperty(value = "User-defined parameters from the build configuration (\"BuildType\" in REST API). See \"properties\" for more information.")
   public Properties getOriginalProperties() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("originalProperties", false, false), this::resolveOriginalParameters);
   }
@@ -657,7 +657,7 @@ public class Build {
    * Experimental
    */
   @XmlElement
-  @ApiModelProperty(value = "Actual Parameters on Agent after build finish. See also startProperies")
+  @ApiModelProperty(value = "Actual parameters reported by a build agent after a build finishes. To get the initial parameters reported when a build started, use \"startProperties\" instead.")
   public Properties getResultingProperties() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(
       myFields.isIncluded("resultingProperties", false, false),
@@ -676,7 +676,7 @@ public class Build {
    * Experimental
    */
   @XmlElement
-  @ApiModelProperty(value = "Actual Parameters on Agent on build start. See also resultingProperies")
+  @ApiModelProperty(value = "Actual parameters reported by a build agent when a build starts. To get the final parameters reported when a build finishes, use \"resultingProperties\" instead.")
   public Properties getStartProperties() {
     return ValueWithDefault.decideDefaultIgnoringAccessDenied(myFields.isIncluded("startProperties", false, false), this::resolveStartParameters);
   }
