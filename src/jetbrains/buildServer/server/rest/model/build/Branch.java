@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.build;
 
+import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -107,18 +108,16 @@ public class Branch {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("builds", false),
       () -> {
-        String buildsHref = null;
-        PagedSearchResult<BuildPromotion> builds = null;
+        List<BuildPromotion> builds = null;
         final Fields buildsFields = myFields.getNestedField("builds");
         final String buildsLocator = buildsFields.getLocator();
+        final String buildsHref = BuildRequest.getBuildsHref(myBranch, buildsLocator);
         if (buildsLocator != null) {
-          builds = myBranch.getBuilds(buildsFields.getLocator());
-          buildsHref = BuildRequest.getBuildsHref(myBranch, buildsLocator);
-        } else {
-          buildsHref = BuildRequest.getBuildsHref(myBranch, null);
+          PagedSearchResult<BuildPromotion> branchBuilds = myBranch.getBuilds(buildsLocator);
+          builds = branchBuilds == null ? null : branchBuilds.getEntries();
         }
         if (builds == null && buildsHref == null) return null;
-        return Builds.createFromPrefilteredBuildPromotions(builds == null ? null : builds.getEntries(), buildsHref == null ? null : new PagerDataImpl(buildsHref), buildsFields, myBeanContext);
+        return Builds.createFromPrefilteredBuildPromotions(builds, buildsHref == null ? null : new PagerDataImpl(buildsHref), buildsFields, myBeanContext);
       });
   }
 }

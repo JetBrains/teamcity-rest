@@ -200,7 +200,7 @@ public class Builds implements DefaultValueAware {
                                                             @NotNull final Fields fields,
                                                             @NotNull final BeanContext beanContext) {
     if(prefilteredPromotions == null) {
-      return new Builds(new ListBasedItemsRetriever<>(Collections.emptyList()), fields, beanContext);
+      return createPagerOnly(pagerData, fields, beanContext);
     }
 
     return new Builds(new ListBasedItemsRetriever<>(prefilteredPromotions, pagerData), fields, beanContext);
@@ -216,4 +216,38 @@ public class Builds implements DefaultValueAware {
     return new Builds(new ItemProviderBasedItemsRetriever<>(prefilteredPromotions, fields.getLocator()), fields, beanContext);
   }
 
+  @NotNull
+  public static Builds createPagerOnly(@Nullable PagerData pagerData, @NotNull final Fields fields, @NotNull final BeanContext beanContext) {
+    return new Builds(new PagerOnlyItemsRetriever(pagerData), fields, beanContext);
+  }
+
+  private static class PagerOnlyItemsRetriever implements ItemsProviders.ItemsRetriever<BuildPromotion> {
+    private final PagerData myPagerData;
+
+    PagerOnlyItemsRetriever(@Nullable PagerData pagerData) {
+      myPagerData = pagerData;
+    }
+
+    @Nullable
+    @Override
+    public List<BuildPromotion> getItems() {
+      return null;
+    }
+
+    @Override
+    public Integer getCount() {
+      return null;
+    }
+
+    @Override
+    public boolean isCountCheap() {
+      return false;
+    }
+
+    @Nullable
+    @Override
+    public PagerData getPagerData() {
+      return myPagerData;
+    }
+  }
 }
