@@ -461,22 +461,24 @@ public class BuildType {
   @XmlElement(name = "builds")
   public Builds getBuilds() {
     if (myBuildType == null || !myBuildType.isBuildType()) return null;
-    if (!myFields.isIncluded("builds", false, true)){
+    if (!myFields.isIncluded("builds", false, true)) {
       return null;
     }
 
     return ValueWithDefault.decideDefault(myFields.isIncluded("builds", false), () -> {
-        String buildsHref;
-        List<BuildPromotion> builds = null;
         final Fields buildsFields = myFields.getNestedField("builds");
         final String buildsLocator = buildsFields.getLocator();
         if (buildsLocator != null) {
-          builds = myBeanContext.getSingletonService(BuildPromotionFinder.class).getBuildPromotionsWithLegacyFallback(myBuildType.getBuildType(), buildsLocator).getEntries();
-          buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType(), buildsLocator);
-        } else {
-          buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType());
+          List<BuildPromotion> builds = myBeanContext.getSingletonService(BuildPromotionFinder.class)
+                                                     .getBuildPromotionsWithLegacyFallback(myBuildType.getBuildType(), buildsLocator)
+                                                     .getEntries();
+
+          String buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType(), buildsLocator);
+          return Builds.createFromPrefilteredBuildPromotions(builds, new PagerDataImpl(buildsHref), buildsFields, myBeanContext);
         }
-        return Builds.createFromPrefilteredBuildPromotions(builds, new PagerDataImpl(buildsHref), buildsFields, myBeanContext);
+
+        String buildsHref = BuildTypeRequest.getBuildsHref(myBuildType.getBuildType());
+        return Builds.createPagerOnly(new PagerDataImpl(buildsHref), buildsFields, myBeanContext);
     });
   }
 
