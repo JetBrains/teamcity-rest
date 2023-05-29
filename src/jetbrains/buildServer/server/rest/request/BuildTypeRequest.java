@@ -98,6 +98,7 @@ public class BuildTypeRequest {
 
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
+  @Context @NotNull private ProjectFinder myProjectFinder;
   @Context @NotNull private VcsRootFinder myVcsRootFinder;
   @Context @NotNull private InvestigationFinder myInvestigationFinder;
   @Context @NotNull private BranchFinder myBranchFinder;
@@ -1728,6 +1729,36 @@ public class BuildTypeRequest {
   //  final BuildTypeOrTemplate buildType2 = myBuildTypeFinder.getBuildTypeOrTemplate(null, buildTypeLocator2, true);
   //  return BuildTypeUtil.compareBuildTypes(buildType1.getSettingsEx(), buildType2.getSettingsEx(), checkInherited, true);
   //}
+
+  /**
+   * Duplicates the old api MoveBuildTypeController::doPost
+   */
+  @POST
+  @Path("/{btLocator}/move")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value = "Move build type to another project.", nickname = "moveBuildType")
+  public void moveToProject(
+    @ApiParam(format = LocatorName.BUILD_TYPE)
+    @PathParam("btLocator")
+    String buildTypeLocator,
+    @QueryParam("targetProjectId")
+    String targetProjectLocator
+  ) {
+    BuildTypeOrTemplate buildType = myBuildTypeFinder.findSingleItem(Locator.locator(buildTypeLocator));
+    if (buildType == null) {
+      throw new BadRequestException("BuildType not found.");
+    }
+    SProject targetProject = myProjectFinder.findSingleItem(Locator.locator(targetProjectLocator));
+    if (targetProject == null) {
+      throw new BadRequestException("Project not found.");
+    }
+    if (buildType.isBuildType()) {
+      Objects.requireNonNull(buildType.getBuildType()).moveToProject(targetProject);
+    }
+    if (buildType.isTemplate()) {
+      Objects.requireNonNull(buildType.getTemplate()).moveToProject(targetProject);
+    }
+  }
 
   public void initForTests(@NotNull final BeanContext beanContext) {
     myBeanContext = beanContext;
