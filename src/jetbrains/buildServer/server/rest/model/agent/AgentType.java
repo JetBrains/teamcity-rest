@@ -69,15 +69,15 @@ public class AgentType {
                                                       .stream()
                                                       .filter(entry -> SimpleParameter.isSystemProperty(entry.getKey()))
                                                       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-      return getProperties(systemParameters, fields.getNestedField("buildParameters"));
+      return getProperties(systemParameters, fields.getNestedField("systemParameters"));
     });
-    myEnvironmentParameters = ValueWithDefault.decideDefault(fields.isIncluded("systemParameters", false), () -> {
+    myEnvironmentParameters = ValueWithDefault.decideDefault(fields.isIncluded("environmentParameters", false), () -> {
       Map<String, String> environmentParameters = agentType.getAvailableParameters()
                                                       .entrySet()
                                                       .stream()
                                                       .filter(entry -> SimpleParameter.isEnvironmentVariable(entry.getKey()))
                                                       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-      return getProperties(environmentParameters, fields.getNestedField("buildParameters"));
+      return getProperties(environmentParameters, fields.getNestedField("environmentParameters"));
     });
   }
 
