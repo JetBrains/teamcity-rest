@@ -19,26 +19,25 @@ package jetbrains.buildServer.server.rest.data.finder.impl;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.clouds.CloudImage;
-import jetbrains.buildServer.clouds.CloudProfile;
-import jetbrains.buildServer.clouds.InstanceStatus;
-import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
-import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
-import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.deploymentDashboards.DeploymentDashboardManager;
+import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentDashboard;
+import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentInstance;
+import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Dimension;
@@ -47,129 +46,126 @@ import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.D
   extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
   baseEntity = "DeploymentInstance",
   examples = {
-    "`agent:<agentLocator>` - find cloud instance which hosts agent found by `agentLocator`.",
-    "`profile:<profileLocator>` - find all cloud instances in cloud profile found by `profileLocator`."
+    "`id:<instanceId>,dashboard:<dashboardLocator>` - find instance with ID `instanceId` under dashboard found by `dashboardLocator`."
   }
 )
 @JerseyContextSingleton
 @Component("restDeploymentInstanceFinder")
-public class DeploymentInstanceFinder extends DelegatingFinder<CloudInstanceData> {
+public class DeploymentInstanceFinder extends DelegatingFinder<DeploymentInstance> {
   private static final Logger LOG = Logger.getInstance(DeploymentInstanceFinder.class.getName());
 
   @LocatorDimension("id") private static final Dimension<CloudUtil.InstanceIdData> ID = new Dimension<>("id");
-  private static final Dimension<ValueCondition> ERROR = new Dimension<>("errorMessage");
-  private static final Dimension<InstanceStatus> STATE = new Dimension<>("state");
-  @LocatorDimension("networkAddress") private static final Dimension<ValueCondition> NETWORK_ADDRESS = new Dimension<>("networkAddress");
-  private static final Dimension<TimeCondition.ParsedTimeCondition> START_DATE = new Dimension<>("startDate");
-  @LocatorDimension(value = "agent", format = LocatorName.AGENT, notes = "Agent locator.")
-  private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
-  @LocatorDimension(value = "instance", format = LocatorName.CLOUD_IMAGE, notes = "Cloud image locator.")
-  private static final Dimension<List<CloudImage>> IMAGE = new Dimension<>("image");
-  @LocatorDimension(value = "profile", format = LocatorName.CLOUD_PROFILE, notes = "Cloud profile locator.")
-  private static final Dimension<List<CloudProfile>> PROFILE = new Dimension<>("profile");
+  @LocatorDimension(value = "state", notes = "Current state of deployment.")
+  private static final Dimension<DeploymentState> CURRENT_STATE = new Dimension<>("currentState");
+  @LocatorDimension(value = "dashboard", format = LocatorName.DEPLOYMENT_DASHBOARD, notes = "Deployment dashboard locator.")
+  public static final Dimension<List<DeploymentDashboard>> DASHBOARD = new Dimension<>("dashboard");
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
   private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
   private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
 
   @NotNull private final ServiceLocator myServiceLocator;
-  @NotNull private final CloudManager myCloudManager;
-  @NotNull private final CloudUtil myCloudUtil;
-  @NotNull private final TimeCondition myTimeCondition;
+  @NotNull private final DeploymentDashboardManager myDeploymentDashboardManager;
+  @NotNull private final ProjectManager myProjectManager;
 
-  public DeploymentInstanceFinder(@NotNull final ServiceLocator serviceLocator,
-                                  @NotNull final CloudUtil cloudUtil,
-                                  @NotNull final TimeCondition timeCondition) {
+  public DeploymentInstanceFinder(
+    @NotNull final ServiceLocator serviceLocator,
+    @NotNull DeploymentDashboardManager deploymentDashboardManager,
+    @NotNull ProjectManager projectManager
+  ) {
     myServiceLocator = serviceLocator;
-    myCloudUtil = cloudUtil;
-    myTimeCondition = timeCondition;
-    myCloudManager = myServiceLocator.getSingletonService(CloudManager.class);
+    myDeploymentDashboardManager = deploymentDashboardManager;
+    myProjectManager = projectManager;
     setDelegate(new Builder().build());
   }
 
   @NotNull
-  public static String getLocator(@NotNull final CloudInstanceData item) {
+  public static String getLocator(@NotNull final DeploymentInstance item) {
     return Locator.getStringLocator(ID.name, item.getId());
   }
 
   @NotNull
-  public static String getLocator(@NotNull final SBuildAgent agent) {
-    return Locator.getStringLocator(AGENT.name, AgentFinder.getLocator(agent));
+  public static String getLocator(@NotNull final DeploymentDashboard dashboard) {
+    return Locator.getStringLocator(
+      DASHBOARD.name, DeploymentDashboardFinder.getLocator(dashboard)
+    );
   }
 
-  @NotNull
-  public static String getLocator(@NotNull final CloudImage image, @NotNull final CloudUtil cloudUtil) {
-    return Locator.getStringLocator(IMAGE.name, CloudImageFinder.getLocator(image, cloudUtil));
-  }
-
-  private class Builder extends TypedFinderBuilder<CloudInstanceData> {
+  private class Builder extends TypedFinderBuilder<DeploymentInstance> {
     Builder() {
-      name("CloudInstanceFinder");
+      name("DeploymentInstanceFinder");
 
-      dimension(ID, mapper(value -> new CloudUtil.InstanceIdData(value)).acceptingType("Specially formatted text"))
-        .description("instance id as provided by list instances call")
-        .filter((instanceIdData, instanceData) -> checkInstanceHasGivenIds(instanceIdData, instanceData))
-        .toItems(instanceIdData -> getCloudInstanceDataById(instanceIdData));
+      dimensionEnum(CURRENT_STATE, DeploymentState.class)
+        .description("current deployment state of an instance")
+        .valueForDefaultFilter(
+          instance -> instance.getCurrentState()
+        );
 
-      dimensionValueCondition(ERROR).description("instance error message").valueForDefaultFilter(instance -> instance.getError());
-      dimensionValueCondition(NETWORK_ADDRESS).description("instance network address").valueForDefaultFilter(instance -> instance.getInstance().getNetworkIdentity());
-      dimensionTimeCondition(START_DATE, myTimeCondition).description("instance start time").valueForDefaultFilter(instance -> instance.getInstance().getStartedTime());
-      dimensionEnum(STATE, InstanceStatus.class).description("instance state").valueForDefaultFilter(instance -> instance.getInstance().getStatus());
+      dimensionWithFinder(
+        DASHBOARD,
+        () -> myServiceLocator.getSingletonService(DeploymentDashboardFinder.class),
+        "dashboards where instances are published"
+      )
+        .toItems(dashboards -> dashboards
+          .stream()
+          .flatMap(
+            dashboard -> dashboard.getInstances().values().stream()
+          )
+          .collect(Collectors.toList())
+        );
 
+      dimensionProjects(
+        PROJECT,
+        "projects defining dashboards containing the instances",
+        false
+      );
 
-      dimensionProjects(PROJECT, myServiceLocator).description("projects defining the cloud profiles/images").
-        valueForDefaultFilter(item -> Collections.singleton(myCloudUtil.getInstanceProject(item))).
-        toItems(projects -> projects.stream()
-                                    .flatMap(project -> myCloudManager.listProfilesByProject(project.getProjectId(), false).stream())
-                                    .flatMap(profile -> myCloudUtil.getInstancesByProfile(profile))
-                                    .collect(Collectors.toList()));
-
-      dimensionProjects(AFFECTED_PROJECT, myServiceLocator).description("projects where the cloud profiles/images are accessible").
-        filter((projects, item) -> Util.resolveNull(myCloudUtil.getInstanceProject(item), p -> CloudUtil.containProjectOrParent(projects, p), false)).
-        toItems(projects -> projects.stream()
-                                    .flatMap(project -> myCloudManager.listProfilesByProject(project.getProjectId(), true).stream())
-                                    .flatMap(profile -> myCloudUtil.getInstancesByProfile(profile))
-                                    .collect(Collectors.toList()));
-
-      dimensionWithFinder(IMAGE, () -> myServiceLocator.getSingletonService(CloudImageFinder.class), "images of the instances").
-        valueForDefaultFilter(item -> Collections.singleton(item.getInstance().getImage())).
-        toItems(images -> images.stream()
-                                .flatMap(image -> image.getInstances().stream()
-                                                       .map(instance -> new CloudInstanceData(instance, image.getProfileId(), myServiceLocator))
-                                )
-                                .collect(Collectors.toList()));
-
-      dimensionWithFinder(PROFILE, () -> myServiceLocator.getSingletonService(CloudProfileFinder.class), "profiles of the instances").
-        valueForDefaultFilter(item -> Collections.singleton(myCloudUtil.getProfile(item.getInstance().getImage()))).
-        toItems(profiles -> profiles.stream()
-                                .flatMap(profile -> myCloudUtil.getInstancesByProfile(profile))
-                                .collect(Collectors.toList()));
-
-      dimensionAgents(AGENT, myServiceLocator).description("agents running on the instances").
-        filter((agents, instance) -> agents.stream().anyMatch(agent -> instance.getInstance().containsAgent(agent))).
-        toItems(agents -> agents.stream()
-                                .map(agent -> myCloudManager.findInstanceByAgent(agent))
-                                .filter(Objects::nonNull)
-                                .map(pair -> new CloudInstanceData(pair.getSecond(), pair.getFirst().getProfileId(), myServiceLocator))
-                                .collect(Collectors.toList()));
-
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> {
-        return myCloudUtil.getAllInstancesProcessor();
-      });
+      dimensionProjects(
+        AFFECTED_PROJECT,
+        "projects where dashboards containing the instances are accessible",
+        true
+      );
 
       locatorProvider(DeploymentInstanceFinder::getLocator);
     }
-  }
 
-  private boolean checkInstanceHasGivenIds(@NotNull CloudUtil.InstanceIdData instanceIdData, @NotNull CloudInstanceData instanceData) {
-    return instanceIdData.id.equals(instanceData.getInstance().getInstanceId()) && instanceIdData.imageId.equals(instanceData.getCloudImageId())
-           && Util.resolveNull(myCloudUtil.getProfile(instanceData.getInstance().getImage()), p -> instanceIdData.profileId.equals(p.getProfileId()), false);
-  }
+    private void dimensionProjects(Dimension<List<SProject>> affectedProject, String description, boolean includeFromSubprojects) {
+      dimensionProjects(affectedProject, myServiceLocator)
+        .description(description)
+        .valueForDefaultFilter(item -> Collections.singleton(getProjectFromInstance(item)))
+        .toItems(
+          getDeploymentInstanceListItemsFromDimension(includeFromSubprojects)
+        );
+    }
 
-  @NotNull
-  private List<CloudInstanceData> getCloudInstanceDataById(@NotNull CloudUtil.InstanceIdData instanceIdData) {
-    return Util.resolveNull(myCloudUtil.getInstance(instanceIdData.profileId, instanceIdData.imageId, instanceIdData.id),
-                            i -> Collections.singletonList(new CloudInstanceData(i, instanceIdData.profileId, myServiceLocator)), Collections.emptyList());
+    @NotNull
+    private ItemsFromDimension<DeploymentInstance, List<SProject>> getDeploymentInstanceListItemsFromDimension(boolean includeFromSubprojects) {
+      return projects -> projects
+        .stream()
+        .flatMap(
+          project -> myDeploymentDashboardManager
+            .getAllDashboards(project.getProjectId(), includeFromSubprojects)
+            .values()
+            .stream()
+        )
+        .flatMap(dashboard -> dashboard.getInstances().values().stream())
+        .collect(Collectors.toList());
+    }
+
+    @Nullable
+    private SProject getProjectFromInstance(DeploymentInstance instance) {
+      DeploymentDashboard dashboard = myDeploymentDashboardManager.getDashboard(
+        instance.getDashboardId()
+      );
+
+      if (dashboard != null) {
+        return myProjectManager.findProjectById(
+          myDeploymentDashboardManager.getProjectId(dashboard)
+        );
+      }
+
+      return null;
+    }
   }
 }
 

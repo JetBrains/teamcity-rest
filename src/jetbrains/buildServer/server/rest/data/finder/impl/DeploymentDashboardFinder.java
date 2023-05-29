@@ -19,13 +19,9 @@ package jetbrains.buildServer.server.rest.data.finder.impl;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.clouds.CloudImage;
-import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.clouds.server.CloudManager;
-import jetbrains.buildServer.server.rest.data.CloudInstanceData;
 import jetbrains.buildServer.server.rest.data.CloudUtil;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.ValueCondition;
@@ -41,6 +37,8 @@ import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensio
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.deploymentDashboards.DeploymentDashboardManager;
+import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentDashboard;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
@@ -51,49 +49,40 @@ import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.D
   extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
   baseEntity = "DeploymentDashboard",
   examples = {
-    "`name:MyCloudProfile` - find cloud profile with `MyCloudProfile` name.",
-    "`project:<projectLocator>` - find all cloud profiles under project found by `projectLocator`."
+    "`id:<dashboardId>` - find dashboard with ID `dashboardId`.",
+    "`project:<projectLocator>` - find all deployment dashboards under project found by `projectLocator`."
   }
 )
 @JerseyContextSingleton
 @Component("restDeploymentDashboardFinder")
-public class DeploymentDashboardFinder extends DelegatingFinder<CloudProfile> {
+public class DeploymentDashboardFinder extends DelegatingFinder<DeploymentDashboard> {
   private static final Logger LOG = Logger.getInstance(DeploymentDashboardFinder.class.getName());
 
-  @LocatorDimension("id") private static final Dimension<String> ID = new Dimension<>("id");
+  @LocatorDimension("id") public static final Dimension<String> ID = new Dimension<>("id");
   @LocatorDimension("name") private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
-  @LocatorDimension("cloudProviderId") private static final Dimension<ValueCondition> CLOUD_PROVIDER_ID = new Dimension<>("cloudProviderId");
-  @LocatorDimension(value = "instance", format = LocatorName.CLOUD_INSTANCE, notes = "Cloud instance locator.")
-  private static final Dimension<List<CloudInstanceData>> INSTANCE = new Dimension<>("instance");
-  @LocatorDimension(value = "instance", format = LocatorName.CLOUD_IMAGE, notes = "Cloud image locator.")
-  private static final Dimension<List<CloudImage>> IMAGE = new Dimension<>("image");
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
   private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
   private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
 
   @NotNull private final ServiceLocator myServiceLocator;
-  @NotNull private final CloudManager myCloudManager;
+  @NotNull private final DeploymentDashboardManager myDeploymentDashboardManager;
   @NotNull private final ProjectManager myProjectManager;
-  @NotNull private final CloudUtil myCloudUtil;
 
   public DeploymentDashboardFinder(@NotNull final ServiceLocator serviceLocator,
-                                   @NotNull final ProjectManager projectManager,
-                                   @NotNull final CloudUtil cloudUtil) {
+                                   @NotNull DeploymentDashboardManager deploymentDashboardManager,
+                                   @NotNull final ProjectManager projectManager) {
     myServiceLocator = serviceLocator;
+    myDeploymentDashboardManager = deploymentDashboardManager;
     myProjectManager = projectManager;
-    myCloudUtil = cloudUtil;
-    myCloudManager = myServiceLocator.getSingletonService(CloudManager.class);
     setDelegate(new Builder().build());
   }
 
-  public static String getLocatorById(@NotNull final Long id) {
-    return Locator.getStringLocator(ID.name, String.valueOf(id));
-  }
-
   @NotNull
-  public static String getLocator(@NotNull final CloudProfile item) {
-    return Locator.getStringLocator(ID.name, item.getProfileId());
+  public static String getLocator(@NotNull final DeploymentDashboard item) {
+    return Locator.getStringLocator(
+      ID.name, item.getId()
+    );
   }
 
   @NotNull
@@ -104,38 +93,77 @@ public class DeploymentDashboardFinder extends DelegatingFinder<CloudProfile> {
     return Locator.setDimensionIfNotPresent(baseLocator, PROJECT.name, ProjectFinder.getLocator(project));
   }
 
-  private class Builder extends TypedFinderBuilder<CloudProfile> {
+  private class Builder extends TypedFinderBuilder<DeploymentDashboard> {
     Builder() {
-      name("CloudProfileFinder");
+      name("DeploymentDashboardFinder");
 
-      dimensionString(ID).description("profile id").
-        filter((value, item) -> value.equals(item.getProfileId())).
-        toItems(dimension -> Util.resolveNull(myCloudUtil.findProfileGloballyById(dimension), Collections::singletonList, Collections.emptyList()));
+      dimensionString(ID)
+        .description("dashboard id")
+        .filter((value, item) -> value.equals(item.getId()))
+        .toItems(
+           dimension -> Util.resolveNull(
+             myDeploymentDashboardManager.getDashboard(dimension),
+             Collections::singletonList,
+             Collections.emptyList()
+           )
+         );
 
-      dimensionValueCondition(NAME).description("profile name").valueForDefaultFilter(CloudProfile::getProfileName);
-      dimensionValueCondition(CLOUD_PROVIDER_ID).description("profile cloud provider id").valueForDefaultFilter(CloudProfile::getCloudCode);
+      dimensionValueCondition(NAME)
+        .description("dashboard name")
+        .valueForDefaultFilter(DeploymentDashboard::getName);
 
+      dimensionProjects(PROJECT, myServiceLocator)
+        .description("projects where dashboards are defined")
+        .valueForDefaultFilter(
+          item -> Util.resolveNull(
+            myProjectManager.findProjectById(
+              myDeploymentDashboardManager.getProjectId(item)
+            ),
+            p -> Collections.singleton(p),
+            Collections.emptySet()
+          )
+        )
+        .toItems(
+          getDeploymentDashboardListItemsFromDimension(false)
+        );
 
-      dimensionWithFinder(INSTANCE, () -> myServiceLocator.getSingletonService(CloudInstanceFinder.class), "instances of the profiles").
-        filter((value, item) -> value.stream().anyMatch(instance -> Util.resolveNull(myCloudUtil.getProfile(instance.getInstance().getImage()), p -> p.getProfileId().equals(item.getProfileId()), false))).
-        toItems(instances -> instances.stream().map(instance -> instance.getInstance().getImage()).distinct().map(image -> myCloudUtil.getProfile(image)).filter(Objects::nonNull).distinct().collect(Collectors.toList()));
+      dimensionProjects(AFFECTED_PROJECT, myServiceLocator)
+        .description("projects where dashboards are accessible")
+          .filter(
+            (projects, item) -> Util.resolveNull(
+              myProjectManager.findProjectById(
+                myDeploymentDashboardManager.getProjectId(item)
+              ),
+              p -> CloudUtil.containProjectOrParent(projects, p),
+              false
+            )
+          )
+          .toItems(
+            getDeploymentDashboardListItemsFromDimension(true)
+          );
 
-      dimensionWithFinder(IMAGE, () -> myServiceLocator.getSingletonService(CloudImageFinder.class), "images of the profiles").
-        filter((value, item) -> value.stream().anyMatch(image -> Util.resolveNull(myCloudUtil.getProfile(image), p -> p.getProfileId().equals(item.getProfileId()), false))).
-        toItems(images -> images.stream().map(image -> myCloudUtil.getProfile(image)).filter(Objects::nonNull).distinct().collect(Collectors.toList()));
-
-
-      dimensionProjects(PROJECT, myServiceLocator).description("projects defining the cloud profiles").
-        valueForDefaultFilter(item -> Util.resolveNull(myProjectManager.findProjectById(item.getProjectId()), p -> Collections.singleton(p), Collections.emptySet())).
-        toItems(projects -> projects.stream().flatMap(project -> myCloudManager.listProfilesByProject(project.getProjectId(), false).stream()).collect(Collectors.toList()));
-
-      dimensionProjects(AFFECTED_PROJECT, myServiceLocator).description("projects where the cloud profiles are accessible").
-        filter((projects, item) -> Util.resolveNull(myCloudUtil.getProject(item), p -> CloudUtil.containProjectOrParent(projects, p), false))
-        .toItems(projects -> projects.stream().flatMap(project -> myCloudManager.listProfilesByProject(project.getProjectId(), true).stream()).collect(Collectors.toList()));
-
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> ItemHolder.of(myCloudManager.listAllProfiles()));
+      multipleConvertToItemHolder(
+        DimensionCondition.ALWAYS,
+        dimensions -> ItemHolder.of(
+          myDeploymentDashboardManager.getAllDashboards().values()
+        )
+      );
 
       locatorProvider(DeploymentDashboardFinder::getLocator);
+    }
+
+    @NotNull
+    private ItemsFromDimension<DeploymentDashboard, List<SProject>> getDeploymentDashboardListItemsFromDimension(boolean includeFromSubprojects) {
+      return projects -> projects
+        .stream()
+        .flatMap(
+          project -> myDeploymentDashboardManager
+            .getAllDashboards(project.getProjectId(), includeFromSubprojects)
+            .values()
+            .stream()
+        )
+        .collect(Collectors.toList()
+        );
     }
   }
 }

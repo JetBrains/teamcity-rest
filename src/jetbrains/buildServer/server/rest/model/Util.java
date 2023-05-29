@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -38,6 +39,20 @@ public class Util {
       return null;
     }
     return (new SimpleDateFormat(TeamCityProperties.getProperty("rest.defaultDateFormat", Constants.TIME_FORMAT), Locale.ENGLISH)).format(time);
+  }
+
+  @NotNull
+  public static Date resolveTime(@Nullable final String timestamp) throws ParseException {
+    if (timestamp == null || timestamp.isEmpty()) {
+      return null;
+    }
+
+    SimpleDateFormat format = new SimpleDateFormat(
+      TeamCityProperties.getProperty("rest.defaultDateFormat", Constants.TIME_FORMAT),
+      Locale.ENGLISH
+    );
+
+    return format.parse(timestamp);
   }
 
   public static String concatenatePath(final String... pathParts) {

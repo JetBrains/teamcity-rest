@@ -1,0 +1,161 @@
+/*
+ * Copyright 2000-2022 JetBrains s.r.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package jetbrains.buildServer.server.rest.model.deployment;
+
+import java.util.NoSuchElementException;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.finder.impl.DeploymentDashboardFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.DeploymentInstanceFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.Fields;
+import jetbrains.buildServer.server.rest.model.PagerDataImpl;
+import jetbrains.buildServer.server.rest.model.project.Project;
+import jetbrains.buildServer.server.rest.request.DeploymentInstanceRequest;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.deploymentDashboards.DeploymentDashboardManager;
+import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentDashboard;
+import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+@XmlRootElement(name = "deploymentDashboard")
+@XmlType(name = "deploymentDashboard", propOrder = {"id", "name", "project", "instances"})
+@ModelDescription(
+  value = "Represents a deployment dashboard instance."
+)
+public class Dashboard {
+  @XmlAttribute
+  public String id;
+  @XmlAttribute
+  public String name;
+  @XmlElement(name = "deploymentInstances")
+  public Instances deploymentInstances;
+  @XmlElement(name = "project")
+  @Nullable
+  public Project project;
+
+  public Dashboard() {
+  }
+
+  public Dashboard(
+    @NotNull final DeploymentDashboard dashboard,
+    @NotNull final Fields fields,
+    @NotNull final BeanContext beanContext
+  ) {
+    id = ValueWithDefault.decideIncludeByDefault(
+      fields.isIncluded("id"),
+      dashboard.getId()
+    );
+
+    name = ValueWithDefault.decideIncludeByDefault(
+      fields.isIncluded("name"),
+      dashboard.getName()
+    );
+
+    deploymentInstances = ValueWithDefault.decideDefault(
+      fields.isIncluded("deploymentInstances", false),
+      () -> {
+        Fields nestedFields = fields.getNestedField("deploymentInstances", Fields.NONE, Fields.LONG);
+
+        String locator = Locator.merge(
+          nestedFields.getLocator(),
+          DeploymentInstanceFinder.getLocator(dashboard)
+        );
+
+        return new Instances(
+          locator,
+          new PagerDataImpl(DeploymentInstanceRequest.getItemsHref(locator)),
+          nestedFields,
+          beanContext
+        );
+      });
+
+    project = ValueWithDefault.decideDefault(
+      fields.isIncluded("project", false),
+      () -> {
+        SProject project = beanContext
+          .getSingletonService(ProjectManager.class)
+          .findProjectById(dashboard.getProjectId());
+
+        if (project != null) {
+          return new Project(project, fields.getNestedField("project"), beanContext);
+        } else {
+          return null;
+        }
+      });
+  }
+
+  @NotNull
+  public DeploymentDashboard getDashboardFromPosted(@NotNull final DeploymentDashboardFinder deploymentDashboardFinder) {
+    if (id != null) {
+      Locator resultLocator = Locator.createEmptyLocator();
+      resultLocator.setDimension(
+        DeploymentDashboardFinder.ID.name,
+        String.valueOf(id)
+      );
+      return deploymentDashboardFinder.getItem(
+        resultLocator.getStringRepresentation()
+      );
+    } else {
+      throw new BadRequestException("Attribute 'id' should be specified.");
+    }
+  }
+
+  public static String getFieldValue(
+    @NotNull final DeploymentDashboard dashboard,
+    @NotNull final String fieldName
+  ) {
+    if ("name".equals(fieldName)) {
+      return dashboard.getName();
+    }
+
+    throw new NotFoundException("Field '" + fieldName + "' is not supported. Supported field: name.");
+  }
+
+  public static void setFieldValue(
+    @NotNull final DeploymentDashboard dashboard,
+    @NotNull final String fieldName,
+    @Nullable final String newValue,
+    @NotNull final BeanContext beanContext
+  ) {
+    if ("name".equals(fieldName)) {
+      if (StringUtil.isEmpty(newValue)) {
+        throw new BadRequestException("Dashboard name cannot be empty");
+      }
+
+      try {
+        dashboard.setName(newValue);
+        beanContext
+          .getSingletonService(DeploymentDashboardManager.class)
+          .updateDashboard(dashboard);
+      } catch (NoSuchElementException e) {
+        throw new BadRequestException(e.getMessage());
+      }
+    } else {
+      throw new BadRequestException("Setting field '" + fieldName + "' is not supported. Supported field: name.");
+    }
+  }
+}
