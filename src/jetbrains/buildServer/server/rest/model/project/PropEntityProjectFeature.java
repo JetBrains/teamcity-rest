@@ -23,10 +23,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.ParameterCondition;
-import jetbrains.buildServer.server.rest.data.ValueCondition;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.SetDuplicateChecker;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.InvalidStateException;
@@ -135,9 +135,9 @@ public class PropEntityProjectFeature extends PropEntity {
   }
 
   public static class ProjectFeatureFinder extends DelegatingFinder<SProjectFeatureDescriptor> {
-    private static final TypedFinderBuilder.Dimension<String> ID = new TypedFinderBuilder.Dimension<>("id");
-    private static final TypedFinderBuilder.Dimension<ValueCondition> TYPE = new TypedFinderBuilder.Dimension<>("type");
-    private static final TypedFinderBuilder.Dimension<ParameterCondition> PROPERTY = new TypedFinderBuilder.Dimension<>("property");
+    private static final Dimension ID = new StubDimension("id");
+    private static final Dimension TYPE = new StubDimension("type");
+    private static final Dimension PROPERTY = new StubDimension("property");
 
     public ProjectFeatureFinder(@NotNull final SProject project) {
       TypedFinderBuilder<SProjectFeatureDescriptor> builder = new TypedFinderBuilder<SProjectFeatureDescriptor>();

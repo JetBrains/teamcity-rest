@@ -112,7 +112,7 @@ public class AgentPool {
     boolean otherDimensionsSet = false;
     if (id != null) {
       otherDimensionsSet = true;
-      resultLocator.setDimension(AgentPoolFinder.ID.name, String.valueOf(id));
+      resultLocator.setDimension(AgentPoolFinder.ID, String.valueOf(id));
     }
     /*
     //todo: implement this in finder!

@@ -19,6 +19,9 @@ package jetbrains.buildServer.server.rest.data;
 import com.intellij.openapi.diagnostic.Logger;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
 import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.util.StringPool;
@@ -54,6 +57,7 @@ import org.jetbrains.annotations.Nullable;
  * @date 13.08.2010
  */
 public class Locator {
+  // TODO: Locator should implement SyntaxVisitor.
   private static final Logger LOG = Logger.getInstance(Locator.class.getName());
   public static final String DIMENSION_NAME_VALUE_DELIMITER = ":";
   private static final String DIMENSIONS_DELIMITER = ",";
@@ -319,8 +323,16 @@ public class Locator {
     }
   }
 
+  public void addSupportedDimensions(final Stream<Dimension> dimensions) {
+    addSupportedDimensions(dimensions.map(Dimension::getName).toArray(size -> new String[size]));
+  }
+
   public void addIgnoreUnusedDimensions(final String... ignoreUnusedDimensions) {
     myIgnoreUnusedDimensions.addAll(Arrays.asList(ignoreUnusedDimensions));
+  }
+
+  public void addIgnoreUnusedDimensions(final Dimension... ignoreUnusedDimensions) {
+    myIgnoreUnusedDimensions.addAll(Arrays.stream(ignoreUnusedDimensions).map(Dimension::getName).collect(Collectors.toList()));
   }
 
   /**
@@ -690,10 +702,21 @@ public class Locator {
   }
 
   @Nullable
+  public Long getSingleDimensionValueAsLong(@NotNull final Dimension dimension) {
+    return getSingleDimensionValueAsLong(dimension.getName());
+  }
+
+  @Nullable
   @Contract("_, !null -> !null")
   public Long getSingleDimensionValueAsLong(@NotNull final String dimensionName, @Nullable Long defaultValue) {
     markUsed(dimensionName);
     return lookupSingleDimensionValueAsLong(dimensionName, defaultValue);
+  }
+
+  @Nullable
+  @Contract("_, !null -> !null")
+  public Long getSingleDimensionValueAsLong(@NotNull final Dimension dimension, @Nullable Long defaultValue) {
+    return getSingleDimensionValueAsLong(dimension.getName(), defaultValue);
   }
 
   @Nullable
@@ -722,6 +745,11 @@ public class Locator {
     }
   }
 
+  @Nullable
+  public Boolean getSingleDimensionValueAsBoolean(@NotNull final Dimension dimension) {
+    return getSingleDimensionValueAsBoolean(dimension.getName());
+  }
+
   /**
    * Same as getSingleDimensionValueAsBoolean but does not mark the dimension as used
    */
@@ -732,6 +760,11 @@ public class Locator {
     } catch (LocatorProcessException e) {
       throw new LocatorProcessException("Invalid value of dimension '" + dimensionName + "': " + e.getMessage(), e);
     }
+  }
+
+  @Nullable
+  public Boolean lookupSingleDimensionValueAsBoolean(@NotNull final Dimension dimension) {
+    return lookupSingleDimensionValueAsBoolean(dimension.getName());
   }
 
   /**
@@ -750,6 +783,11 @@ public class Locator {
   }
 
   @Nullable
+  public Boolean getSingleDimensionValueAsBoolean(@NotNull final Dimension dimension, @Nullable Boolean defaultValue) {
+    return getSingleDimensionValueAsBoolean(dimension.getName(), defaultValue);
+  }
+
+  @Nullable
   @Contract("_, !null -> !null")
   public Boolean getSingleDimensionValueAsStrictBoolean(@NotNull final String dimensionName, @Nullable Boolean defaultValue) {
     final String value = getSingleDimensionValue(dimensionName);
@@ -757,6 +795,12 @@ public class Locator {
       return defaultValue;
     }
     return LocatorUtil.getStrictBooleanOrReportError(value);
+  }
+
+  @Nullable
+  @Contract("_, !null -> !null")
+  public Boolean getSingleDimensionValueAsStrictBoolean(@NotNull final Dimension dimension, @Nullable Boolean defaultValue) {
+    return getSingleDimensionValueAsStrictBoolean(dimension.getName(), defaultValue);
   }
 
   /**
@@ -778,6 +822,11 @@ public class Locator {
   public String getSingleDimensionValue(@NotNull final String dimensionName) {
     markUsed(dimensionName);
     return lookupSingleDimensionValue(dimensionName);
+  }
+
+  @Nullable
+  public String getSingleDimensionValue(@NotNull final Dimension dimension) {
+    return getSingleDimensionValue(dimension.getName());
   }
 
   /**
@@ -816,9 +865,19 @@ public class Locator {
   }
 
   @NotNull
+  public List<String> getDimensionValue(@NotNull final Dimension dimension) {
+    return getDimensionValue(dimension.getName());
+  }
+
+  @NotNull
   public List<String> lookupDimensionValue(@NotNull final String dimensionName) {
     Collection<String> idDimension = myDimensions.get(dimensionName);
     return idDimension != null ? new ArrayList<String>(idDimension) : Collections.emptyList();
+  }
+
+  @NotNull
+  public List<String> lookupDimensionValue(@NotNull final Dimension dimension) {
+    return lookupDimensionValue(dimension.getName());
   }
 
   public boolean isAnyPresent(@NotNull final String... dimensionName) {
@@ -827,6 +886,14 @@ public class Locator {
     }
     return false;
   }
+
+  public boolean isAnyPresent(@NotNull final Dimension... dimensions) {
+    for (Dimension dim : dimensions) {
+      if (myDimensions.get(dim.getName()) != null) return true;
+    }
+    return false;
+  }
+
 
   /**
    * Same as getSingleDimensionValue but does not mark the value as used
@@ -847,6 +914,11 @@ public class Locator {
       return null;
     }
     return result;
+  }
+
+  @Nullable
+  public String lookupSingleDimensionValue(@NotNull Dimension dimension) {
+    return lookupSingleDimensionValue(dimension.getName());
   }
 
   public int getDimensionsCount() {
@@ -870,6 +942,11 @@ public class Locator {
     return setDimension(name, Collections.singletonList(value));
   }
 
+  @NotNull
+  public Locator setDimension(@NotNull final Dimension dimension, @NotNull final String value) {
+    return setDimension(dimension.getName(), value);
+  }
+
   /**
    * Replaces all the dimensions values to those specified.
    * Should be used only for multi-dimension locators.
@@ -888,6 +965,11 @@ public class Locator {
     return this;
   }
 
+  @NotNull
+  public Locator setDimension(@NotNull final Dimension dimension, @NotNull final List<String> values) {
+    return setDimension(dimension.getName(), values);
+  }
+
   /**
    * Sets the dimension specified to the passed value if the dimension is not yet set. Does noting is the dimension already has a value.
    * Should be used only for multi-dimension locators.
@@ -902,6 +984,11 @@ public class Locator {
       setDimension(name, value);
     }
     return this;
+  }
+
+  @NotNull
+  public Locator setDimensionIfNotPresent(@NotNull final Dimension dimension, @NotNull final String value) {
+    return setDimensionIfNotPresent(dimension.getName(), value);
   }
 
   @NotNull
@@ -963,6 +1050,10 @@ public class Locator {
     return myDimensions.containsKey(dimensionName) && !myUsedDimensions.contains(dimensionName);
   }
 
+  public boolean isUnused(@NotNull final Dimension dimension) {
+    return isUnused(dimension.getName());
+  }
+
   /**
    * Marks the passed dimensions as not used.
    * This also has a side effect of not reporting the dimensions as known but not reported, see "reportKnownButNotReportedDimensions" method.
@@ -973,12 +1064,24 @@ public class Locator {
     myUsedDimensions.removeAll(Arrays.asList(dimensionNames));
   }
 
+  public void markUnused(@NotNull Dimension... dimensions) {
+    for(Dimension dim : dimensions) {
+      myUsedDimensions.remove(dim.getName());
+    }
+  }
+
   public void markUsed(@NotNull Collection<String> dimensionNames) {
     myUsedDimensions.addAll(dimensionNames);
   }
 
   public void markUsed(@NotNull String dimensionName) {
     myUsedDimensions.add(dimensionName);
+  }
+
+  public void markUsed(@NotNull Dimension... dimensions) {
+    for (Dimension dim : dimensions) {
+      myUsedDimensions.add(dim.getName());
+    }
   }
 
   /**
@@ -1011,6 +1114,12 @@ public class Locator {
     return (new Locator(locator)).setDimensionIfNotPresent(dimensionName, value).getStringRepresentation();
   }
 
+  @Nullable
+  @Contract("_, _, !null -> !null; !null, _, _ -> !null")
+  public static String setDimensionIfNotPresent(@Nullable final String locator, @NotNull final Dimension dimension, @Nullable final String value) {
+    return setDimensionIfNotPresent(locator, dimension.getName(), value);
+  }
+
   /**
    * Creates locator text for several dimentions.
    * <br/>
@@ -1037,6 +1146,10 @@ public class Locator {
       result.setDimension(strings[i], strings[i + 1]);
     }
     return result.getStringRepresentation();
+  }
+
+  public static String getStringLocator(Dimension dimension, String value) {
+    return getStringLocator(dimension.getName(), value);
   }
 
   public String getStringRepresentation() { //todo: what is returned for empty locator???    and replace "actualLocator.isEmpty() ? null : actualLocator.getStringRepresentation()"

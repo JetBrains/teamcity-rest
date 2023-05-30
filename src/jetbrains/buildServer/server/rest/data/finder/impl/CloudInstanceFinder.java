@@ -23,13 +23,14 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.CloudImage;
-import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.clouds.InstanceStatus;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Util;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
@@ -37,11 +38,8 @@ import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.SBuildAgent;
-import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
-
-import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Dimension;
 
 @LocatorResource(value = LocatorName.CLOUD_INSTANCE,
   extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
@@ -56,21 +54,23 @@ import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.D
 public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
   private static final Logger LOG = Logger.getInstance(CloudInstanceFinder.class.getName());
 
-  @LocatorDimension("id") private static final Dimension<CloudUtil.InstanceIdData> ID = new Dimension<>("id");
-  private static final Dimension<ValueCondition> ERROR = new Dimension<>("errorMessage");
-  private static final Dimension<InstanceStatus> STATE = new Dimension<>("state");
-  @LocatorDimension("networkAddress") private static final Dimension<ValueCondition> NETWORK_ADDRESS = new Dimension<>("networkAddress");
-  private static final Dimension<TimeCondition.ParsedTimeCondition> START_DATE = new Dimension<>("startDate");
+  @LocatorDimension("id")
+  private static final Dimension ID = new StubDimension("id");
+  private static final Dimension ERROR = new StubDimension("errorMessage");
+  private static final Dimension STATE = new StubDimension("state");
+  @LocatorDimension("networkAddress")
+  private static final Dimension NETWORK_ADDRESS = new StubDimension("networkAddress");
+  private static final Dimension START_DATE = new StubDimension("startDate");
   @LocatorDimension(value = "agent", format = LocatorName.AGENT, notes = "Agent locator.")
-  private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
+  private static final Dimension AGENT = new StubDimension("agent");
   @LocatorDimension(value = "instance", format = LocatorName.CLOUD_IMAGE, notes = "Cloud image locator.")
-  private static final Dimension<List<CloudImage>> IMAGE = new Dimension<>("image");
+  private static final Dimension IMAGE = new StubDimension("image");
   @LocatorDimension(value = "profile", format = LocatorName.CLOUD_PROFILE, notes = "Cloud profile locator.")
-  private static final Dimension<List<CloudProfile>> PROFILE = new Dimension<>("profile");
+  private static final Dimension PROFILE = new StubDimension("profile");
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
-  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
+  private static final Dimension PROJECT = new StubDimension("project");
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
-  private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
+  private static final Dimension AFFECTED_PROJECT = new StubDimension("affectedProject");
 
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final CloudManager myCloudManager;
@@ -89,17 +89,17 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
 
   @NotNull
   public static String getLocator(@NotNull final CloudInstanceData item) {
-    return Locator.getStringLocator(ID.name, item.getId());
+    return Locator.getStringLocator(ID, item.getId());
   }
 
   @NotNull
   public static String getLocator(@NotNull final SBuildAgent agent) {
-    return Locator.getStringLocator(AGENT.name, AgentFinder.getLocator(agent));
+    return Locator.getStringLocator(AGENT, AgentFinder.getLocator(agent));
   }
 
   @NotNull
   public static String getLocator(@NotNull final CloudImage image, @NotNull final CloudUtil cloudUtil) {
-    return Locator.getStringLocator(IMAGE.name, CloudImageFinder.getLocator(image, cloudUtil));
+    return Locator.getStringLocator(IMAGE, CloudImageFinder.getLocator(image, cloudUtil));
   }
 
   private class Builder extends TypedFinderBuilder<CloudInstanceData> {

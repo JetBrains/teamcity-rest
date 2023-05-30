@@ -17,30 +17,31 @@
 package jetbrains.buildServer.server.rest.data;
 
 import jetbrains.buildServer.server.rest.data.finder.FinderImpl;
-import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import org.jetbrains.annotations.NotNull;
 
 public final class PagerDimensions {
   @NotNull
-  private static final TypedFinderBuilder.Dimension<Long> COUNT = new TypedFinderBuilder.Dimension<>(count());
+  private static final Dimension COUNT = new StubDimension(count());
   @NotNull
-  private static final TypedFinderBuilder.Dimension<Long> START = new TypedFinderBuilder.Dimension<>(start());
+  private static final Dimension START = new StubDimension(start());
   @NotNull
-  private static final TypedFinderBuilder.Dimension<Long> LOOKUP_LIMIT = new TypedFinderBuilder.Dimension<>(lookupLimit());
+  private static final Dimension LOOKUP_LIMIT = new StubDimension(lookupLimit());
 
   @NotNull
-  public static TypedFinderBuilder.Dimension<Long> dimensionCount() {
+  public static Dimension dimensionCount() {
     return COUNT;
   }
 
   @NotNull
-  public static TypedFinderBuilder.Dimension<Long> dimensionStart() {
+  public static Dimension dimensionStart() {
     return START;
   }
 
   @NotNull
-  public static TypedFinderBuilder.Dimension<Long> dimensionLookupLimit() {
+  public static Dimension dimensionLookupLimit() {
     return LOOKUP_LIMIT;
   }
 

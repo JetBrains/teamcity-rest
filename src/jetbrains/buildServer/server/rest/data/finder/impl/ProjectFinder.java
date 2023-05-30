@@ -26,6 +26,8 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.Finder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.FilterConditionChecker;
 import jetbrains.buildServer.server.rest.data.util.FilterUtil;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
@@ -554,8 +556,8 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
   //See also jetbrains.buildServer.server.rest.data.finder.impl.UserFinder.PermissionCheck
   private class PermissionCheck {
-    private final TypedFinderBuilder.Dimension<List<SUser>> USER = new TypedFinderBuilder.Dimension<>("user");
-    private final TypedFinderBuilder.Dimension<Permission> PERMISSION = new TypedFinderBuilder.Dimension<>("permission");
+    private final Dimension USER = new StubDimension("user");
+    private final Dimension PERMISSION = new StubDimension("permission");
 
     private final Finder<SProject> myFinder;
 
@@ -563,7 +565,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       TypedFinderBuilder<SProject> builder = new TypedFinderBuilder<SProject>();
       builder.dimensionUsers(USER, myServiceLocator).description("user to check permission for, should be present");
       builder.dimensionEnum(PERMISSION, Permission.class).description("permission to check, should be present");
-      builder.filter(locator -> locator.lookupSingleDimensionValue(PERMISSION.name) != null && locator.lookupSingleDimensionValue(USER.name) != null,
+      builder.filter(locator -> locator.lookupSingleDimensionValue(PERMISSION) != null && locator.lookupSingleDimensionValue(USER) != null,
                      dimensions -> new PermissionFilter(dimensions));
       myFinder = builder.build();
     }
@@ -578,9 +580,9 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
       PermissionFilter(final TypedFinderBuilder.DimensionObjects dimensions) {
         //noinspection ConstantConditions - is checked in a filter condition earlier
-        myPermission = dimensions.get(PERMISSION).get(0);
+        myPermission = dimensions.<Permission>get(PERMISSION).get(0);
         //noinspection ConstantConditions - is checked in a filter condition earlier
-        myUsers = dimensions.get(USER).get(0);
+        myUsers = dimensions.<List<SUser>>get(USER).get(0);
       }
 
       @Override

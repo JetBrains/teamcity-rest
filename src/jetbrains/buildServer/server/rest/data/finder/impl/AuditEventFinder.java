@@ -26,6 +26,8 @@ import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.FinderImpl;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
@@ -50,8 +52,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
-import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Dimension;
-
 @LocatorResource(value = LocatorName.AUDIT,
     extraDimensions = {PagerData.COUNT, PagerData.START, FinderImpl.DIMENSION_LOOKUP_LIMIT, AbstractFinder.DIMENSION_ITEM},
     baseEntity = "AuditEvent",
@@ -65,23 +65,23 @@ import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.D
 public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
   private static final Logger LOG = Logger.getInstance(AuditEventFinder.class.getName());
 
-  @LocatorDimension("id") private static final Dimension<Long> ID = new Dimension<>("id");
+  @LocatorDimension("id") private static final Dimension ID = new StubDimension("id");
   @LocatorDimension(value = "user", format = LocatorName.USER, notes = "Locator of user who caused the audit event.")
-  private static final Dimension<List<SUser>> USER = new Dimension<>("user");
+  private static final Dimension USER = new StubDimension("user");
   @LocatorDimension(value = "systemAction", format = LocatorDimensionDataType.BOOLEAN)
-  private static final Dimension<Boolean> SYSTEM_ACTION = new Dimension<>("systemAction");
+  private static final Dimension SYSTEM_ACTION = new StubDimension("systemAction");
   @LocatorDimension(value = "action", notes = "Use `$help` to get the full list of supported actions.")
-  private static final Dimension<Set<ActionType>> ACTION = new Dimension<>("action");  //todo: consider supporting ActionTypeSet by supporting actions locator
+  private static final Dimension ACTION = new StubDimension("action");  //todo: consider supporting ActionTypeSet by supporting actions locator
   @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Related build type or template locator.")
-  private static final Dimension<List<BuildTypeOrTemplate>> BUILD_TYPE = new Dimension<>("buildType");
+  private static final Dimension BUILD_TYPE = new StubDimension("buildType");
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Related project locator.")
-  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("affectedProject");
-  private static final Dimension<Set<String>> OBJECT_ID = new Dimension<>("entityInternalId");
-  private static final Dimension<Set<ObjectType>> OBJECT_TYPE = new Dimension<>("entityType");
-  private static final Dimension<Boolean> HIDDEN_ACTIONS = new Dimension<>("hidden");
-  private static final Dimension<Long> COUNT = new Dimension<>(PagerData.COUNT);
-  private static final Dimension<Long> START = new Dimension<>(PagerData.START);
-  private static final Dimension<Long> LOOKUP_LIMIT = new Dimension<>(FinderImpl.DIMENSION_LOOKUP_LIMIT);
+  private static final Dimension PROJECT = new StubDimension("affectedProject");
+  private static final Dimension OBJECT_ID = new StubDimension("entityInternalId");
+  private static final Dimension OBJECT_TYPE = new StubDimension("entityType");
+  private static final Dimension HIDDEN_ACTIONS = new StubDimension("hidden");
+  private static final Dimension COUNT = new StubDimension(PagerData.COUNT);
+  private static final Dimension START = new StubDimension(PagerData.START);
+  private static final Dimension LOOKUP_LIMIT = new StubDimension(FinderImpl.DIMENSION_LOOKUP_LIMIT);
   //todo: add filter by event type (flexible/multiple include/exclude, patterns?)
   //todo: add filters for all the object types: builds, buildTypes, project, agent, test, problem, user (not difference with "performer"), userGroup, etc.
   //todo: allow to filter by main object and also additional ones?
@@ -100,7 +100,7 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
   }
 
   public static String getLocatorById(@NotNull final Long id) {
-    return Locator.getStringLocator(ID.name, String.valueOf(id));
+    return Locator.getStringLocator(ID, String.valueOf(id));
   }
 
   @NotNull
@@ -209,9 +209,9 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
         Long count = getIfSingle(dimensions.lookup(COUNT));
         int maxEntries = -1;
         Set<String> filteringDimensions = dimensions.getUnusedDimensions();
-        filteringDimensions.remove(COUNT.name);
-        filteringDimensions.remove(START.name);
-        filteringDimensions.remove(LOOKUP_LIMIT.name);
+        filteringDimensions.remove(COUNT.getName());
+        filteringDimensions.remove(START.getName());
+        filteringDimensions.remove(LOOKUP_LIMIT.getName());
         if (filteringDimensions.isEmpty() && count != null) {
           maxEntries = count.intValue();
           Long start = getIfSingle(dimensions.lookup(START));

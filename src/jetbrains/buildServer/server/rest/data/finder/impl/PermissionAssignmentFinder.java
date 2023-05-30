@@ -19,6 +19,8 @@ package jetbrains.buildServer.server.rest.data.finder.impl;
 import java.util.*;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.PermissionAssignmentData;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
@@ -40,9 +42,9 @@ import org.jetbrains.annotations.Nullable;
  * Date: 18/09/2017
  */
 public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssignmentData> {
-  private static final TypedFinderBuilder.Dimension<Boolean> GLOBAL = new TypedFinderBuilder.Dimension<>("global");
-  private static final TypedFinderBuilder.Dimension<List<SProject>> PROJECT = new TypedFinderBuilder.Dimension<>("project");
-  private static final TypedFinderBuilder.Dimension<Permission> PERMISSION = new TypedFinderBuilder.Dimension<>("permission"); //todo: support List
+  private static final Dimension GLOBAL = new StubDimension("global");
+  private static final Dimension PROJECT = new StubDimension("project");
+  private static final Dimension PERMISSION = new StubDimension("permission"); //todo: support List
 
   public PermissionAssignmentFinder(@NotNull final AuthorityHolder authorityHolder, @NotNull final ServiceLocator serviceLocator) {
     TypedFinderBuilder<PermissionAssignmentData> builder = new TypedFinderBuilder<>();
@@ -105,7 +107,7 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     */
 
     // dimensions.get(PERMISSION) is ANDed, permissions is ORed, but so far multivalue is not supported: todo implement
-    @Nullable Set<Permission> permissions = Optional.ofNullable(dimensions.getSingleValue(PERMISSION)).map(Arrays::asList).map(HashSet::new).orElse(null);
+    @Nullable Set<Permission> permissions = Optional.ofNullable(dimensions.<Permission>getSingleValue(PERMISSION)).map(Arrays::asList).map(HashSet::new).orElse(null);
     @Nullable List<SProject> projects = dimensions.getSingleValue(PROJECT);
 
     Boolean global = dimensions.getSingleValue(GLOBAL);

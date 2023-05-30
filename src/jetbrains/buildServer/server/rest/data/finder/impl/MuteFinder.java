@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
@@ -49,13 +51,10 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.mute.*;
-import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
-
-import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Dimension;
 
 /**
  * @author Yegor.Yarko
@@ -72,24 +71,26 @@ import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.D
 @JerseyContextSingleton
 @Component("restMuteFinder")
 public class MuteFinder extends DelegatingFinder<MuteInfo> {
-  @LocatorDimension(value = "id", dataType = LocatorDimensionDataType.INTEGER) private static final Dimension<Long> ID = new Dimension<>("id");
+  @LocatorDimension(value = "id", dataType = LocatorDimensionDataType.INTEGER) 
+  private static final Dimension ID = new StubDimension("id");
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
-  private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
+  private static final Dimension AFFECTED_PROJECT = new StubDimension("affectedProject");
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project (direct parent) locator.")
-  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project"); //differs from investigation: assignmentProject
+  private static final Dimension PROJECT = new StubDimension("project"); //differs from investigation: assignmentProject
   @LocatorDimension(value = "creationDate", dataType = LocatorDimensionDataType.TIMESTAMP, notes = "yyyyMMddTHHmmss+ZZZZ")
-  private static final Dimension<TimeCondition.ParsedTimeCondition> CREATION_DATE = new Dimension<>("creationDate");  //differs from investigation: sinceDate
+  private static final Dimension CREATION_DATE = new StubDimension("creationDate");  //differs from investigation: sinceDate
   @LocatorDimension(value = "unmuteDate", dataType = LocatorDimensionDataType.TIMESTAMP, notes = "yyyyMMddTHHmmss+ZZZZ")
-  private static final Dimension<TimeCondition.ParsedTimeCondition> UNMUTE_DATE = new Dimension<>("unmuteDate");  //differs from investigation: sinceDate
-  @LocatorDimension(value = "reporter", notes = "User who muted this test.") private static final Dimension<List<SUser>> REPORTER = new Dimension<>("reporter"); //todo: review naming?
+  private static final Dimension UNMUTE_DATE = new StubDimension("unmuteDate");  //differs from investigation: sinceDate
+  @LocatorDimension(value = "reporter", notes = "User who muted this test.")
+  private static final Dimension REPORTER = new StubDimension("reporter"); //todo: review naming?
   @LocatorDimension(value = "type", allowableValues = "test,problem,anyProblem,unknown")
-  private static final Dimension<String> TYPE = new Dimension<>("type"); // target
+  private static final Dimension TYPE = new StubDimension("type"); // target
   @LocatorDimension(value = "resolution", allowableValues = "manually,whenFixed,atTime")
-  private static final Dimension<String> RESOLUTION = new Dimension<>("resolution");
+  private static final Dimension RESOLUTION = new StubDimension("resolution");
   @LocatorDimension(value = "test", format = LocatorName.TEST, notes = "Test locator.")
-  private static final Dimension<List<STest>> TEST = new Dimension<>("test");
+  private static final Dimension TEST = new StubDimension("test");
   @LocatorDimension(value = "problem", format = LocatorName.PROBLEM, notes = "Problem locator.")
-  private static final Dimension<List<ProblemWrapper>> PROBLEM = new Dimension<>("problem");
+  private static final Dimension PROBLEM = new StubDimension("problem");
 
 
   //private static final String BUILD_TYPE = "buildType"; //todo: add assignmentBuildType
@@ -120,17 +121,17 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
 
   @NotNull
   public static String getLocator(@NotNull final STest test) {
-    return Locator.getStringLocator(TEST.name, TestFinder.getTestLocator(test));
+    return Locator.getStringLocator(TEST, TestFinder.getTestLocator(test));
   }
 
   @NotNull
   public static String getLocator(@NotNull final ProblemWrapper problem) {
-    return Locator.getStringLocator(PROBLEM.name, ProblemFinder.getLocator(problem));
+    return Locator.getStringLocator(PROBLEM, ProblemFinder.getLocator(problem));
   }
 
   @NotNull
   public static String getLocator(final MuteInfo item) {
-    return Locator.getStringLocator(ID.name, String.valueOf(item.getId()));
+    return Locator.getStringLocator(ID, String.valueOf(item.getId()));
   }
 
   private boolean canView(@NotNull final MuteInfo item) {

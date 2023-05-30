@@ -24,38 +24,37 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.Finder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.server.rest.util.StreamUtil;
-import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.healthStatus.*;
 import jetbrains.buildServer.serverSide.healthStatus.impl.HealthStatusProfileBuilder;
 import jetbrains.buildServer.serverSide.healthStatus.impl.ScopeBuilder;
-import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-
 @JerseyContextSingleton
 @Component("healthStatusItemFinder")
 public class HealthItemFinder extends DelegatingFinder<HealthStatusItem> {
   @NotNull
-  private static final TypedFinderBuilder.Dimension<ItemSeverity> MIN_SEVERITY = new TypedFinderBuilder.Dimension<>("minSeverity");
+  private static final Dimension MIN_SEVERITY = new StubDimension("minSeverity");
   @NotNull
-  private static final TypedFinderBuilder.Dimension<String> CATEGORY = new TypedFinderBuilder.Dimension<>("healthCategory");
+  private static final Dimension CATEGORY = new StubDimension("healthCategory");
   @NotNull
-  private static final TypedFinderBuilder.Dimension<String> REPORT_TYPE = new TypedFinderBuilder.Dimension<>("reportType");
+  private static final Dimension REPORT_TYPE = new StubDimension("reportType");
   @NotNull
-  private static final TypedFinderBuilder.Dimension<List<BuildTypeOrTemplate>> BUILD_TYPE = new TypedFinderBuilder.Dimension<>("buildType");
+  private static final Dimension BUILD_TYPE = new StubDimension("buildType");
   @NotNull
-  private static final TypedFinderBuilder.Dimension<List<SProject>> PROJECT = new TypedFinderBuilder.Dimension<>("project");
+  private static final Dimension PROJECT = new StubDimension("project");
   @NotNull
-  private static final TypedFinderBuilder.Dimension<List<SVcsRoot>> VCS_ROOT = new TypedFinderBuilder.Dimension<>("vcsRoot");
+  private static final Dimension VCS_ROOT = new StubDimension("vcsRoot");
   @NotNull
-  private static final TypedFinderBuilder.Dimension<Boolean> GLOBAL = new TypedFinderBuilder.Dimension<>("global");
+  private static final Dimension GLOBAL = new StubDimension("global");
   @NotNull
   private final HealthStatusProvider myHealthStatusProvider;
   @NotNull
@@ -95,7 +94,7 @@ public class HealthItemFinder extends DelegatingFinder<HealthStatusItem> {
 
   private class CategoryFinderBuilder extends TypedFinderBuilder<ItemCategory> {
     CategoryFinderBuilder() {
-      dimensionString(new Dimension<>("id")).description("health category id").filter((s, item) -> s.equalsIgnoreCase(item.getId()));
+      dimensionString(new StubDimension("id")).description("health category id").filter((s, item) -> s.equalsIgnoreCase(item.getId()));
 
       singleDimension(dimension -> getAllMatching(category -> dimension.equalsIgnoreCase(category.getId())));
 
@@ -129,7 +128,7 @@ public class HealthItemFinder extends DelegatingFinder<HealthStatusItem> {
       multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> {
         final ScopeBuilder scopeBuilder = new ScopeBuilder();
         StreamUtil.forEachNullableFlattened(dimensions.get(PROJECT), scopeBuilder::addProject);
-        StreamUtil.forEachNullableFlattened(dimensions.get(BUILD_TYPE), buildTypeOrTemplate -> {
+        StreamUtil.forEachNullableFlattened(dimensions.get(BUILD_TYPE), (BuildTypeOrTemplate buildTypeOrTemplate) -> {
           if (buildTypeOrTemplate.getBuildType() != null) {
             scopeBuilder.addBuildType(buildTypeOrTemplate.getBuildType());
           }

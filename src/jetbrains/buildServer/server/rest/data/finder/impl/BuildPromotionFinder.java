@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.build.BuildParametersUtil;
 import jetbrains.buildServer.server.rest.data.build.TagFinder;
 import jetbrains.buildServer.server.rest.data.finder.*;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.util.*;
@@ -844,11 +845,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   @NotNull
   private static Finder<TriggeredBy> getTriggeredByFinder(@NotNull final TimeCondition timeCondition, @NotNull final ServiceLocator serviceLocator) {
     TypedFinderBuilder<TriggeredBy> builder = new TypedFinderBuilder<>();
-    builder.dimensionTimeCondition(new TypedFinderBuilder.Dimension<>("date"), timeCondition).description("timestamp of the triggering")
+    builder.dimensionTimeCondition(new StubDimension("date"), timeCondition).description("timestamp of the triggering")
            .valueForDefaultFilter(TriggeredBy::getTriggeredDate);
-    builder.dimensionUsers(new TypedFinderBuilder.Dimension<>("user"), serviceLocator).description("user who triggered")
+    builder.dimensionUsers(new StubDimension("user"), serviceLocator).description("user who triggered")
            .valueForDefaultFilter(triggeredBy -> Collections.singleton(triggeredBy.getUser()));
-    builder.dimensionValueCondition(new TypedFinderBuilder.Dimension<>("type")).description("type of the trigger")
+    builder.dimensionValueCondition(new StubDimension("type")).description("type of the trigger")
            .valueForDefaultFilter(item -> jetbrains.buildServer.server.rest.model.build.TriggeredBy.getDetails(item, serviceLocator).type);
     return builder.build();
   }

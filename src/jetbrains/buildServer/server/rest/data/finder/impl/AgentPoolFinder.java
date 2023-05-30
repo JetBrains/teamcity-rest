@@ -24,7 +24,8 @@ import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
-import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -80,27 +81,27 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
 
   @NotNull
   public static String getLocator(@NotNull final AgentPool agentPool) {
-    return Locator.getStringLocator(ID.name, String.valueOf(agentPool.getAgentPoolId()));
+    return Locator.getStringLocator(ID, String.valueOf(agentPool.getAgentPoolId()));
   }
 
   @NotNull
   public static String getLocator(@NotNull final SProject project) {
-    return Locator.getStringLocator(PROJECT.name, ProjectFinder.getLocator(project));
+    return Locator.getStringLocator(PROJECT, ProjectFinder.getLocator(project));
   }
 
-  @LocatorDimension(ID_DIMENSION) public static final Dimension<Long> ID = new Dimension<>(ID_DIMENSION);
-  @LocatorDimension("name") public static final Dimension<String> NAME = new Dimension<>("name");
+  @LocatorDimension(ID_DIMENSION) public static final Dimension ID = new StubDimension(ID_DIMENSION);
+  @LocatorDimension("name") public static final Dimension NAME = new StubDimension("name");
   @LocatorDimension(value = "agent", format = LocatorName.AGENT, notes = "Pool's agents locator.")
-  private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
+  private static final Dimension AGENT = new StubDimension("agent");
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Pool's associated projects locator.")
-  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
-  private static final Dimension<Boolean> PROJECT_POOL = new Dimension<>("projectPool");
-  private static final Dimension<List<SProject>> OWNER_PROJECT = new Dimension<>("ownerProject");
+  private static final Dimension PROJECT = new StubDimension("project");
+  private static final Dimension PROJECT_POOL = new StubDimension("projectPool");
+  private static final Dimension OWNER_PROJECT = new StubDimension("ownerProject");
 
   private class AgentPoolFinderBuilder extends TypedFinderBuilder<AgentPool> {
     AgentPoolFinderBuilder() {
       name("AgentPoolFinder");
-      dimensionLong(Dimension.single()).description("agent pool id").toItems(dimension -> Collections.singletonList(getAgentPoolById(dimension)));
+      dimensionLong(StubDimension.single()).description("agent pool id").toItems(dimension -> Collections.singletonList(getAgentPoolById(dimension)));
       dimensionLong(ID).description("agent pool id").toItems(dimension -> Collections.singletonList(getAgentPoolById(dimension))).
         valueForDefaultFilter(agentPool -> (long)agentPool.getAgentPoolId());
       dimensionString(NAME).description("agent pool name").valueForDefaultFilter(agentPool -> agentPool.getName());

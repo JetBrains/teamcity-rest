@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data.finder;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -25,6 +26,7 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.finder.impl.*;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
@@ -52,6 +54,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings("WeakerAccess")
 public class TypedFinderBuilder<ITEM> {
+  private static final Logger LOG = Logger.getInstance(TypedFinderBuilder.class);
   //still to implement:
   //sort result or return ItemProcessor
 
@@ -70,18 +73,20 @@ public class TypedFinderBuilder<ITEM> {
   private String myFinderName;
 
   public class TypedFinderDimensionImpl<TYPE> implements TypedFinderDimension<ITEM, TYPE> {
-    @NotNull protected final Dimension<TYPE> myDimension;
+    @NotNull protected final Dimension myDimension;
     @NotNull protected final DimensionValueMapper<TYPE> myValueMapper;
     protected String myDescription = null;
     protected Boolean myHidden = null;
 
-    public TypedFinderDimensionImpl(@NotNull final Dimension<TYPE> dimension, @NotNull final DimensionValueMapper<TYPE> valueMapper) {
+    public TypedFinderDimensionImpl(@NotNull final Dimension dimension, @NotNull final DimensionValueMapper<TYPE> valueMapper) {
       myDimension = dimension;
+      myDescription = dimension.getDescription();
+      myHidden = dimension.isHidden();
       myValueMapper = valueMapper;
     }
 
     @NotNull
-    public Dimension<TYPE> getDimension() {
+    public Dimension getDimension() {
       return myDimension;
     }
 
@@ -103,7 +108,9 @@ public class TypedFinderBuilder<ITEM> {
     @NotNull
     public TypedFinderDimension<ITEM, TYPE> description(@NotNull final String description) {
       if (description.length() == 0) throw new OperationException("Wrong description: empty");
-      if (myDescription != null) throw new OperationException("Attempt to redefine description: old: '" + getDescription() + "', new: '" + description + "'");
+      if (myDescription != null) {
+        LOG.warn(myFinderName + ":" + myDimension.getName() + ", attempt to redefine description: old: '" + getDescription() + "', new: '" + description + "'");
+      }
       myDescription = description;
       return this;
     }
@@ -111,7 +118,9 @@ public class TypedFinderBuilder<ITEM> {
     @Override
     @NotNull
     public TypedFinderDimension<ITEM, TYPE> hidden() {
-      if (myHidden != null) throw new OperationException("Attempt to redefine hidden: old: '" + getHidden() + "'");
+      if (myHidden != null) {
+        LOG.warn(myFinderName + ":" + myDimension.getName() + ", hidden() called more than once.");
+      }
       myHidden = true;
       return this;
     }
@@ -119,7 +128,7 @@ public class TypedFinderBuilder<ITEM> {
     @Override
     @NotNull
     public TypedFinderDimension<ITEM, TYPE> withDefault(@NotNull final String value) {
-      defaults(DimensionCondition.ALWAYS, new NameValuePairs().add(getDimension().name, value));
+      defaults(DimensionCondition.ALWAYS, new NameValuePairs().add(getDimension().getName(), value));
       return this;
     }
 
@@ -171,7 +180,7 @@ public class TypedFinderBuilder<ITEM> {
 
     @NotNull
     public TypedFinderDimensionWithDefaultChecker<ITEM, TYPE, TYPE_FOR_FILTER> valueForDefaultFilter(@NotNull TypeFromItem<TYPE_FOR_FILTER, ITEM> retriever) {
-      TypedFinderBuilder.this.filter(myOriginal.getDimension(), (value, item) -> {
+      TypedFinderBuilder.this.filter(myOriginal.getDimension(), (TYPE value, ITEM item) -> {
         TYPE_FOR_FILTER valueForFilter = retriever.get(item);
         if (valueForFilter == null) return false; //no value, but filter is present -> should not match
         return myDefaultChecker.isIncluded(value, valueForFilter);
@@ -218,7 +227,7 @@ public class TypedFinderBuilder<ITEM> {
     }
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, Long, Long> dimensionLong(@NotNull final Dimension<Long> dimension) {
+  public TypedFinderDimensionWithDefaultChecker<ITEM, Long, Long> dimensionLong(@NotNull final Dimension dimension) {
     return dimension(dimension, mapper(TypedFinderBuilder::getLong).acceptingType("number")).defaultFilter(Long::equals);
   }
 
@@ -231,11 +240,11 @@ public class TypedFinderBuilder<ITEM> {
     }
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, String, String> dimensionString(@NotNull final Dimension<String> dimension) {
+  public TypedFinderDimensionWithDefaultChecker<ITEM, String, String> dimensionString(@NotNull final Dimension dimension) {
     return dimension(dimension, mapper(dimensionValue -> dimensionValue).acceptingType("text")).defaultFilter(String::equals);
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, Boolean, Boolean> dimensionBoolean(@NotNull final Dimension<Boolean> dimension) {
+  public TypedFinderDimensionWithDefaultChecker<ITEM, Boolean, Boolean> dimensionBoolean(@NotNull final Dimension dimension) {
     return dimension(dimension, mapper(LocatorUtil::getBooleanAllowingAny).acceptingType("boolean"))
       .defaultFilter(FilterUtil::isIncludedByBooleanFilter);
   }
@@ -255,43 +264,43 @@ public class TypedFinderBuilder<ITEM> {
     return dimensionLong(PagerDimensions.dimensionCount()).description("number of items to return").withDefault(String.valueOf(Constants.getDefaultPageItemsCount()));
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, List<BuildPromotion>, Set<BuildPromotion>> dimensionBuildPromotions(@NotNull final Dimension<List<BuildPromotion>> dimension,
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<BuildPromotion>, Set<BuildPromotion>> dimensionBuildPromotions(@NotNull final Dimension dimension,
                                                                                                                           @NotNull final ServiceLocator serviceLocator) {
     return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(BuildPromotionFinder.class), "build locator");
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, List<BuildTypeOrTemplate>, Set<BuildTypeOrTemplate>> dimensionBuildTypes(@NotNull final Dimension<List<BuildTypeOrTemplate>> dimension,
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<BuildTypeOrTemplate>, Set<BuildTypeOrTemplate>> dimensionBuildTypes(@NotNull final Dimension dimension,
                                                                                                                                @NotNull final ServiceLocator serviceLocator) {
     return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(BuildTypeFinder.class), "buildType locator").description("build types locator");
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, List<SBuildAgent>, Set<SBuildAgent>> dimensionAgents(@NotNull final Dimension<List<SBuildAgent>> dimension,
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<SBuildAgent>, Set<SBuildAgent>> dimensionAgents(@NotNull final Dimension dimension,
                                                                                                            @NotNull final ServiceLocator serviceLocator) {
     return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(AgentFinder.class), BuildAgent::getId, "agent locator");
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, List<SProject>, Set<SProject>> dimensionProjects(@NotNull final Dimension<List<SProject>> dimension,
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<SProject>, Set<SProject>> dimensionProjects(@NotNull final Dimension dimension,
                                                                                                        @NotNull final ServiceLocator serviceLocator) {
     return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(ProjectFinder.class), "project locator");
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, List<SVcsRoot>, Set<SVcsRoot>> dimensionVcsRoots(@NotNull final Dimension<List<SVcsRoot>> dimension,
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<SVcsRoot>, Set<SVcsRoot>> dimensionVcsRoots(@NotNull final Dimension dimension,
                                                                                                        @NotNull final ServiceLocator serviceLocator) {
     return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(VcsRootFinder.class), "vcs root locator");
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, List<SUser>, Set<SUser>> dimensionUsers(@NotNull final Dimension<List<SUser>> dimension,
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<SUser>, Set<SUser>> dimensionUsers(@NotNull final Dimension dimension,
                                                                                               @NotNull final ServiceLocator serviceLocator) {
     return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(UserFinder.class), "user locator");
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, List<STest>, Set<STest>> dimensionTests(@NotNull final Dimension<List<STest>> dimension,
+  public TypedFinderDimensionWithDefaultChecker<ITEM, List<STest>, Set<STest>> dimensionTests(@NotNull final Dimension dimension,
                                                                                               @NotNull final ServiceLocator serviceLocator) {
     return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(TestFinder.class), "test locator");
   }
 
   public TypedFinderDimensionWithDefaultChecker<ITEM, List<ProblemWrapper>, Set<ProblemWrapper>> dimensionProblems(
-    @NotNull final Dimension<List<ProblemWrapper>> dimension,
+    @NotNull final Dimension dimension,
     @NotNull final ServiceLocator serviceLocator
   ) {
     return dimensionWithFinder(dimension, () -> serviceLocator.getSingletonService(ProblemFinder.class), "problem locator");
@@ -303,7 +312,7 @@ public class TypedFinderBuilder<ITEM> {
    * @implNote Use with caution: should be able to find items in Set!
    */
   public <FINDER_TYPE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>> dimensionWithFinder(
-    @NotNull final Dimension<List<FINDER_TYPE>> dimension,
+    @NotNull final Dimension dimension,
     @NotNull final Supplier<Finder<FINDER_TYPE>> finderValue,
     @NotNull String typeDescription
   ) {
@@ -328,7 +337,7 @@ public class TypedFinderBuilder<ITEM> {
    * @return typed finder
    */
   public <FINDER_TYPE, MIDDLE> TypedFinderDimensionWithDefaultChecker<ITEM, List<FINDER_TYPE>, Set<FINDER_TYPE>>
-  dimensionWithFinder(@NotNull final Dimension<List<FINDER_TYPE>> dimension, @NotNull final Supplier<Finder<FINDER_TYPE>> finderValue,
+  dimensionWithFinder(@NotNull final Dimension dimension, @NotNull final Supplier<Finder<FINDER_TYPE>> finderValue,
                       @NotNull final Function<FINDER_TYPE, MIDDLE> converter, @NotNull String typeDescription) {
     return dimension(dimension, mapper(dimensionValue -> getNotEmptyItems(finderValue.get(), dimensionValue)).acceptingType(typeDescription))
       .defaultFilter((fromFilter, fromItem) -> {
@@ -343,34 +352,34 @@ public class TypedFinderBuilder<ITEM> {
       });
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, ParametersProvider> dimensionParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
+  public TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, ParametersProvider> dimensionParameterCondition(@NotNull final Dimension dimension) {
     return dimension(dimension, mapper(ParameterCondition::create).acceptingType("parameter condition"))
       .defaultFilter(ParameterCondition::matches);
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, InheritableUserParametersHolder> dimensionOwnParameterCondition(@NotNull final Dimension<ParameterCondition> dimension) {
+  public TypedFinderDimensionWithDefaultChecker<ITEM, ParameterCondition, InheritableUserParametersHolder> dimensionOwnParameterCondition(@NotNull final Dimension dimension) {
     return dimension(dimension, mapper(ParameterCondition::create).acceptingType("parameter condition with inherited support"))
       .defaultFilter(ParameterCondition::matches);
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, ValueCondition, String> dimensionValueCondition(@NotNull final Dimension<ValueCondition> dimension) {
+  public TypedFinderDimensionWithDefaultChecker<ITEM, ValueCondition, String> dimensionValueCondition(@NotNull final Dimension dimension) {
     return dimension(dimension, mapper(ParameterCondition::createValueCondition).acceptingType("value condition"))
       .defaultFilter(ValueCondition::matches);
   }
 
-  public <T extends Enum<T>> TypedFinderDimensionWithDefaultChecker<ITEM, T, T> dimensionEnum(@NotNull final Dimension<T> dimension, @NotNull final Class<T> enumClass) {
+  public <T extends Enum<T>> TypedFinderDimensionWithDefaultChecker<ITEM, T, T> dimensionEnum(@NotNull final Dimension dimension, @NotNull final Class<T> enumClass) {
     return dimension(dimension, mapper(dimensionValue -> getEnumValue(dimensionValue, enumClass)).acceptingType("one of " + getValues(enumClass)))
       .defaultFilter(Enum::equals);
   }
 
-  public <T extends Enum<T>> TypedFinderDimensionWithDefaultChecker<ITEM, Set<T>, T> dimensionEnums(@NotNull final Dimension<Set<T>> dimension, @NotNull final Class<T> enumClass) {
+  public <T extends Enum<T>> TypedFinderDimensionWithDefaultChecker<ITEM, Set<T>, T> dimensionEnums(@NotNull final Dimension dimension, @NotNull final Class<T> enumClass) {
     return dimensionSetOf(dimension, String.valueOf(getValues(enumClass)), s -> getValue(s, enumClass));
   }
 
   /**
    * T should have due equals/hashcode to make Set<T>::contains work duly
    */
-  public <T> TypedFinderDimensionWithDefaultChecker<ITEM, Set<T>, T> dimensionSetOf(@NotNull final Dimension<Set<T>> dimension,
+  public <T> TypedFinderDimensionWithDefaultChecker<ITEM, Set<T>, T> dimensionSetOf(@NotNull final Dimension dimension,
                                                                                     @NotNull final String helpTextDescribingItems,
                                                                                     @NotNull final Function<String, T> dimensionValueToItem) {
     return dimension(dimension,
@@ -378,7 +387,7 @@ public class TypedFinderBuilder<ITEM> {
       .defaultFilter(Set::contains);
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, String, String> dimensionFixedText(@NotNull final Dimension<String> dimension,
+  public TypedFinderDimensionWithDefaultChecker<ITEM, String, String> dimensionFixedText(@NotNull final Dimension dimension,
                                                                                          @NotNull final String... values) {
     Set<String> lowerCaseValues = Arrays.stream(values).map(String::toLowerCase).collect(Collectors.toSet());
     String supportedValuesText = StringUtil.join(values, ", ");
@@ -393,13 +402,13 @@ public class TypedFinderBuilder<ITEM> {
       .defaultFilter(String::equalsIgnoreCase);
   }
 
-  public TypedFinderDimensionWithDefaultChecker<ITEM, TimeCondition.ParsedTimeCondition, Date> dimensionTimeCondition(@NotNull final Dimension<TimeCondition.ParsedTimeCondition> dimension,
+  public TypedFinderDimensionWithDefaultChecker<ITEM, TimeCondition.ParsedTimeCondition, Date> dimensionTimeCondition(@NotNull final Dimension dimension,
                                                                                                                       @NotNull final TimeCondition timeCondition) {
     return dimension(dimension, mapper(timeCondition::getTimeCondition).acceptingType("time condition"))
       .defaultFilter(TimeCondition.ParsedTimeCondition::matches);
   }
 
-  public <F> TypedFinderDimensionWithDefaultChecker<ITEM, ItemFilter<F>, F> dimensionFinderFilter(@NotNull final Dimension<ItemFilter<F>> dimension,
+  public <F> TypedFinderDimensionWithDefaultChecker<ITEM, ItemFilter<F>, F> dimensionFinderFilter(@NotNull final Dimension dimension,
                                                                                                   @NotNull final Finder<F> finder,
                                                                                                   @NotNull final String description) {
     return dimension(dimension, mapper(finder::getFilter).acceptingType("").acceptingType(description)).defaultFilter(FilterConditionChecker::isIncluded);
@@ -440,10 +449,13 @@ public class TypedFinderBuilder<ITEM> {
    * @param dimensionValueMapper retrieves result of TYPE given dimension value
    * @param <TYPE> target type used in filters, etc.
    */
-  public <TYPE> TypedFinderDimension<ITEM, TYPE> dimension(@NotNull final Dimension<TYPE> dimension, @NotNull final DimensionValueMapper<TYPE> dimensionValueMapper) {
-    if (myDimensions.containsKey(dimension.name)) throw new OperationException("Dimension with name '" + dimension.name + "' was already added");
-    @NotNull TypedFinderDimensionImpl<TYPE> value = new TypedFinderDimensionImpl<>(dimension, dimensionValueMapper);
-    myDimensions.put(dimension.name, value);
+  public <TYPE> TypedFinderDimension<ITEM, TYPE> dimension(@NotNull final Dimension dimension, @NotNull final DimensionValueMapper<TYPE> dimensionValueMapper) {
+    if (myDimensions.containsKey(dimension.getName())) {
+      throw new OperationException("Dimension with name '" + dimension.getName() + "' was already added");
+    }
+
+    TypedFinderDimensionImpl<TYPE> value = new TypedFinderDimensionImpl<>(dimension, dimensionValueMapper);
+    myDimensions.put(dimension.getName(), value);
     return value;
   }
 
@@ -451,6 +463,10 @@ public class TypedFinderBuilder<ITEM> {
    * Define behaviour when single value is passed in the locator. Usually, it's assumed that single dimension value represents an item id.
    */
   public void singleDimension(@NotNull final ItemsFromDimension<ITEM, String> singleDimensionHandler) {
+    mySingleDimensionHandler = singleDimensionHandler;
+  }
+
+  public void singleDimension(@NotNull Dimension dimensionDef, @NotNull final ItemsFromDimension<ITEM, String> singleDimensionHandler) {
     mySingleDimensionHandler = singleDimensionHandler;
   }
 
@@ -503,9 +519,9 @@ public class TypedFinderBuilder<ITEM> {
 
   //============================= helper methods =============================
 
-  private <TYPE> TypedFinderBuilder<ITEM> filter(@NotNull final Dimension<TYPE> dimension, @NotNull final Filter<TYPE, ITEM> filteringMapper) {
+  private <TYPE> TypedFinderBuilder<ITEM> filter(@NotNull final Dimension dimension, @NotNull final Filter<TYPE, ITEM> filteringMapper) {
     DimensionCondition condition;
-    if (Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME.equals(dimension.name)) {
+    if (Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME.equals(dimension.getName())) {
       condition = Locator::isSingleValue;
     } else {
       condition = new DimensionConditionsImpl().when(dimension, Condition.PRESENT);
@@ -572,43 +588,17 @@ public class TypedFinderBuilder<ITEM> {
     return CollectionsUtil.convertCollection(Arrays.asList(enumClass.getEnumConstants()), source -> source.name().toLowerCase());
   }
 
-  //============================= Public subclasses =============================
-
-  /**
-   * TypedFinder dimension descriptor.
-   *
-   * @param <TYPE> type of the items, produced by dimension data retrievers.
-   */
-  @SuppressWarnings("unused")
-  public static class Dimension<TYPE> { //type is important here to let type inference for all the rest of the class usages
-    @NotNull public final String name;
-
-    public Dimension(@NotNull final String name) {
-      if (name.length() == 0) throw new OperationException("Wrong name: empty");
-      this.name = name;
-    }
-
-    @NotNull
-    public static <T> Dimension<T> single() {
-      return new Dimension<>(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-    }
-
-    @Override
-    public String toString() {
-      return "Dimension '" + name + "'";
-    }
-  }
-
+  // TODO: This may be what we call "ParsedLocator"
   public interface DimensionObjects {
     @Nullable
-    <TYPE> List<TYPE> get(@NotNull Dimension<TYPE> dimension);
+    <TYPE> List<TYPE> get(@NotNull Dimension dimension);
 
-    default <TYPE> TYPE getSingleValue(@NotNull Dimension<TYPE> dimension) {
+    default <TYPE> TYPE getSingleValue(@NotNull Dimension dimension) {
       List<TYPE> values = get(dimension);
       if (values == null || values.isEmpty()) return null;
 
       if (values.size() > 1) {
-        throw new BadRequestException("Multiple '" + dimension.name + "' dimensions are not supported");
+        throw new BadRequestException("Multiple '" + dimension.getName() + "' dimensions are not supported");
       }
 
       return values.get(0);
@@ -618,7 +608,7 @@ public class TypedFinderBuilder<ITEM> {
      * Same as get, but does not mark the dimension as used
      */
     @Nullable
-    <TYPE> List<TYPE> lookup(@NotNull Dimension<TYPE> dimension);
+    <TYPE> List<TYPE> lookup(@NotNull Dimension dimension);
 
     Set<String> getUsedDimensions();
 
@@ -627,7 +617,7 @@ public class TypedFinderBuilder<ITEM> {
 
   public interface DimensionConditions {
     @NotNull
-    DimensionConditions when(@NotNull Dimension<?> dimension, @NotNull Condition conditionBasedOnValue);
+    DimensionConditions when(@NotNull Dimension dimension, @NotNull Condition conditionBasedOnValue);
   }
 
   public interface DimensionCondition {
@@ -739,7 +729,7 @@ public class TypedFinderBuilder<ITEM> {
     @NotNull private final List<DimensionCondition> conditions = new ArrayList<>();
 
     @NotNull
-    public DimensionConditionsImpl when(@NotNull Dimension<?> dimension, @NotNull Condition conditionBasedOnValue) {
+    public DimensionConditionsImpl when(@NotNull Dimension dimension, @NotNull Condition conditionBasedOnValue) {
       conditions.add(new DimensionCondition(dimension, conditionBasedOnValue));
       return this;
     } //later can add context here (pass as input only only dimension value, but also some context returned from the previous conditions)
@@ -753,7 +743,7 @@ public class TypedFinderBuilder<ITEM> {
     }
 
     private boolean complies(@NotNull final DimensionCondition condition, @NotNull final Locator locator) {
-      List<String> values = locator.lookupDimensionValue(condition.dimension.name);
+      List<String> values = locator.lookupDimensionValue(condition.dimension);
       if (!values.isEmpty()) {  //conditions only defined nor non-null values
         for (String value : values) { //if at least one of multi-dimension values complies
           if (condition.conditionBasedOnValue.get(value)) return true;
@@ -768,12 +758,12 @@ public class TypedFinderBuilder<ITEM> {
     }
 
     private static class DimensionCondition {
-      @NotNull private final Dimension<?> dimension;
+      @NotNull private final Dimension dimension;
       @NotNull private final Condition conditionBasedOnValue;
       //later can add context here (pass as input only dimension value, but also some context returned from the previous conditions)
       // use builders to construct Check
 
-      DimensionCondition(@NotNull final Dimension<?> dimension, @NotNull final Condition conditionBasedOnValue) {
+      DimensionCondition(@NotNull final Dimension dimension, @NotNull final Condition conditionBasedOnValue) {
         this.dimension = dimension;
         this.conditionBasedOnValue = conditionBasedOnValue;
       }
@@ -1000,14 +990,14 @@ public class TypedFinderBuilder<ITEM> {
 
       @Nullable
       @Override
-      public <TYPE> List<TYPE> get(@NotNull final Dimension<TYPE> dimension) {
-        usedDimensions.add(dimension.name);
+      public <TYPE> List<TYPE> get(@NotNull final Dimension dimension) {
+        usedDimensions.add(dimension.getName());
         return myDimensionObjects.get(dimension);
       }
 
       @Nullable
       @Override
-      public <TYPE> List<TYPE> lookup(@NotNull final Dimension<TYPE> dimension) {
+      public <TYPE> List<TYPE> lookup(@NotNull final Dimension dimension) {
         return myDimensionObjects.lookup(dimension);
       }
 
@@ -1028,7 +1018,7 @@ public class TypedFinderBuilder<ITEM> {
   public String[] getKnownDimensions() {
     ArrayList<String> result = new ArrayList<>();
     for (TypedFinderDimensionImpl<?> dimension : myDimensions.values()) {
-      if (!dimension.getHidden()) result.add(dimension.getDimension().name);
+      if (!dimension.getHidden()) result.add(dimension.getDimension().getName());
     }
     if (mySingleDimensionHandler != null) result.add(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
     return CollectionsUtil.toArray(result, String.class);
@@ -1038,7 +1028,7 @@ public class TypedFinderBuilder<ITEM> {
   public String[] getHiddenDimensions() {
     List<String> result = new ArrayList<>();
     for (TypedFinderDimensionImpl<?> dimension : myDimensions.values()) {
-      if (dimension.getHidden()) result.add(dimension.getDimension().name);
+      if (dimension.getHidden()) result.add(dimension.getDimension().getName());
     }
     return CollectionsUtil.toArray(result, String.class);
   }
@@ -1049,10 +1039,10 @@ public class TypedFinderBuilder<ITEM> {
       StringBuilder result = new StringBuilder();
       result.append("Supported locator dimensions:\n");
       for (TypedFinderDimensionImpl<?> dimension : myDimensions.values()) {
-        if (!includeHidden && dimension.getHidden() && locator.getDimensionValue(dimension.getDimension().name).isEmpty()) {
+        if (!includeHidden && dimension.getHidden() && locator.getDimensionValue(dimension.getDimension()).isEmpty()) {
           continue;
         }
-        result.append(dimension.getDimension().name);
+        result.append(dimension.getDimension().getName());
         String dimensionDescription = dimension.getDescription();
         if (dimensionDescription != null) {
           result.append(" - ");
@@ -1097,19 +1087,19 @@ public class TypedFinderBuilder<ITEM> {
     public DimensionObjectsImpl(@NotNull final Locator locator) {
       for (TypedFinderDimensionImpl<?> dimension : myDimensions.values()) {
         List<?> values = getTypedDimensionByLocator(locator, dimension);
-        if (values != null && !values.isEmpty()) myCache.put(dimension.getDimension().name, values);
+        if (values != null && !values.isEmpty()) myCache.put(dimension.getDimension().getName(), values);
       }
     }
 
     @Nullable
     private <TYPE> List<TYPE> getTypedDimensionByLocator(@NotNull final Locator locator, @NotNull final TypedFinderDimensionImpl<TYPE> typedDimension) {
-      if (Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME.equals(typedDimension.getDimension().name)) {
+      if (Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME.equals(typedDimension.getDimension().getName())) {
         String singleValue = locator.lookupSingleValue();
         if (singleValue != null) {
           return Collections.singletonList(getByDimensionValue(typedDimension, singleValue));
         }
       }
-      List<String> dimensionValues = locator.lookupDimensionValue(typedDimension.getDimension().name);
+      List<String> dimensionValues = locator.lookupDimensionValue(typedDimension.getDimension());
       if (dimensionValues.isEmpty()) return null;
       List<TYPE> results = new ArrayList<>(dimensionValues.size());
       for (String dimensionValue : dimensionValues) {
@@ -1127,7 +1117,7 @@ public class TypedFinderBuilder<ITEM> {
         result = typedDimension.getValueMapper().get(dimensionValue);
       } catch (LocatorProcessException e) {
         if (Locator.HELP_DIMENSION.equals(dimensionValue)) throw e;
-        throw new LocatorProcessException("Error in dimension '" + typedDimension.getDimension().name + "', value: '" + dimensionValue + "'", e);
+        throw new LocatorProcessException("Error in dimension '" + typedDimension.getDimension().getName() + "', value: '" + dimensionValue + "'", e);
       }
       return result;
     }
@@ -1141,16 +1131,16 @@ public class TypedFinderBuilder<ITEM> {
 
     @Nullable
     @Override
-    public <TYPE> List<TYPE> get(@NotNull final Dimension<TYPE> dimension) {
-      myUsedDimensions.add(dimension.name);
+    public <TYPE> List<TYPE> get(@NotNull final Dimension dimension) {
+      myUsedDimensions.add(dimension.getName());
       return lookup(dimension);
     }
 
     @Nullable
     @Override
-    public <TYPE> List<TYPE> lookup(@NotNull final Dimension<TYPE> dimension) {
+    public <TYPE> List<TYPE> lookup(@NotNull final Dimension dimension) {
       //noinspection unchecked
-      return (List<TYPE>)myCache.get(dimension.name);
+      return (List<TYPE>)myCache.get(dimension.getName());
     }
 
     @Override

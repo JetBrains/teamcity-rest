@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data.finder;
 
 import java.util.stream.Stream;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import org.testng.annotations.BeforeMethod;
@@ -36,8 +37,8 @@ public class TypedFinderTest extends BaseFinderTest<String> {
   @Test
   public void testGeneric() {
     TypedFinderBuilder<String> builder = new TypedFinderBuilder<>();
-    builder.dimensionString(new TypedFinderBuilder.Dimension<>("prefix")).description("prefix of the value").filter((s, item) -> item.startsWith(s));
-    builder.dimensionString(new TypedFinderBuilder.Dimension<>("suffix")).description("suffix of the value").filter((s, item) -> item.endsWith(s));
+    builder.dimensionString(new StubDimension("prefix")).description("prefix of the value").filter((s, item) -> item.startsWith(s));
+    builder.dimensionString(new StubDimension("suffix")).description("suffix of the value").filter((s, item) -> item.endsWith(s));
     builder.multipleConvertToItemHolder(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> ItemHolder.of(
       Stream.of("a1", "a2", "a3", "b1", "b2", "b3", "c1", "c2", "c3")));
     setFinder(new DelegatingFinder(builder.build()));
@@ -53,9 +54,9 @@ public class TypedFinderTest extends BaseFinderTest<String> {
   @Test
   public void testDefaults() {
     TypedFinderBuilder<String> builder = new TypedFinderBuilder<>();
-    builder.dimensionString(new TypedFinderBuilder.Dimension<>("prefix")).description("prefix of the value").filter((s, item) -> item.startsWith(s));
-    builder.dimensionString(new TypedFinderBuilder.Dimension<>("suffix")).description("suffix of the value").filter((s, item) -> item.endsWith(s));
-    builder.dimensionLong(new TypedFinderBuilder.Dimension<>(PagerData.COUNT)).description("number of items to return").withDefault(String.valueOf(5));
+    builder.dimensionString(new StubDimension("prefix")).description("prefix of the value").filter((s, item) -> item.startsWith(s));
+    builder.dimensionString(new StubDimension("suffix")).description("suffix of the value").filter((s, item) -> item.endsWith(s));
+    builder.dimensionLong(new StubDimension(PagerData.COUNT)).description("number of items to return").withDefault(String.valueOf(5));
     builder.multipleConvertToItemHolder(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> ItemHolder.of(
       Stream.of("b1", "a1", "a2", "a3", "a4", "a5", "a6", "c1", "c2", "c3")));
     setFinder(new DelegatingFinder(builder.build()));
@@ -70,9 +71,9 @@ public class TypedFinderTest extends BaseFinderTest<String> {
   @Test
   public void testSeveralAlwaysConditions() {
     TypedFinderBuilder<String> builder = new TypedFinderBuilder<>();
-    builder.dimensionString(new TypedFinderBuilder.Dimension<>("prefix")).withDefault("a").filter((s, item) -> item.startsWith(s));
-    builder.dimensionString(new TypedFinderBuilder.Dimension<>("suffix")).filter((s, item) -> item.endsWith(s));
-    builder.dimensionLong(new TypedFinderBuilder.Dimension<>(PagerData.COUNT)).withDefault(String.valueOf(5));
+    builder.dimensionString(new StubDimension("prefix")).withDefault("a").filter((s, item) -> item.startsWith(s));
+    builder.dimensionString(new StubDimension("suffix")).filter((s, item) -> item.endsWith(s));
+    builder.dimensionLong(new StubDimension(PagerData.COUNT)).withDefault(String.valueOf(5));
     builder.multipleConvertToItemHolder(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> ItemHolder.of(
       Stream.of("b1", "a1", "a2", "a3", "a4", "a5", "a6", "c1", "c2", "c3")));
     setFinder(new DelegatingFinder(builder.build()));

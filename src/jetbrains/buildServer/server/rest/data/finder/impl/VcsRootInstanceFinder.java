@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.data.TimeCondition;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.Finder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.FilterUtil;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.Matcher;
@@ -246,21 +247,21 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     final String status = locator.getSingleDimensionValue(STATUS);
     if (status != null) {
       TypedFinderBuilder<VcsRootInstanceEx> builder = new TypedFinderBuilder<>();
-      builder.dimensionEnum(TypedFinderBuilder.Dimension.single(), VcsRootStatus.Type.class).description("status of the VCS root instance").
-        valueForDefaultFilter(root -> root.getStatus().getType());
+      builder.dimensionEnum(StubDimension.single(), VcsRootStatus.Type.class).description("status of the VCS root instance").
+             valueForDefaultFilter(root -> root.getStatus().getType());
 
       final TypedFinderBuilder<VcsRootCheckStatus> statusFilterBuilder = new TypedFinderBuilder<>();
-      statusFilterBuilder.dimensionEnum(new TypedFinderBuilder.Dimension<>("status"), VcsRootStatus.Type.class).description("type of operation")
+      statusFilterBuilder.dimensionEnum(new StubDimension("status"), VcsRootStatus.Type.class).description("type of operation")
                          .valueForDefaultFilter(vcsRootCheckStatus -> vcsRootCheckStatus.myStatus.getType());
-      statusFilterBuilder.dimensionTimeCondition(new TypedFinderBuilder.Dimension<>("timestamp"), myTimeCondition).description("time of the operation start")
+      statusFilterBuilder.dimensionTimeCondition(new StubDimension("timestamp"), myTimeCondition).description("time of the operation start")
                          .valueForDefaultFilter(vcsRootCheckStatus -> vcsRootCheckStatus.myStatus.getTimestamp());
-      statusFilterBuilder.dimensionEnum(new TypedFinderBuilder.Dimension<>("requestorType"), OperationRequestor.class).description("requestor of the operation")
+      statusFilterBuilder.dimensionEnum(new StubDimension("requestorType"), OperationRequestor.class).description("requestor of the operation")
                          .valueForDefaultFilter(vcsRootCheckStatus -> vcsRootCheckStatus.myRequestor);
       Finder<VcsRootCheckStatus> vcsRootCheckStatusFinder = statusFilterBuilder.build();
 
-      builder.dimensionFinderFilter(new TypedFinderBuilder.Dimension<>("current"), vcsRootCheckStatusFinder, "VCS check status condition")
+      builder.dimensionFinderFilter(new StubDimension("current"), vcsRootCheckStatusFinder, "VCS check status condition")
              .description("current VCS root status").valueForDefaultFilter(root -> new VcsRootCheckStatus(root.getStatus(), root.getLastRequestor()));
-      builder.dimensionFinderFilter(new TypedFinderBuilder.Dimension<>("previous"), vcsRootCheckStatusFinder, "VCS check status condition")
+      builder.dimensionFinderFilter(new StubDimension("previous"), vcsRootCheckStatusFinder, "VCS check status condition")
              .description("previous VCS root status").valueForDefaultFilter(root -> new VcsRootCheckStatus(root.getPreviousStatus(), null));
 
       final ItemFilter<VcsRootInstanceEx> filter = builder.build().getFilter(status);
@@ -279,10 +280,10 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
     final String repositoryState = locator.getSingleDimensionValue(REPOSITORY_STATE);
     if (repositoryState != null) {
       TypedFinderBuilder<RepositoryState> builder = new TypedFinderBuilder<RepositoryState>();
-      builder.dimensionTimeCondition(new TypedFinderBuilder.Dimension<>("timestamp"), myTimeCondition).description("time of the repository state creation").
-        valueForDefaultFilter(item -> item.getCreateTimestamp());
+      builder.dimensionTimeCondition(new StubDimension("timestamp"), myTimeCondition).description("time of the repository state creation").
+             valueForDefaultFilter(item -> item.getCreateTimestamp());
 
-      builder.dimensionValueCondition(new TypedFinderBuilder.Dimension<>("branchName")).description("branch name").filter((valueCondition, item) -> {
+      builder.dimensionValueCondition(new StubDimension("branchName")).description("branch name").filter((valueCondition, item) -> {
         for (String branchName : item.getBranchRevisions().keySet()) {
           if (valueCondition.matches(branchName)) return true;
         }

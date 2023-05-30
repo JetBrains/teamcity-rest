@@ -20,6 +20,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -133,5 +134,14 @@ public class LocatorUtil {
       }
       return result;
     }
+  }
+
+  public static String setDimension(@Nullable final String locator, @NotNull final Dimension dimension, final String value) {
+    return setDimension(locator, dimension.getName(), String.valueOf(value));
+  }
+
+  @NotNull
+  public static String setDimensionIfNotPresent(@NotNull String locator, @NotNull Dimension dimension, @NotNull String value) {
+    return Locator.setDimensionIfNotPresent(locator, dimension.getName(), value);
   }
 }

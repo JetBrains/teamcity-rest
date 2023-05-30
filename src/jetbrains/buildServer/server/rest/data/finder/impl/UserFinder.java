@@ -29,6 +29,8 @@ import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.Finder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.SetDuplicateChecker;
 import jetbrains.buildServer.server.rest.data.util.finderBuilder.DimensionValueMapper;
@@ -58,8 +60,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
-import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Dimension;
-
 /**
  * @author Yegor.Yarko
  * Date: 23.03.13
@@ -83,25 +83,25 @@ public class UserFinder extends DelegatingFinder<SUser> {
   public static final String REST_CHECK_ADDITIONAL_PERMISSIONS_ON_USERS_AND_GROUPS = "rest.request.checkAdditionalPermissionsForUsersAndGroups";
 
   @LocatorDimension("id")
-  private static final Dimension<Long> ID = new Dimension<>("id");
+  private static final Dimension ID = new StubDimension("id");
   @LocatorDimension("username")
-  private static final Dimension<String> USERNAME = new Dimension<>("username");
+  private static final Dimension USERNAME = new StubDimension("username");
   @LocatorDimension(value = "group", format = LocatorName.USER_GROUP, notes = "User group (direct parent) locator.")
-  private static final Dimension<SUserGroup> GROUP = new Dimension<>("group");
+  private static final Dimension GROUP = new StubDimension("group");
   @LocatorDimension(value = "affectedGroup", format = LocatorName.USER_GROUP, notes = "User group (direct or indirect parent) locator.")
-  private static final Dimension<SUserGroup> AFFECTED_GROUP = new Dimension<>("affectedGroup");
-  private static final Dimension<ParameterCondition> PROPERTY = new Dimension<>("property");
+  private static final Dimension AFFECTED_GROUP = new StubDimension("affectedGroup");
+  private static final Dimension PROPERTY = new StubDimension("property");
   @LocatorDimension("email")
-  private static final Dimension<ValueCondition> EMAIL = new Dimension<>("email");
+  private static final Dimension EMAIL = new StubDimension("email");
   @LocatorDimension("name")
-  private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
-  private static final Dimension<Boolean> HAS_PASSWORD = new Dimension<>("hasPassword");
-  private static final Dimension<String> PASSWORD = new Dimension<>("password");
+  private static final Dimension NAME = new StubDimension("name");
+  private static final Dimension HAS_PASSWORD = new StubDimension("hasPassword");
+  private static final Dimension PASSWORD = new StubDimension("password");
   @LocatorDimension(value = "lastLogin", dataType = LocatorDimensionDataType.TIMESTAMP, format = "yyyyMMddTHHmmss+ZZZZ")
-  private static final Dimension<TimeCondition.ParsedTimeCondition> LAST_LOGIN_TIME = new Dimension<>("lastLogin");
+  private static final Dimension LAST_LOGIN_TIME = new StubDimension("lastLogin");
   @LocatorDimension(value = "role", format = LocatorName.ROLE, notes = "Role locator.")
-  private static final Dimension<RoleEntryDatas> ROLE = new Dimension<>("role");
-  private static final Dimension<ItemFilter<SUser>> PERMISSION = new Dimension<>("permission");
+  private static final Dimension ROLE = new StubDimension("role");
+  private static final Dimension PERMISSION = new StubDimension("permission");
   //todo: add filtering by changes (authors), builds (triggering), audit events, etc?
   @NotNull
   private final UserModel myUserModel;
@@ -196,15 +196,15 @@ public class UserFinder extends DelegatingFinder<SUser> {
   }
 
   public static String getLocatorById(@NotNull final Long id) {
-    return Locator.getStringLocator(ID.name, String.valueOf(id));
+    return Locator.getStringLocator(ID, String.valueOf(id));
   }
 
   public static String getLocatorByUsername(@NotNull final String username) {
-    return Locator.getStringLocator(USERNAME.name, username);
+    return Locator.getStringLocator(USERNAME, username);
   }
 
   public static String getLocatorByGroup(@NotNull final SUserGroup userGroup) {
-    return Locator.getStringLocator(GROUP.name, UserGroupFinder.getLocator(userGroup));
+    return Locator.getStringLocator(GROUP, UserGroupFinder.getLocator(userGroup));
   }
 
   @NotNull
@@ -565,8 +565,8 @@ public class UserFinder extends DelegatingFinder<SUser> {
 
 
   private class PermissionCheck {
-    private final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
-    private final Dimension<Permission> PERMISSION = new Dimension<>("permission");
+    private final Dimension PROJECT = new StubDimension("project");
+    private final Dimension PERMISSION = new StubDimension("permission");
 
     private final Finder<SUser> myFinder;
 
@@ -575,7 +575,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
       builder.dimensionProjects(PROJECT, myServiceLocator)
              .description("project to check permission in (matching when permission is present at least in one of the matched projects), when omitted checking globally");
       builder.dimensionEnum(PERMISSION, Permission.class).description("permission to check, should be present");
-      builder.filter(locator -> locator.lookupSingleDimensionValue(PERMISSION.name) != null && locator.lookupDimensionValue(PROJECT.name).size() <= 1,
+      builder.filter(locator -> locator.lookupSingleDimensionValue(PERMISSION) != null && locator.lookupDimensionValue(PROJECT).size() <= 1,
                      dimensions -> new UserPermissionFilter(dimensions));
       myFinder = builder.build();
     }
@@ -590,7 +590,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
 
       UserPermissionFilter(final TypedFinderBuilder.DimensionObjects dimensions) {
         //noinspection ConstantConditions - is checked in a filter condition earlier
-        myPermission = dimensions.get(PERMISSION).get(0);
+        myPermission = dimensions.<Permission>get(PERMISSION).get(0);
         List<List<SProject>> projects = dimensions.get(PROJECT);
         myProjects = projects == null ? null : projects.get(0);
       }

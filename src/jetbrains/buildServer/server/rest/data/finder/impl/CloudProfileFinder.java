@@ -18,20 +18,18 @@ package jetbrains.buildServer.server.rest.data.finder.impl;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.clouds.CloudImage;
 import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.clouds.server.CloudManager;
-import jetbrains.buildServer.server.rest.data.CloudInstanceData;
 import jetbrains.buildServer.server.rest.data.CloudUtil;
 import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.ValueCondition;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -44,8 +42,6 @@ import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
-
-import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Dimension;
 
 @LocatorResource(value = LocatorName.CLOUD_PROFILE,
   extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
@@ -60,17 +56,20 @@ import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.D
 public class CloudProfileFinder extends DelegatingFinder<CloudProfile> {
   private static final Logger LOG = Logger.getInstance(CloudProfileFinder.class.getName());
 
-  @LocatorDimension("id") private static final Dimension<String> ID = new Dimension<>("id");
-  @LocatorDimension("name") private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
-  @LocatorDimension("cloudProviderId") private static final Dimension<ValueCondition> CLOUD_PROVIDER_ID = new Dimension<>("cloudProviderId");
+  @LocatorDimension("id")
+  private static final Dimension ID = new StubDimension("id");
+  @LocatorDimension("name")
+  private static final Dimension NAME = new StubDimension("name");
+  @LocatorDimension("cloudProviderId")
+  private static final Dimension CLOUD_PROVIDER_ID = new StubDimension("cloudProviderId");
   @LocatorDimension(value = "instance", format = LocatorName.CLOUD_INSTANCE, notes = "Cloud instance locator.")
-  private static final Dimension<List<CloudInstanceData>> INSTANCE = new Dimension<>("instance");
+  private static final Dimension INSTANCE = new StubDimension("instance");
   @LocatorDimension(value = "instance", format = LocatorName.CLOUD_IMAGE, notes = "Cloud image locator.")
-  private static final Dimension<List<CloudImage>> IMAGE = new Dimension<>("image");
+  private static final Dimension IMAGE = new StubDimension("image");
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
-  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
+  private static final Dimension PROJECT = new StubDimension("project");
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
-  private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
+  private static final Dimension AFFECTED_PROJECT = new StubDimension("affectedProject");
 
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final CloudManager myCloudManager;
@@ -88,12 +87,12 @@ public class CloudProfileFinder extends DelegatingFinder<CloudProfile> {
   }
 
   public static String getLocatorById(@NotNull final Long id) {
-    return Locator.getStringLocator(ID.name, String.valueOf(id));
+    return Locator.getStringLocator(ID, String.valueOf(id));
   }
 
   @NotNull
   public static String getLocator(@NotNull final CloudProfile item) {
-    return Locator.getStringLocator(ID.name, item.getProfileId());
+    return Locator.getStringLocator(ID, item.getProfileId());
   }
 
   @NotNull
@@ -101,7 +100,7 @@ public class CloudProfileFinder extends DelegatingFinder<CloudProfile> {
     if (baseLocator != null && (new Locator(baseLocator)).isSingleValue()) {
       return baseLocator;
     }
-    return Locator.setDimensionIfNotPresent(baseLocator, PROJECT.name, ProjectFinder.getLocator(project));
+    return Locator.setDimensionIfNotPresent(baseLocator, PROJECT, ProjectFinder.getLocator(project));
   }
 
   private class Builder extends TypedFinderBuilder<CloudProfile> {

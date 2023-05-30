@@ -33,10 +33,11 @@ import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.data.CloudInstanceData;
 import jetbrains.buildServer.server.rest.data.CloudUtil;
 import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.ValueCondition;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -59,8 +60,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
-import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Dimension;
-
 @LocatorResource(value = LocatorName.CLOUD_IMAGE,
   extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
   baseEntity = "CloudImage",
@@ -75,26 +74,26 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
   private static final Logger LOG = Logger.getInstance(CloudImageFinder.class.getName());
 
   @LocatorDimension("id")
-  private static final Dimension<CloudUtil.ImageIdData> ID = new Dimension<>("id");
+  private static final Dimension ID = new StubDimension("id");
   @LocatorDimension("name")
-  private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
-  private static final Dimension<ValueCondition> ERROR = new Dimension<>("errorMessage");
+  private static final Dimension NAME = new StubDimension("name");
+  private static final Dimension ERROR = new StubDimension("errorMessage");
   @LocatorDimension(value = "agent", format = LocatorName.AGENT, notes = "Agent locator.")
-  private static final Dimension<List<SBuildAgent>> AGENT = new Dimension<>("agent");
+  private static final Dimension AGENT = new StubDimension("agent");
   @LocatorDimension(value = "agentPool", format = LocatorName.AGENT_POOL, notes = "Agent pool locator.")
-  private static final Dimension<List<AgentPool>> AGENT_POOL = new Dimension<>("agentPool");
+  private static final Dimension AGENT_POOL = new StubDimension("agentPool");
   @LocatorDimension(value = "instance", format = LocatorName.CLOUD_INSTANCE, notes = "Cloud instance locator.")
-  private static final Dimension<List<CloudInstanceData>> INSTANCE = new Dimension<>("instance");
+  private static final Dimension INSTANCE = new StubDimension("instance");
   @LocatorDimension(value = "profile", format = LocatorName.CLOUD_PROFILE, notes = "Cloud profile locator.")
-  private static final Dimension<List<CloudProfile>> PROFILE = new Dimension<>("profile");
+  private static final Dimension PROFILE = new StubDimension("profile");
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
-  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
+  private static final Dimension PROJECT = new StubDimension("project");
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
-  private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
+  private static final Dimension AFFECTED_PROJECT = new StubDimension("affectedProject");
   @LocatorDimension(value = "compatibleBuildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator")
-  private static final Dimension<List<BuildTypeOrTemplate>> COMPATIBLE_BUILD_TYPE = new Dimension<>("compatibleBuildType");
+  private static final Dimension COMPATIBLE_BUILD_TYPE = new StubDimension("compatibleBuildType");
   @LocatorDimension(value = "compatibleBuildPromotion", format = LocatorName.BUILD, notes = "Build promotion locator")
-  private static final Dimension<List<BuildPromotion>> COMPATIBLE_BUILD_PROMOTION = new Dimension<>("compatibleBuildPromotion");
+  private static final Dimension COMPATIBLE_BUILD_PROMOTION = new StubDimension("compatibleBuildPromotion");
 
   @NotNull
   private final ServiceLocator myServiceLocator;
@@ -115,22 +114,22 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
   }
 
   public static String getLocatorById(@NotNull final String id) {
-    return Locator.getStringLocator(ID.name, id);
+    return Locator.getStringLocator(ID, id);
   }
 
   @NotNull
   public static String getLocator(@NotNull final CloudImage item, @NotNull final CloudUtil cloudUtil) {
-    return Locator.getStringLocator(ID.name, cloudUtil.getId(item));
+    return Locator.getStringLocator(ID, cloudUtil.getId(item));
   }
 
   @NotNull
   public static String getLocator(@NotNull final CloudProfile item) {
-    return Locator.getStringLocator(PROFILE.name, CloudProfileFinder.getLocator(item));
+    return Locator.getStringLocator(PROFILE, CloudProfileFinder.getLocator(item));
   }
 
   @NotNull
   public static String getLocator(@NotNull final SBuildAgent item) {
-    return Locator.getStringLocator(AGENT.name, AgentFinder.getLocator(item));
+    return Locator.getStringLocator(AGENT, AgentFinder.getLocator(item));
   }
 
   private class Builder extends TypedFinderBuilder<CloudImage> {
@@ -323,15 +322,15 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
   @NotNull
   public static String getCompatibleBuildTypeLocator(final BuildTypeOrTemplate buildType) {
     if (buildType.isBuildType()) {
-      return Locator.getStringLocator(COMPATIBLE_BUILD_TYPE.name, BuildTypeFinder.getLocator(Objects.requireNonNull(buildType.getBuildType())));
+      return Locator.getStringLocator(COMPATIBLE_BUILD_TYPE, BuildTypeFinder.getLocator(Objects.requireNonNull(buildType.getBuildType())));
     } else {
-      return Locator.getStringLocator(COMPATIBLE_BUILD_TYPE.name, BuildTypeFinder.getLocator(Objects.requireNonNull(buildType.getTemplate())));
+      return Locator.getStringLocator(COMPATIBLE_BUILD_TYPE, BuildTypeFinder.getLocator(Objects.requireNonNull(buildType.getTemplate())));
     }
   }
 
   @NotNull
   public static String getCompatibleBuildPromotionLocator(final BuildPromotion buildType) {
-      return Locator.getStringLocator(COMPATIBLE_BUILD_PROMOTION.name, BuildPromotionFinder.getLocator(Objects.requireNonNull(buildType)));
+      return Locator.getStringLocator(COMPATIBLE_BUILD_PROMOTION, BuildPromotionFinder.getLocator(Objects.requireNonNull(buildType)));
   }
 }
 
