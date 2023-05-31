@@ -1742,13 +1742,13 @@ public class BuildTypeRequest {
     @PathParam("btLocator")
     String buildTypeLocator,
     @QueryParam("targetProjectId")
-    String targetProjectLocator
+    String targetProjectId
   ) {
     BuildTypeOrTemplate buildType = myBuildTypeFinder.findSingleItem(Locator.locator(buildTypeLocator));
     if (buildType == null) {
       throw new BadRequestException("BuildType not found.");
     }
-    SProject targetProject = myProjectFinder.findSingleItem(Locator.locator(targetProjectLocator));
+    SProject targetProject = myServiceLocator.getSingletonService(ProjectManager.class).findProjectByExternalId(targetProjectId);
     if (targetProject == null) {
       throw new BadRequestException("Project not found.");
     }
