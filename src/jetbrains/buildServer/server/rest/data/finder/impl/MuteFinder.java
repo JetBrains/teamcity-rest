@@ -293,7 +293,7 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
       dimensionFixedText(RESOLUTION, Resolution.getKnownTypesForMute()).description("unmute condition").
         valueForDefaultFilter(muteInfo -> String.valueOf(Resolution.ResolutionType.getType(muteInfo.getAutoUnmuteOptions())));
 
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> ItemHolder.of(getMuteInfosForProject(myProjectFinder.getRootProject())));
+      fallbackItemRetriever(dimensions -> ItemHolder.of(getMuteInfosForProject(myProjectFinder.getRootProject())));
 
       filter(DimensionCondition.ALWAYS, dimensions -> new ItemFilter<MuteInfo>() {
         @Override

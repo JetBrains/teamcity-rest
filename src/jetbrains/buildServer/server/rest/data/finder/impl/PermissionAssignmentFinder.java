@@ -66,10 +66,7 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
     builder.dimensionEnum(PERMISSION, Permission.class).description("id of the permission to filter the results by")
            .valueForDefaultFilter(p -> p.getPermission());
 
-    builder.multipleConvertToItemHolder(
-      TypedFinderBuilder.DimensionCondition.ALWAYS,
-      dimensions -> getPermissions(dimensions, authorityHolder, serviceLocator)
-    );
+    builder.fallbackItemRetriever(dimensions -> getPermissions(dimensions, authorityHolder, serviceLocator));
 
     PermissionChecker permissionChecker = serviceLocator.getSingletonService(PermissionChecker.class);
 

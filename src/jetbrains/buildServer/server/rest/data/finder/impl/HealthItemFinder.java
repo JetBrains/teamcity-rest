@@ -98,7 +98,7 @@ public class HealthItemFinder extends DelegatingFinder<HealthStatusItem> {
 
       singleDimension(dimension -> getAllMatching(category -> dimension.equalsIgnoreCase(category.getId())));
 
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> ItemHolder.of(getAllMatching(myEmptyPredicate)));
+      fallbackItemRetriever(dimensions -> ItemHolder.of(getAllMatching(myEmptyPredicate)));
     }
 
     @NotNull
@@ -125,7 +125,7 @@ public class HealthItemFinder extends DelegatingFinder<HealthStatusItem> {
       dimensionLookupLimit();
 
 
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> {
+      fallbackItemRetriever(dimensions -> {
         final ScopeBuilder scopeBuilder = new ScopeBuilder();
         StreamUtil.forEachNullableFlattened(dimensions.get(PROJECT), scopeBuilder::addProject);
         StreamUtil.forEachNullableFlattened(dimensions.get(BUILD_TYPE), (BuildTypeOrTemplate buildTypeOrTemplate) -> {

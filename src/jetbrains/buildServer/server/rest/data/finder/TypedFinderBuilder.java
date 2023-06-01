@@ -482,6 +482,17 @@ public class TypedFinderBuilder<ITEM> {
     return this;
   }
 
+  /**
+   * Use this method to define a 'fallback' item retrieval method.
+   * Should be called last and usually servers as a fallback mechanism, 
+   * where none of the dimensions defined a more efficient way to retrieve prefiltered items.
+   */
+  @NotNull
+  public TypedFinderBuilder<ITEM> fallbackItemRetriever(@NotNull final ItemHolderFromDimensions<ITEM> itemHolderFromDimensions) {
+    myItemHoldersConditions.put(DimensionCondition.ALWAYS, itemHolderFromDimensions);
+    return this;
+  }
+
   public TypedFinderBuilder<ITEM> filter(@NotNull final DimensionCondition conditions, @NotNull final ItemFilterFromDimensions<ITEM> parsedObjectsIfConditionsMatched) {
     ItemFilterFromDimensions<ITEM> previous = myFiltersConditions.put(conditions, parsedObjectsIfConditionsMatched);
     if (previous != null) throw new OperationException("Overriding dimension condition '" + conditions.toString() + "'");

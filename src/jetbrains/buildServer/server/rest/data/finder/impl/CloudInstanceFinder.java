@@ -153,9 +153,7 @@ public class CloudInstanceFinder extends DelegatingFinder<CloudInstanceData> {
                                 .map(pair -> new CloudInstanceData(pair.getSecond(), pair.getFirst().getProfileId(), myServiceLocator))
                                 .collect(Collectors.toList()));
 
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> {
-        return myCloudUtil.getAllInstancesProcessor();
-      });
+      fallbackItemRetriever(dimensions -> myCloudUtil.getAllInstancesProcessor());
 
       locatorProvider(CloudInstanceFinder::getLocator);
     }

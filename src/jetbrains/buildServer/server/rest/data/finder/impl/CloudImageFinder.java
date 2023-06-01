@@ -187,7 +187,7 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
           .collect(Collectors.toList())
         );
 
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> getAllCloudImages());
+      fallbackItemRetriever(dimensions -> getAllCloudImages());
 
       locatorProvider(image -> getLocator(image, myCloudUtil));
     }

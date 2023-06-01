@@ -39,8 +39,7 @@ public class TypedFinderTest extends BaseFinderTest<String> {
     TypedFinderBuilder<String> builder = new TypedFinderBuilder<>();
     builder.dimensionString(new StubDimension("prefix")).description("prefix of the value").filter((s, item) -> item.startsWith(s));
     builder.dimensionString(new StubDimension("suffix")).description("suffix of the value").filter((s, item) -> item.endsWith(s));
-    builder.multipleConvertToItemHolder(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> ItemHolder.of(
-      Stream.of("a1", "a2", "a3", "b1", "b2", "b3", "c1", "c2", "c3")));
+    builder.fallbackItemRetriever(dimensions -> ItemHolder.of(Stream.of("a1", "a2", "a3", "b1", "b2", "b3", "c1", "c2", "c3")));
     setFinder(new DelegatingFinder(builder.build()));
 
     check(null, "a1", "a2", "a3", "b1", "b2", "b3", "c1", "c2", "c3");
@@ -57,8 +56,7 @@ public class TypedFinderTest extends BaseFinderTest<String> {
     builder.dimensionString(new StubDimension("prefix")).description("prefix of the value").filter((s, item) -> item.startsWith(s));
     builder.dimensionString(new StubDimension("suffix")).description("suffix of the value").filter((s, item) -> item.endsWith(s));
     builder.dimensionLong(new StubDimension(PagerData.COUNT)).description("number of items to return").withDefault(String.valueOf(5));
-    builder.multipleConvertToItemHolder(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> ItemHolder.of(
-      Stream.of("b1", "a1", "a2", "a3", "a4", "a5", "a6", "c1", "c2", "c3")));
+    builder.fallbackItemRetriever(dimensions -> ItemHolder.of(Stream.of("b1", "a1", "a2", "a3", "a4", "a5", "a6", "c1", "c2", "c3")));
     setFinder(new DelegatingFinder(builder.build()));
 
     check(null, "b1", "a1", "a2", "a3", "a4");
@@ -74,8 +72,7 @@ public class TypedFinderTest extends BaseFinderTest<String> {
     builder.dimensionString(new StubDimension("prefix")).withDefault("a").filter((s, item) -> item.startsWith(s));
     builder.dimensionString(new StubDimension("suffix")).filter((s, item) -> item.endsWith(s));
     builder.dimensionLong(new StubDimension(PagerData.COUNT)).withDefault(String.valueOf(5));
-    builder.multipleConvertToItemHolder(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> ItemHolder.of(
-      Stream.of("b1", "a1", "a2", "a3", "a4", "a5", "a6", "c1", "c2", "c3")));
+    builder.fallbackItemRetriever(dimensions -> ItemHolder.of(Stream.of("b1", "a1", "a2", "a3", "a4", "a5", "a6", "c1", "c2", "c3")));
     setFinder(new DelegatingFinder(builder.build()));
 
     check(null, "a1", "a2", "a3", "a4", "a5");

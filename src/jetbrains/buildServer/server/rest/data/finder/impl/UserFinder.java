@@ -553,7 +553,7 @@ public class UserFinder extends DelegatingFinder<SUser> {
         .description("user's permission (experimental)").hidden()
         .filter((type, item) -> type.isIncluded(item));
 
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> {
+      fallbackItemRetriever(dimensions -> {
         checkViewAllUsersPermissionEnforced();
         return ItemHolder.of(myUserModel.getAllUsers().getUsers());
       });

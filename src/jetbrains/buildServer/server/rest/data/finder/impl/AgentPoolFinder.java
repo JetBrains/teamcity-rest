@@ -28,6 +28,7 @@ import jetbrains.buildServer.server.rest.data.locator.Dimension;
 import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
+import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Util;
@@ -129,7 +130,7 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
             }
           };
       });
-      multipleConvertToItems(DimensionCondition.ALWAYS, dimensions -> myAgentPoolManager.getAllAgentPools());
+      fallbackItemRetriever(dimensions -> ItemHolder.of(myAgentPoolManager.getAllAgentPools()));
 
       locatorProvider(agentPool -> getLocator(agentPool));
       duplicateCheckerSupplier(() -> new ComparatorDuplicateChecker<>(

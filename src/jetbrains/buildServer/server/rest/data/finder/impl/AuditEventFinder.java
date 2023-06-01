@@ -139,7 +139,7 @@ public class AuditEventFinder extends DelegatingFinder<AuditLogAction> {
       //put this last as it's description is too long
       dimensionSetOf(ACTION, String.valueOf(getActionTypesValues()), s -> getValue(s, ActionType.class)).description("type of the action").valueForDefaultFilter(AuditLogAction::getActionType);
 
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> {
+      fallbackItemRetriever(dimensions -> {
         AuditLogBuilder builder = myAuditLogProvider.getBuilder();
 
         List<List<SUser>> userLists = dimensions.get(USER);

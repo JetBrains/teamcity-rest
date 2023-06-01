@@ -132,7 +132,7 @@ public class CloudProfileFinder extends DelegatingFinder<CloudProfile> {
         filter((projects, item) -> Util.resolveNull(myCloudUtil.getProject(item), p -> CloudUtil.containProjectOrParent(projects, p), false))
         .toItems(projects -> projects.stream().flatMap(project -> myCloudManager.listProfilesByProject(project.getProjectId(), true).stream()).collect(Collectors.toList()));
 
-      multipleConvertToItemHolder(DimensionCondition.ALWAYS, dimensions -> ItemHolder.of(myCloudManager.listAllProfiles()));
+      fallbackItemRetriever(dimensions -> ItemHolder.of(myCloudManager.listAllProfiles()));
 
       locatorProvider(CloudProfileFinder::getLocator);
     }
