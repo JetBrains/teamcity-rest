@@ -16,51 +16,58 @@
 
 package jetbrains.buildServer.server.rest.data.locator;
 
-import jetbrains.buildServer.server.rest.data.Locator;
+
+import java.util.function.Supplier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Simple stub to be used when proper dimension definition is not given yet. To be removed after all locators are properly defined.
- */
-public class StubDimension implements Dimension {
+class DimensionImpl implements Dimension {
   private final String myName;
-  private final Syntax mySyntax = Syntax.TODO("Unknown syntax");
+  private final Supplier<? extends Syntax> mySyntax;
+  private final String myDescription;
+  private final boolean myHidden;
+  private final boolean myRepeatable;
 
-  public StubDimension(@NotNull String name) {
+  public DimensionImpl(@NotNull String name, @NotNull Supplier<? extends Syntax> syntax, @Nullable String description, boolean hidden, boolean repeatable) {
     myName = name;
+    mySyntax = syntax;
+    myDescription = description;
+    myHidden = hidden;
+    myRepeatable = repeatable;
   }
 
-  @NotNull
   @Override
+  @NotNull
   public String getName() {
     return myName;
   }
 
-  @NotNull
-  public static StubDimension single() {
-    return new StubDimension(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME);
-  }
-
-  @NotNull
   @Override
+  @NotNull
   public Syntax getSyntax() {
-    return mySyntax;
+    return mySyntax.get();
   }
 
-  @Nullable
   @Override
+  @Nullable
   public String getDescription() {
-    return null;
+    return myDescription;
   }
 
   @Override
   public boolean isHidden() {
-    return false;
+    return myHidden;
   }
 
   @Override
   public boolean isRepeatable() {
-    return false;
+    return myRepeatable;
+  }
+
+  @Override
+  public String toString() {
+    return myName + " " +
+           (isHidden() ? "hidden ": "") +
+           (isRepeatable() ? "repeatable ": "");
   }
 }

@@ -19,6 +19,12 @@ package jetbrains.buildServer.server.rest.data.locator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Locator dimension definition.
+ * Two most important parts are `name and `syntax`.
+ * `name` is unique in the locator definition, only one dimension with the same name can be defined.
+ * `syntax` defines what values can be passed to this dimension. It may be some simple value, e.g. integer or string, or compound syntax with subdimensions.
+ */
 public interface Dimension {
   @NotNull
   String getName();
@@ -32,4 +38,9 @@ public interface Dimension {
   boolean isHidden();
 
   boolean isRepeatable();
+
+  @NotNull
+  static DimensionBuilder ofName(@NotNull String name) {
+    return new DimensionBuilder(name);
+  }
 }

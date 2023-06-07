@@ -17,46 +17,45 @@
 package jetbrains.buildServer.server.rest.data.locator;
 
 
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Describes a syntax of the full locator or one of it's {@link Dimension}s.
+ * May represent a simple or a complex value, see {@link PlainValue} and {@link SubDimensionSyntax}.
+ */
 public interface Syntax {
-  default String getNotes() {
-    return null;
-  }
+  String getFormat();
 
-  default String getId() {
-    return getClass().getSimpleName();
+  static NamedLocator forLocator(@NotNull String locatorName) {
+    return new NamedLocator(locatorName);
   }
 
   static TODO TODO(@NotNull String msg) {
     return new TODO(msg);
   }
 
-  class TODO implements Syntax, Supplier<TODO> {
-    private static final AtomicLong INSTANCE_COUNTER = new AtomicLong();
+  class TODO implements Syntax {
+    private final String myFormatDescription;
 
-    private final String myNotes;
-    private final long myId = INSTANCE_COUNTER.getAndIncrement();
-
-    public TODO(@NotNull String notes) {
-      myNotes = notes;
+    public TODO(@NotNull String formatDescription) {
+      myFormatDescription = formatDescription;
     }
 
     @Override
-    public String getNotes() {
-      return myNotes;
+    public String getFormat() {
+      return myFormatDescription;
+    }
+  }
+
+  class NamedLocator implements Syntax {
+    private final String myLocatorName;
+    NamedLocator(@NotNull String locatorName) {
+      myLocatorName = locatorName;
     }
 
     @Override
-    public String getId() {
-      return "TODO #" + myId;
-    }
-
-    @Override
-    public TODO get() {
-      return this;
+    public String getFormat() {
+      return myLocatorName;
     }
   }
 }

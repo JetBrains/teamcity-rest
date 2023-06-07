@@ -21,6 +21,11 @@ import io.swagger.jaxrs.Reader;
 import io.swagger.jaxrs.config.ReaderConfig;
 import io.swagger.models.*;
 import io.swagger.models.properties.*;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.Syntax;
+import jetbrains.buildServer.server.rest.data.locator.definition.LocatorDefinition;
+import jetbrains.buildServer.server.rest.data.locator.SubDimensionSyntax;
+import jetbrains.buildServer.server.rest.data.locator.SubDimensionSyntaxImpl;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
@@ -109,6 +114,51 @@ public class LocatorAwareReader extends Reader {
       definition = (ModelImpl) swagger.getDefinitions().get(locatorAnnotation.value());
     }
 
+    if(LocatorDefinition.class.isAssignableFrom(cls)) {
+      fillDimensionSyntax((Class<? extends LocatorDefinition>) cls, definition);
+    } else {
+      // fallback for locators which are not converted to the new scheme yet
+      fillDimensionSyntaxUsingAnnotations(cls, locatorAnnotation, definition);
+    }
+
+    definition.setVendorExtension(ExtensionType.X_BASE_ENTITY, locatorAnnotation.baseEntity());
+    definition.setDescription(
+        String.format(
+            "Represents a locator string for filtering %s entities.", locatorAnnotation.baseEntity()
+        )
+    );
+
+    if (locatorAnnotation.examples().length != 0) {
+      definition.setVendorExtension(ExtensionType.X_MODEL_EXAMPLES, locatorAnnotation.examples());
+    }
+
+    swagger.addDefinition(locatorAnnotation.value(), definition);
+  }
+
+  private static void fillDimensionSyntax(Class<? extends LocatorDefinition> cls, ModelImpl definition) {
+    SubDimensionSyntax complexSyntax = new SubDimensionSyntaxImpl(cls);
+
+    TreeMap<String, StringProperty> propsAlphabetically = new TreeMap<>();
+    for(Dimension dim : complexSyntax.getSubDimensions()) {
+      if(dim.isHidden()) continue;
+
+      StringProperty prop = new StringProperty();
+      prop.setName(dim.getName());
+
+      if(dim.getDescription() != null) {
+        prop.setDescription(dim.getDescription());
+      }
+
+      Syntax syntax = dim.getSyntax();
+      prop.setFormat(syntax.getFormat());
+
+      propsAlphabetically.put(dim.getName(), prop);
+    }
+
+    propsAlphabetically.forEach(definition::addProperty);
+  }
+
+  private static void fillDimensionSyntaxUsingAnnotations(Class<?> cls, LocatorResource locatorAnnotation, ModelImpl definition) {
     // as annotation should be compile-time constant, we keep dimension names in the annotation and resolve them in runtime
     ArrayList<LocatorDimension> dimensions = new ArrayList<LocatorDimension>();
     for (String extraDimensionName : locatorAnnotation.extraDimensions()) {
@@ -135,20 +185,6 @@ public class LocatorAwareReader extends Reader {
       AbstractProperty property = resolveLocatorDimensionProperty(dimension);
       definition.addProperty(dimension.value(), property);
     }
-
-    definition.setVendorExtension(ExtensionType.X_BASE_ENTITY, locatorAnnotation.baseEntity());
-    definition.setDescription(
-        String.format(
-            "Represents a locator string for filtering %s entities.", locatorAnnotation.baseEntity()
-        )
-    );
-
-    if (locatorAnnotation.examples().length != 0) {
-      definition.setVendorExtension(ExtensionType.X_MODEL_EXAMPLES, locatorAnnotation.examples());
-    }
-
-    swagger.addDefinition(locatorAnnotation.value(), definition);
-
   }
 
   private static AbstractProperty resolveLocatorDimensionProperty(LocatorDimension dimension) {

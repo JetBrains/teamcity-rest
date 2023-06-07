@@ -33,17 +33,16 @@ import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.data.CloudInstanceData;
 import jetbrains.buildServer.server.rest.data.CloudUtil;
 import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.finder.syntax.CommonLocatorDimensions;
 import jetbrains.buildServer.server.rest.data.locator.Dimension;
-import jetbrains.buildServer.server.rest.data.locator.StubDimension;
+import jetbrains.buildServer.server.rest.data.locator.Syntax;
+import jetbrains.buildServer.server.rest.data.locator.definition.FinderLocatorDefinition;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
-import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
 import jetbrains.buildServer.serverSide.BuildPromotion;
@@ -61,7 +60,6 @@ import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 @LocatorResource(value = LocatorName.CLOUD_IMAGE,
-  extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
   baseEntity = "CloudImage",
   examples = {
     "`name:MyImage` - find image with name `MyImage`.",
@@ -70,30 +68,34 @@ import org.springframework.stereotype.Component;
 )
 @JerseyContextSingleton
 @Component("restCloudImageFinder") // Name copied from context xml file.
-public class CloudImageFinder extends DelegatingFinder<CloudImage> {
+public class CloudImageFinder extends DelegatingFinder<CloudImage> implements FinderLocatorDefinition {
   private static final Logger LOG = Logger.getInstance(CloudImageFinder.class.getName());
 
-  @LocatorDimension("id")
-  private static final Dimension ID = new StubDimension("id");
-  @LocatorDimension("name")
-  private static final Dimension NAME = new StubDimension("name");
-  private static final Dimension ERROR = new StubDimension("errorMessage");
-  @LocatorDimension(value = "agent", format = LocatorName.AGENT, notes = "Agent locator.")
-  private static final Dimension AGENT = new StubDimension("agent");
-  @LocatorDimension(value = "agentPool", format = LocatorName.AGENT_POOL, notes = "Agent pool locator.")
-  private static final Dimension AGENT_POOL = new StubDimension("agentPool");
-  @LocatorDimension(value = "instance", format = LocatorName.CLOUD_INSTANCE, notes = "Cloud instance locator.")
-  private static final Dimension INSTANCE = new StubDimension("instance");
-  @LocatorDimension(value = "profile", format = LocatorName.CLOUD_PROFILE, notes = "Cloud profile locator.")
-  private static final Dimension PROFILE = new StubDimension("profile");
-  @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
-  private static final Dimension PROJECT = new StubDimension("project");
-  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
-  private static final Dimension AFFECTED_PROJECT = new StubDimension("affectedProject");
-  @LocatorDimension(value = "compatibleBuildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator")
-  private static final Dimension COMPATIBLE_BUILD_TYPE = new StubDimension("compatibleBuildType");
-  @LocatorDimension(value = "compatibleBuildPromotion", format = LocatorName.BUILD, notes = "Build promotion locator")
-  private static final Dimension COMPATIBLE_BUILD_PROMOTION = new StubDimension("compatibleBuildPromotion");
+  public static final Dimension ID = Dimension.ofName("id").description("Image id as provided by list images call.")
+                                              .syntax(Syntax.TODO("Specially formatted text")).build();
+  public static final Dimension NAME = Dimension.ofName("name").description("Image name.")
+                                                .syntax(Syntax.TODO("value condition")).build();
+  public static final Dimension ERROR = Dimension.ofName("errorMessage").description("Image error message.")
+                                                 .hidden().build();
+
+  public static final Dimension AGENT = Dimension.ofName("agent").description("Agent locator.")
+                                                 .syntax(Syntax.forLocator(LocatorName.AGENT)).build();
+  public static final Dimension AGENT_POOL = Dimension.ofName("agentPool").description("Agent pool locator.")
+                                                      .syntax(Syntax.forLocator(LocatorName.AGENT_POOL)).build();
+  public static final Dimension INSTANCE = Dimension.ofName("instance").description("Cloud instance locator.")
+                                                    .syntax(Syntax.forLocator(LocatorName.CLOUD_INSTANCE)).build();
+  public static final Dimension PROFILE = Dimension.ofName("profile").description("Cloud profile locator.")
+                                                   .syntax(Syntax.forLocator(LocatorName.CLOUD_PROFILE)).build();
+  public static final Dimension PROJECT = Dimension.ofName("project").description("Projects defining the cloud profiles/images.")
+                                                   .syntax(Syntax.forLocator(LocatorName.PROJECT)).build();
+  public static final Dimension AFFECTED_PROJECT = Dimension.ofName("affectedProject").description("Projects where the cloud profiles/images are accessible.")
+                                                            .syntax(Syntax.forLocator(LocatorName.PROJECT)).build();
+  public static final Dimension COMPATIBLE_BUILD_TYPE = Dimension.ofName("compatibleBuildType").description("Build type locator.")
+                                                                 .syntax(Syntax.forLocator(LocatorName.BUILD_TYPE)).build();
+  public static final Dimension COMPATIBLE_BUILD_PROMOTION = Dimension.ofName("compatibleBuildPromotion").description("Build promotion locator.")
+                                                                      .syntax(Syntax.forLocator(LocatorName.BUILD)).build();
+
+  public static final Dimension PROPERTY = CommonLocatorDimensions.PROPERTY;
 
   @NotNull
   private final ServiceLocator myServiceLocator;
@@ -137,16 +139,12 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
       name("CloudImageFinder");
 
       dimension(ID, mapper(CloudUtil.ImageIdData::new).acceptingType("Specially formatted text"))
-        .description("image id as provided by list images call")
         .filter((profileAndId, item) -> checkImageByProfileAndId(profileAndId, item))
         .toItems(profileAndId -> findImageByProfileAndId(profileAndId));
 
-      dimensionValueCondition(NAME)
-        .description("image name")
-        .valueForDefaultFilter(CloudImage::getName);
+      dimensionValueCondition(NAME).valueForDefaultFilter(CloudImage::getName);
 
       dimensionValueCondition(ERROR)
-        .description("image error message")
         .valueForDefaultFilter(cloudImage -> Util.resolveNull(cloudImage.getErrorInfo(), CloudErrorInfo::getMessage));
 
       dimensionAgents(AGENT, myServiceLocator)
@@ -171,7 +169,6 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
         .toItems(profiles -> profiles.stream().flatMap(profile -> myCloudUtil.getImages(profile).stream()).collect(Collectors.toList()));
 
       dimensionProjects(PROJECT, myServiceLocator)
-        .description("projects defining the cloud profiles/images")
         .valueForDefaultFilter(item -> Collections.singleton(myCloudUtil.getProject(item)))
         .toItems(projects -> projects.stream()
                                      .flatMap(project -> getAllCloudImagesInProject(project, false))
@@ -179,7 +176,6 @@ public class CloudImageFinder extends DelegatingFinder<CloudImage> {
         );
 
       dimensionProjects(AFFECTED_PROJECT, myServiceLocator)
-        .description("projects where the cloud profiles/images are accessible")
         .filter((projects, item) -> Util.resolveNull(myCloudUtil.getProject(item), p -> CloudUtil.containProjectOrParent(projects, p), false))
         .toItems(projects -> projects
           .stream()
