@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import jetbrains.buildServer.server.rest.data.util.FilterItemProcessor;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
+import jetbrains.buildServer.server.rest.data.util.ItemFilterUtil;
 import jetbrains.buildServer.server.rest.data.util.PagingItemFilter;
 import jetbrains.buildServer.serverSide.BuildHistory;
 import jetbrains.buildServer.serverSide.RunningBuildsManager;
@@ -65,7 +66,7 @@ public class BuildsFilterProcessor {
   public static List<SRunningBuild> getMatchingRunningBuilds(@NotNull final BuildsFilter buildsFilter,
                                                              @NotNull final RunningBuildsManager runningBuildsManager) {
     final FilterItemProcessor<SRunningBuild> buildsFilterItemProcessor =
-      new FilterItemProcessor<>(new PagingItemFilter<>(new RunningBuildsFilter(buildsFilter), buildsFilter.getStart(), buildsFilter.getCount(), null));
+      new FilterItemProcessor<>(new PagingItemFilter<>(ItemFilterUtil.ofPredicate(item -> buildsFilter.isIncluded(item)), buildsFilter.getStart(), buildsFilter.getCount(), null));
     processList(runningBuildsManager.getRunningBuilds(), buildsFilterItemProcessor);
     return buildsFilterItemProcessor.getResult();
   }
@@ -110,19 +111,4 @@ public class BuildsFilterProcessor {
     }
   }
 
-  private static class RunningBuildsFilter implements ItemFilter<SRunningBuild> {
-    @NotNull private final BuildsFilter myBuildsFilter;
-
-    public RunningBuildsFilter(@NotNull final BuildsFilter buildsFilter) {
-      myBuildsFilter = buildsFilter;
-    }
-
-    public boolean isIncluded(@NotNull final SRunningBuild item) {
-      return myBuildsFilter.isIncluded(item);
-    }
-
-    public boolean shouldStop(@NotNull final SRunningBuild item) {
-      return false;
-    }
-  }
 }

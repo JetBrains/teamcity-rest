@@ -25,8 +25,6 @@ import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.responsibility.*;
 import jetbrains.buildServer.server.rest.data.DataProvider;
-import jetbrains.buildServer.server.rest.data.util.FilterConditionChecker;
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.BuildTypeFinder;
@@ -35,6 +33,7 @@ import jetbrains.buildServer.server.rest.data.finder.impl.UserFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -201,21 +200,13 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     final String investigatorDimension = locator.getSingleDimensionValue(ASSIGNEE);
     if (investigatorDimension != null) {
       @NotNull final User user = myUserFinder.getItem(investigatorDimension);
-      result.add(new FilterConditionChecker<InvestigationWrapper>() {
-        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
-          return user.equals(item.getResponsibleUser());
-        }
-      });
+      result.add(item -> user.equals(item.getResponsibleUser()));
     }
 
     final String reporterDimension = locator.getSingleDimensionValue(REPORTER);
     if (reporterDimension != null) {
       @NotNull final User user = myUserFinder.getItem(reporterDimension);
-      result.add(new FilterConditionChecker<InvestigationWrapper>() {
-        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
-          return user.equals(item.getReporterUser());
-        }
-      });
+      result.add(item -> user.equals(item.getReporterUser()));
     }
 
     final String typeDimension = locator.getSingleDimensionValue(TYPE);
@@ -224,11 +215,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
         throw new BadRequestException("Error in dimension '" + TYPE + "': unknown value '" + typeDimension + "'. Known values: " +
                                       StringUtil.join(ProblemTarget.getKnownTypesForInvestigation(), ", "));
       }
-      result.add(new FilterConditionChecker<InvestigationWrapper>() {
-        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
-          return typeDimension.equalsIgnoreCase(ProblemTarget.getType(item));
-        }
-      });
+      result.add(item -> typeDimension.equalsIgnoreCase(ProblemTarget.getType(item)));
     }
 
     final String stateDimension = locator.getSingleDimensionValue(STATE);
@@ -237,11 +224,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
         throw new BadRequestException("Error in dimension '" + STATE + "': unknown value '" + stateDimension + "'. Known values: " +
                                       StringUtil.join(InvestigationWrapper.getKnownStates(), ", "));
       }
-      result.add(new FilterConditionChecker<InvestigationWrapper>() {
-        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
-          return stateDimension.equalsIgnoreCase(item.getState().name());
-        }
-      });
+      result.add(item -> stateDimension.equalsIgnoreCase(item.getState().name()));
     }
 
     final String resolutionDimension = locator.getSingleDimensionValue(RESOLUTION);
@@ -253,40 +236,32 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
     if (assignmentProjectDimension != null){
       @NotNull final SProject project = myProjectFinder.getItem(assignmentProjectDimension);
-      result.add(new FilterConditionChecker<InvestigationWrapper>() {
-        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
+      result.add(item -> {
           final BuildProject assignmentProject = item.getAssignmentProject();
           return assignmentProject != null && project.getProjectId().equals(assignmentProject.getProjectId());
-        }
       });
     }
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null){
       @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
-      result.add(new FilterConditionChecker<InvestigationWrapper>() {
-        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
+      result.add(item -> {
           final BuildProject assignmentProject = item.getAssignmentProject();
           final BuildType assignmentBuildType = item.getAssignmentBuildType();
           final BuildProject buildTypeProject = assignmentBuildType != null ? myProjectFinder.findProjectByInternalId(assignmentBuildType.getProjectId()) : null;
           return (assignmentProject != null && ProjectFinder.isSameOrParent(project, assignmentProject)) ||
                  (buildTypeProject != null && ProjectFinder.isSameOrParent(project, buildTypeProject));
-        }
       });
     }
 
     final String sinceDateDimension = locator.getSingleDimensionValue(SINCE_DATE);
     if (sinceDateDimension != null) {
       final Date date = DataProvider.getDate(sinceDateDimension);
-      result.add(new FilterConditionChecker<InvestigationWrapper>() {
-        public boolean isIncluded(@NotNull final InvestigationWrapper item) {
-          return date.before(item.getTimestamp());
-        }
-      });
+      result.add(item -> date.before(item.getTimestamp()));
     }
 
 //todo: add assignmentBuildType
-    return result;
+    return result.toItemFilter();
   }
 
   @NotNull

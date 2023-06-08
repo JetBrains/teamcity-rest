@@ -16,14 +16,14 @@
 
 package jetbrains.buildServer.server.rest.data.util;
 
-import org.jetbrains.annotations.NotNull;
+import java.util.List;
 
-/**
- * @author Yegor.Yarko
- *         Date: 01/12/2015
- */
-public interface ItemFilter<T> extends FilterConditionChecker<T> {
+public class FilterConditionCheckerUtil {
+  public static <T> FilterConditionChecker<T> and(List<FilterConditionChecker<T>> filters) {
+    return item -> filters.stream().allMatch(checker -> checker.isIncluded(item));
+  }
 
-  boolean shouldStop(@NotNull T item);
-
+  public static <T> FilterConditionChecker<T> or(List<FilterConditionChecker<T>> filters) {
+    return item -> filters.stream().anyMatch(checker -> checker.isIncluded(item));
+  }
 }

@@ -231,7 +231,7 @@ public class ProblemFinder extends AbstractFinder<ProblemWrapper> {
       }
     }
 
-    return result;
+    return result.toItemFilter();
   }
 
   @NotNull

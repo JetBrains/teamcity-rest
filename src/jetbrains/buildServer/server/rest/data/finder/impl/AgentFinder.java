@@ -274,7 +274,7 @@ public class AgentFinder extends AbstractFinder<SBuildAgent> {
        }
     }
 
-    return result;
+    return result.toItemFilter();
   }
 
   @NotNull

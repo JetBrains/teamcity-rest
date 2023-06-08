@@ -27,7 +27,7 @@ import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
 import jetbrains.buildServer.server.rest.data.locator.Dimension;
 import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.util.ComparatorDuplicateChecker;
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
+import jetbrains.buildServer.server.rest.data.util.ItemFilterUtil;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
@@ -118,17 +118,7 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
           final PermissionChecker permissionChecker = myServiceLocator.getSingletonService(PermissionChecker.class);
           final boolean hasPermission = permissionChecker.hasGlobalPermission(Permission.VIEW_AGENT_DETAILS) || permissionChecker.hasPermissionInAnyProject(Permission.VIEW_AGENT_DETAILS_FOR_PROJECT);
           if (hasPermission) return null;
-          return new ItemFilter<AgentPool>() {
-            @Override
-            public boolean shouldStop(@NotNull final AgentPool item) {
-              return false;
-            } //should return true?
-
-            @Override
-            public boolean isIncluded(@NotNull final AgentPool item) {
-              return false;
-            }
-          };
+          return ItemFilterUtil.dropAll();
       });
       fallbackItemRetriever(dimensions -> ItemHolder.of(myAgentPoolManager.getAllAgentPools()));
 

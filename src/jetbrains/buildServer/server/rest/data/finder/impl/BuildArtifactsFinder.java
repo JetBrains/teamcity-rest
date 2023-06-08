@@ -119,7 +119,7 @@ public class BuildArtifactsFinder extends AbstractFinder<ArtifactTreeElement> {
       result.add(item -> !item.isContentAvailable() || item.getSize() <= sizeLimit);
     }
 
-    return result;
+    return result.toItemFilter();
   }
 
   private void setLocatorDefaults(@NotNull final Locator locator) {

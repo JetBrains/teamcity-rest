@@ -26,4 +26,5 @@ import org.jetbrains.annotations.NotNull;
 public interface FilterConditionChecker<T> {
 
   boolean isIncluded(@NotNull T item);
+
 }

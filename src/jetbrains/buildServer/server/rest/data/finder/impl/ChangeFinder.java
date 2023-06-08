@@ -426,7 +426,7 @@ public class ChangeFinder extends AbstractFinder<SVcsModificationOrChangeDescrip
       result.add(myPermissionChecker::checkCanView);
     }
 
-    return new UnwrappingFilter<>(result, SVcsModificationOrChangeDescriptor::getSVcsModification);
+    return new UnwrappingFilter<>(result.toItemFilter(), SVcsModificationOrChangeDescriptor::getSVcsModification);
   }
 
   @NotNull

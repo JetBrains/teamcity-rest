@@ -17,7 +17,6 @@
 package jetbrains.buildServer.server.rest.data.finder.impl;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -26,16 +25,14 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.zip.GZIPOutputStream;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.MockTimeService;
-import jetbrains.buildServer.agent.AgentRuntimeProperties;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.finder.BaseFinderTest;
-import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
+import jetbrains.buildServer.server.rest.data.util.ItemFilterUtil;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
@@ -1384,8 +1381,8 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     checkExceptionOnItemsSearch(BadRequestException.class, "branch:(aaa:bbb)");
 
     // check that no filtering is done when not necessary
-    assertEquals(0, ((MultiCheckerFilter)myBranchFinder.getFilter(new Locator("<any>"))).getSubFiltersCount());
-    assertEquals(0, ((MultiCheckerFilter)myBranchFinder.getFilter(new Locator("default:any"))).getSubFiltersCount());
+    assertEquals(ItemFilterUtil.empty(), myBranchFinder.getFilter(new Locator("<any>")));
+    assertEquals(ItemFilterUtil.empty(), myBranchFinder.getFilter(new Locator("default:any")));
   }
 
   @SuppressWarnings("UnnecessaryLocalVariable")

@@ -24,10 +24,7 @@ import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.RestContext;
 import jetbrains.buildServer.server.rest.data.finder.impl.BuildPromotionFinder;
-import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
-import jetbrains.buildServer.server.rest.data.util.FilterItemProcessor;
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
-import jetbrains.buildServer.server.rest.data.util.PagingItemFilter;
+import jetbrains.buildServer.server.rest.data.util.*;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -419,7 +416,7 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
 
   @NotNull
   private ItemFilter<ITEM> getFilterWithLogicOpsSupport(@NotNull final Locator locator, @NotNull final LocatorDataBinding<ITEM> dataBinding) {
-    AndFilterBuilder<ITEM> result = new AndFilterBuilder<>();
+    List<ItemFilter<ITEM>> result = new ArrayList<>();
     result.add(dataBinding.getFilter());
 
     final String orDimension = locator.getSingleDimensionValue(LOGIC_OP_OR); //consider adding for multiple support here, use getItemsAnd()
@@ -435,20 +432,10 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
     final String notDimension = locator.getSingleDimensionValue(LOGIC_OP_NOT);  //consider adding for multiple support here, use getItemsAnd()
     if (notDimension != null) {
       ItemFilter<ITEM> notFilter = getFilter(notDimension);
-      result.add(new ItemFilter<ITEM>() {
-        @Override
-        public boolean shouldStop(@NotNull final ITEM item) {
-          return false;
-        }
-
-        @Override
-        public boolean isIncluded(@NotNull final ITEM item) {
-          return !notFilter.isIncluded(item);
-        }
-      });
+      result.add(ItemFilterUtil.ofPredicate(item -> !notFilter.isIncluded(item)));
     }
 
-    return result.build();
+    return ItemFilterUtil.and(result);
   }
 
   /**
@@ -543,11 +530,8 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
 
   @NotNull
   private ItemFilter<ITEM> getFilterOr(@NotNull final List<String> itemsDimension) {
-    OrFilterBuilder<ITEM> result = new OrFilterBuilder<>();
-    for (String itemLocator : itemsDimension) {
-      result.add(getFilter(itemLocator));
-    }
-    return result.build();
+    List<ItemFilter<ITEM>> filters = itemsDimension.stream().map(this::getFilter).collect(Collectors.toList());
+    return ItemFilterUtil.or(filters);
   }
 
   @NotNull
@@ -557,69 +541,6 @@ public class FinderImpl<ITEM> implements Finder<ITEM> {
         ItemHolder.of(getItems(itemLocator).getEntries()).process(processor);  //todo: rework APIs to add itemHolders instead of serialized collection
       }
     };
-  }
-
-  private static class OrFilterBuilder<T> {
-    @NotNull private final List<ItemFilter<T>> myCheckers;
-
-    OrFilterBuilder() {
-      myCheckers = new ArrayList<>();
-    }
-
-    public OrFilterBuilder<T> add(ItemFilter<T> checker) {
-      myCheckers.add(checker);
-      return this;
-    }
-
-    public ItemFilter<T> build() {
-      return new ItemFilter<T>() {
-        @Override
-        public boolean shouldStop(@NotNull final T item) {
-          for (ItemFilter<T> checker : myCheckers) {
-            if (!checker.shouldStop(item)) return false;
-          }
-          return true;
-        }
-
-        @Override
-        public boolean isIncluded(@NotNull final T item) {
-          for (ItemFilter<T> checker : myCheckers) {
-            if (checker.isIncluded(item)) {
-              return true;
-            }
-          }
-          return false;
-        }
-      };
-    }
-  }
-
-  //see also MultiCheckerFilter
-  private static class AndFilterBuilder<T> {
-    @NotNull private final List<ItemFilter<T>> myCheckers;
-
-    AndFilterBuilder() {
-      myCheckers = new ArrayList<>();
-    }
-
-    public AndFilterBuilder<T> add(ItemFilter<T> checker) {
-      myCheckers.add(checker);
-      return this;
-    }
-
-    public ItemFilter<T> build() {
-      return new ItemFilter<T>() {
-        @Override
-        public boolean shouldStop(@NotNull final T item) {
-          return myCheckers.stream().anyMatch(checker -> checker.shouldStop(item));
-        }
-
-        @Override
-        public boolean isIncluded(@NotNull final T item) {
-          return myCheckers.stream().allMatch(checker -> checker.isIncluded(item));
-        }
-      };
-    }
   }
 
   /*

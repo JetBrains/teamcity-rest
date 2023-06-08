@@ -299,7 +299,7 @@ public class ProblemOccurrenceFinder extends AbstractFinder<BuildProblem> {
       }
     }
 
-    return result;
+    return result.toItemFilter();
   }
 
   @Nullable

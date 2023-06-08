@@ -560,7 +560,13 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   @NotNull
   @Override
   public ItemFilter<STestRun> getFilter(@NotNull final Locator locator) {
-    final MultiCheckerFilter<STestRun> result = new MultiCheckerFilter<>();
+    List<FilterConditionChecker<STestRun>> result = getFiltersListInternal(locator);
+    return MultiCheckerFilter.of(result).toItemFilter();
+  }
+
+  @NotNull
+  private List<FilterConditionChecker<STestRun>> getFiltersListInternal(@NotNull Locator locator) {
+    List<FilterConditionChecker<STestRun>> result = new ArrayList<>();
 
     if (locator.isUnused(DIMENSION_ID)){
       Long testRunId = locator.getSingleDimensionValueAsLong(DIMENSION_ID);
@@ -702,7 +708,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     // Exclude test runs form personal builds by default to , if not included by a special cases above.
     Filter<STestRun> personalBuildsFilter = getPersonalBuildsFilter(locator);
     result.add(personalBuildsFilter::accept);
-
     return result;
   }
 
@@ -775,9 +780,9 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     // let's not construct a filter if we already know that we want to filter anyways
     if(!postFilteringRequired) {
       // If any kind of filter is defined then post filtering is necessary
-      MultiCheckerFilter<STestRun> filter = (MultiCheckerFilter<STestRun>)getFilter(locator);
+      List<FilterConditionChecker<STestRun>> filter = getFiltersListInternal(locator);
       // Personal builds filter is always there
-      postFilteringRequired = filter.getSubFiltersCount() > 1;
+      postFilteringRequired = filter.size() > 1;
     }
 
     return new TestOccurrencesCachedInfo(build.getShortStatistics(), postFilteringRequired);

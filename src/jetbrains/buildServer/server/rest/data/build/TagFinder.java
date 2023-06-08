@@ -139,7 +139,7 @@ public class TagFinder extends AbstractFinder<TagData> {
       result.add(tagData -> {
         return tagData.isPublic() && tagData.getLabel().equals(singleValue);
       });
-      return result;
+      return result.toItemFilter();
     }
 
     final MultiCheckerFilter<TagData> result = new MultiCheckerFilter<>();
@@ -175,7 +175,7 @@ public class TagFinder extends AbstractFinder<TagData> {
       result.add(item -> parameterCondition.matches(item.getLabel()));
     }
 
-    return result;
+    return result.toItemFilter();
   }
 
   /**

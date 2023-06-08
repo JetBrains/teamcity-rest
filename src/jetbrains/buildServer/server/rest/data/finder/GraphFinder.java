@@ -18,8 +18,8 @@ package jetbrains.buildServer.server.rest.data.finder;
 
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.OperationException;
@@ -69,7 +69,7 @@ public class GraphFinder<T> extends AbstractFinder<T> {
   @NotNull
   @Override
   public ItemFilter<T> getFilter(@NotNull final Locator locator) {
-    return new MultiCheckerFilter<T>();
+    return new MultiCheckerFilter<T>().toItemFilter();
   }
 
   @Nullable

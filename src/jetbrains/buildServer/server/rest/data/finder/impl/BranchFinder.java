@@ -140,18 +140,19 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
 
   @NotNull
   private BranchFilterDetails getBranchFilterDetails(@NotNull final Locator locator) {
-    final MultiCheckerFilter<BranchData> filter = new MultiCheckerFilter<>();
+    final List<FilterConditionChecker<BranchData>> filter = new ArrayList<>();
     final BranchFilterDetails result = new BranchFilterDetails();
-    result.filter = filter;
 
     final String singleValue = locator.getSingleValue();
     if (singleValue != null) {
       if (!ANY.equals(singleValue)) {
 //        result.branchName = singleValue;  do not set as it is ignore case and can match display/vcs branch
         filter.add(item -> singleValue.equalsIgnoreCase(item.getDisplayName()) || singleValue.equalsIgnoreCase(item.getName()));
+        result.filter = MultiCheckerFilter.of(filter).toItemFilter();
         return result;
       } else {
         result.matchesAllBranches = true;
+        result.filter = MultiCheckerFilter.of(filter).toItemFilter();
         return result;
       }
     }
@@ -196,8 +197,10 @@ public class BranchFinder extends AbstractFinder<BranchData> implements Existenc
       filter.add(item -> FilterUtil.isIncludedByBooleanFilter(branchedDimension, BranchData.isBranched(item)));
     }
 
-    result.matchesAllBranches = filter.getSubFiltersCount() == 0 &&
+    result.matchesAllBranches = filter.size() == 0 &&
                                 locator.getUnusedDimensions().isEmpty(); //e.g. "count" or "item" dimension is present
+
+    result.filter = MultiCheckerFilter.of(filter).toItemFilter();
     return result;
   }
 

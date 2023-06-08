@@ -172,7 +172,7 @@ public class FinderImplTest extends BaseFinderTest<String> {
       if (secondChar != null) {
         result.add(item -> item.length() > 1 && item.charAt(1) == secondChar.charAt(0));
       }
-      return result;
+      return result.toItemFilter();
     }
 
     @NotNull

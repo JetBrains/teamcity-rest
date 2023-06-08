@@ -29,6 +29,7 @@
       <class name="jetbrains.buildServer.server.rest.data.TestScopeTreeCollectorTest"/>
       <class name="jetbrains.buildServer.server.rest.data.ScopeTreeTest"/>
       <class name="jetbrains.buildServer.server.rest.data.changelog.ChangeLogBeanCollectorTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.util.FilterConditionCheckerUtilTest"/>
 
       <class name="jetbrains.buildServer.server.rest.request.BuildTypeRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.BuildTypeRequestPermissionsTest"/>

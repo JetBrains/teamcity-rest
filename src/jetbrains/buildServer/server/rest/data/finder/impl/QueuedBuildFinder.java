@@ -202,7 +202,7 @@ public class QueuedBuildFinder extends AbstractFinder<SQueuedBuild> {
       });
     }
 
-    return result;
+    return result.toItemFilter();
   }
 
   /**

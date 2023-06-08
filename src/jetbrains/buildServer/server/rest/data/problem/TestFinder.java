@@ -298,7 +298,7 @@ public class TestFinder extends AbstractFinder<STest> {
       }
     }
 
-    return result;
+    return result.toItemFilter();
   }
 
   @Nullable

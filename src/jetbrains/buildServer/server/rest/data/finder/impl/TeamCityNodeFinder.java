@@ -16,9 +16,9 @@
 
 package jetbrains.buildServer.server.rest.data.finder.impl;
 
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
@@ -88,7 +88,7 @@ public class TeamCityNodeFinder extends AbstractFinder<TeamCityNode> {
       }
     }
 
-    return result;
+    return result.toItemFilter();
   }
 
   @NotNull

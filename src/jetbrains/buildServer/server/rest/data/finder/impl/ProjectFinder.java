@@ -22,13 +22,15 @@ import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.APIController;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.ParameterCondition;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.Finder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
 import jetbrains.buildServer.server.rest.data.locator.Dimension;
 import jetbrains.buildServer.server.rest.data.locator.StubDimension;
-import jetbrains.buildServer.server.rest.data.util.FilterConditionChecker;
 import jetbrains.buildServer.server.rest.data.util.FilterUtil;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
@@ -249,20 +251,12 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
     final String name = locator.getSingleDimensionValue(DIMENSION_NAME);
     if (name != null) {
-      result.add(new FilterConditionChecker<SProject>() {
-        public boolean isIncluded(@NotNull final SProject item) {
-          return name.equals(item.getName());
-        }
-      });
+      result.add(item -> name.equals(item.getName()));
     }
 
     final Boolean archived = locator.getSingleDimensionValueAsBoolean(DIMENSION_ARCHIVED);
     if (archived != null) {
-      result.add(new FilterConditionChecker<SProject>() {
-        public boolean isIncluded(@NotNull final SProject item) {
-          return FilterUtil.isIncludedByBooleanFilter(archived, item.isArchived());
-        }
-      });
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(archived, item.isArchived()));
     }
 
     // In a case of a single value locator (that's looking up by external id, name or id) virtual projects should not be filtered out
@@ -278,25 +272,19 @@ public class ProjectFinder extends AbstractFinder<SProject> {
 
     final Boolean readOnlyUI = locator.getSingleDimensionValueAsBoolean(DIMENSION_READ_ONLY_UI);
     if (readOnlyUI != null) {
-      result.add(new FilterConditionChecker<SProject>() {
-        public boolean isIncluded(@NotNull final SProject item) {
-          return FilterUtil.isIncludedByBooleanFilter(readOnlyUI, item.isReadOnly());
-        }
-      });
+      result.add(item -> FilterUtil.isIncludedByBooleanFilter(readOnlyUI, item.isReadOnly()));
     }
 
     final String parameterDimension = locator.getSingleDimensionValue(DIMENSION_PARAMETER);
     if (parameterDimension != null) {
       final ParameterCondition parameterCondition = ParameterCondition.create(parameterDimension);
-      result.add(new FilterConditionChecker<SProject>() {
-        public boolean isIncluded(@NotNull final SProject item) {
+      result.add(item -> {
           final boolean canView = !Project.shouldRestrictSettingsViewing(item, myPermissionChecker);
           if (!canView) {
             LOG.debug("While filtering projects by " + DIMENSION_PARAMETER + " user does not have enough permissions to see settings. Excluding project: " + item.describe(false));
             return false;
           }
           return parameterCondition.matches(item);
-        }
       });
     }
 
@@ -304,36 +292,26 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       final String directParentLocator = locator.getSingleDimensionValue(DIMENSION_PROJECT);
       if (directParentLocator != null) {
         final SProject directParent = getItem(directParentLocator);
-        result.add(new FilterConditionChecker<SProject>() {
-          public boolean isIncluded(@NotNull final SProject item) {
-            return directParent.getProjectId().equals(item.getParentProjectId());
-          }
-        });
+        result.add(item -> directParent.getProjectId().equals(item.getParentProjectId()));
       }
     }
 
     if (locator.isUnused(DIMENSION_AFFECTED_PROJECT)) {
       final SProject parentProject = getParentProject(locator);
       if (parentProject != null) {
-        result.add(new FilterConditionChecker<SProject>() {
-          public boolean isIncluded(@NotNull final SProject item) {
-            return isSameOrParent(parentProject, item);
-          }
-        });
+        result.add(item -> isSameOrParent(parentProject, item));
       }
     }
 
     final String featureDimension = locator.getSingleDimensionValue(FEATURE);
     if (featureDimension != null) {
-      result.add(new FilterConditionChecker<SProject>() {
-        public boolean isIncluded(@NotNull final SProject item) {
+      result.add(item -> {
           final boolean canView = !Project.shouldRestrictSettingsViewing(item, myPermissionChecker);
           if (!canView) {
             LOG.debug("While filtering projects by " + DIMENSION_PARAMETER + " user does not have enough permissions to see settings. Excluding project: " + item.describe(false));
             return false;
           }
           return new PropEntityProjectFeature.ProjectFeatureFinder(item).getItems(featureDimension).getEntries().size() > 0;
-        }
       });
     }
 
@@ -380,7 +358,7 @@ public class ProjectFinder extends AbstractFinder<SProject> {
       }
     }
 
-    return result;
+    return result.toItemFilter();
   }
 
   @NotNull

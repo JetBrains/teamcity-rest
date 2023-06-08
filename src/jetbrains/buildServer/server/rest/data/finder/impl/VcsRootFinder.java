@@ -23,7 +23,9 @@ import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.AbstractMapParametersProvider;
 import jetbrains.buildServer.server.rest.APIController;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.ParameterCondition;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.Finder;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
@@ -233,7 +235,7 @@ public class VcsRootFinder extends AbstractFinder<SVcsRoot> {
       result.add(vcsRoot -> vcsRoot.getName().equals(rootName));
     }
 
-    return result;
+    return result.toItemFilter();
   }
 
   @NotNull

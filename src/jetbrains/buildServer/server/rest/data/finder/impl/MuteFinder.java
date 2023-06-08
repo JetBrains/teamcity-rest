@@ -21,18 +21,18 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.BuildTypeDescriptor;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.locator.Dimension;
-import jetbrains.buildServer.server.rest.data.locator.StubDimension;
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.TimeCondition;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
+import jetbrains.buildServer.server.rest.data.util.ItemFilterUtil;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
@@ -295,17 +295,7 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
 
       fallbackItemRetriever(dimensions -> ItemHolder.of(getMuteInfosForProject(myProjectFinder.getRootProject())));
 
-      filter(DimensionCondition.ALWAYS, dimensions -> new ItemFilter<MuteInfo>() {
-        @Override
-        public boolean shouldStop(@NotNull final MuteInfo item) {
-          return false;
-        }
-
-        @Override
-        public boolean isIncluded(@NotNull final MuteInfo item) {
-          return canView(item);
-        }
-      });
+      filter(DimensionCondition.ALWAYS, dimensions -> ItemFilterUtil.ofPredicate(item -> canView(item)));
 
       defaults(DimensionCondition.ALWAYS, new NameValuePairs().add(PagerData.COUNT, String.valueOf(Constants.getDefaultPageItemsCount())));
 

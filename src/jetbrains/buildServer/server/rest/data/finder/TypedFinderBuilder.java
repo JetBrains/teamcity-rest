@@ -542,19 +542,9 @@ public class TypedFinderBuilder<ITEM> {
       if (values == null || values.isEmpty()) return null;
       MultiCheckerFilter<ITEM> result = new MultiCheckerFilter<>();
       for (TYPE value : values) {
-        result.add(new ItemFilter<ITEM>() {
-          @Override
-          public boolean shouldStop(@NotNull final ITEM item) {
-            return false;
-          }
-
-          @Override
-          public boolean isIncluded(@NotNull final ITEM item) {
-            return filteringMapper.isIncluded(value, item);
-          }
-        });
+        result.add(item -> filteringMapper.isIncluded(value, item));
       }
-      return result;
+      return result.toItemFilter();
     });
   }
 
@@ -975,7 +965,7 @@ public class TypedFinderBuilder<ITEM> {
           result.add(checker); //also support shouldStop
         }
       }
-      return result;
+      return result.toItemFilter();
     }
 
     @NotNull

@@ -19,13 +19,13 @@ package jetbrains.buildServer.server.rest.data.finder.impl;
 import java.util.*;
 import java.util.stream.Stream;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.locator.Dimension;
-import jetbrains.buildServer.server.rest.data.locator.StubDimension;
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.PermissionAssignmentData;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.StubDimension;
+import jetbrains.buildServer.server.rest.data.util.ItemFilterUtil;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
@@ -70,17 +70,9 @@ public class PermissionAssignmentFinder extends DelegatingFinder<PermissionAssig
 
     PermissionChecker permissionChecker = serviceLocator.getSingletonService(PermissionChecker.class);
 
-    builder.filter(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> new ItemFilter<PermissionAssignmentData>() {
-      @Override
-      public boolean shouldStop(@NotNull final PermissionAssignmentData item) {
-        return false;
-      }
-
-      @Override
-      public boolean isIncluded(@NotNull final PermissionAssignmentData item) {
-        return item.getInternalProjectId() == null || permissionChecker.isPermissionGranted(Permission.VIEW_PROJECT, item.getInternalProjectId());
-      }
-    });
+    builder.filter(TypedFinderBuilder.DimensionCondition.ALWAYS, dimensions -> ItemFilterUtil.ofPredicate(item -> {
+      return item.getInternalProjectId() == null || permissionChecker.isPermissionGranted(Permission.VIEW_PROJECT, item.getInternalProjectId());
+    }));
 
     //todo: sort with global on top and projects sorted with root on top
     setDelegate(builder.build());

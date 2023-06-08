@@ -312,7 +312,7 @@ public class VcsRootInstanceFinder extends AbstractFinder<VcsRootInstance> {
 
     // should check HAS_VERSIONED_SETTINGS_ONLY only in prefiltered items as it should consider the current scope - no way to filter in Filter
 
-    return result;
+    return result.toItemFilter();
   }
 
   @NotNull

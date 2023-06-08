@@ -469,7 +469,7 @@ public class BuildTypeFinder extends AbstractFinder<BuildTypeOrTemplate> {
         });
       }
     }
-    return result;
+    return result.toItemFilter();
   }
 
   @NotNull

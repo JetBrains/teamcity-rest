@@ -20,8 +20,8 @@ import java.util.*;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.finder.impl.BuildPromotionFinder;
 import jetbrains.buildServer.server.rest.data.util.FilterConditionChecker;
+import jetbrains.buildServer.server.rest.data.util.FilterConditionCheckerUtil;
 import jetbrains.buildServer.server.rest.data.util.Matcher;
-import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -111,7 +111,7 @@ public class TimeCondition {
     final List<String> timeLocators = locator.getDimensionValue(locatorDimension);
     if (timeLocators.isEmpty())
       return null;
-    MultiCheckerFilter<T> resultFilter = new MultiCheckerFilter<>();
+    List<FilterConditionChecker<T>> resultFilter = new ArrayList<>();
     Date resultDate = null;
     for (String timeLocator : timeLocators) {
       try {
@@ -122,7 +122,7 @@ public class TimeCondition {
         throw new BadRequestException("Error processing '" + locatorDimension + "' locator '" + timeLocator + "': " + e.getMessage(), e);
       }
     }
-    return new FilterAndLimitingDate<>(resultFilter, resultDate);
+    return new FilterAndLimitingDate<>(FilterConditionCheckerUtil.and(resultFilter), resultDate);
   }
 
   /**

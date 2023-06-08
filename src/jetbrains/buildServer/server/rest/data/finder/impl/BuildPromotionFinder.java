@@ -776,8 +776,9 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       }
     }
 
-    final MultiCheckerFilter<SBuild> buildFilter = getBuildFilter(locator);
-    if (buildFilter.getSubFiltersCount() > 0) {
+    List<FilterConditionChecker<SBuild>> buildFilters = getBuildFilter(locator);
+    if (buildFilters.size() > 0) {
+      MultiCheckerFilter<SBuild> buildFilter = MultiCheckerFilter.of(buildFilters);
       result.add(item -> {
           final SBuild build = item.getAssociatedBuild();
           if (build == null) {
@@ -805,7 +806,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       });
     }
 
-    return getFilterWithProcessingCutOff(result, locator.getSingleDimensionValueAsLong(SINCE_BUILD_ID_LOOK_AHEAD_COUNT), sinceBuildPromotion, sinceBuildId, sinceStartDate);
+    return getFilterWithProcessingCutOff(result.toItemFilter(), locator.getSingleDimensionValueAsLong(SINCE_BUILD_ID_LOOK_AHEAD_COUNT), sinceBuildPromotion, sinceBuildId, sinceStartDate);
   }
 
   private FilterConditionChecker<BuildPromotion> getFilterByTag(@NotNull final List<String> tags) {
@@ -879,7 +880,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return result;
   }
 
-  private ItemFilter<BuildPromotion> getFilterWithProcessingCutOff(@NotNull final MultiCheckerFilter<BuildPromotion> result,
+  private ItemFilter<BuildPromotion> getFilterWithProcessingCutOff(@NotNull final ItemFilter<BuildPromotion> result,
                                                                        @Nullable final Long lookupLimit,
                                                                        @Nullable final BuildPromotion sinceBuildPromotion,
                                                                        @Nullable Long sinceBuildId,
@@ -950,8 +951,8 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   }
 
   @NotNull
-  private MultiCheckerFilter<SBuild> getBuildFilter(@NotNull final Locator locator) {
-    final MultiCheckerFilter<SBuild> result = new MultiCheckerFilter<>();
+  private List<FilterConditionChecker<SBuild>> getBuildFilter(@NotNull final Locator locator) {
+    List<FilterConditionChecker<SBuild>> result = new ArrayList<>();
 
     if(locator.isUnused(NUMBER)) {
       final String buildNumber = locator.getSingleDimensionValue(NUMBER);

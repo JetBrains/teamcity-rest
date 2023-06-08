@@ -21,10 +21,13 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
 /**
+ * Mutable "AND" filter builder.
+ * Should be named "AndFilterBuilder"
+ *
  * @author Yegor.Yarko
  *         Date: 09.09.2009
  */
-public class MultiCheckerFilter<T> implements ItemFilter<T> {
+public class MultiCheckerFilter<T> implements FilterConditionChecker<T> {
   @NotNull private final List<FilterConditionChecker<T>> myCheckers;
 
   public MultiCheckerFilter() {
@@ -37,15 +40,33 @@ public class MultiCheckerFilter<T> implements ItemFilter<T> {
     return this;
   }
 
-  public int getSubFiltersCount(){
-    return myCheckers.size();
-  }
-
+  @Override
   public boolean isIncluded(@NotNull T item) {
     return myCheckers.stream().allMatch(checker -> checker.isIncluded(item));
   }
 
-  public boolean shouldStop(@NotNull final T item) {
-    return false;
+  public ItemFilter<T> toItemFilter() {
+    if (myCheckers.isEmpty()) {
+      return ItemFilterUtil.empty();
+    }
+
+    return new ItemFilter<T>() {
+      @Override
+      public boolean shouldStop(@NotNull T item) {
+        return false;
+      }
+
+      @Override
+      public boolean isIncluded(@NotNull T item) {
+        return MultiCheckerFilter.this.isIncluded(item);
+      }
+    };
   }
+
+  public static <T> MultiCheckerFilter<T> of(List<FilterConditionChecker<T>> filters) {
+    MultiCheckerFilter<T> result = new MultiCheckerFilter<>();
+    filters.forEach(filter -> result.add(filter));
+    return result;
+  }
+
 }
