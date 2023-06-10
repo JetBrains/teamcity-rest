@@ -144,7 +144,7 @@ public class DeploymentInstanceFinder extends AbstractFinder<DeploymentInstance>
     DeploymentDashboardFinder dashboardFinder = myServiceLocator.getSingletonService(DeploymentDashboardFinder.class);
     final DeploymentDashboard dashboard = dashboardFinder.getItem(dashboardDimension);
     result.add(
-      item -> getDashboard(item) == dashboard
+      item -> getDashboard(item).equals(dashboard)
     );
 
     return result;
