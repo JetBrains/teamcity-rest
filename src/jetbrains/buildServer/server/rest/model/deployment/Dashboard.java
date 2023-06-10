@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.DeploymentDashboardFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.DeploymentInstanceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -29,7 +30,7 @@ import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.project.Project;
-import jetbrains.buildServer.server.rest.request.DeploymentInstanceRequest;
+import jetbrains.buildServer.server.rest.request.DeploymentDashboardRequest;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
@@ -37,12 +38,13 @@ import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.deploymentDashboards.DeploymentDashboardManager;
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentDashboard;
+import jetbrains.buildServer.serverSide.deploymentDashboards.exceptions.ImplicitDashboardCreationDisabledException;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @XmlRootElement(name = "deploymentDashboard")
-@XmlType(name = "deploymentDashboard", propOrder = {"id", "name", "project", "instances"})
+@XmlType(name = "deploymentDashboard")
 @ModelDescription(
   value = "Represents a deployment dashboard instance."
 )
@@ -54,7 +56,6 @@ public class Dashboard {
   @XmlElement(name = "deploymentInstances")
   public Instances deploymentInstances;
   @XmlElement(name = "project")
-  @Nullable
   public Project project;
 
   public Dashboard() {
@@ -87,7 +88,9 @@ public class Dashboard {
 
         return new Instances(
           locator,
-          new PagerDataImpl(DeploymentInstanceRequest.getItemsHref(locator)),
+          new PagerDataImpl(
+            getItemsHref(locator)
+          ),
           nestedFields,
           beanContext
         );
@@ -108,12 +111,16 @@ public class Dashboard {
       });
   }
 
+  private String getItemsHref(String locator) {
+    return DeploymentDashboardRequest.API_DEPLOYMENT_DASHBOARDS_URL + "/instances?locator=" + locator;
+  }
+
   @NotNull
   public DeploymentDashboard getDashboardFromPosted(@NotNull final DeploymentDashboardFinder deploymentDashboardFinder) {
     if (id != null) {
       Locator resultLocator = Locator.createEmptyLocator();
       resultLocator.setDimension(
-        DeploymentDashboardFinder.ID.name,
+        AbstractFinder.DIMENSION_ID,
         String.valueOf(id)
       );
       return deploymentDashboardFinder.getItem(
@@ -150,8 +157,8 @@ public class Dashboard {
         dashboard.setName(newValue);
         beanContext
           .getSingletonService(DeploymentDashboardManager.class)
-          .updateDashboard(dashboard);
-      } catch (NoSuchElementException e) {
+          .persistDashboard(dashboard);
+      } catch (ImplicitDashboardCreationDisabledException e) {
         throw new BadRequestException(e.getMessage());
       }
     } else {

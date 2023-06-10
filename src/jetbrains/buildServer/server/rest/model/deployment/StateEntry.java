@@ -37,7 +37,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @XmlRootElement(name = "deploymentStateEntry")
-@XmlType(name = "deploymentStateEntry", propOrder = {"state", "deploymentDate", "build"})
+@XmlType(name = "deploymentStateEntry")
 @ModelDescription(
   value = "Represents a state of deployment instance."
 )

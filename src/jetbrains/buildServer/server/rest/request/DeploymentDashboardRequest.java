@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.finder.impl.DeploymentDashboardFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.DeploymentInstanceFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.PagerDataImpl;
@@ -40,7 +41,11 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.serverSide.deploymentDashboards.DeploymentDashboardManager;
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentDashboard;
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentInstance;
+import jetbrains.buildServer.serverSide.deploymentDashboards.exceptions.DashboardAlreadyExistsException;
+import jetbrains.buildServer.serverSide.deploymentDashboards.exceptions.DashboardNotFoundException;
+import jetbrains.buildServer.serverSide.deploymentDashboards.exceptions.ImplicitDashboardCreationDisabledException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -105,17 +110,19 @@ public class DeploymentDashboardRequest {
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value = "Create a new deployment dashboard.")
   public Dashboard createDashboard(Dashboard dashboard) {
-    DeploymentDashboard newDashboard = dashboard.getDashboardFromPosted(myDeploymentDashboardFinder);
+    try {
+      DeploymentDashboard newDashboard = myServiceLocator
+        .getSingletonService(DeploymentDashboardManager.class)
+        .createDashboard(dashboard.project.id, dashboard.id, dashboard.name);
 
-    myServiceLocator
-      .getSingletonService(DeploymentDashboardManager.class)
-      .createDashboard(newDashboard);
-
-    return new Dashboard(
-      newDashboard,
-      Fields.LONG,
-      myBeanContext
-    );
+      return new Dashboard(
+        newDashboard,
+        Fields.LONG,
+        myBeanContext
+      );
+    } catch (DashboardAlreadyExistsException e) {
+      throw new BadRequestException(e.getMessage(), e);
+    }
   }
 
   @DELETE
@@ -125,24 +132,33 @@ public class DeploymentDashboardRequest {
     @ApiParam(format = LocatorName.DEPLOYMENT_DASHBOARD) @PathParam("deploymentDashboardLocator") String deploymentDashboardLocator
   ) {
     final DeploymentDashboard dashboard = myDeploymentDashboardFinder.getItem(deploymentDashboardLocator);
-    myServiceLocator
-      .getSingletonService(DeploymentDashboardManager.class)
-      .removeDashboard(
-        dashboard.getId()
-      );
+    try {
+      myServiceLocator
+        .getSingletonService(DeploymentDashboardManager.class)
+        .removeDashboard(
+          dashboard.getId()
+        );
+    } catch (DashboardNotFoundException e) {
+      throw new BadRequestException(e.getMessage(), e);
+    }
+
   }
 
   private String updateInstanceLocatorWithDashboardData(
-    @NotNull DeploymentDashboard dashboard,
-    @NotNull String instanceLocator
+    @NotNull String dashboardLocator,
+    @Nullable String instanceLocator
   ) {
-    Locator resultLocator = Locator.locator(instanceLocator);
+    Locator resultLocator;
+
+    if (instanceLocator != null) {
+      resultLocator = Locator.locator(instanceLocator);
+    } else {
+      resultLocator = Locator.createEmptyLocator();
+    }
+
     resultLocator.setDimension(
       DeploymentInstanceFinder.DASHBOARD.name,
-      Locator.getStringLocator(
-        DeploymentDashboardFinder.ID.name,
-        dashboard.getId()
-      )
+      dashboardLocator
     );
 
     return resultLocator.toString();
@@ -159,11 +175,9 @@ public class DeploymentDashboardRequest {
     @Context UriInfo uriInfo,
     @Context HttpServletRequest request
   ) {
-    DeploymentDashboard dashboard = myDeploymentDashboardFinder.getItem(deploymentDashboardLocator);
-
     PagedSearchResult<DeploymentInstance> result = myDeploymentInstanceFinder
       .getItems(
-        updateInstanceLocatorWithDashboardData(dashboard, locator)
+        updateInstanceLocatorWithDashboardData(deploymentDashboardLocator, locator)
       );
 
     final PagerData pager = new PagerDataImpl(
@@ -186,11 +200,9 @@ public class DeploymentDashboardRequest {
     @ApiParam(format = LocatorName.DEPLOYMENT_INSTANCE) @PathParam("deploymentInstanceLocator") String deploymentInstanceLocator,
     @QueryParam("fields") String fields
   ) {
-    DeploymentDashboard dashboard = myDeploymentDashboardFinder.getItem(deploymentDashboardLocator);
-
     return new Instance(
       myDeploymentInstanceFinder.getItem(
-        updateInstanceLocatorWithDashboardData(dashboard, deploymentInstanceLocator)
+        updateInstanceLocatorWithDashboardData(deploymentDashboardLocator, deploymentInstanceLocator)
       ),
       new Fields(fields),
       myBeanContext
@@ -216,9 +228,13 @@ public class DeploymentDashboardRequest {
     );
 
     dashboard.addOrUpdateInstance(newInstance);
-    myServiceLocator
-      .getSingletonService(DeploymentDashboardManager.class)
-      .updateDashboard(dashboard);
+    try {
+      myServiceLocator
+        .getSingletonService(DeploymentDashboardManager.class)
+        .persistDashboard(dashboard);
+    } catch (ImplicitDashboardCreationDisabledException e) {
+      throw new BadRequestException(e.getMessage(), e);
+    }
 
     return new Instance(
       newInstance,
@@ -232,25 +248,23 @@ public class DeploymentDashboardRequest {
   @Consumes({"application/xml", "application/json"})
   @Produces({"application/xml", "application/json"})
   @ApiOperation(value = "Report a new deployment for instance.")
-  public Dashboard reportNewDeploymentForInstance(
+  public Instance reportNewDeploymentForInstance(
     @ApiParam(format = LocatorName.DEPLOYMENT_DASHBOARD) @PathParam("deploymentDashboardLocator") String deploymentDashboardLocator,
     @ApiParam(format = LocatorName.DEPLOYMENT_INSTANCE) @PathParam("deploymentInstanceLocator") String deploymentInstanceLocator,
     StateEntry stateEntry
   ) {
-    DeploymentDashboard dashboard = myDeploymentDashboardFinder.getItem(deploymentDashboardLocator);
-
     DeploymentInstance instance = myDeploymentInstanceFinder.getItem(
-      updateInstanceLocatorWithDashboardData(dashboard, deploymentInstanceLocator)
+      updateInstanceLocatorWithDashboardData(deploymentDashboardLocator, deploymentInstanceLocator)
     );
 
     instance.addNewState(stateEntry.getEntryFromPosted());
-    dashboard.addOrUpdateInstance(instance);
+
     myServiceLocator
       .getSingletonService(DeploymentDashboardManager.class)
-      .updateDashboard(dashboard);
+      .persistInstance(instance);
 
-    return new Dashboard(
-      dashboard,
+    return new Instance(
+      instance,
       Fields.LONG,
       myBeanContext
     );
@@ -266,10 +280,18 @@ public class DeploymentDashboardRequest {
     DeploymentDashboard dashboard = myDeploymentDashboardFinder.getItem(deploymentDashboardLocator);
 
     DeploymentInstance instance = myDeploymentInstanceFinder.getItem(
-      updateInstanceLocatorWithDashboardData(dashboard, deploymentInstanceLocator)
+      updateInstanceLocatorWithDashboardData(deploymentDashboardLocator, deploymentInstanceLocator)
     );
 
     dashboard.removeInstance(instance);
+
+    try {
+      myServiceLocator
+        .getSingletonService(DeploymentDashboardManager.class)
+        .persistDashboard(dashboard);
+    } catch (ImplicitDashboardCreationDisabledException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
 

@@ -16,56 +16,20 @@
 
 package jetbrains.buildServer.server.rest.model.deployment;
 
-import com.intellij.openapi.diagnostic.Logger;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import jetbrains.buildServer.AgentRestrictorType;
-import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.controllers.agent.OSKind;
-import jetbrains.buildServer.log.LogUtil;
-import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.PermissionChecker;
-import jetbrains.buildServer.server.rest.data.finder.impl.*;
-import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
-import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
-import jetbrains.buildServer.server.rest.errors.NotFoundException;
-import jetbrains.buildServer.server.rest.model.*;
-import jetbrains.buildServer.server.rest.model.agent.*;
-import jetbrains.buildServer.server.rest.model.build.Build;
-import jetbrains.buildServer.server.rest.model.build.Builds;
-import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
-import jetbrains.buildServer.server.rest.model.cloud.CloudImage;
-import jetbrains.buildServer.server.rest.model.cloud.CloudInstance;
-import jetbrains.buildServer.server.rest.model.project.Project;
-import jetbrains.buildServer.server.rest.request.BuildRequest;
-import jetbrains.buildServer.server.rest.request.DeploymentInstanceRequest;
+import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
-import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
-import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
-import jetbrains.buildServer.serverSide.auth.AccessChecker;
-import jetbrains.buildServer.serverSide.auth.AuthUtil;
-import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.deploymentDashboards.DeploymentDashboardManager;
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentDashboard;
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentInstance;
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentState;
-import jetbrains.buildServer.serverSide.impl.AgentUpgradeUtil;
-import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
-import jetbrains.buildServer.serverSide.impl.agent.DummyAgentType;
-import jetbrains.buildServer.serverSide.impl.agent.PollingRemoteAgentConnection;
-import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.util.Dates;
-import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.serverSide.deploymentDashboards.exceptions.DashboardNotFoundException;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 @XmlRootElement(name = "deploymentInstance")
 @ModelDescription(
@@ -79,8 +43,8 @@ public class Instance {
   public StateEntries deploymentStateEntries;
   @XmlAttribute
   public DeploymentState currentState;
-  @XmlAttribute
-  public Map<String, String> attributes;
+  @XmlElement
+  public HashMap<String, String> attributes;
   @XmlElement(name = "deploymentDashboard")
   public Dashboard deploymentDashboard;
 
@@ -114,7 +78,7 @@ public class Instance {
       deploymentInstance.getCurrentState()
     );
 
-    attributes = ValueWithDefault.decideIncludeByDefault(
+    attributes = (HashMap<String, String>)ValueWithDefault.decideIncludeByDefault(
       fields.isIncluded("attributes"),
       deploymentInstance.getAttributes()
     );
@@ -122,17 +86,18 @@ public class Instance {
     deploymentDashboard = ValueWithDefault.decideDefault(
       fields.isIncluded("deploymentDashboard", false),
       () -> {
-        DeploymentDashboard dashboard = beanContext
-          .getSingletonService(DeploymentDashboardManager.class)
-          .getDashboard(deploymentInstance.getDashboardId());
+        DeploymentDashboard dashboard;
+        try {
+          dashboard = beanContext
+            .getSingletonService(DeploymentDashboardManager.class)
+            .getDashboard(deploymentInstance.getDashboardId());
 
-        if (dashboard != null) {
           return new Dashboard(
             dashboard,
             fields.getNestedField("deploymentDashboard"),
             beanContext
           );
-        } else {
+        } catch (DashboardNotFoundException e) {
           return null;
         }
       });
