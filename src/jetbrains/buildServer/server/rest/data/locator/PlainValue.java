@@ -31,12 +31,16 @@ public interface PlainValue extends Syntax {
     };
   }
 
-  static PlainValue int64() {
+  static PlainValue string(String formatDecsription) {
     return new PlainValue() {
       @Override
       public String getFormat() {
-        return "int64 value";
+        return formatDecsription;
       }
     };
+  }
+
+  static PlainValue int64() {
+    return new Int64Value();
   }
 }

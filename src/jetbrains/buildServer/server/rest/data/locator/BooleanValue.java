@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data.util.finderBuilder;
+package jetbrains.buildServer.server.rest.data.locator;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+public class BooleanValue implements PlainValue {
+  private final EnumValue myDelegate = EnumValue.of("true", "false", "any");
 
-/**
- * Maps string dimension value from the locator to T, useful for further processing.
- * Example:
- * "project:(id:SOME_PROJECT)" -> SProject
- */
-public interface DimensionValueMapper<T> {
-  @Nullable
-  String getLocatorTypeDescription();
-
-  @Nullable
-  T get(@NotNull String dimensionValue);
+  @Override
+  public String getFormat() {
+    return myDelegate.getFormat();
+  }
 }

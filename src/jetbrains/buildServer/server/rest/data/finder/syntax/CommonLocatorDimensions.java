@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.data.finder.syntax;
 
 import java.util.*;
 import java.util.function.Supplier;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.finder.FinderImpl;
 import jetbrains.buildServer.server.rest.data.locator.*;
 import jetbrains.buildServer.server.rest.data.locator.Dimension;
@@ -44,6 +45,10 @@ public class CommonLocatorDimensions {
                 "]"
     )
   ).build();
+
+  public static Dimension SINGLE_VALUE(@NotNull String valueDescription) {
+    return Dimension.ofName(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME).description(valueDescription).syntax(PlainValue.string()).build();
+  }
 
   public static Dimension ITEM(@NotNull Supplier<? extends SubDimensionSyntax> syntax) {
     return Dimension.ofName(FinderImpl.DIMENSION_ITEM).syntax(syntax).hidden().repeatable().build();

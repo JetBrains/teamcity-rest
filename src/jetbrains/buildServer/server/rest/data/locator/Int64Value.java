@@ -14,20 +14,11 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data.util.finderBuilder;
+package jetbrains.buildServer.server.rest.data.locator;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-/**
- * Maps string dimension value from the locator to T, useful for further processing.
- * Example:
- * "project:(id:SOME_PROJECT)" -> SProject
- */
-public interface DimensionValueMapper<T> {
-  @Nullable
-  String getLocatorTypeDescription();
-
-  @Nullable
-  T get(@NotNull String dimensionValue);
+public class Int64Value implements PlainValue {
+  @Override
+  public String getFormat() {
+    return "int64 value";
+  }
 }

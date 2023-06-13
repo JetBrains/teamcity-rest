@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data.finder.impl;
 
-import com.intellij.openapi.diagnostic.Logger;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -25,52 +24,23 @@ import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.clouds.server.CloudManager;
 import jetbrains.buildServer.server.rest.data.CloudUtil;
 import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
-import jetbrains.buildServer.server.rest.data.locator.Dimension;
-import jetbrains.buildServer.server.rest.data.locator.StubDimension;
+import jetbrains.buildServer.server.rest.data.locator.definition.FinderLocatorDefinition;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
-import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
-import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
-import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
-@LocatorResource(value = LocatorName.CLOUD_PROFILE,
-  extraDimensions = {CommonLocatorDimensionsList.PROPERTY, AbstractFinder.DIMENSION_ITEM},
-  baseEntity = "CloudProfile",
-  examples = {
-    "`name:MyCloudProfile` - find cloud profile with `MyCloudProfile` name.",
-    "`project:<projectLocator>` - find all cloud profiles under project found by `projectLocator`."
-  }
-)
+import static jetbrains.buildServer.server.rest.data.finder.syntax.CloudProfileDimensions.*;
+
 @JerseyContextSingleton
 @Component("restCloudProfileFinder")
-public class CloudProfileFinder extends DelegatingFinder<CloudProfile> {
-  private static final Logger LOG = Logger.getInstance(CloudProfileFinder.class.getName());
-
-  @LocatorDimension("id")
-  private static final Dimension ID = new StubDimension("id");
-  @LocatorDimension("name")
-  private static final Dimension NAME = new StubDimension("name");
-  @LocatorDimension("cloudProviderId")
-  private static final Dimension CLOUD_PROVIDER_ID = new StubDimension("cloudProviderId");
-  @LocatorDimension(value = "instance", format = LocatorName.CLOUD_INSTANCE, notes = "Cloud instance locator.")
-  private static final Dimension INSTANCE = new StubDimension("instance");
-  @LocatorDimension(value = "instance", format = LocatorName.CLOUD_IMAGE, notes = "Cloud image locator.")
-  private static final Dimension IMAGE = new StubDimension("image");
-  @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
-  private static final Dimension PROJECT = new StubDimension("project");
-  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
-  private static final Dimension AFFECTED_PROJECT = new StubDimension("affectedProject");
-
+public class CloudProfileFinder extends DelegatingFinder<CloudProfile> implements FinderLocatorDefinition {
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final CloudManager myCloudManager;
   @NotNull private final ProjectManager myProjectManager;
@@ -107,29 +77,29 @@ public class CloudProfileFinder extends DelegatingFinder<CloudProfile> {
     Builder() {
       name("CloudProfileFinder");
 
-      dimensionString(ID).description("profile id").
-        filter((value, item) -> value.equals(item.getProfileId())).
-        toItems(dimension -> Util.resolveNull(myCloudUtil.findProfileGloballyById(dimension), Collections::singletonList, Collections.emptyList()));
+      dimensionString(ID)
+        .filter((value, item) -> value.equals(item.getProfileId()))
+        .toItems(dimension -> Util.resolveNull(myCloudUtil.findProfileGloballyById(dimension), Collections::singletonList, Collections.emptyList()));
 
-      dimensionValueCondition(NAME).description("profile name").valueForDefaultFilter(CloudProfile::getProfileName);
-      dimensionValueCondition(CLOUD_PROVIDER_ID).description("profile cloud provider id").valueForDefaultFilter(CloudProfile::getCloudCode);
-
-
-      dimensionWithFinder(INSTANCE, () -> myServiceLocator.getSingletonService(CloudInstanceFinder.class), "instances of the profiles").
-        filter((value, item) -> value.stream().anyMatch(instance -> Util.resolveNull(myCloudUtil.getProfile(instance.getInstance().getImage()), p -> p.getProfileId().equals(item.getProfileId()), false))).
-        toItems(instances -> instances.stream().map(instance -> instance.getInstance().getImage()).distinct().map(image -> myCloudUtil.getProfile(image)).filter(Objects::nonNull).distinct().collect(Collectors.toList()));
-
-      dimensionWithFinder(IMAGE, () -> myServiceLocator.getSingletonService(CloudImageFinder.class), "images of the profiles").
-        filter((value, item) -> value.stream().anyMatch(image -> Util.resolveNull(myCloudUtil.getProfile(image), p -> p.getProfileId().equals(item.getProfileId()), false))).
-        toItems(images -> images.stream().map(image -> myCloudUtil.getProfile(image)).filter(Objects::nonNull).distinct().collect(Collectors.toList()));
+      dimensionValueCondition(NAME).valueForDefaultFilter(CloudProfile::getProfileName);
+      dimensionValueCondition(CLOUD_PROVIDER_ID).valueForDefaultFilter(CloudProfile::getCloudCode);
 
 
-      dimensionProjects(PROJECT, myServiceLocator).description("projects defining the cloud profiles").
-        valueForDefaultFilter(item -> Util.resolveNull(myProjectManager.findProjectById(item.getProjectId()), p -> Collections.singleton(p), Collections.emptySet())).
-        toItems(projects -> projects.stream().flatMap(project -> myCloudManager.listProfilesByProject(project.getProjectId(), false).stream()).collect(Collectors.toList()));
+      dimensionWithFinder(INSTANCE, () -> myServiceLocator.getSingletonService(CloudInstanceFinder.class), "instances of the profiles")
+        .filter((value, item) -> value.stream().anyMatch(instance -> Util.resolveNull(myCloudUtil.getProfile(instance.getInstance().getImage()), p -> p.getProfileId().equals(item.getProfileId()), false)))
+        .toItems(instances -> instances.stream().map(instance -> instance.getInstance().getImage()).distinct().map(image -> myCloudUtil.getProfile(image)).filter(Objects::nonNull).distinct().collect(Collectors.toList()));
 
-      dimensionProjects(AFFECTED_PROJECT, myServiceLocator).description("projects where the cloud profiles are accessible").
-        filter((projects, item) -> Util.resolveNull(myCloudUtil.getProject(item), p -> CloudUtil.containProjectOrParent(projects, p), false))
+      dimensionWithFinder(IMAGE, () -> myServiceLocator.getSingletonService(CloudImageFinder.class), "images of the profiles")
+        .filter((value, item) -> value.stream().anyMatch(image -> Util.resolveNull(myCloudUtil.getProfile(image), p -> p.getProfileId().equals(item.getProfileId()), false)))
+        .toItems(images -> images.stream().map(image -> myCloudUtil.getProfile(image)).filter(Objects::nonNull).distinct().collect(Collectors.toList()));
+
+
+      dimensionProjects(PROJECT, myServiceLocator)
+        .valueForDefaultFilter(item -> Util.resolveNull(myProjectManager.findProjectById(item.getProjectId()), p -> Collections.singleton(p), Collections.emptySet()))
+        .toItems(projects -> projects.stream().flatMap(project -> myCloudManager.listProfilesByProject(project.getProjectId(), false).stream()).collect(Collectors.toList()));
+
+      dimensionProjects(AFFECTED_PROJECT, myServiceLocator)
+        .filter((projects, item) -> Util.resolveNull(myCloudUtil.getProject(item), p -> CloudUtil.containProjectOrParent(projects, p), false))
         .toItems(projects -> projects.stream().flatMap(project -> myCloudManager.listProfilesByProject(project.getProjectId(), true).stream()).collect(Collectors.toList()));
 
       fallbackItemRetriever(dimensions -> ItemHolder.of(myCloudManager.listAllProfiles()));
@@ -138,4 +108,3 @@ public class CloudProfileFinder extends DelegatingFinder<CloudProfile> {
     }
   }
 }
-

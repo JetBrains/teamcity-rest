@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
 import jetbrains.buildServer.server.rest.data.util.*;
+import jetbrains.buildServer.server.rest.data.util.finderBuilder.DimensionValueMapperImpl;
 import jetbrains.buildServer.server.rest.data.util.finderBuilder.DimensionValueMapper;
 import jetbrains.buildServer.server.rest.data.util.finderBuilder.TypedFinderDimension;
 import jetbrains.buildServer.server.rest.data.util.finderBuilder.TypedFinderDimensionWithDefaultChecker;
@@ -549,8 +550,8 @@ public class TypedFinderBuilder<ITEM> {
   }
 
   @NotNull
-  public <TYPE> DimensionValueMapper<TYPE> mapper(@NotNull final DimensionValueMapper.ValueRetriever<TYPE> retriever) {
-    return new DimensionValueMapper<>(retriever);
+  public <TYPE> DimensionValueMapperImpl<TYPE> mapper(@NotNull final Function<String, TYPE> retriever) {
+    return new DimensionValueMapperImpl<>(retriever);
   }
 
   @NotNull

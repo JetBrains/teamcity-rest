@@ -21,11 +21,8 @@ import io.swagger.jaxrs.Reader;
 import io.swagger.jaxrs.config.ReaderConfig;
 import io.swagger.models.*;
 import io.swagger.models.properties.*;
-import jetbrains.buildServer.server.rest.data.locator.Dimension;
-import jetbrains.buildServer.server.rest.data.locator.Syntax;
+import jetbrains.buildServer.server.rest.data.locator.*;
 import jetbrains.buildServer.server.rest.data.locator.definition.LocatorDefinition;
-import jetbrains.buildServer.server.rest.data.locator.SubDimensionSyntax;
-import jetbrains.buildServer.server.rest.data.locator.SubDimensionSyntaxImpl;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.ExtensionType;
@@ -138,19 +135,24 @@ public class LocatorAwareReader extends Reader {
   private static void fillDimensionSyntax(Class<? extends LocatorDefinition> cls, ModelImpl definition) {
     SubDimensionSyntax complexSyntax = new SubDimensionSyntaxImpl(cls);
 
-    TreeMap<String, StringProperty> propsAlphabetically = new TreeMap<>();
+    TreeMap<String, AbstractProperty> propsAlphabetically = new TreeMap<>();
     for(Dimension dim : complexSyntax.getSubDimensions()) {
       if(dim.isHidden()) continue;
 
-      StringProperty prop = new StringProperty();
-      prop.setName(dim.getName());
-
-      if(dim.getDescription() != null) {
-        prop.setDescription(dim.getDescription());
+      AbstractProperty prop;
+      Syntax syntax = dim.getSyntax();
+      if(syntax instanceof Int64Value) {
+        prop = new LongProperty();
+      } else if(syntax instanceof EnumValue) {
+        prop = new StringProperty();
+        ((StringProperty) prop).setEnum(((EnumValue) syntax).getValues());
+      } else {
+        prop = new StringProperty();
+        prop.setFormat(syntax.getFormat());
       }
 
-      Syntax syntax = dim.getSyntax();
-      prop.setFormat(syntax.getFormat());
+      prop.setName(dim.getName());
+      prop.setDescription(dim.getDescription());
 
       propsAlphabetically.put(dim.getName(), prop);
     }
