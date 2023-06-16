@@ -489,21 +489,16 @@ public class ProjectFinder extends AbstractFinder<SProject> {
     }
   }
 
-  public static boolean isSameOrParent(@NotNull final BuildProject parent, @NotNull final BuildProject project) {
+  public static boolean isSameOrParent(@NotNull final SProject parent, @NotNull final SProject project) {
     return isSameOrParent(Collections.singleton(parent), project);
   }
 
   /**
    * Calculates if the project is one of or an (indirect) child of the parent candidates passed
    */
-  public static boolean isSameOrParent(@NotNull final Collection<? extends BuildProject> parents, @NotNull final BuildProject project) {
+  public static boolean isSameOrParent(@NotNull final Collection<? extends SProject> parents, @NotNull final SProject project) {
     Set<String> projectIds = parents.stream().map(p -> p.getProjectId()).collect(Collectors.toSet());
-    BuildProject currentProject = project;
-    while (currentProject != null) {
-      if (projectIds.contains(currentProject.getProjectId())) return true;
-      currentProject = currentProject.getParentProject();
-    }
-    return false;
+    return project.getProjectPath().stream().map(SProject::getProjectId).anyMatch(projectIds::contains);
   }
 
   @NotNull

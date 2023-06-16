@@ -17,14 +17,13 @@
 package jetbrains.buildServer.server.rest.data.investigations;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.*;
 import jetbrains.buildServer.server.rest.errors.OperationException;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.Converter;
@@ -154,12 +153,12 @@ public class InvestigationWrapper implements ResponsibilityEntry, Comparable<Inv
 
   @SuppressWarnings("ConstantConditions")
   @Nullable
-  public BuildProject getAssignmentProject() {
+  public SProject getAssignmentProject() {
     if (isProblem()){
-      return getProblemRE().getProject();
+      return (SProject) getProblemRE().getProject();
     }
     if (isTest()){
-      return getTestRE().getProject();
+      return (SProject) getTestRE().getProject();
     }
     return null;
   }

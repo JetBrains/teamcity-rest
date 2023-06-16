@@ -244,11 +244,11 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null){
-      @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
+      final SProject project = myProjectFinder.getItem(affectedProjectDimension);
       result.add(item -> {
-          final BuildProject assignmentProject = item.getAssignmentProject();
+          final SProject assignmentProject = item.getAssignmentProject();
           final BuildType assignmentBuildType = item.getAssignmentBuildType();
-          final BuildProject buildTypeProject = assignmentBuildType != null ? myProjectFinder.findProjectByInternalId(assignmentBuildType.getProjectId()) : null;
+          final SProject buildTypeProject = assignmentBuildType != null ? myProjectFinder.findProjectByInternalId(assignmentBuildType.getProjectId()) : null;
           return (assignmentProject != null && ProjectFinder.isSameOrParent(project, assignmentProject)) ||
                  (buildTypeProject != null && ProjectFinder.isSameOrParent(project, buildTypeProject));
       });

@@ -840,7 +840,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       for (TestNameResponsibilityEntry testResponsibility : testResponsibilities) {
         final SBuildType buildType = item.getBuild().getBuildType();
         if (buildType != null) {
-          if (ProjectFinder.isSameOrParent(testResponsibility.getProject(), buildType.getProject())) {
+          if (ProjectFinder.isSameOrParent((SProject) testResponsibility.getProject(), buildType.getProject())) {
             return false;
           }
         }
@@ -852,7 +852,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     for (TestNameResponsibilityEntry testResponsibility : testResponsibilities) {
       final SBuildType buildType = item.getBuild().getBuildType();
       if (buildType != null) {
-        if (testResponsibility.getState().equals(state) && ProjectFinder.isSameOrParent(testResponsibility.getProject(), buildType.getProject())) {
+        if (testResponsibility.getState().equals(state) && ProjectFinder.isSameOrParent((SProject) testResponsibility.getProject(), buildType.getProject())) {
           return true;
         }
       }
