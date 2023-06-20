@@ -39,7 +39,6 @@ import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.agentPools.AgentPool;
 import jetbrains.buildServer.serverSide.agentPools.AgentPoolManager;
-import jetbrains.buildServer.serverSide.agentPools.ProjectAgentPoolImpl;
 import jetbrains.buildServer.serverSide.agentTypes.AgentTypeStorage;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -96,6 +95,7 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
   private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
   private static final Dimension<Boolean> PROJECT_POOL = new Dimension<>("projectPool");
   private static final Dimension<List<SProject>> OWNER_PROJECT = new Dimension<>("ownerProject");
+  private static final Dimension<Boolean> ORPHANED_POOL = new Dimension<>("orphanedPool");
 
   private class AgentPoolFinderBuilder extends TypedFinderBuilder<AgentPool> {
     AgentPoolFinderBuilder() {
@@ -111,6 +111,8 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
         valueForDefaultFilter(agentPool -> new HashSet<>(getPoolProjects(agentPool)));
       dimensionAgents(AGENT, myServiceLocator).description("agents associated with the agent pool").
         valueForDefaultFilter(agentPool -> new HashSet<>(getPoolAgentsInternal(agentPool)));
+      dimensionBoolean(ORPHANED_POOL).description("Project pool which owner project was deleted from the server.").hidden()
+                                     .withDefault("false").valueForDefaultFilter(AgentPoolFinder.this::isOrphanedPool);
 
       filter(DimensionCondition.ALWAYS, dimensions -> {
           final PermissionChecker permissionChecker = myServiceLocator.getSingletonService(PermissionChecker.class);
@@ -143,6 +145,14 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
   //
   // Helper methods
   //
+  private boolean isOrphanedPool(@NotNull AgentPool pool) {
+    if(!pool.isProjectPool() || pool.getOwnerProjectId() == null) {
+      return false;
+    }
+
+    ProjectManager projectManager = myServiceLocator.getSingletonService(ProjectManager.class);
+    return !projectManager.isProjectExists(pool.getOwnerProjectId());
+  }
 
   //todo: TeamCity API: what is the due way to do this? http://youtrack.jetbrains.com/issue/TW-33307
   /**
@@ -179,19 +189,14 @@ public class AgentPoolFinder extends DelegatingFinder<AgentPool> {
 
   @Nullable
   public PontentiallyInaccessibleProject getPoolOwnerProject(@NotNull final AgentPool projectAgentPool) {
-    if (!projectAgentPool.isProjectPool()) return null;
-
-    ProjectAgentPoolImpl projectPool;
-    try {
-      projectPool = (ProjectAgentPoolImpl)projectAgentPool;
-    } catch (ClassCastException e) {
-      return null; //should never happen
+    if (!projectAgentPool.isProjectPool() || projectAgentPool.getOwnerProjectId() == null) {
+      return null;
     }
     final ProjectManager projectManager = myServiceLocator.getSingletonService(ProjectManager.class);
     try {
-      return new PontentiallyInaccessibleProject(projectPool.getProjectId(), projectManager.findProjectById(projectPool.getProjectId()));
+      return new PontentiallyInaccessibleProject(projectAgentPool.getOwnerProjectId(), projectManager.findProjectById(projectAgentPool.getOwnerProjectId()));
     } catch (AccessDeniedException e) {
-      return new PontentiallyInaccessibleProject(projectPool.getProjectId(), null);
+      return new PontentiallyInaccessibleProject(projectAgentPool.getOwnerProjectId(), null);
     }
   }
 
