@@ -16,10 +16,12 @@
 
 package jetbrains.buildServer.server.rest.request.versionedSettings;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.*;
+import java.util.stream.Collectors;
+import jetbrains.buildServer.server.rest.model.versionedSettings.VersionedSettingsContextParameter;
 import jetbrains.buildServer.server.rest.model.versionedSettings.VersionedSettingsContextParameters;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.impl.versionedSettings.VersionedSettingsStatusTracker;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -53,10 +55,40 @@ public class VersionedSettingsRequestContextParamsTest extends VersionedSettings
       put("param2", "value2");
     }};
 
-    VersionedSettingsContextParameters contextParameters = new VersionedSettingsContextParameters(params);
+    List<VersionedSettingsContextParameter> contextParameterList = params.entrySet().stream()
+                                                                         .map(it -> new VersionedSettingsContextParameter(it.getKey(), it.getValue()))
+                                                                         .collect(Collectors.toList());
+
+    VersionedSettingsContextParameters contextParameters = new VersionedSettingsContextParameters(contextParameterList);
     myRequest.setContextParameters(myProject.getExternalId(), contextParameters);
 
     assertEquals(myVersionedSettingsManager.readConfig(myProject).getDslContextParameters(), params);
+  }
+
+  @Test
+  public void testGetMissingContextParams() {
+    myVersionedSettingsManager.setContextParameters(myProject, new HashMap<String, String>(){{
+      put("param1", "value1");
+      put("param2", "value2");
+    }});
+
+    VersionedSettingsStatusTracker statusTracker = myFixture.getSingletonService(VersionedSettingsStatusTracker.class);
+    jetbrains.buildServer.serverSide.impl.versionedSettings.VersionedSettingsStatus originalStatus =
+      new jetbrains.buildServer.serverSide.impl.versionedSettings.VersionedSettingsStatus(
+        new Date(1000),
+        jetbrains.buildServer.serverSide.impl.versionedSettings.VersionedSettingsStatus.Type.WARN,
+        "Some DSL params are missing"
+      );
+    originalStatus.setRequiredContextParameters(Arrays.asList("param1_no_value", "param2_no_value"));
+    statusTracker.setStatus(Collections.singleton(myProject), originalStatus);
+
+    VersionedSettingsContextParameters contextParameters = myRequest.getContextParameters(myProject.getExternalId());
+    assertEquals(contextParameters.getParameters().size(), 4);
+
+    assertNotNull(contextParameters.getParameters().stream().filter(it -> it.getName().equals("param1") && it.getValue().equals("value1")).findAny().orElse(null));
+    assertNotNull(contextParameters.getParameters().stream().filter(it -> it.getName().equals("param2") && it.getValue().equals("value2")).findAny().orElse(null));
+    assertNotNull(contextParameters.getParameters().stream().filter(it -> it.getName().equals("param1_no_value") && it.getValue() == null).findAny().orElse(null));
+    assertNotNull(contextParameters.getParameters().stream().filter(it -> it.getName().equals("param2_no_value") && it.getValue() == null).findAny().orElse(null));
   }
 
   @Test(expectedExceptions = AccessDeniedException.class)
@@ -68,6 +100,6 @@ public class VersionedSettingsRequestContextParamsTest extends VersionedSettings
   @Test(expectedExceptions = AccessDeniedException.class)
   public void testSetContextParamsWrongUser() {
     loginAsUserWithOnlyViewProjectPermission();
-    myRequest.setContextParameters(myProject.getExternalId(), new VersionedSettingsContextParameters(Collections.emptyMap()));
+    myRequest.setContextParameters(myProject.getExternalId(), new VersionedSettingsContextParameters(Collections.emptyList()));
   }
 }

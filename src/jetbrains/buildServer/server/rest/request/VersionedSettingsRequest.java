@@ -38,12 +38,12 @@ import jetbrains.buildServer.server.rest.model.versionedSettings.VersionedSettin
 import jetbrains.buildServer.server.rest.model.versionedSettings.VersionedSettingsStatus;
 import jetbrains.buildServer.server.rest.model.versionedSettings.VersionedSettingsTokens;
 import jetbrains.buildServer.server.rest.service.versionedSettings.VersionedSettingsConfigsService;
+import jetbrains.buildServer.server.rest.service.versionedSettings.VersionedSettingsDslParametersService;
 import jetbrains.buildServer.server.rest.service.versionedSettings.VersionedSettingsTokensService;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.versionedSettings.VersionedSettingsManager;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
@@ -63,6 +63,7 @@ public class VersionedSettingsRequest {
   @Context @NotNull private VersionedSettingsTokensService myVersionedSettingsTokensService;
   @Context @NotNull private PermissionChecker myPermissionChecker;
   @Context @NotNull private VersionedSettingsConfigsService myVersionedSettingsConfigsService;
+  @Context @NotNull private VersionedSettingsDslParametersService myVersionedSettingsDslParametersService;
 
 
   @GET
@@ -85,8 +86,7 @@ public class VersionedSettingsRequest {
   @ApiOperation(value = "Get Versioned Settings Context Parameters.", nickname = "getVersionedSettingsContextParameters")
   public VersionedSettingsContextParameters getContextParameters(@ApiParam(format = LocatorName.PROJECT) @PathParam("locator") String projectLocator) {
     SProject project = myProjectFinder.getItem(projectLocator, true);
-    Map<String, String> paramsMap = getVersionedSettingsManager().readConfig(project).getDslContextParameters();
-    return new VersionedSettingsContextParameters(paramsMap);
+    return myVersionedSettingsDslParametersService.getVersionedSettingsContextParameters(project);
   }
 
 
@@ -96,7 +96,7 @@ public class VersionedSettingsRequest {
   public VersionedSettingsContextParameters setContextParameters(@ApiParam(format = LocatorName.PROJECT) @PathParam("locator") String projectLocator,
                                                                  VersionedSettingsContextParameters versionedSettingsContextParameters) {
     SProject project = myProjectFinder.getItem(projectLocator);
-    getVersionedSettingsManager().setContextParameters(project, versionedSettingsContextParameters.toMap());
+    myVersionedSettingsDslParametersService.setVersionedSettingsContextParameters(project, versionedSettingsContextParameters);
     return getContextParameters(projectLocator);
   }
 
@@ -262,10 +262,6 @@ public class VersionedSettingsRequest {
   }
 
 
-  protected VersionedSettingsManager getVersionedSettingsManager() {
-    return myServiceLocator.getSingletonService(VersionedSettingsManager.class);
-  }
-
   private VersionedSettingsActions getVersionedSettingsActions() {
     return myServiceLocator.getSingletonService(VersionedSettingsActions.class);
   }
@@ -277,7 +273,8 @@ public class VersionedSettingsRequest {
                               @NotNull VersionedSettingsBeanCollector versionedSettingsBeanCollector,
                               @NotNull PermissionChecker permissionChecker,
                               @NotNull VersionedSettingsTokensService versionedSettingsTokensService,
-                              @NotNull VersionedSettingsConfigsService versionedSettingsConfigProvider) {
+                              @NotNull VersionedSettingsConfigsService versionedSettingsConfigProvider,
+                              @NotNull VersionedSettingsDslParametersService versionedSettingsDslParametersService) {
     myApiUrlBuilder = apiUrlBuilder;
     myServiceLocator = serviceLocator;
     myFactory = beanFactory;
@@ -286,6 +283,7 @@ public class VersionedSettingsRequest {
     myPermissionChecker = permissionChecker;
     myVersionedSettingsTokensService = versionedSettingsTokensService;
     myVersionedSettingsConfigsService = versionedSettingsConfigProvider;
+    myVersionedSettingsDslParametersService = versionedSettingsDslParametersService;
   }
 
 }
