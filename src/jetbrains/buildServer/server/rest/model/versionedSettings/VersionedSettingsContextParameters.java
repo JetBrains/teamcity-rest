@@ -18,7 +18,6 @@ package jetbrains.buildServer.server.rest.model.versionedSettings;
 
 
 import java.util.*;
-import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelBaseType;
@@ -36,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 @ModelBaseType(ObjectType.LIST)
 public class VersionedSettingsContextParameters {
 
-  private Collection<VersionedSettingsContextParameter> myParameters;
+  private List<VersionedSettingsContextParameter> myParameters;
 
 
   @SuppressWarnings("unused")
@@ -44,10 +43,8 @@ public class VersionedSettingsContextParameters {
   }
 
 
-  public VersionedSettingsContextParameters(@NotNull Map<String, String> parameters) {
-    myParameters = parameters.entrySet().stream()
-                             .map(entry -> new VersionedSettingsContextParameter(entry.getKey(), entry.getValue()))
-                             .collect(Collectors.toSet());
+  public VersionedSettingsContextParameters(@NotNull List<VersionedSettingsContextParameter> parameters) {
+    myParameters = parameters;
   }
 
 
@@ -59,11 +56,11 @@ public class VersionedSettingsContextParameters {
 
   @XmlElement(name = VersionedSettingsContextParameter.TYPE)
   @NotNull
-  public Collection<VersionedSettingsContextParameter> getParameters() {
+  public List<VersionedSettingsContextParameter> getParameters() {
     return myParameters;
   }
 
-  public void setParameters(Collection<VersionedSettingsContextParameter> parameters) {
+  public void setParameters(List<VersionedSettingsContextParameter> parameters) {
     myParameters = parameters;
   }
 

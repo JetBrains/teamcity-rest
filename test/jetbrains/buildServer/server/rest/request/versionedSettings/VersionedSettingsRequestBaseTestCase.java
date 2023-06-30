@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request.versionedSettings;
 
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.controllers.project.VersionedSettingsConfigUpdater;
+import jetbrains.buildServer.controllers.project.VersionedSettingsDslContextParameters;
 import jetbrains.buildServer.controllers.project.VersionedSettingsTokensControllerHelper;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
@@ -26,8 +27,10 @@ import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.versionedSettings.VersionedSettingsBeanCollector;
 import jetbrains.buildServer.server.rest.request.VersionedSettingsRequest;
 import jetbrains.buildServer.server.rest.service.impl.versionedSettings.VersionedSettingsConfigsServiceImpl;
+import jetbrains.buildServer.server.rest.service.impl.versionedSettings.VersionedSettingsDslParametersServiceImpl;
 import jetbrains.buildServer.server.rest.service.impl.versionedSettings.VersionedSettingsTokensServiceImpl;
 import jetbrains.buildServer.server.rest.service.versionedSettings.VersionedSettingsConfigsService;
+import jetbrains.buildServer.server.rest.service.versionedSettings.VersionedSettingsDslParametersService;
 import jetbrains.buildServer.server.rest.service.versionedSettings.VersionedSettingsTokensService;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.ProjectPersistingHandler;
@@ -109,20 +112,24 @@ public class VersionedSettingsRequestBaseTestCase extends BaseFinderTest<SProjec
       versionedSettingsBeanCollector,
       myPermissionChecker
     );
-    myRequest = new VersionedSettingsRequest() {
-
-
-      @Override
-      protected VersionedSettingsManager getVersionedSettingsManager() {
-        return myVersionedSettingsManager;
-      }
-    };
+    VersionedSettingsDslContextParameters versionedSettingsDslContextParameters = new VersionedSettingsDslContextParameters(
+      myVersionedSettingsManager,
+      myFixture.getSingletonService(RepositoryStateManager.class),
+      myFixture.getSingletonService(VersionedSettingsStatusTracker.class),
+      myFixture.getSingletonService(VersionedSettingsUpdater.class),
+      myFixture.getServerAccessChecker()
+    );
+    VersionedSettingsDslParametersService versionedSettingsDslParametersService = new VersionedSettingsDslParametersServiceImpl(
+      versionedSettingsDslContextParameters,
+      versionedSettingsBeanCollector
+    );
     myRequest = new TestVersionedSettingsRequest(myFixture,
                                                  myProjectFinder,
                                                  versionedSettingsBeanCollector,
                                                  myPermissionChecker,
                                                  versionedSettingsTokensService,
-                                                 versionedSettingsConfigProvider);
+                                                 versionedSettingsConfigProvider,
+                                                 versionedSettingsDslParametersService);
     myMockVcsSupport = vcsSupport().withName("vcs_support").register();
     myFixture.getServerSettings().setPerProjectPermissionsEnabled(true);
   }
@@ -155,14 +162,10 @@ public class VersionedSettingsRequestBaseTestCase extends BaseFinderTest<SProjec
                                         @NotNull VersionedSettingsBeanCollector versionedSettingsBeanCollector,
                                         @NotNull PermissionChecker permissionChecker,
                                         @NotNull VersionedSettingsTokensService versionedSettingsTokensService,
-                                        @NotNull VersionedSettingsConfigsService versionedSettingsConfigProvider) {
-      initForTests(new ApiUrlBuilder(p -> p), serviceLocator, new BeanFactory(null), projectFinder,
-                   versionedSettingsBeanCollector, permissionChecker, versionedSettingsTokensService, versionedSettingsConfigProvider);
-    }
-
-    @Override
-    protected VersionedSettingsManager getVersionedSettingsManager() {
-      return myVersionedSettingsManager;
+                                        @NotNull VersionedSettingsConfigsService versionedSettingsConfigProvider,
+                                        @NotNull VersionedSettingsDslParametersService versionedSettingsDslParametersService) {
+      initForTests(new ApiUrlBuilder(p -> p), serviceLocator, new BeanFactory(null), projectFinder, versionedSettingsBeanCollector,
+                   permissionChecker, versionedSettingsTokensService, versionedSettingsConfigProvider, versionedSettingsDslParametersService);
     }
   }
 }
