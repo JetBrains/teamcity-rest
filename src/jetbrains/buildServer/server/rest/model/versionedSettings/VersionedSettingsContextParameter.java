@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @XmlRootElement(name = VersionedSettingsContextParameter.TYPE)
 @ModelDescription(
@@ -40,7 +41,7 @@ public class VersionedSettingsContextParameter {
   public VersionedSettingsContextParameter() {
   }
 
-  public VersionedSettingsContextParameter(@NotNull String name, @NotNull String value) {
+  public VersionedSettingsContextParameter(@NotNull String name, @Nullable String value) {
     myName = name;
     myValue = value;
   }
@@ -51,6 +52,7 @@ public class VersionedSettingsContextParameter {
   }
 
   @XmlAttribute(name = "value")
+  @Nullable  
   public String getValue() {
     return myValue;
   }
