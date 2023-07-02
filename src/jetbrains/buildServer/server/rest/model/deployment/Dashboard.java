@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.model.deployment;
 
-import java.util.NoSuchElementException;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -101,7 +100,7 @@ public class Dashboard {
       () -> {
         SProject project = beanContext
           .getSingletonService(ProjectManager.class)
-          .findProjectById(dashboard.getProjectId());
+          .findProjectById(dashboard.getProjectExtId());
 
         if (project != null) {
           return new Project(project, fields.getNestedField("project"), beanContext);

@@ -17,39 +17,22 @@
 package jetbrains.buildServer.server.rest.data.finder.impl;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.clouds.CloudInstance;
-import jetbrains.buildServer.clouds.server.CloudManager;
-import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
 import jetbrains.buildServer.server.rest.data.*;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
-import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.FinderImpl;
-import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
-import jetbrains.buildServer.server.rest.data.util.FilterUtil;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.model.Util;
-import jetbrains.buildServer.server.rest.model.agent.Agent;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
-import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
-import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.SBuildAgent;
 import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.agentPools.AgentPool;
-import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
 import jetbrains.buildServer.serverSide.deploymentDashboards.DeploymentDashboardManager;
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentDashboard;
 import jetbrains.buildServer.serverSide.deploymentDashboards.exceptions.DashboardNotFoundException;
@@ -194,7 +177,7 @@ public class DeploymentDashboardFinder extends AbstractFinder<DeploymentDashboar
   @Nullable
   private SProject getProject(@NotNull DeploymentDashboard dashboard) {
     ProjectManager projectManager = myServiceLocator.getSingletonService(ProjectManager.class);
-    return projectManager.findProjectByExternalId(dashboard.getProjectId());
+    return projectManager.findProjectByExternalId(dashboard.getProjectExtId());
   }
 
   @Nullable
