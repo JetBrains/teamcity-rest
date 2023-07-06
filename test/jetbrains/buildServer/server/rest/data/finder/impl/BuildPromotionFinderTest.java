@@ -64,6 +64,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import static jetbrains.buildServer.serverSide.impl.buildDistribution.QueuedBuildTerminator.PREEMPTIVE_START_FAILURE_ENABLED_PROPERTY;
 import static jetbrains.buildServer.util.Util.map;
 import static jetbrains.buildServer.vcs.RepositoryStateData.createVersionState;
 
@@ -2366,8 +2367,10 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     });
   }
 
-  @Test
-  public void testSnapshotDependenciesProblems() {
+  @Test(dataProvider = "true,false")
+  public void testSnapshotDependenciesProblems(boolean preemptiveBuildsStartFailureEnabled) {
+    setInternalProperty(PREEMPTIVE_START_FAILURE_ENABLED_PROPERTY, String.valueOf(preemptiveBuildsStartFailureEnabled));
+
     final SProject project = createProject("prj", "project");
     final BuildTypeEx buildConfA = (BuildTypeEx)project.createBuildType("buildConfA", "buildConfA");
     final BuildTypeEx buildConfB1 = (BuildTypeEx)project.createBuildType("buildConfB1", "buildConfB1");
@@ -2448,9 +2451,15 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
                                      .finish().getBuildPromotion();
       BuildPromotion buildB1 = build().in(buildConfB1).snapshotDepends(buildA).finish().getBuildPromotion();
       BuildPromotion buildB2 = build().in(buildConfB2).snapshotDepends(buildA).finish().getBuildPromotion();
-      BuildPromotion buildC = build().in(buildConfC).snapshotDepends(buildB1, buildB2).finish().getBuildPromotion();
+      BuildPromotion buildC = preemptiveBuildsStartFailureEnabled
+                              ? build().in(buildConfC).snapshotDepends(buildB1, buildB2).expectTerminated().getBuildPromotion()
+                              : build().in(buildConfC).snapshotDepends(buildB1, buildB2).finish().getBuildPromotion();
 
-      check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB2, buildB1, buildA);
+      if (preemptiveBuildsStartFailureEnabled) {
+        check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB2, buildA);
+      } else {
+        check("snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))", buildB2, buildB1, buildA);
+      }
       checkProblemOccurrences("build:(snapshotDependencyProblem:(to:(id:" + buildC.getId() + "))),type:(snapshotDependencyProblem:false)",
                               "problem1");
     }

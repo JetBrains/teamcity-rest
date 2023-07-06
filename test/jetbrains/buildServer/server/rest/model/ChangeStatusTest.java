@@ -461,7 +461,7 @@ public class ChangeStatusTest extends BaseFinderTest {
     SFinishedBuild unrelatedBuild = build().in(unrelatedBt).withFailedTests("Unrealated.failedTest").finish();
     SFinishedBuild targetBuild = build().in(targetBt).withFailedTests("Target.failed").onModifications(m0).finish();
     SFinishedBuild headBuild = build().in(compositeBt).snapshotDepends(unrelatedBuild.getBuildPromotion(), targetBuild.getBuildPromotion()).onModifications(m1).finish();
-    ((BuildPromotionImpl) headBuild.getBuildPromotion()).setAttribute("teamcity.internal.composite", "true");
+    ((BuildPromotionImpl)headBuild.getBuildPromotion()).setAttribute("teamcity.internal.composite", "true");
 
     ChangeStatus status = new ChangeStatus(
       myFixture.getChangeStatusProvider().getMergedChangeStatus(m0),

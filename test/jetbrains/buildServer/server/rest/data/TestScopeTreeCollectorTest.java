@@ -34,6 +34,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import static java.util.Arrays.asList;
+import static jetbrains.buildServer.serverSide.impl.buildDistribution.QueuedBuildTerminator.PREEMPTIVE_START_FAILURE_ENABLED_PROPERTY;
 
 public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   private TestScopeTreeCollector myTestScopeTreeCollector;
@@ -239,13 +240,15 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     assertEquals("There must not be duplicates", subTree.size(), subTree.stream().map(node -> node.getId()).distinct().count());
   }
 
-  @Test
-  public void testVirtualBuildsMergedCorrectly() {
+  @Test(dataProvider = "true,false")
+  public void testVirtualBuildsMergedCorrectly(boolean preemptiveBuildsStartFailureEnabled) {
+    setInternalProperty(PREEMPTIVE_START_FAILURE_ENABLED_PROPERTY, String.valueOf(preemptiveBuildsStartFailureEnabled));
+
     createTwoAdditionalAgents();
 
     ProjectEx project = myFixture.createProject("project", "project");
 
-    runBuildWithFailedTestInVirtualDeps(project);
+    runBuildWithFailedTestInVirtualDeps(project, preemptiveBuildsStartFailureEnabled);
 
     List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
     checkAncestorsBeforeChildren(fullTree);
@@ -256,13 +259,15 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     assertEquals(7, fullTree.size());
   }
 
-  @Test
-  public void testVirtualBuildsNotMergedWhenAsked() {
+  @Test(dataProvider = "true,false")
+  public void testVirtualBuildsNotMergedWhenAsked(boolean preemptiveBuildsStartFailureEnabled) {
+    setInternalProperty(PREEMPTIVE_START_FAILURE_ENABLED_PROPERTY, String.valueOf(preemptiveBuildsStartFailureEnabled));
+
     createTwoAdditionalAgents();
 
     ProjectEx project = myFixture.createProject("project", "project");
 
-    runBuildWithFailedTestInVirtualDeps(project);
+    runBuildWithFailedTestInVirtualDeps(project, preemptiveBuildsStartFailureEnabled);
 
     List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100,groupParallelTests:false"));
     checkAncestorsBeforeChildren(fullTree);
@@ -275,14 +280,16 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     );
   }
 
-  @Test
-  public void testVirtualBuildsMergedCorrectly2() {
+  @Test(dataProvider = "true,false")
+  public void testVirtualBuildsMergedCorrectly2(boolean preemptiveBuildsStartFailureEnabled) {
+    setInternalProperty(PREEMPTIVE_START_FAILURE_ENABLED_PROPERTY, String.valueOf(preemptiveBuildsStartFailureEnabled));
+
     createTwoAdditionalAgents();
 
     ProjectEx project = myFixture.createProject("project", "project");
     BuildTypeEx side = project.createBuildType("side");
 
-    runBuildWithFailedTestInVirtualDeps(project);
+    runBuildWithFailedTestInVirtualDeps(project, preemptiveBuildsStartFailureEnabled);
     build().in(side).withFailedTests("package.classA.a").run().finish();
 
     List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
@@ -313,7 +320,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     assertEquals("classZ", result.get(0).getScope().getName());
   }
 
-  private void runBuildWithFailedTestInVirtualDeps(ProjectEx project) {
+  private void runBuildWithFailedTestInVirtualDeps(ProjectEx project, boolean preemptiveBuildsStartFailure) {
     ProjectEx virtual = project.createProject("virtual", "virtual");
 
     virtual.setArchived(true, null);
@@ -333,6 +340,10 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
     dep1.addToQueue("");
     dep2.addToQueue("");
+    originalPromotion.addToQueue("");
+
+    SQueuedBuild originalQueuedBuild = originalPromotion.getQueuedBuild();
+    assertNotNull(originalQueuedBuild);
 
     List<RunningBuildEx> running = myFixture.flushQueueAndWaitN(2);
 
@@ -343,10 +354,13 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     running.get(1).updateBuild();
     running.get(1).finish();
 
-    originalPromotion.addToQueue("");
-    RunningBuildEx runningOriginal = myFixture.flushQueueAndWait();
-    runningOriginal.updateBuild();
-    runningOriginal.finish();
+    if (preemptiveBuildsStartFailure) {
+      myFixture.waitForQueuedBuildToTerminate(originalQueuedBuild);
+    } else {
+      RunningBuildEx runningOriginal = myFixture.flushQueueAndWait();
+      runningOriginal.updateBuild();
+      runningOriginal.finish();
+    }
   }
 
   @NotNull
