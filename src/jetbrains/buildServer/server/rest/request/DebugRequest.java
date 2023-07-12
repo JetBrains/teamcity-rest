@@ -552,7 +552,7 @@ public class DebugRequest {
     StringBuffer log = new StringBuffer();
     log.append("Optimization log for ").append(LogUtil.describe(build)).append('\n');
 
-    GraphOptimizer optimizer = new GraphOptimizer((BuildPromotionEx)build,
+    GraphOptimizer optimizer = new GraphOptimizer(Collections.singletonList((BuildPromotionEx)build),
                                                   myServiceLocator.getSingletonService(BuildPromotionReplacementLog.class),
                                                   ids -> myServiceLocator.getSingletonService(BuildsManager.class).findBuildInstances(ids),
                                                   btId -> Collections.emptyList(),
