@@ -16,6 +16,9 @@
 
 package jetbrains.buildServer.server.rest.model.agent;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -35,6 +38,8 @@ import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.agentPools.*;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
 import jetbrains.buildServer.util.StringUtil;
@@ -54,11 +59,13 @@ import org.jetbrains.annotations.Nullable;
 )
 @SuppressWarnings("PublicField")
 public class AgentPool {
+  private AgentTypes myAgentTypes;
+
   @XmlAttribute public Integer id;
   @XmlAttribute public String name;
   @XmlAttribute public String href;
   @XmlAttribute public Integer maxAgents;
-  @XmlElement public Project ownerProject;
+  @XmlElement public Project ownerProject = null;
   @XmlElement public Projects projects;
   @XmlElement public Agents agents;
   /**
@@ -73,30 +80,29 @@ public class AgentPool {
     id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), agentPool.getAgentPoolId());
     name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), agentPool.getName());
 
+    if(agentPool.isProjectPool()) {
+      ownerProject = ValueWithDefault.decideDefault(
+        fields.isIncluded("ownerProject", false, false), //do not add by default as this is being introduced in bugfix release. Can include by default since any major release
+        () -> resolveOwnerProject(agentPool, fields.getNestedField("ownerProject"), beanContext)
+      );
+    }
+
     final AgentPoolFinder agentPoolFinder = beanContext.getSingletonService(AgentPoolFinder.class);
-
-    ownerProject = !agentPool.isProjectPool() ? null : ValueWithDefault.decideDefault(fields.isIncluded("ownerProject", false, false), //do not add by default as this is being introduced in bugfix release. Can include by default since any major release
-                  () -> {
-                    AgentPoolFinder.PontentiallyInaccessibleProject project = agentPoolFinder.getPoolOwnerProject(agentPool);
-                    if (project == null) { //not existing project
-                      return null;
-                    }
-                    if (project.getProject() == null) { //inaccessible project
-                      return new Project(null, project.getInternalProjectId(), fields.getNestedField("ownerProject"), beanContext);
-                    }
-                    return new Project(project.getProject(), fields.getNestedField("ownerProject"), beanContext);
-                  });
-
-    projects = ValueWithDefault.decideDefault(fields.isIncluded("projects", false), () ->
-      new Projects(agentPoolFinder.getPoolProjects(agentPool), null, fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext)
+    projects = ValueWithDefault.decideDefault(
+      fields.isIncluded("projects", false),
+      () -> new Projects(agentPoolFinder.getPoolProjects(agentPool), null, fields.getNestedField("projects", Fields.NONE, Fields.LONG), beanContext)
     );
 
     //todo: support agent types
-    agents = ValueWithDefault.decideDefault(fields.isIncluded("agents", false), () -> {
-        Fields nestedFields = fields.getNestedField("agents", Fields.NONE, Fields.LONG);
-        String locator = Locator.merge(nestedFields.getLocator(), AgentFinder.getLocator(agentPool));
-        return new Agents(locator, new PagerDataImpl(AgentRequest.getItemsHref(locator)), nestedFields, beanContext);
-    });
+    agents = ValueWithDefault.decideDefault(
+      fields.isIncluded("agents", false),
+      () -> resolveAgents(agentPool, fields.getNestedField("agents", Fields.NONE, Fields.LONG), beanContext)
+    );
+
+    myAgentTypes = ValueWithDefault.decideDefault(
+      fields.isIncluded("agentTypes", false, false),
+      () -> resolveAgentTypes(agentPool, fields.getNestedField("agentTypes"), beanContext)
+    );
 
     final AuthorityHolder authorityHolder = beanContext.getSingletonService(PermissionChecker.class).getCurrent();
 
@@ -104,6 +110,11 @@ public class AgentPool {
       href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(agentPool));
       maxAgents = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("maxAgents", false), getMaxAgents(agentPool));
     }
+  }
+
+  @XmlElement(name = "agentTypes")
+  public AgentTypes getAgentTypes() {
+    return myAgentTypes;
   }
 
   @NotNull
@@ -149,6 +160,37 @@ public class AgentPool {
     int maxAgents = agentPool.getMaxAgents();
     return maxAgents == AgentPoolLimits.DEFAULT.getMaxAgents() ? null : agentPool.getMaxAgents();
   }
+
+
+  @NotNull
+  private static Agents resolveAgents(@NotNull jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    String locator = Locator.merge(fields.getLocator(), AgentFinder.getLocator(agentPool));
+    return new Agents(locator, new PagerDataImpl(AgentRequest.getItemsHref(locator)), fields, beanContext);
+  }
+
+  @Nullable
+  private static Project resolveOwnerProject(@NotNull jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    AgentPoolFinder agentPoolFinder = beanContext.getSingletonService(AgentPoolFinder.class);
+    AgentPoolFinder.PontentiallyInaccessibleProject project = agentPoolFinder.getPoolOwnerProject(agentPool);
+    if (project == null) { //not existing project
+      return null;
+    }
+    if (project.getProject() == null) { //inaccessible project
+      return new Project(null, project.getInternalProjectId(), fields, beanContext);
+    }
+    return new Project(project.getProject(), fields, beanContext);
+  }
+
+  @NotNull
+  private AgentTypes resolveAgentTypes(@NotNull jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    AgentTypeFinder atFinder = beanContext.getSingletonService(AgentTypeFinder.class);
+
+    List<SAgentType> data = atFinder.getAgentTypesByPool(agentPool.getAgentPoolId()).stream()
+                                    .filter(at -> at.getDetails().isActive())
+                                    .collect(Collectors.toList());
+    return new AgentTypes(data, fields, null, beanContext);
+  }
+
 
   public static void setFieldValue(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool,
                                    @NotNull final String fieldName, @Nullable final String newValue, @NotNull final BeanContext beanContext) {

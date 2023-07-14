@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest.model.agent;
 
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import jetbrains.buildServer.ServiceLocator;
@@ -40,6 +41,9 @@ public class AgentType {
   private final ServiceLocator myServiceLocator;
   private final ApiUrlBuilder myApiUrlBuilder;
 
+  private Integer myId;
+  private String myName;
+  private Boolean myIsCloud;
   private Properties myAvailableParameters;
   private Properties myConfigurationParameters;
   private Properties myBuildParameters;
@@ -51,39 +55,58 @@ public class AgentType {
     myApiUrlBuilder = null;
   }
 
-  public AgentType(SAgentType agentType, Fields fields, ServiceLocator serviceLocator, ApiUrlBuilder apiUrlBuilder) {
+  public AgentType(@NotNull SAgentType agentType, @NotNull Fields fields, @NotNull ServiceLocator serviceLocator, @NotNull ApiUrlBuilder apiUrlBuilder) {
     myServiceLocator = serviceLocator;
     myApiUrlBuilder = apiUrlBuilder;
-    myAvailableParameters = ValueWithDefault.decideDefault(fields.isIncluded("availableParameters", false), () -> {
-      return getProperties(agentType.getAvailableParameters(), fields.getNestedField("availableParameters"));
-    });
-    myConfigurationParameters = ValueWithDefault.decideDefault(fields.isIncluded("configurationParameters", false), () -> {
-      return getProperties(agentType.getConfigurationParameters(), fields.getNestedField("configurationParameters"));
-    });
-    myBuildParameters = ValueWithDefault.decideDefault(fields.isIncluded("buildParameters", false), () -> {
-      return getProperties(agentType.getBuildParameters(), fields.getNestedField("buildParameters"));
-    });
-    mySystemParameters = ValueWithDefault.decideDefault(fields.isIncluded("systemParameters", false), () -> {
-      Map<String, String> systemParameters = agentType.getAvailableParameters()
-                                                      .entrySet()
-                                                      .stream()
-                                                      .filter(entry -> SimpleParameter.isSystemProperty(entry.getKey()))
-                                                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-      return getProperties(systemParameters, fields.getNestedField("systemParameters"));
-    });
-    myEnvironmentParameters = ValueWithDefault.decideDefault(fields.isIncluded("environmentParameters", false), () -> {
-      Map<String, String> environmentParameters = agentType.getAvailableParameters()
-                                                      .entrySet()
-                                                      .stream()
-                                                      .filter(entry -> SimpleParameter.isEnvironmentVariable(entry.getKey()))
-                                                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-      return getProperties(environmentParameters, fields.getNestedField("environmentParameters"));
-    });
+
+    myId = ValueWithDefault.decideDefault(
+      fields.isIncluded("id", true, true),
+      () -> agentType.getAgentTypeId()
+    );
+    myName = ValueWithDefault.decideDefault(
+      fields.isIncluded("name", true, true),
+      () -> agentType.getDetails().getDisplayName()
+    );
+    myIsCloud = ValueWithDefault.decideDefault(
+      fields.isIncluded("isCloud", true, true),
+      () -> agentType.isCloud()
+    );
+
+    myAvailableParameters = ValueWithDefault.decideDefault(
+      fields.isIncluded("availableParameters", false),
+      () -> resolveProperties(agentType.getAvailableParameters(), fields.getNestedField("availableParameters"))
+    );
+    myConfigurationParameters = ValueWithDefault.decideDefault(
+      fields.isIncluded("configurationParameters", false),
+      () -> resolveProperties(agentType.getConfigurationParameters(), fields.getNestedField("configurationParameters"))
+    );
+    myBuildParameters = ValueWithDefault.decideDefault(
+      fields.isIncluded("buildParameters", false),
+      () -> resolveProperties(agentType.getBuildParameters(), fields.getNestedField("buildParameters"))
+    );
+    mySystemParameters = ValueWithDefault.decideDefault(
+      fields.isIncluded("systemParameters", false),
+      () -> resolveSystemParameters(agentType, fields.getNestedField("systemParameters"))
+    );
+    myEnvironmentParameters = ValueWithDefault.decideDefault(
+      fields.isIncluded("environmentParameters", false),
+      () -> resolveEnvironmentParameters(agentType, fields.getNestedField("environmentParameters"))
+    );
   }
 
-  @NotNull
-  private Properties getProperties(Map<String, String> parameters, Fields fields) {
-    return new Properties(parameters, null, fields, new BeanContext(myServiceLocator, myApiUrlBuilder));
+  @XmlAttribute(name = "id")
+  public Integer getId() {
+    return myId;
+  }
+
+  @XmlAttribute(name = "name")
+  public String getName() {
+    return myName;
+  }
+
+  @XmlAttribute(name = "isCloud")
+  public Boolean getCloud() {
+    return myIsCloud;
   }
 
   @XmlElement
@@ -129,5 +152,31 @@ public class AgentType {
 
   public void setEnvironmentParameters(Properties environmentParameters) {
     myEnvironmentParameters = environmentParameters;
+  }
+
+  @NotNull
+  private Properties resolveEnvironmentParameters(@NotNull SAgentType agentType, @NotNull Fields fields) {
+    Map<String, String> environmentParameters = agentType.getAvailableParameters()
+                                                         .entrySet()
+                                                         .stream()
+                                                         .filter(entry -> SimpleParameter.isEnvironmentVariable(entry.getKey()))
+                                                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    return resolveProperties(environmentParameters, fields);
+  }
+
+  @NotNull
+  private Properties resolveSystemParameters(@NotNull SAgentType agentType, @NotNull Fields fields) {
+    Map<String, String> systemParameters = agentType.getAvailableParameters()
+                                                    .entrySet()
+                                                    .stream()
+                                                    .filter(entry -> SimpleParameter.isSystemProperty(entry.getKey()))
+                                                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    return resolveProperties(systemParameters, fields);
+  }
+
+  @NotNull
+  private Properties resolveProperties(Map<String, String> parameters, Fields fields) {
+    return new Properties(parameters, null, fields, new BeanContext(myServiceLocator, myApiUrlBuilder));
   }
 }

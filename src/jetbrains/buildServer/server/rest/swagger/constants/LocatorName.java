@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.swagger.constants;
 
 public class LocatorName {
   public static final String AGENT = "AgentLocator";
+  public static final String AGENT_TYPE = "AgentTypeLocator";
   public static final String AGENT_POOL = "AgentPoolLocator";
   public static final String AUDIT = "AuditLocator";
   public static final String BRANCH = "BranchLocator";

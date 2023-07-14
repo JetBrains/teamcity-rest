@@ -114,7 +114,12 @@ public class ApiUrlBuilder {
     return myPathTransformer.transform(VcsRootInstanceRequest.getVcsRootInstanceHref(root));
   }
 
-  public String transformRelativePath(final String internalRelativePath) {
+  @Nullable
+  public String transformRelativePath(@Nullable String internalRelativePath) {
+    if(internalRelativePath == null) {
+      return null;
+    }
+
     return myPathTransformer.transform(internalRelativePath);
   }
 }
