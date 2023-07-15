@@ -16,10 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data.finder.impl;
 
-import com.intellij.openapi.diagnostic.Logger;
-import java.util.List;
-import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.FinderImpl;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
@@ -40,8 +37,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
-import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Dimension;
-
 @LocatorResource(value = LocatorName.DEPLOYMENT_DASHBOARD,
   extraDimensions = {FinderImpl.DIMENSION_ID, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
   baseEntity = "DeploymentDashboard",
@@ -53,21 +48,20 @@ import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.D
 @JerseyContextSingleton
 @Component("restDeploymentDashboardFinder")
 public class DeploymentDashboardFinder extends AbstractFinder<DeploymentDashboard> {
-  private static final Logger LOG = Logger.getInstance(DeploymentDashboardFinder.class.getName());
-  @LocatorDimension("name") private static final Dimension<ValueCondition> NAME = new Dimension<>("name");
+  @LocatorDimension("name") private static final String NAME = "name";
   @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project locator.")
-  private static final Dimension<List<SProject>> PROJECT = new Dimension<>("project");
+  public static final String PROJECT = "project";
   @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
-  private static final Dimension<List<SProject>> AFFECTED_PROJECT = new Dimension<>("affectedProject");
+  private static final String AFFECTED_PROJECT = "affectedProject";
 
-  @NotNull private final ServiceLocator myServiceLocator;
+  @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final DeploymentDashboardManager myDeploymentDashboardManager;
   @NotNull private final ProjectManager myProjectManager;
 
-  public DeploymentDashboardFinder(@NotNull final ServiceLocator serviceLocator,
+  public DeploymentDashboardFinder(@NotNull final ProjectFinder projectFinder,
                                    @NotNull DeploymentDashboardManager deploymentDashboardManager,
                                    @NotNull final ProjectManager projectManager) {
-    myServiceLocator = serviceLocator;
+    myProjectFinder = projectFinder;
     myDeploymentDashboardManager = deploymentDashboardManager;
     myProjectManager = projectManager;
   }
@@ -91,18 +85,18 @@ public class DeploymentDashboardFinder extends AbstractFinder<DeploymentDashboar
     if (baseLocator != null && (new Locator(baseLocator)).isSingleValue()) {
       return baseLocator;
     }
-    return Locator.setDimensionIfNotPresent(baseLocator, PROJECT.name, ProjectFinder.getLocator(project));
+    return Locator.setDimensionIfNotPresent(baseLocator, PROJECT, ProjectFinder.getLocator(project));
   }
 
   @NotNull
   @Override
   public ItemHolder<DeploymentDashboard> getPrefilteredItems(@NotNull Locator locator) {
-    final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT.name);
+    final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
       return getDeploymentDashboadsByProject(affectedProjectDimension, true);
     }
 
-    final String projectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT.name);
+    final String projectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (projectDimension != null) {
       return getDeploymentDashboadsByProject(projectDimension, false);
     }
@@ -116,8 +110,7 @@ public class DeploymentDashboardFinder extends AbstractFinder<DeploymentDashboar
 
   @NotNull
   private ItemHolder<DeploymentDashboard> getDeploymentDashboadsByProject(String affectedProjectDimension, boolean includeFromSubprojects) {
-    ProjectFinder projectFinder = myServiceLocator.getSingletonService(ProjectFinder.class);
-    @NotNull final SProject project = projectFinder.getItem(affectedProjectDimension);
+    @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
     return ItemHolder.of(
       myDeploymentDashboardManager
         .getAllDashboards(project.getExternalId(), includeFromSubprojects)
@@ -135,30 +128,28 @@ public class DeploymentDashboardFinder extends AbstractFinder<DeploymentDashboar
       result.add(item -> id.equals(item.getId()));
     }
 
-    String name = locator.getSingleDimensionValue(NAME.name);
+    String name = locator.getSingleDimensionValue(NAME);
     if (name != null) {
       result.add(item -> name.equals(item.getName()));
     }
 
-    final String projectDimension = locator.getSingleDimensionValue(PROJECT.name);
+    final String projectDimension = locator.getSingleDimensionValue(PROJECT);
     if (projectDimension != null) {
-      ProjectFinder projectFinder = myServiceLocator.getSingletonService(ProjectFinder.class);
-      final SProject project = projectFinder.getItem(projectDimension);
+      final SProject project = myProjectFinder.getItem(projectDimension);
       result.add(
         item -> getProject(item) == project
       );
     }
 
-    final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT.name);
+    final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
     if (affectedProjectDimension != null) {
-      ProjectFinder projectFinder = myServiceLocator.getSingletonService(ProjectFinder.class);
-      @NotNull final SProject parentProject = projectFinder.getItem(affectedProjectDimension);
+      @NotNull final SProject parentProject = myProjectFinder.getItem(affectedProjectDimension);
       result.add(
         item -> affectedProjectFilter(parentProject, item)
       );
     }
 
-    return result;
+    return result.toItemFilter();
   }
 
   private Boolean affectedProjectFilter(
@@ -176,8 +167,7 @@ public class DeploymentDashboardFinder extends AbstractFinder<DeploymentDashboar
 
   @Nullable
   private SProject getProject(@NotNull DeploymentDashboard dashboard) {
-    ProjectManager projectManager = myServiceLocator.getSingletonService(ProjectManager.class);
-    return projectManager.findProjectByExternalId(dashboard.getProjectExtId());
+    return myProjectManager.findProjectByExternalId(dashboard.getProjectExtId());
   }
 
   @Nullable

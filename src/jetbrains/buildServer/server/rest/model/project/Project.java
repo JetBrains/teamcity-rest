@@ -26,11 +26,9 @@ import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.clouds.CloudProfile;
 import jetbrains.buildServer.server.rest.APIController;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
-import jetbrains.buildServer.server.rest.data.finder.impl.BuildTypeFinder;
-import jetbrains.buildServer.server.rest.data.finder.impl.CloudProfileFinder;
-import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
-import jetbrains.buildServer.server.rest.data.finder.impl.UserFinder;
+import jetbrains.buildServer.server.rest.data.finder.impl.*;
 import jetbrains.buildServer.server.rest.data.parameters.InheritableUserParametersHolderEntityWithParameters;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -40,6 +38,7 @@ import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.buildType.VcsRoots;
 import jetbrains.buildServer.server.rest.model.cloud.CloudProfiles;
+import jetbrains.buildServer.server.rest.model.deployment.Dashboards;
 import jetbrains.buildServer.server.rest.request.CloudRequest;
 import jetbrains.buildServer.server.rest.request.ProjectRequest;
 import jetbrains.buildServer.server.rest.request.VcsRootRequest;
@@ -48,6 +47,7 @@ import jetbrains.buildServer.server.rest.util.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentDashboard;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -60,7 +60,7 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "project")
 @XmlType(name = "project", propOrder = {"id", "internalId", "uuid", "name", "parentProjectId", "parentProjectInternalId", "parentProjectName", "archived", "virtual", "description",
   "href", "webUrl",
-  "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "parameters", "vcsRoots", "projectFeatures", "projects", "cloudProfiles",
+  "links", "parentProject", "readOnlyUI", "defaultTemplate", "buildTypes", "templates", "deploymentDashboards", "parameters", "vcsRoots", "projectFeatures", "projects", "cloudProfiles",
   "ancestorProjects",
   "locator" /* never returned. used only for POST */,
 })
@@ -128,6 +128,9 @@ public class Project {
 
   @XmlElement
   public BuildTypes templates;
+
+  @XmlElement
+  public Dashboards deploymentDashboards;
 
   @XmlElement
   public BuildType defaultTemplate;
@@ -220,6 +223,18 @@ public class Project {
         final String templatesLocator = templateFields.getLocator();
         final List<BuildTypeOrTemplate> templates = buildTypeFinder.get().getBuildTypesPaged(project, templatesLocator, false).getEntries();
         return new BuildTypes(templates, null, templateFields, beanContext);
+    });
+
+    deploymentDashboards = ValueWithDefault.decideDefault(fields.isIncluded("deploymentDashboards", false), () -> {
+      if (!canViewSettings.get()) return null;
+      final Fields dashboardFields = fields.getNestedField("deploymentDashboards", Fields.NONE, Fields.LONG);
+      DeploymentDashboardFinder deploymentDashboardFinder = beanContext.getSingletonService(DeploymentDashboardFinder.class);
+      String locator = Locator.getStringLocator(
+        DeploymentDashboardFinder.PROJECT,
+        ProjectFinder.getLocator(myProject)
+      );
+      final List<DeploymentDashboard> dashboards = deploymentDashboardFinder.getItems(locator).getEntries();
+      return new Dashboards(dashboards, null, dashboardFields, beanContext);
     });
 
     defaultTemplate = ValueWithDefault.decideDefault(

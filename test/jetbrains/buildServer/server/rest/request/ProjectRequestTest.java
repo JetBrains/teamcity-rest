@@ -411,7 +411,7 @@ public class ProjectRequestTest extends BaseFinderTest<SProject> {
 
   @NotNull
   private ProjectRequest createProjectRequest() {
-    return new ProjectRequest(myBeanContext, myServiceLocator, myDataProviderMock, myBuildFinder, myBuildTypeFinder, myProjectFinder, myAgentPoolFinder, myBranchFinder,
+    return new ProjectRequest(myBeanContext, myServiceLocator, myDataProviderMock, myBuildFinder, myBuildTypeFinder, myDeploymentDashboardFinder, myProjectFinder, myAgentPoolFinder, myBranchFinder,
                               myApiUrlBuilderMock, myPermissionChecker);
   }
 

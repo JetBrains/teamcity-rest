@@ -157,7 +157,7 @@ public class DeploymentDashboardRequest {
     }
 
     resultLocator.setDimension(
-      DeploymentInstanceFinder.DASHBOARD.name,
+      DeploymentInstanceFinder.DASHBOARD,
       dashboardLocator
     );
 

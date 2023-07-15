@@ -17,16 +17,10 @@
 package jetbrains.buildServer.server.rest.data.finder.impl;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
-import jetbrains.buildServer.ServiceLocator;
-import jetbrains.buildServer.server.rest.data.*;
+import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
-import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.FinderImpl;
-import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
@@ -35,10 +29,7 @@ import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContext
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
-import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
-import jetbrains.buildServer.serverSide.ProjectManager;
-import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.deploymentDashboards.DeploymentDashboardManager;
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentDashboard;
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentInstance;
@@ -47,8 +38,6 @@ import jetbrains.buildServer.serverSide.deploymentDashboards.exceptions.Dashboar
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
-
-import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Dimension;
 
 @LocatorResource(value = LocatorName.DEPLOYMENT_INSTANCE,
   extraDimensions = {FinderImpl.DIMENSION_ID, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
@@ -60,22 +49,21 @@ import static jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.D
 @JerseyContextSingleton
 @Component("restDeploymentInstanceFinder")
 public class DeploymentInstanceFinder extends AbstractFinder<DeploymentInstance> {
-  private static final Logger LOG = Logger.getInstance(DeploymentInstanceFinder.class.getName());
 
-  @LocatorDimension("id") private static final Dimension<CloudUtil.InstanceIdData> ID = new Dimension<>("id");
+  @LocatorDimension("id") private static final String ID = "id";
   @LocatorDimension(value = "state", notes = "Current state of deployment.")
-  private static final Dimension<DeploymentState> CURRENT_STATE = new Dimension<>("currentState");
+  private static final String CURRENT_STATE = "currentState";
   @LocatorDimension(value = "dashboard", format = LocatorName.DEPLOYMENT_DASHBOARD, notes = "Deployment dashboard locator.")
-  public static final Dimension<List<DeploymentDashboard>> DASHBOARD = new Dimension<>("dashboard");
+  public static final String DASHBOARD = "dashboard";
 
-  @NotNull private final ServiceLocator myServiceLocator;
+  @NotNull private final DeploymentDashboardFinder myDeploymentDashboardFinder;
   @NotNull private final DeploymentDashboardManager myDeploymentDashboardManager;
 
   public DeploymentInstanceFinder(
-    @NotNull final ServiceLocator serviceLocator,
+    @NotNull final DeploymentDashboardFinder deploymentDashboardFinder,
     @NotNull DeploymentDashboardManager deploymentDashboardManager
   ) {
-    myServiceLocator = serviceLocator;
+    myDeploymentDashboardFinder = deploymentDashboardFinder;
     myDeploymentDashboardManager = deploymentDashboardManager;
   }
 
@@ -83,9 +71,9 @@ public class DeploymentInstanceFinder extends AbstractFinder<DeploymentInstance>
   @Override
   public String getItemLocator(@NotNull DeploymentInstance deploymentInstance) {
     return Locator.getStringLocator(
-      ID.name,
+      ID,
       deploymentInstance.getId(),
-      DASHBOARD.name,
+      DASHBOARD,
       DeploymentDashboardFinder.getLocator(
         Objects.requireNonNull(
           getDashboard(deploymentInstance)
@@ -97,21 +85,20 @@ public class DeploymentInstanceFinder extends AbstractFinder<DeploymentInstance>
   @NotNull
   public static String getLocator(@NotNull final DeploymentDashboard dashboard) {
     return Locator.getStringLocator(
-      DASHBOARD.name, DeploymentDashboardFinder.getLocator(dashboard)
+      DASHBOARD, DeploymentDashboardFinder.getLocator(dashboard)
     );
   }
 
   @NotNull
   @Override
   public ItemHolder<DeploymentInstance> getPrefilteredItems(@NotNull Locator locator) {
-    final String dashboardDimension = locator.getSingleDimensionValue(DASHBOARD.name);
+    final String dashboardDimension = locator.getSingleDimensionValue(DASHBOARD);
 
     if (dashboardDimension == null) {
       throw new BadRequestException("Dimension 'dashboard' is required");
     }
 
-    DeploymentDashboardFinder dashboardFinder = myServiceLocator.getSingletonService(DeploymentDashboardFinder.class);
-    final DeploymentDashboard dashboard = dashboardFinder.getItem(dashboardDimension);
+    final DeploymentDashboard dashboard = myDeploymentDashboardFinder.getItem(dashboardDimension);
 
     return ItemHolder.of(
       dashboard.getInstances().values()
@@ -128,26 +115,25 @@ public class DeploymentInstanceFinder extends AbstractFinder<DeploymentInstance>
       result.add(item -> id.equals(item.getId()));
     }
 
-    String currentState = locator.getSingleDimensionValue(CURRENT_STATE.name);
+    String currentState = locator.getSingleDimensionValue(CURRENT_STATE);
     if (currentState != null) {
       result.add(
         item -> DeploymentState.valueOf(currentState) == item.getCurrentState()
       );
     }
 
-    final String dashboardDimension = locator.getSingleDimensionValue(DASHBOARD.name);
+    final String dashboardDimension = locator.getSingleDimensionValue(DASHBOARD);
 
     if (dashboardDimension == null) {
       throw new BadRequestException("Dimension 'dashboard' is required");
     }
 
-    DeploymentDashboardFinder dashboardFinder = myServiceLocator.getSingletonService(DeploymentDashboardFinder.class);
-    final DeploymentDashboard dashboard = dashboardFinder.getItem(dashboardDimension);
+    final DeploymentDashboard dashboard = myDeploymentDashboardFinder.getItem(dashboardDimension);
     result.add(
-      item -> getDashboard(item).equals(dashboard)
+      item -> Objects.equals(getDashboard(item), dashboard)
     );
 
-    return result;
+    return result.toItemFilter();
   }
 
   @Nullable

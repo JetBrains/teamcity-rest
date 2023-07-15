@@ -45,6 +45,7 @@ import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BeanFactory;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.artifacts.SArtifactDependency;
+import jetbrains.buildServer.serverSide.deploymentDashboards.DeploymentDashboardManager;
 import jetbrains.buildServer.serverSide.healthStatus.HealthStatusProvider;
 import jetbrains.buildServer.serverSide.healthStatus.HealthStatusReportLocator;
 import jetbrains.buildServer.serverSide.identifiers.VcsRootIdentifiersManagerImpl;
@@ -77,6 +78,8 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
   protected ProjectFinder myProjectFinder;
   protected AgentFinder myAgentFinder;
   protected BuildTypeFinder myBuildTypeFinder;
+  protected DeploymentDashboardFinder myDeploymentDashboardFinder;
+  protected DeploymentInstanceFinder myDeploymentInstanceFinder;
   protected VcsRootFinder myVcsRootFinder;
   protected VcsRootInstanceFinder myVcsRootInstanceFinder;
   protected UserFinder myUserFinder;
@@ -130,6 +133,14 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
 
     myBuildTypeFinder = new BuildTypeFinder(myProjectManager, myProjectFinder, myAgentFinder, myPermissionChecker, myServer);
     myFixture.addService(myBuildTypeFinder);
+
+    DeploymentDashboardManager deploymentDashboardManager = myFixture.getSingletonService(DeploymentDashboardManager.class);
+
+    myDeploymentDashboardFinder = new DeploymentDashboardFinder(myProjectFinder, deploymentDashboardManager, myProjectManager);
+    myFixture.addService(myDeploymentDashboardFinder);
+
+    myDeploymentInstanceFinder = new DeploymentInstanceFinder(myDeploymentDashboardFinder, deploymentDashboardManager);
+    myFixture.addService(myDeploymentInstanceFinder);
 
     final VcsRootIdentifiersManagerImpl vcsRootIdentifiersManager = myFixture.getSingletonService(VcsRootIdentifiersManagerImpl.class);
 

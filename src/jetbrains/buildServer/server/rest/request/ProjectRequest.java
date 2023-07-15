@@ -50,6 +50,8 @@ import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.model.buildType.BuildType;
 import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
 import jetbrains.buildServer.server.rest.model.buildType.NewBuildTypeDescription;
+import jetbrains.buildServer.server.rest.model.deployment.Dashboard;
+import jetbrains.buildServer.server.rest.model.deployment.Dashboards;
 import jetbrains.buildServer.server.rest.model.project.*;
 import jetbrains.buildServer.server.rest.service.rest.ProjectSshKeyRestService;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
@@ -61,6 +63,7 @@ import jetbrains.buildServer.serverSide.agentPools.NoSuchAgentPoolException;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.dependency.CyclicDependencyFoundException;
+import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentDashboard;
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
@@ -90,6 +93,7 @@ public class ProjectRequest {
   @Context @NotNull private DataProvider myDataProvider;
   @Context @NotNull private BuildFinder myBuildFinder;
   @Context @NotNull private BuildTypeFinder myBuildTypeFinder;
+  @Context @NotNull private DeploymentDashboardFinder myDeploymentDashboardFinder;
   @Context @NotNull private ProjectFinder myProjectFinder;
   @Context @NotNull private AgentPoolFinder myAgentPoolFinder;
   @Context @NotNull private BranchFinder myBranchFinder;
@@ -103,6 +107,7 @@ public class ProjectRequest {
     @NotNull DataProvider dataProvider,
     BuildFinder buildFinder,
     BuildTypeFinder buildTypeFinder,
+    DeploymentDashboardFinder deploymentDashboardFinder,
     ProjectFinder projectFinder,
     AgentPoolFinder agentPoolFinder,
     BranchFinder branchFinder,
@@ -114,6 +119,7 @@ public class ProjectRequest {
     myServiceLocator = firstNonNull(serviceLocator, beanContext.getServiceLocator());
     myBuildFinder = firstNonNull(buildFinder, myServiceLocator.findSingletonService(BuildFinder.class));
     myBuildTypeFinder = firstNonNull(buildTypeFinder, myServiceLocator.findSingletonService(BuildTypeFinder.class));
+    myDeploymentDashboardFinder = firstNonNull(deploymentDashboardFinder, myServiceLocator.findSingletonService(DeploymentDashboardFinder.class));
     myProjectFinder = firstNonNull(projectFinder, myServiceLocator.findSingletonService(ProjectFinder.class));
     myAgentPoolFinder = firstNonNull(agentPoolFinder, myServiceLocator.findSingletonService(AgentPoolFinder.class));
     myBranchFinder = firstNonNull(branchFinder, myServiceLocator.findSingletonService(BranchFinder.class));
@@ -1111,6 +1117,40 @@ public class ProjectRequest {
     }
 
     return new Project(myProjectFinder.getItem(projectLocator), new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/{projectLocator}/deploymentDashboards")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="getDeploymentDashboardsInProjet")
+  public Dashboards getDeploymentDashboardsInProject(
+    @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+    @QueryParam("fields") String fields
+  ) {
+    String dashboardsLocator = Locator.getStringLocator(
+      DeploymentDashboardFinder.PROJECT,
+      projectLocator
+    );
+    PagedSearchResult<DeploymentDashboard> result = myDeploymentDashboardFinder.getItems(dashboardsLocator);
+    return new Dashboards(result.getEntries(), null, new Fields(fields), myBeanContext);
+  }
+
+  @GET
+  @Path("/{projectLocator}/deploymentDashboards/{dashboardLocator}")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value="getDeploymentDashboardInProject")
+  public Dashboard getDeploymentDashboardInProject(
+    @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator") String projectLocator,
+    @ApiParam(format = LocatorName.DEPLOYMENT_DASHBOARD) @PathParam("dashboardLocator") String dashboardLocator,
+    @QueryParam("fields") String fields
+  ) {
+    String resultingLocator = Locator.setDimensionIfNotPresent(
+      dashboardLocator,
+      DeploymentDashboardFinder.PROJECT,
+      projectLocator
+    );
+    DeploymentDashboard dashboard = myDeploymentDashboardFinder.getItem(resultingLocator);
+    return new Dashboard(dashboard, new Fields(fields), myBeanContext);
   }
 
   @Nullable
