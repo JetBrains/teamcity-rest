@@ -958,7 +958,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
       final String buildNumber = locator.getSingleDimensionValue(NUMBER);
       assert buildNumber != null;
 
-      ValueCondition buildNumberCondition = ParameterCondition.createValueCondition(buildNumber);
+      ValueCondition buildNumberCondition = ParameterCondition.createValueConditionFromPlainValueOrCondition(buildNumber);
       result.add(item -> buildNumberCondition.matches(item.getBuildNumber()));
     }
 
