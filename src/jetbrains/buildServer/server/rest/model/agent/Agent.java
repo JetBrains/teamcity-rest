@@ -181,8 +181,9 @@ public class Agent {
           }
           return builder.build(fields.getNestedField("links"));
         });
-        environment = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("environment", false, false),
-                                                                         () -> new Environment(agent, fields.getNestedField("environment", Fields.NONE, Fields.LONG), beanContext)
+        environment = ValueWithDefault.decideDefaultIgnoringAccessDenied(
+          fields.isIncluded("environment", false, false),
+          () -> new Environment(agent, fields.getNestedField("environment", Fields.NONE, Fields.LONG))
         );
 
         if (!unknownAgent) {
@@ -286,31 +287,6 @@ public class Agent {
                                               () -> new AgentPool(beanContext.getSingletonService(AgentPoolFinder.class).getAgentPool(agent), fields.getNestedField("pool"),
                                                                   beanContext));
       }
-    }
-  }
-
-  static String getAgentOsType(@NotNull final SBuildAgent agent) {
-    String osName = agent.getOperatingSystemName();
-    if ("N/A".equalsIgnoreCase(osName) || "<unknown>".equalsIgnoreCase(osName) || "".equals(osName)) {
-      osName = ((BuildAgentEx)agent).getAgentType().getOperatingSystemName();
-    }
-    OSKind os = OSKind.guessByName(osName);
-    if (os == null) return null;
-    switch (os) {
-      case WINDOWS:
-        return "Windows";
-      case MAC:
-        return "macOS";
-      case LINUX:
-        return "Linux";
-      case SOLARIS:
-        return "Solaris";
-      case FREEBSD:
-        return "FreeBSD";
-      case OTHERUNIX:
-        return "Unix";
-      default:
-        return null;
     }
   }
 

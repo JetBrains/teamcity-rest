@@ -44,6 +44,7 @@ public class AgentType {
   private Integer myId;
   private String myName;
   private Boolean myIsCloud;
+  private Environment myEnvironment;
   private Properties myAvailableParameters;
   private Properties myConfigurationParameters;
   private Properties myBuildParameters;
@@ -70,6 +71,10 @@ public class AgentType {
     myIsCloud = ValueWithDefault.decideDefault(
       fields.isIncluded("isCloud", true, true),
       () -> agentType.isCloud()
+    );
+    myEnvironment = ValueWithDefault.decideDefault(
+      fields.isIncluded("environment", false),
+      () -> new Environment(agentType, fields.getNestedField("environment"))
     );
 
     myAvailableParameters = ValueWithDefault.decideDefault(
@@ -107,6 +112,11 @@ public class AgentType {
   @XmlAttribute(name = "isCloud")
   public Boolean getCloud() {
     return myIsCloud;
+  }
+
+  @XmlElement(name = "environment")
+  public Environment getEnvironment() {
+    return myEnvironment;
   }
 
   @XmlElement

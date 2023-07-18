@@ -20,12 +20,15 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
+import jetbrains.buildServer.controllers.agent.OSKind;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
-import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.BuildAgentEx;
 import jetbrains.buildServer.serverSide.SBuildAgent;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Yegor.Yarko
@@ -44,8 +47,50 @@ public class Environment {
   public Environment() {
   }
 
-  public Environment(@NotNull final SBuildAgent agent, @NotNull final Fields fields, final @NotNull BeanContext beanContext) {
-    osType = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("osType"), () -> Agent.getAgentOsType(agent));
+  public Environment(@NotNull final SBuildAgent agent, @NotNull final Fields fields) {
+    osType = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("osType"), () -> resolveOsType(agent));
     osName = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("osName"), agent::getOperatingSystemName);
+  }
+
+  public Environment(@NotNull SAgentType agentType, @NotNull Fields fields) {
+    osType = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("osType"), () -> resolveOsType(agentType));
+    osName = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("osName"), agentType::getOperatingSystemName);
+  }
+
+  @Nullable
+  private static String resolveOsType(@NotNull SBuildAgent agent) {
+    String osName = agent.getOperatingSystemName();
+    if ("N/A".equalsIgnoreCase(osName) || "<unknown>".equalsIgnoreCase(osName) || "".equals(osName)) {
+      osName = ((BuildAgentEx)agent).getAgentType().getOperatingSystemName();
+    }
+
+    return getOsName(osName);
+  }
+
+  @Nullable
+  private static String resolveOsType(@NotNull SAgentType agent) {
+    return getOsName(agent.getOperatingSystemName());
+  }
+
+  @Nullable
+  private static String getOsName(@NotNull String osName) {
+    OSKind os = OSKind.guessByName(osName);
+    if (os == null) return null;
+    switch (os) {
+      case WINDOWS:
+        return "Windows";
+      case MAC:
+        return "macOS";
+      case LINUX:
+        return "Linux";
+      case SOLARIS:
+        return "Solaris";
+      case FREEBSD:
+        return "FreeBSD";
+      case OTHERUNIX:
+        return "Unix";
+      default:
+        return null;
+    }
   }
 }
