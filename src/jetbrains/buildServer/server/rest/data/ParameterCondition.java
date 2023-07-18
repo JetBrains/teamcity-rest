@@ -149,6 +149,9 @@ public class ParameterCondition {
     return RequirementType.EQUALS;
   }
 
+  /**
+   * This factory method can be used to create a ValueCondition as a drop-in replacement for an equality check.
+   */
   @Nullable
   @Contract("!null -> !null; null -> null")
   public static ValueCondition createValueConditionFromPlainValueOrCondition(@Nullable final String propertyConditionLocator) {

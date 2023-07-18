@@ -2667,6 +2667,16 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
   }
 
+  @Test
+  @TestFor(issues = "TW-82114")
+  public void test_getPromotionWithNumberContainingParenthesis() {
+    SFinishedBuild build = build().in(myBuildType).number("0.1.2.3 (master)").finish();
+
+    BuildPromotion result = myBuildPromotionFinder.getItems("number:(0.1.2.3 (master))").getEntries().get(0);
+
+    assertEquals(build.getBuildPromotion(), result);
+  }
+
   @NotNull
   @DataProvider(name = "all-build-states-locator-dim")
   public String[][] getAllBuildStates() {
