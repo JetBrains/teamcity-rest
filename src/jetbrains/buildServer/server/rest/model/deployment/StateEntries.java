@@ -51,18 +51,7 @@ public class StateEntries {
     if (entries != null) {
       items = ValueWithDefault.decideDefault(
         fields.isIncluded("deploymentStateEntry"),
-        () -> {
-          ArrayList<StateEntry> list = new ArrayList<>(entries.size());
-          Fields entryFields = fields.getNestedField("deploymentStateEntry");
-
-          for (DeploymentStateEntry entry : entries) {
-            list.add(
-              new StateEntry(entry, entryFields, beanContext)
-            );
-          }
-
-          return list;
-        }
+        resolveStateEntries(entries, fields, beanContext)
       );
 
       count = ValueWithDefault.decideIncludeByDefault(
@@ -70,6 +59,20 @@ public class StateEntries {
         entries.size()
       );
     }
+  }
+
+  @NotNull
+  private static ArrayList<StateEntry> resolveStateEntries(@NotNull List<DeploymentStateEntry> entries, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    ArrayList<StateEntry> list = new ArrayList<>(entries.size());
+    Fields entryFields = fields.getNestedField("deploymentStateEntry");
+
+    for (DeploymentStateEntry entry : entries) {
+      list.add(
+        new StateEntry(entry, entryFields, beanContext)
+      );
+    }
+
+    return list;
   }
 
   @NotNull

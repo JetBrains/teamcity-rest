@@ -96,14 +96,8 @@ public class Instances {
     if (deploymentInstances != null) {
       items = ValueWithDefault.decideDefault(
         fields.isIncluded(DEPLOYMENT_INSTANCE, false, true),
-        () -> {
-          final ArrayList<Instance> items = new ArrayList<Instance>(deploymentInstances.size());
-          Fields instanceFields = fields.getNestedField(DEPLOYMENT_INSTANCE);
-          for (DeploymentInstance item : deploymentInstances) {
-            items.add(new Instance(item, instanceFields, beanContext));
-          }
-          return items;
-        });
+        resolveItems(deploymentInstances, fields, beanContext)
+      );
 
       count = ValueWithDefault.decideIncludeByDefault(
         fields.isIncluded(COUNT),
@@ -114,32 +108,57 @@ public class Instances {
     if (pagerData != null) {
       href = ValueWithDefault.decideDefault(
         fields.isIncluded("href", true),
-        beanContext
-          .getApiUrlBuilder()
-          .transformRelativePath(
-            pagerData.getHref()
-          )
+        resolveHref(pagerData, beanContext)
       );
       nextHref = ValueWithDefault
         .decideDefault(
           fields.isIncluded("nextHref"),
-          pagerData.getNextHref() != null ?
-          beanContext
-            .getApiUrlBuilder()
-            .transformRelativePath(
-              pagerData.getNextHref()
-            ) : null
+          resolveNextHref(pagerData, beanContext)
         );
       prevHref = ValueWithDefault
         .decideDefault(
           fields.isIncluded("prevHref"),
-          pagerData.getPrevHref() != null ?
-          beanContext
-            .getApiUrlBuilder()
-            .transformRelativePath(
-              pagerData.getPrevHref()
-            ) : null
+          resolvePrevHref(pagerData, beanContext)
         );
     }
+  }
+
+  @NotNull
+  private static ArrayList<Instance> resolveItems(@NotNull Collection<DeploymentInstance> deploymentInstances, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    final ArrayList<Instance> items = new ArrayList<Instance>(deploymentInstances.size());
+    Fields instanceFields = fields.getNestedField(DEPLOYMENT_INSTANCE);
+    for (DeploymentInstance item : deploymentInstances) {
+      items.add(new Instance(item, instanceFields, beanContext));
+    }
+    return items;
+  }
+
+  @Nullable
+  private static String resolveHref(@NotNull PagerData pagerData, @NotNull BeanContext beanContext) {
+    return beanContext
+      .getApiUrlBuilder()
+      .transformRelativePath(
+        pagerData.getHref()
+      );
+  }
+
+  @Nullable
+  private static String resolveNextHref(@NotNull PagerData pagerData, @NotNull BeanContext beanContext) {
+    return pagerData.getNextHref() != null ?
+           beanContext
+             .getApiUrlBuilder()
+             .transformRelativePath(
+               pagerData.getNextHref()
+             ) : null;
+  }
+
+  @Nullable
+  private static String resolvePrevHref(@NotNull PagerData pagerData, @NotNull BeanContext beanContext) {
+    return pagerData.getPrevHref() != null ?
+           beanContext
+             .getApiUrlBuilder()
+             .transformRelativePath(
+               pagerData.getPrevHref()
+             ) : null;
   }
 }

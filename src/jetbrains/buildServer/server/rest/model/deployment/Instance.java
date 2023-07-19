@@ -30,6 +30,7 @@ import jetbrains.buildServer.serverSide.deploymentDashboards.entities.Deployment
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentState;
 import jetbrains.buildServer.serverSide.deploymentDashboards.exceptions.DashboardNotFoundException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @XmlRootElement(name = "deploymentInstance")
 @ModelDescription(
@@ -63,15 +64,8 @@ public class Instance {
 
     deploymentStateEntries = ValueWithDefault.decideDefault(
       fields.isIncluded("deploymentStateEntries", false),
-      () -> {
-        Fields nestedFields = fields.getNestedField("deploymentStateEntries", Fields.NONE, Fields.LONG);
-
-        return new StateEntries(
-          deploymentInstance.getKnownStates(),
-          nestedFields,
-          beanContext
-        );
-      });
+      resolveDeploymentStateEntries(deploymentInstance, fields, beanContext)
+    );
 
     currentState = ValueWithDefault.decideIncludeByDefault(
       fields.isIncluded("currentState"),
@@ -85,21 +79,36 @@ public class Instance {
 
     deploymentDashboard = ValueWithDefault.decideDefault(
       fields.isIncluded("deploymentDashboard", false),
-      () -> {
-        DeploymentDashboard dashboard;
-        try {
-          dashboard = beanContext
-            .getSingletonService(DeploymentDashboardManager.class)
-            .getDashboard(deploymentInstance.getDashboardId());
+      resolveDeploymentDashboard(deploymentInstance, fields, beanContext)
+    );
+  }
 
-          return new Dashboard(
-            dashboard,
-            fields.getNestedField("deploymentDashboard"),
-            beanContext
-          );
-        } catch (DashboardNotFoundException e) {
-          return null;
-        }
-      });
+  @NotNull
+  private static StateEntries resolveDeploymentStateEntries(@NotNull DeploymentInstance deploymentInstance, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    Fields nestedFields = fields.getNestedField("deploymentStateEntries", Fields.NONE, Fields.LONG);
+
+    return new StateEntries(
+      deploymentInstance.getKnownStates(),
+      nestedFields,
+      beanContext
+    );
+  }
+
+  @Nullable
+  private static Dashboard resolveDeploymentDashboard(@NotNull DeploymentInstance deploymentInstance, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    DeploymentDashboard dashboard;
+    try {
+      dashboard = beanContext
+        .getSingletonService(DeploymentDashboardManager.class)
+        .getDashboard(deploymentInstance.getDashboardId());
+
+      return new Dashboard(
+        dashboard,
+        fields.getNestedField("deploymentDashboard"),
+        beanContext
+      );
+    } catch (DashboardNotFoundException e) {
+      return null;
+    }
   }
 }

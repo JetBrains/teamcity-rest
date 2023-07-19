@@ -77,37 +77,44 @@ public class Dashboard {
 
     deploymentInstances = ValueWithDefault.decideDefault(
       fields.isIncluded("deploymentInstances", false),
-      () -> {
-        Fields nestedFields = fields.getNestedField("deploymentInstances", Fields.NONE, Fields.LONG);
-
-        String locator = Locator.merge(
-          nestedFields.getLocator(),
-          DeploymentInstanceFinder.getLocator(dashboard)
-        );
-
-        return new Instances(
-          locator,
-          new PagerDataImpl(
-            getItemsHref(locator)
-          ),
-          nestedFields,
-          beanContext
-        );
-      });
+      resolveDeploymentInstances(dashboard, fields, beanContext)
+    );
 
     project = ValueWithDefault.decideDefault(
       fields.isIncluded("project", false),
-      () -> {
-        SProject project = beanContext
-          .getSingletonService(ProjectManager.class)
-          .findProjectById(dashboard.getProjectExtId());
+      resolveProject(dashboard, fields, beanContext));
+  }
 
-        if (project != null) {
-          return new Project(project, fields.getNestedField("project"), beanContext);
-        } else {
-          return null;
-        }
-      });
+  @NotNull
+  private Instances resolveDeploymentInstances(@NotNull DeploymentDashboard dashboard, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    Fields nestedFields = fields.getNestedField("deploymentInstances", Fields.NONE, Fields.LONG);
+
+    String locator = Locator.merge(
+      nestedFields.getLocator(),
+      DeploymentInstanceFinder.getLocator(dashboard)
+    );
+
+    return new Instances(
+      locator,
+      new PagerDataImpl(
+        getItemsHref(locator)
+      ),
+      nestedFields,
+      beanContext
+    );
+  }
+
+  @Nullable
+  private static Project resolveProject(@NotNull DeploymentDashboard dashboard, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    SProject project = beanContext
+      .getSingletonService(ProjectManager.class)
+      .findProjectById(dashboard.getProjectExtId());
+
+    if (project != null) {
+      return new Project(project, fields.getNestedField("project"), beanContext);
+    } else {
+      return null;
+    }
   }
 
   private String getItemsHref(String locator) {

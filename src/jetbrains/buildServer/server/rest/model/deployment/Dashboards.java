@@ -70,18 +70,7 @@ public class Dashboards {
     if (dashboards != null && fields.isIncluded("deploymentDashboard", false, true)) {
       items = ValueWithDefault.decideDefault(
         fields.isIncluded("deploymentDashboard"),
-        () -> {
-          ArrayList<Dashboard> list = new ArrayList<>(dashboards.size());
-          Fields dashboardFields = fields.getNestedField("deploymentDashboard");
-
-          for (DeploymentDashboard dashboard : dashboards) {
-            list.add(
-              new Dashboard(dashboard, dashboardFields, beanContext)
-            );
-          }
-
-          return list;
-        }
+        resolveItems(dashboards, fields, beanContext)
       );
     } else {
       items = null;
@@ -92,33 +81,62 @@ public class Dashboards {
     if (pagerData != null) {
       href = ValueWithDefault.decideDefault(
         fields.isIncluded("href", true),
-        beanContext
-          .getApiUrlBuilder()
-          .transformRelativePath(
-            pagerData.getHref()
-          )
+        resolveHref(pagerData, beanContext)
       );
       nextHref = ValueWithDefault
         .decideDefault(
           fields.isIncluded("nextHref"),
-          pagerData.getNextHref() != null ?
-          beanContext
-            .getApiUrlBuilder()
-            .transformRelativePath(
-              pagerData.getNextHref()
-            ) : null
+          resolveNextHref(pagerData, beanContext)
         );
       prevHref = ValueWithDefault
         .decideDefault(
           fields.isIncluded("prevHref"),
-          pagerData.getPrevHref() != null ?
-          beanContext
-            .getApiUrlBuilder()
-            .transformRelativePath(
-              pagerData.getPrevHref()
-            ) : null
+          resolvePrefHref(pagerData, beanContext)
         );
     }
+  }
+
+  @NotNull
+  private static ArrayList<Dashboard> resolveItems(Collection<DeploymentDashboard> dashboards, Fields fields, BeanContext beanContext) {
+    ArrayList<Dashboard> list = new ArrayList<>(dashboards.size());
+    Fields dashboardFields = fields.getNestedField("deploymentDashboard");
+
+    for (DeploymentDashboard dashboard : dashboards) {
+      list.add(
+        new Dashboard(dashboard, dashboardFields, beanContext)
+      );
+    }
+
+    return list;
+  }
+
+  @Nullable
+  private static String resolveHref(PagerData pagerData, BeanContext beanContext) {
+    return beanContext
+      .getApiUrlBuilder()
+      .transformRelativePath(
+        pagerData.getHref()
+      );
+  }
+
+  @Nullable
+  private static String resolveNextHref(PagerData pagerData, BeanContext beanContext) {
+    return pagerData.getNextHref() != null ?
+           beanContext
+             .getApiUrlBuilder()
+             .transformRelativePath(
+               pagerData.getNextHref()
+             ) : null;
+  }
+
+  @Nullable
+  private static String resolvePrefHref(PagerData pagerData, BeanContext beanContext) {
+    return pagerData.getPrevHref() != null ?
+           beanContext
+             .getApiUrlBuilder()
+             .transformRelativePath(
+               pagerData.getPrevHref()
+             ) : null;
   }
 
   @NotNull

@@ -68,22 +68,28 @@ public class StateEntry {
       Util.formatTime(deploymentStateEntry.getChangeDate())
     );
 
-    build = ValueWithDefault.decideDefault(fields.isIncluded("build", false), () -> {
-      Long buildId = deploymentStateEntry.getBuildId();
+    build = ValueWithDefault.decideDefault(
+      fields.isIncluded("build", false),
+      resolveBuild(deploymentStateEntry, fields, beanContext)
+    );
+  }
 
-      if (buildId == null) {
-        return null;
-      }
+  @Nullable
+  private static Build resolveBuild(@NotNull DeploymentStateEntry deploymentStateEntry, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    Long buildId = deploymentStateEntry.getBuildId();
 
-      try {
-        BuildPromotion promotion = beanContext
-          .getSingletonService(BuildPromotionFinder.class)
-          .getBuildPromotionByIdOrByBuildId(buildId);
-        return new Build(promotion, fields.getNestedField("build"), beanContext);
-      } catch (NotFoundException e) {
-        return null;
-      }
-    });
+    if (buildId == null) {
+      return null;
+    }
+
+    try {
+      BuildPromotion promotion = beanContext
+        .getSingletonService(BuildPromotionFinder.class)
+        .getBuildPromotionByIdOrByBuildId(buildId);
+      return new Build(promotion, fields.getNestedField("build"), beanContext);
+    } catch (NotFoundException e) {
+      return null;
+    }
   }
 
   @NotNull
