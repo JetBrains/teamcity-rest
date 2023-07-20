@@ -16,20 +16,14 @@
 
 package jetbrains.buildServer.server.rest.data.finder.impl;
 
-import com.intellij.openapi.diagnostic.Logger;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.server.rest.data.Locator;
-import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
-import jetbrains.buildServer.server.rest.data.finder.FinderImpl;
-import jetbrains.buildServer.server.rest.data.util.ItemFilter;
-import jetbrains.buildServer.server.rest.data.util.MultiCheckerFilter;
-import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
-import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
+import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
+import jetbrains.buildServer.server.rest.data.locator.definition.FinderLocatorDefinition;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
-import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
-import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
-import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.deploymentDashboards.DeploymentDashboardManager;
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentDashboard;
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentInstance;
@@ -39,23 +33,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
-@LocatorResource(value = LocatorName.DEPLOYMENT_INSTANCE,
-  extraDimensions = {FinderImpl.DIMENSION_ID, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
-  baseEntity = "DeploymentInstance",
-  examples = {
-    "`id:<instanceId>,dashboard:<dashboardLocator>` - find instance with ID `instanceId` under dashboard found by `dashboardLocator`."
-  }
-)
+import static jetbrains.buildServer.server.rest.data.finder.syntax.DeploymentInstanceDimensions.*;
+
 @JerseyContextSingleton
 @Component("restDeploymentInstanceFinder")
-public class DeploymentInstanceFinder extends AbstractFinder<DeploymentInstance> {
-
-  @LocatorDimension("id") private static final String ID = "id";
-  @LocatorDimension(value = "state", notes = "Current state of deployment.")
-  private static final String CURRENT_STATE = "currentState";
-  @LocatorDimension(value = "dashboard", format = LocatorName.DEPLOYMENT_DASHBOARD, notes = "Deployment dashboard locator.")
-  public static final String DASHBOARD = "dashboard";
-
+public class DeploymentInstanceFinder extends DelegatingFinder<DeploymentInstance> implements FinderLocatorDefinition {
   @NotNull private final DeploymentDashboardFinder myDeploymentDashboardFinder;
   @NotNull private final DeploymentDashboardManager myDeploymentDashboardManager;
 
@@ -65,83 +47,100 @@ public class DeploymentInstanceFinder extends AbstractFinder<DeploymentInstance>
   ) {
     myDeploymentDashboardFinder = deploymentDashboardFinder;
     myDeploymentDashboardManager = deploymentDashboardManager;
+    setDelegate(new Builder().build());
   }
 
   @NotNull
-  @Override
-  public String getItemLocator(@NotNull DeploymentInstance deploymentInstance) {
+  public static String getItemLocator(
+    @NotNull DeploymentInstance deploymentInstance,
+    @NotNull DeploymentDashboardManager deploymentDashboardManager
+  ) {
     return Locator.getStringLocator(
-      ID,
+      ID.getName(),
       deploymentInstance.getId(),
-      DASHBOARD,
+      DASHBOARD.getName(),
       DeploymentDashboardFinder.getLocator(
         Objects.requireNonNull(
-          getDashboard(deploymentInstance)
+          getDashboard(deploymentInstance, deploymentDashboardManager)
         )
       )
     );
   }
 
   @NotNull
-  public static String getLocator(@NotNull final DeploymentDashboard dashboard) {
-    return Locator.getStringLocator(
-      DASHBOARD, DeploymentDashboardFinder.getLocator(dashboard)
-    );
-  }
-
-  @NotNull
-  @Override
-  public ItemHolder<DeploymentInstance> getPrefilteredItems(@NotNull Locator locator) {
-    final String dashboardDimension = locator.getSingleDimensionValue(DASHBOARD);
-
-    if (dashboardDimension == null) {
-      throw new BadRequestException("Dimension 'dashboard' is required");
-    }
-
-    final DeploymentDashboard dashboard = myDeploymentDashboardFinder.getItem(dashboardDimension);
-
-    return ItemHolder.of(
-      dashboard.getInstances().values()
-    );
-  }
-
-  @NotNull
-  @Override
-  public ItemFilter<DeploymentInstance> getFilter(@NotNull Locator locator) {
-    final MultiCheckerFilter<DeploymentInstance> result = new MultiCheckerFilter<DeploymentInstance>();
-
-    String id = locator.getSingleDimensionValue(DIMENSION_ID);
-    if (id != null) {
-      result.add(item -> id.equals(item.getId()));
-    }
-
-    String currentState = locator.getSingleDimensionValue(CURRENT_STATE);
-    if (currentState != null) {
-      result.add(
-        item -> DeploymentState.valueOf(currentState) == item.getCurrentState()
+  public static String getLocator(
+    @NotNull final DeploymentInstance instance,
+    @NotNull final DeploymentDashboardManager deploymentDashboardManager
+  ) {
+    try {
+      DeploymentDashboard dashboard = deploymentDashboardManager.getDashboard(
+        instance.getDashboardId()
       );
+
+      return Locator.getStringLocator(
+        ID.getName(), instance.getId(),
+        DASHBOARD.getName(), DeploymentDashboardFinder.getLocator(dashboard)
+      );
+    } catch (DashboardNotFoundException e) {
+      throw new RuntimeException(e);
     }
-
-    final String dashboardDimension = locator.getSingleDimensionValue(DASHBOARD);
-
-    if (dashboardDimension == null) {
-      throw new BadRequestException("Dimension 'dashboard' is required");
-    }
-
-    final DeploymentDashboard dashboard = myDeploymentDashboardFinder.getItem(dashboardDimension);
-    result.add(
-      item -> Objects.equals(getDashboard(item), dashboard)
-    );
-
-    return result.toItemFilter();
   }
 
   @Nullable
-  private DeploymentDashboard getDashboard(DeploymentInstance instance) {
+  private static DeploymentDashboard getDashboard(
+    @NotNull DeploymentInstance instance,
+    @NotNull DeploymentDashboardManager deploymentDashboardManager
+  ) {
     try {
-      return myDeploymentDashboardManager.getDashboard(instance.getDashboardId());
+      return deploymentDashboardManager.getDashboard(instance.getDashboardId());
     } catch (DashboardNotFoundException e) {
       return null;
+    }
+  }
+
+  private class Builder extends TypedFinderBuilder<DeploymentInstance> {
+    Builder() {
+      name("DeploymentInstanceFinder");
+
+      dimensionString(ID)
+        .filter((value, item) -> value.equals(item.getId()));
+
+      dimensionEnum(CURRENT_STATE, DeploymentState.class)
+        .valueForDefaultFilter(item -> item.getCurrentState());
+
+      dimensionWithFinder(DASHBOARD, () -> myDeploymentDashboardFinder, "Deployment dashboard finder")
+        .filter((value, item) -> hasInstanceInDashboards(value, item))
+        .toItems(dashboards ->
+                   getInstancesFromDashboards(dashboards)
+        );
+
+      locatorProvider(
+        image -> getLocator(image, myDeploymentDashboardManager)
+      );
+    }
+
+    private boolean hasInstanceInDashboards(List<DeploymentDashboard> value, DeploymentInstance item) {
+      return value
+        .stream()
+        .anyMatch(
+          dashboard -> dashboard
+            .getInstances()
+            .values()
+            .contains(item)
+        );
+    }
+
+    @NotNull
+    private List<DeploymentInstance> getInstancesFromDashboards(List<DeploymentDashboard> dashboards) {
+      return dashboards
+        .stream()
+        .flatMap(
+          dashboard -> dashboard
+            .getInstances()
+            .values()
+            .stream()
+        )
+        .collect(Collectors.toList());
     }
   }
 }

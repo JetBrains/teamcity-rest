@@ -31,6 +31,7 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.finder.impl.DeploymentDashboardFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.DeploymentInstanceFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
+import jetbrains.buildServer.server.rest.data.finder.syntax.DeploymentInstanceDimensions;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;
@@ -157,7 +158,7 @@ public class DeploymentDashboardRequest {
     }
 
     resultLocator.setDimension(
-      DeploymentInstanceFinder.DASHBOARD,
+      DeploymentInstanceDimensions.DASHBOARD.getName(),
       dashboardLocator
     );
 

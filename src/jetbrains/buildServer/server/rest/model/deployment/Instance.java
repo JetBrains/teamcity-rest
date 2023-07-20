@@ -77,10 +77,9 @@ public class Instance {
       deploymentInstance.getAttributes()
     );
 
-    deploymentDashboard = ValueWithDefault.decideDefault(
-      fields.isIncluded("deploymentDashboard", false),
-      resolveDeploymentDashboard(deploymentInstance, fields, beanContext)
-    );
+    if (fields.isIncluded("deploymentDashboard", true, true)) {
+      deploymentDashboard = resolveDeploymentDashboard(deploymentInstance, fields, beanContext);
+    }
   }
 
   @NotNull
@@ -96,9 +95,8 @@ public class Instance {
 
   @Nullable
   private static Dashboard resolveDeploymentDashboard(@NotNull DeploymentInstance deploymentInstance, @NotNull Fields fields, @NotNull BeanContext beanContext) {
-    DeploymentDashboard dashboard;
     try {
-      dashboard = beanContext
+      DeploymentDashboard dashboard = beanContext
         .getSingletonService(DeploymentDashboardManager.class)
         .getDashboard(deploymentInstance.getDashboardId());
 

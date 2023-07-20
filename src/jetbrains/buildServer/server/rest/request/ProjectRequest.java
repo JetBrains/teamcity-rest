@@ -34,6 +34,7 @@ import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.finder.impl.*;
+import jetbrains.buildServer.server.rest.data.finder.syntax.DeploymentDashboardDimensions;
 import jetbrains.buildServer.server.rest.data.parameters.MapBackedEntityWithModifiableParameters;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -1128,7 +1129,7 @@ public class ProjectRequest {
     @QueryParam("fields") String fields
   ) {
     String dashboardsLocator = Locator.getStringLocator(
-      DeploymentDashboardFinder.PROJECT,
+      DeploymentDashboardDimensions.PROJECT.getName(),
       projectLocator
     );
     PagedSearchResult<DeploymentDashboard> result = myDeploymentDashboardFinder.getItems(dashboardsLocator);
@@ -1146,7 +1147,7 @@ public class ProjectRequest {
   ) {
     String resultingLocator = Locator.setDimensionIfNotPresent(
       dashboardLocator,
-      DeploymentDashboardFinder.PROJECT,
+      DeploymentDashboardDimensions.PROJECT.getName(),
       projectLocator
     );
     DeploymentDashboard dashboard = myDeploymentDashboardFinder.getItem(resultingLocator);

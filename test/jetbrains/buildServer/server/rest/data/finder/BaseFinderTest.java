@@ -134,9 +134,11 @@ public abstract class BaseFinderTest<T> extends BaseServerTestCase{
     myBuildTypeFinder = new BuildTypeFinder(myProjectManager, myProjectFinder, myAgentFinder, myPermissionChecker, myServer);
     myFixture.addService(myBuildTypeFinder);
 
+    ServiceLocator serviceLocator = myFixture.getSingletonService(ServiceLocator.class);
+
     DeploymentDashboardManager deploymentDashboardManager = myFixture.getSingletonService(DeploymentDashboardManager.class);
 
-    myDeploymentDashboardFinder = new DeploymentDashboardFinder(myProjectFinder, deploymentDashboardManager, myProjectManager);
+    myDeploymentDashboardFinder = new DeploymentDashboardFinder(serviceLocator, myProjectFinder, deploymentDashboardManager, myProjectManager);
     myFixture.addService(myDeploymentDashboardFinder);
 
     myDeploymentInstanceFinder = new DeploymentInstanceFinder(myDeploymentDashboardFinder, deploymentDashboardManager);

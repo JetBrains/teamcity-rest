@@ -29,6 +29,7 @@ import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.finder.impl.*;
+import jetbrains.buildServer.server.rest.data.finder.syntax.DeploymentDashboardDimensions;
 import jetbrains.buildServer.server.rest.data.parameters.InheritableUserParametersHolderEntityWithParameters;
 import jetbrains.buildServer.server.rest.data.parameters.ParametersPersistableEntity;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
@@ -230,7 +231,7 @@ public class Project {
       final Fields dashboardFields = fields.getNestedField("deploymentDashboards", Fields.NONE, Fields.LONG);
       DeploymentDashboardFinder deploymentDashboardFinder = beanContext.getSingletonService(DeploymentDashboardFinder.class);
       String locator = Locator.getStringLocator(
-        DeploymentDashboardFinder.PROJECT,
+        DeploymentDashboardDimensions.PROJECT.getName(),
         ProjectFinder.getLocator(myProject)
       );
       final List<DeploymentDashboard> dashboards = deploymentDashboardFinder.getItems(locator).getEntries();

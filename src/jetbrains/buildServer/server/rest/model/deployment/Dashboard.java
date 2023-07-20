@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.server.rest.model.deployment;
 
+import java.util.Collection;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -23,7 +24,7 @@ import javax.xml.bind.annotation.XmlType;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.DeploymentDashboardFinder;
-import jetbrains.buildServer.server.rest.data.finder.impl.DeploymentInstanceFinder;
+import jetbrains.buildServer.server.rest.data.finder.syntax.DeploymentInstanceDimensions;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.model.Fields;
@@ -37,6 +38,7 @@ import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.deploymentDashboards.DeploymentDashboardManager;
 import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentDashboard;
+import jetbrains.buildServer.serverSide.deploymentDashboards.entities.DeploymentInstance;
 import jetbrains.buildServer.serverSide.deploymentDashboards.exceptions.ImplicitDashboardCreationDisabledException;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -75,10 +77,9 @@ public class Dashboard {
       dashboard.getName()
     );
 
-    deploymentInstances = ValueWithDefault.decideDefault(
-      fields.isIncluded("deploymentInstances", false),
-      resolveDeploymentInstances(dashboard, fields, beanContext)
-    );
+    if (fields.isIncluded("deploymentInstances", true, true)) {
+      deploymentInstances = resolveDeploymentInstances(dashboard, fields, beanContext);
+    }
 
     project = ValueWithDefault.decideDefault(
       fields.isIncluded("project", false),
@@ -89,13 +90,15 @@ public class Dashboard {
   private Instances resolveDeploymentInstances(@NotNull DeploymentDashboard dashboard, @NotNull Fields fields, @NotNull BeanContext beanContext) {
     Fields nestedFields = fields.getNestedField("deploymentInstances", Fields.NONE, Fields.LONG);
 
-    String locator = Locator.merge(
-      nestedFields.getLocator(),
-      DeploymentInstanceFinder.getLocator(dashboard)
+    Collection<DeploymentInstance> instances = dashboard.getInstances().values();
+
+    String locator = Locator.getStringLocator(
+      DeploymentInstanceDimensions.DASHBOARD,
+      DeploymentDashboardFinder.getLocator(dashboard)
     );
 
     return new Instances(
-      locator,
+      instances,
       new PagerDataImpl(
         getItemsHref(locator)
       ),
