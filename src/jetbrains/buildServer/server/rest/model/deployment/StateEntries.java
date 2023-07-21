@@ -44,21 +44,19 @@ public class StateEntries {
   public StateEntries() { }
 
   public StateEntries(
-    @Nullable final List<DeploymentStateEntry> entries,
+    @NotNull final List<DeploymentStateEntry> entries,
     @NotNull final Fields fields,
     @NotNull final BeanContext beanContext
   ) {
-    if (entries != null) {
-      items = ValueWithDefault.decideDefault(
-        fields.isIncluded("deploymentStateEntry"),
-        resolveStateEntries(entries, fields, beanContext)
-      );
+    items = ValueWithDefault.decideDefault(
+      fields.isIncluded("deploymentStateEntry"),
+      resolveStateEntries(entries, fields, beanContext)
+    );
 
-      count = ValueWithDefault.decideIncludeByDefault(
-        fields.isIncluded("count"),
-        entries.size()
-      );
-    }
+    count = ValueWithDefault.decideIncludeByDefault(
+      fields.isIncluded("count"),
+      entries.size()
+    );
   }
 
   @NotNull

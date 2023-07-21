@@ -37,7 +37,7 @@ import static jetbrains.buildServer.server.rest.data.finder.syntax.DeploymentIns
 
 @JerseyContextSingleton
 @Component("restDeploymentInstanceFinder")
-public class DeploymentInstanceFinder extends DelegatingFinder<DeploymentInstance> implements FinderLocatorDefinition {
+public class DeploymentInstanceFinder extends DelegatingFinder<DeploymentInstance> {
   @NotNull private final DeploymentDashboardFinder myDeploymentDashboardFinder;
   @NotNull private final DeploymentDashboardManager myDeploymentDashboardManager;
 

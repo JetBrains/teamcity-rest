@@ -1129,7 +1129,7 @@ public class ProjectRequest {
     @QueryParam("fields") String fields
   ) {
     String dashboardsLocator = Locator.getStringLocator(
-      DeploymentDashboardDimensions.PROJECT.getName(),
+      DeploymentDashboardDimensions.PROJECT,
       projectLocator
     );
     PagedSearchResult<DeploymentDashboard> result = myDeploymentDashboardFinder.getItems(dashboardsLocator);
@@ -1147,7 +1147,7 @@ public class ProjectRequest {
   ) {
     String resultingLocator = Locator.setDimensionIfNotPresent(
       dashboardLocator,
-      DeploymentDashboardDimensions.PROJECT.getName(),
+      DeploymentDashboardDimensions.PROJECT,
       projectLocator
     );
     DeploymentDashboard dashboard = myDeploymentDashboardFinder.getItem(resultingLocator);

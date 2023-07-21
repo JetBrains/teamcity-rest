@@ -62,12 +62,12 @@ public class Dashboards {
   }
 
   public Dashboards(
-    Collection<DeploymentDashboard> dashboards,
-    final PagerData pagerData,
-    final Fields fields,
-    final BeanContext beanContext
+    @NotNull Collection<DeploymentDashboard> dashboards,
+    @Nullable final PagerData pagerData,
+    @NotNull final Fields fields,
+    @NotNull final BeanContext beanContext
   ) {
-    if (dashboards != null && fields.isIncluded("deploymentDashboard", false, true)) {
+    if (fields.isIncluded("deploymentDashboard", false, true)) {
       items = ValueWithDefault.decideDefault(
         fields.isIncluded("deploymentDashboard"),
         resolveItems(dashboards, fields, beanContext)
@@ -76,7 +76,7 @@ public class Dashboards {
       items = null;
     }
 
-    count = dashboards == null ? null : ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), dashboards.size());
+    count = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("count"), dashboards.size());
 
     if (pagerData != null) {
       href = ValueWithDefault.decideDefault(

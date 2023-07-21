@@ -42,7 +42,7 @@ import static jetbrains.buildServer.server.rest.data.finder.syntax.DeploymentDas
 
 @JerseyContextSingleton
 @Component("restDeploymentDashboardFinder")
-public class DeploymentDashboardFinder extends DelegatingFinder<DeploymentDashboard> implements FinderLocatorDefinition {
+public class DeploymentDashboardFinder extends DelegatingFinder<DeploymentDashboard> {
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final ProjectFinder myProjectFinder;
   @NotNull private final DeploymentDashboardManager myDeploymentDashboardManager;

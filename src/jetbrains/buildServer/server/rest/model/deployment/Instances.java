@@ -65,7 +65,7 @@ public class Instances {
   }
 
   public Instances(
-    @Nullable final Collection<DeploymentInstance> deploymentInstances,
+    @NotNull final Collection<DeploymentInstance> deploymentInstances,
     @Nullable final PagerData pagerData,
     @NotNull final Fields fields,
     @NotNull final BeanContext beanContext

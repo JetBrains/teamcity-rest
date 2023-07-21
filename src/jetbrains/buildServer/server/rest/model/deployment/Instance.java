@@ -54,7 +54,7 @@ public class Instance {
 
   public Instance(
     @NotNull final DeploymentInstance deploymentInstance,
-    final @NotNull Fields fields,
+    @NotNull final Fields fields,
     @NotNull final BeanContext beanContext
   ) {
     id = ValueWithDefault.decideIncludeByDefault(
