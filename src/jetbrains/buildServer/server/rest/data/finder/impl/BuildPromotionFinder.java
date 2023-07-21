@@ -1514,7 +1514,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final String number = locator.getSingleDimensionValue(NUMBER);
     assert number != null;
 
-    ValueCondition numberCondition = ParameterCondition.createValueCondition(number);
+    ValueCondition numberCondition = ParameterCondition.createValueConditionFromPlainValueOrCondition(number);
     String result = numberCondition.getConstantValueIfSimpleEqualsCondition();
     if(result == null) {
       locator.markUnused(NUMBER);
