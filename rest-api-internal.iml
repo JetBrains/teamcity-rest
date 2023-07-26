@@ -28,7 +28,9 @@
     <orderEntry type="module" module-name="runtime-util" exported="" />
     <orderEntry type="module" module-name="web-openapi" exported="" />
     <orderEntry type="module" module-name="server" exported="" />
+    <orderEntry type="module" module-name="server-core" exported="" />
     <orderEntry type="module" module-name="web" exported="" />
+    <orderEntry type="module" module-name="web-core" exported="" />
     <orderEntry type="module-library" exported="">
       <library name="Jersey">
         <CLASSES>
@@ -174,7 +176,9 @@
     <orderEntry type="module" module-name="vcs-plugin-api" exported="" />
     <orderEntry type="module" module-name="cloud-api" exported="" />
     <orderEntry type="module" module-name="cloud-server-api" exported="" />
+    <orderEntry type="module" module-name="cloud-server-api-core" exported="" />
     <orderEntry type="module" module-name="cloud-shared" exported="" />
+    <orderEntry type="module" module-name="cloud-shared-core" exported="" />
     <orderEntry type="module" module-name="server-common-api" exported="" />
     <orderEntry type="library" name="Maven: javax.servlet:javax.servlet-api:3.1.0" level="project" />
     <orderEntry type="module" module-name="common-impl" />
