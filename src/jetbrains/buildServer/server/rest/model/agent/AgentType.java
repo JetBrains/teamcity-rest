@@ -66,7 +66,7 @@ public class AgentType {
     );
     myName = ValueWithDefault.decideDefault(
       fields.isIncluded("name", true, true),
-      () -> agentType.getDetails().getDisplayName()
+      () -> agentType.getDetails().getName()
     );
     myIsCloud = ValueWithDefault.decideDefault(
       fields.isIncluded("isCloud", true, true),
