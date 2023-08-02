@@ -34,7 +34,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import static java.util.Arrays.asList;
-import static jetbrains.buildServer.serverSide.impl.buildDistribution.QueuedBuildTerminator.PREEMPTIVE_START_FAILURE_ENABLED_PROPERTY;
 
 public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   private TestScopeTreeCollector myTestScopeTreeCollector;
@@ -242,7 +241,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
   @Test(dataProvider = "true,false")
   public void testVirtualBuildsMergedCorrectly(boolean preemptiveBuildsStartFailureEnabled) {
-    setInternalProperty(PREEMPTIVE_START_FAILURE_ENABLED_PROPERTY, String.valueOf(preemptiveBuildsStartFailureEnabled));
+    setInternalProperty("teamcity.queueDistribution.preemptiveBuildsStartFailure.enabled", String.valueOf(preemptiveBuildsStartFailureEnabled));
 
     createTwoAdditionalAgents();
 
@@ -261,7 +260,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
   @Test(dataProvider = "true,false")
   public void testVirtualBuildsNotMergedWhenAsked(boolean preemptiveBuildsStartFailureEnabled) {
-    setInternalProperty(PREEMPTIVE_START_FAILURE_ENABLED_PROPERTY, String.valueOf(preemptiveBuildsStartFailureEnabled));
+    setInternalProperty("teamcity.queueDistribution.preemptiveBuildsStartFailure.enabled", String.valueOf(preemptiveBuildsStartFailureEnabled));
 
     createTwoAdditionalAgents();
 
@@ -282,7 +281,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
   @Test(dataProvider = "true,false")
   public void testVirtualBuildsMergedCorrectly2(boolean preemptiveBuildsStartFailureEnabled) {
-    setInternalProperty(PREEMPTIVE_START_FAILURE_ENABLED_PROPERTY, String.valueOf(preemptiveBuildsStartFailureEnabled));
+    setInternalProperty("teamcity.queueDistribution.preemptiveBuildsStartFailure.enabled", String.valueOf(preemptiveBuildsStartFailureEnabled));
 
     createTwoAdditionalAgents();
 

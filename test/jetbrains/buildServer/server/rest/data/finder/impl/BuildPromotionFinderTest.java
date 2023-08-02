@@ -64,7 +64,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import static jetbrains.buildServer.serverSide.impl.buildDistribution.QueuedBuildTerminator.PREEMPTIVE_START_FAILURE_ENABLED_PROPERTY;
 import static jetbrains.buildServer.util.Util.map;
 import static jetbrains.buildServer.vcs.RepositoryStateData.createVersionState;
 
@@ -2369,7 +2368,7 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
 
   @Test(dataProvider = "true,false")
   public void testSnapshotDependenciesProblems(boolean preemptiveBuildsStartFailureEnabled) {
-    setInternalProperty(PREEMPTIVE_START_FAILURE_ENABLED_PROPERTY, String.valueOf(preemptiveBuildsStartFailureEnabled));
+    setInternalProperty("teamcity.queueDistribution.preemptiveBuildsStartFailure.enabled", String.valueOf(preemptiveBuildsStartFailureEnabled));
 
     final SProject project = createProject("prj", "project");
     final BuildTypeEx buildConfA = (BuildTypeEx)project.createBuildType("buildConfA", "buildConfA");
