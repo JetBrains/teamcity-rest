@@ -125,7 +125,16 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   protected static final String INVOCATIONS = "invocations"; //experimental
   protected static final String ORDER = "orderBy"; //highly experimental
 
-  private static final SortTestRunsByNewComparator TEST_RUN_COMPARATOR = new SortTestRunsByNewComparator();
+  private static final SortTestRunsByNewComparator SORT_BY_NEW_COMPARATOR = new SortTestRunsByNewComparator();
+
+  /**
+   * This comparator helps to identify duplicate test runs.
+   * OrderId is not taken into account as it is dependent on how said test run was obtained, and not on the test run itself.
+   */
+  private static final Comparator<STestRun> DETECT_DUPLICATE_COMPARATOR = (testRun1, testRun2) -> ComparisonChain.start()
+                                                                                                                 .compare(testRun1.getBuildId(), testRun2.getBuildId())
+                                                                                                                 .compare(testRun1.getTestRunId(), testRun2.getTestRunId())
+                                                                                                                 .result();
 
   // Data for requests with these TestOccurrence fields can be retrieved from ShortStatistics.
   private static final Set<String> FASTPATH_ALLOWED_FIELDS = new HashSet<String>(Arrays.asList("id", "href", "name", "status", "duration", "runOrder", "build", "test"));
@@ -277,11 +286,22 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @NotNull
   public static Set<STestRun> getCurrentOccurrences(@NotNull final SProject affectedProject, @NotNull final CurrentProblemsManager currentProblemsManager) {
+    return getCurrentOccurrencesComparingWith(affectedProject, currentProblemsManager, SORT_BY_NEW_COMPARATOR);
+  }
+
+  /**
+   * Retrieves "currently failing" test runs for a given project and returns a TreeSet built using given comparator.
+   * Comparator is used to when merging test run collections obtained from several internal data sources.
+   */
+  @NotNull
+  private static TreeSet<STestRun> getCurrentOccurrencesComparingWith(@NotNull SProject affectedProject,
+                                                                      @NotNull CurrentProblemsManager currentProblemsManager,
+                                                                      @NotNull Comparator<STestRun> comparator) {
     final CurrentProblems currentProblems = currentProblemsManager.getProblemsForProject(affectedProject);
     final Map<TestName, List<STestRun>> failingTests = currentProblems.getFailingTests();
     final Map<TestName, List<STestRun>> mutedTestFailures = currentProblems.getMutedTestFailures();
-    final TreeSet<STestRun> result = new TreeSet<>(TEST_RUN_COMPARATOR);
-    //todo: check whether STestRun is OK to put into the set
+
+    final TreeSet<STestRun> result = new TreeSet<>(comparator);
     for (List<STestRun> testRuns : failingTests.values()) {
       result.addAll(testRuns);
     }
@@ -310,12 +330,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @Override
   @NotNull
-  public DuplicateChecker<STestRun> createDuplicateChecker() {
-    return new ComparatorDuplicateChecker<>((testRun1, testRun2) -> ComparisonChain.start()
-      .compare(testRun1.getBuildId(), testRun2.getBuildId())
-      .compare(testRun1.getTestRunId(), testRun2.getTestRunId())
-      .result()
-    );
+  public ComparatorDuplicateChecker<STestRun> createDuplicateChecker() {
+    return new ComparatorDuplicateChecker<>(DETECT_DUPLICATE_COMPARATOR);
   }
 
   /**
@@ -669,9 +685,16 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
     if (locator.isUnused(CURRENT)) {
       final Boolean currentDimension = locator.getSingleDimensionValueAsBoolean(CURRENT);
+
       if (currentDimension != null) {
-        //todo: is this the same as the test occurring in current problems???
-        result.add(item -> FilterUtil.isIncludedByBooleanFilter(currentDimension , !item.isFixed()));
+        // We do not really care if AFFECTED_PROJECT was already used, we still need id for getting current problems.
+        if(locator.isAnyPresent(AFFECTED_PROJECT)) {
+          Set<STestRun> currentOccurrences = getCurrentOccurrencesComparingWith(getAffectedProject(locator), myCurrentProblemsManager, DETECT_DUPLICATE_COMPARATOR);
+          result.add(tr -> currentOccurrences.contains(tr));
+        } else {
+          // This is frankly not the same as checking if test occurrence is present in current problems, but that is the best that we can do (?)
+          result.add(item -> FilterUtil.isIncludedByBooleanFilter(currentDimension , !item.isFixed()));
+        }
       }
     }
 

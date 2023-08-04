@@ -921,6 +921,23 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     );
   }
 
+  @Test
+  public void testCurrentlyFailing() {
+    BuildTypeEx bt1 = myFixture.createBuildType("bt1", "Ant");
+    SFinishedBuild build1 = build().in(bt1).withFailedTests("test1", "test2").finish();
+    STestRun testRun1 = build1.getShortStatistics().getFailedTests().get(0);
+    long testNameId = testRun1.getTest().getTestNameId();
+
+    BuildTypeEx bt2 = myFixture.createBuildType("bt2", "Ant");
+    build().in(bt2)
+           .withTest("test2", true)
+           .withTest("test1", true).finish();
+
+    String locator = String.format("test:(id:%d),currentlyFailing:true,affectedProject:%s", testNameId, bt1.getProject().getExternalId());
+
+    check(locator, TEST_WITH_BUILD_MATCHER, t("test1", Status.FAILURE, 0, build1.getBuildId()));
+  }
+
   private SFinishedBuild createBuildWithSuccessFailedIgnoredTests(SBuildType buildType) {
     return build().in(buildType)
                   .withTest(BuildBuilder.TestData.test("aaa"))
