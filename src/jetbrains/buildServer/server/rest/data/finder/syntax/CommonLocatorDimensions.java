@@ -24,6 +24,7 @@ import jetbrains.buildServer.server.rest.data.locator.*;
 import jetbrains.buildServer.server.rest.data.locator.Dimension;
 import jetbrains.buildServer.server.rest.data.locator.PlainValue;
 import jetbrains.buildServer.server.rest.data.locator.SubDimensionSyntax;
+import jetbrains.buildServer.server.rest.data.locator.definition.LocatorDefinition;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
 import org.jetbrains.annotations.NotNull;
@@ -50,20 +51,20 @@ public class CommonLocatorDimensions {
     return Dimension.ofName(Locator.LOCATOR_SINGLE_VALUE_UNUSED_NAME).description(valueDescription).syntax(PlainValue.string()).build();
   }
 
-  public static Dimension ITEM(@NotNull Supplier<? extends SubDimensionSyntax> syntax) {
-    return Dimension.ofName(FinderImpl.DIMENSION_ITEM).syntax(syntax).hidden().repeatable().build();
+  public static Dimension ITEM(@NotNull Supplier<Class<? extends LocatorDefinition>> definition) {
+    return Dimension.ofName(FinderImpl.DIMENSION_ITEM).syntax(() -> new SubDimensionSyntaxImpl(definition.get())).hidden().repeatable().build();
   }
 
-  public static Dimension LOGICAL_OR(@NotNull Supplier<? extends SubDimensionSyntax> syntax) {
-    return Dimension.ofName(FinderImpl.LOGIC_OP_OR).syntax(() -> new LogicOpSyntax(syntax.get())).hidden().build();
+  public static Dimension LOGICAL_OR(@NotNull Supplier<Class<? extends LocatorDefinition>> definition) {
+    return Dimension.ofName(FinderImpl.LOGIC_OP_OR).syntax(() -> new LogicOpSyntax(new SubDimensionSyntaxImpl(definition.get()))).hidden().build();
   }
 
-  public static Dimension LOGICAL_AND(@NotNull Supplier<? extends SubDimensionSyntax> syntax) {
-    return Dimension.ofName(FinderImpl.LOGIC_OP_AND).syntax(() -> new LogicOpSyntax(syntax.get())).hidden().build();
+  public static Dimension LOGICAL_AND(@NotNull Supplier<Class<? extends LocatorDefinition>> definition) {
+    return Dimension.ofName(FinderImpl.LOGIC_OP_AND).syntax(() -> new LogicOpSyntax(new SubDimensionSyntaxImpl(definition.get()))).hidden().build();
   }
 
-  public static Dimension LOGICAL_NOT(@NotNull Supplier<? extends SubDimensionSyntax> syntax) {
-    return Dimension.ofName(FinderImpl.LOGIC_OP_NOT).syntax(syntax).hidden().build();
+  public static Dimension LOGICAL_NOT(@NotNull Supplier<Class<? extends LocatorDefinition>> definition) {
+    return Dimension.ofName(FinderImpl.LOGIC_OP_NOT).syntax(() -> new SubDimensionSyntaxImpl(definition.get())).hidden().build();
   }
 
   /**
@@ -99,7 +100,7 @@ public class CommonLocatorDimensions {
 
     @Override
     public String getFormat() {
-      return "LogicOpsSyntax[" + myDelegate + "]";
+      return "LogicOpSyntax[" + myDelegate + "]";
     }
 
     @Override

@@ -38,21 +38,6 @@ public class LocatorDefinitionUtil {
 
   @NotNull
   public static Stream<Dimension> getAllDimensions(@NotNull Class<? extends LocatorDefinition> definition) {
-    Map<String, Dimension> dimensions = getDimensionsFromDefinition(definition);
-
-    if (FinderLocatorDefinition.class.isAssignableFrom(definition)) {
-      Map<String, Dimension> finderDims = getFinderSpecialDimensions((Class<? extends FinderLocatorDefinition>) definition);
-
-      for(String name : finderDims.keySet()) {
-        dimensions.computeIfAbsent(name, n -> finderDims.get(n));
-      }
-    }
-
-    return dimensions.values().stream();
-  }
-
-  @NotNull
-  private static Map<String, Dimension> getDimensionsFromDefinition(@NotNull Class<? extends LocatorDefinition> definition) {
     return Arrays.stream(definition.getFields())
                  .filter(field -> java.lang.reflect.Modifier.isStatic(field.getModifiers()))
                  .filter(field -> Dimension.class.isAssignableFrom(field.getType()))
@@ -63,20 +48,6 @@ public class LocatorDefinitionUtil {
                           throw new RuntimeException(e);
                         }
                       }
-                 ).collect(Collectors.toMap(Dimension::getName, dim -> dim));
-  }
-
-  @NotNull
-  private static Map<String, Dimension> getFinderSpecialDimensions(@NotNull Class<? extends FinderLocatorDefinition> definition) {
-    return Stream.of(
-      CommonLocatorDimensions.PAGER_COUNT,
-      CommonLocatorDimensions.PAGER_START,
-      CommonLocatorDimensions.UNIQUE,
-      CommonLocatorDimensions.LOOKUP_LIMIT,
-      CommonLocatorDimensions.LOGICAL_OR(() -> new SubDimensionSyntaxImpl(definition)),
-      CommonLocatorDimensions.LOGICAL_AND(() -> new SubDimensionSyntaxImpl(definition)),
-      CommonLocatorDimensions.LOGICAL_NOT(() -> new SubDimensionSyntaxImpl(definition)),
-      CommonLocatorDimensions.ITEM(() -> new SubDimensionSyntaxImpl(definition))
-    ).collect(Collectors.toMap(Dimension::getName, dim -> dim));
+                 );
   }
 }
