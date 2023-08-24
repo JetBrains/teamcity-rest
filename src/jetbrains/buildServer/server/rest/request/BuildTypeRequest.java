@@ -1752,6 +1752,9 @@ public class BuildTypeRequest {
     if (targetProject == null) {
       throw new BadRequestException("Project not found.");
     }
+    if (buildType.getProject().getProjectId().equals(targetProject.getProjectId())) {
+      return;
+    }
     if (buildType.isBuildType()) {
       Objects.requireNonNull(buildType.getBuildType()).moveToProject(targetProject);
     }
