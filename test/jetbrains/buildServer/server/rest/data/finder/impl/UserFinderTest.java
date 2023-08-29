@@ -233,7 +233,7 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
 
     check (null, user1, user2, user25, user3);
     check("group:(key:" + group1.getKey() + ")", user1, user2, user25);
-    check("group:(key:" + group2.getKey() + ")", user3, user25);
+    check("group:(key:" + group2.getKey() + ")", user25, user3);
     check("group:(key:" + getUserGroupManager().getAllUsersGroup().getKey() + ")", user1, user2, user25, user3);
 
     check("group:(key:" + group1.getKey() + "),username:user1", user1);
@@ -479,7 +479,7 @@ public class UserFinderTest extends BaseFinderTest<SUser> {
 
     check (null, user1, user2, user3, user4);
     check("group:(key:" + group1.getKey() + ")", user1, user2);
-    check("group:(key:" + group2.getKey() + ")", user3, user2);  //todo: should actually return sorted
+    check("group:(key:" + group2.getKey() + ")", user2, user3);  //todo: should actually return sorted
     check("group:(key:" + group1.getKey() + "),group:(key:" + group2.getKey() + ")", user2);
     check("group:(key:" + group1.getKey() + "),and:(group:(key:" + group2.getKey() + "))", user2);
     check("and:(group:(key:" + group1.getKey() + "),group:(key:" + group2.getKey() + "))", user2);
