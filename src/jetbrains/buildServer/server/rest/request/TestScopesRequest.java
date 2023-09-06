@@ -34,7 +34,7 @@ import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScope;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopesCollector;
-import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
+import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerData;

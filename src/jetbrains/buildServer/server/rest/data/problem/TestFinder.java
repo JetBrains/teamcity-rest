@@ -227,7 +227,7 @@ public class TestFinder extends AbstractFinder<STest> {
   }
 
   private Set<STest> getCurrentlyFailingTests(@NotNull final SProject affectedProject) {
-    final Set<STestRun> failingTestOccurrences = TestOccurrenceFinder.getCurrentOccurrences(affectedProject, myCurrentProblemsManager);
+    final List<STestRun> failingTestOccurrences = TestOccurrenceFinder.getCurrentOccurrences(affectedProject, myCurrentProblemsManager);
     return failingTestOccurrences.stream().map(STestRun::getTest).collect(Collectors.toSet());
   }
 

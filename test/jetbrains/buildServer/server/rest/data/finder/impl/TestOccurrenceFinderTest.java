@@ -938,6 +938,38 @@ public class TestOccurrenceFinderTest extends BaseFinderTest<STestRun> {
     check(locator, TEST_WITH_BUILD_MATCHER, t("test1", Status.FAILURE, 0, build1.getBuildId()));
   }
 
+  @Test
+  public void testCurrentlyFailingWithMultiruns() {
+    BuildTypeEx bt1 = myFixture.createBuildType("bt1", "Ant");
+    SFinishedBuild build1 = build().in(bt1)
+                                   .withTest("test", true)
+                                   .withTest("test", false)
+                                   .finish();
+
+    STestRun testRun1 = build1.getShortStatistics().getFailedTests().get(0);
+    long testNameId = testRun1.getTest().getTestNameId();
+
+    String locator = String.format("test:(id:%d),currentlyFailing:true,affectedProject:%s", testNameId, bt1.getProject().getExternalId());
+
+    check(locator, TEST_WITH_BUILD_MATCHER, t("test", Status.FAILURE, 0, build1.getBuildId()));
+  }
+
+  @Test
+  public void testCurrentlyFailingWithMultiruns2() {
+    BuildTypeEx bt1 = myFixture.createBuildType("bt1", "Ant");
+    SFinishedBuild build1 = build().in(bt1)
+                                   .withTest("test", false)
+                                   .withTest("test", false)
+                                   .finish();
+
+    STestRun testRun1 = build1.getShortStatistics().getFailedTests().get(0);
+    long testNameId = testRun1.getTest().getTestNameId();
+
+    String locator = String.format("test:(id:%d),currentlyFailing:true,affectedProject:%s", testNameId, bt1.getProject().getExternalId());
+
+    check(locator, TEST_WITH_BUILD_MATCHER, t("test", Status.FAILURE, 0, build1.getBuildId()));
+  }
+
   private SFinishedBuild createBuildWithSuccessFailedIgnoredTests(SBuildType buildType) {
     return build().in(buildType)
                   .withTest(BuildBuilder.TestData.test("aaa"))

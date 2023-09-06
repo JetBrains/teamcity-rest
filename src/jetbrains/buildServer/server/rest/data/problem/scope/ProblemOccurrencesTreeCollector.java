@@ -26,7 +26,7 @@ import jetbrains.buildServer.BuildProblemTypes;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.problem.Orders;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
-import jetbrains.buildServer.server.rest.data.problem.tree.*;
+import jetbrains.buildServer.server.rest.data.util.tree.*;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
 import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.BuildPromotion;

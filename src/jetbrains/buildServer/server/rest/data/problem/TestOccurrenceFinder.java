@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.server.rest.data.problem;
 
-import com.google.common.collect.ComparisonChain;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
@@ -126,15 +125,6 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   protected static final String ORDER = "orderBy"; //highly experimental
 
   private static final SortTestRunsByNewComparator SORT_BY_NEW_COMPARATOR = new SortTestRunsByNewComparator();
-
-  /**
-   * This comparator helps to identify duplicate test runs.
-   * OrderId is not taken into account as it is dependent on how said test run was obtained, and not on the test run itself.
-   */
-  private static final Comparator<STestRun> DETECT_DUPLICATE_COMPARATOR = (testRun1, testRun2) -> ComparisonChain.start()
-                                                                                                                 .compare(testRun1.getBuildId(), testRun2.getBuildId())
-                                                                                                                 .compare(testRun1.getTestRunId(), testRun2.getTestRunId())
-                                                                                                                 .result();
 
   // Data for requests with these TestOccurrence fields can be retrieved from ShortStatistics.
   private static final Set<String> FASTPATH_ALLOWED_FIELDS = new HashSet<String>(Arrays.asList("id", "href", "name", "status", "duration", "runOrder", "build", "test"));
@@ -285,8 +275,11 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
   }
 
   @NotNull
-  public static Set<STestRun> getCurrentOccurrences(@NotNull final SProject affectedProject, @NotNull final CurrentProblemsManager currentProblemsManager) {
-    return getCurrentOccurrencesComparingWith(affectedProject, currentProblemsManager, SORT_BY_NEW_COMPARATOR);
+  public static List<STestRun> getCurrentOccurrences(@NotNull final SProject affectedProject, @NotNull final CurrentProblemsManager currentProblemsManager) {
+    return getCurrentOccurrencesComparingWith(affectedProject, currentProblemsManager).stream()
+                                                                                      .map(PartialTestRunWrapper::getTestRun)
+                                                                                      .sorted(SORT_BY_NEW_COMPARATOR)
+                                                                                      .collect(Collectors.toList());
   }
 
   /**
@@ -294,20 +287,21 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
    * Comparator is used to when merging test run collections obtained from several internal data sources.
    */
   @NotNull
-  private static TreeSet<STestRun> getCurrentOccurrencesComparingWith(@NotNull SProject affectedProject,
-                                                                      @NotNull CurrentProblemsManager currentProblemsManager,
-                                                                      @NotNull Comparator<STestRun> comparator) {
+  private static Set<PartialTestRunWrapper> getCurrentOccurrencesComparingWith(@NotNull SProject affectedProject,
+                                                                               @NotNull CurrentProblemsManager currentProblemsManager) {
     final CurrentProblems currentProblems = currentProblemsManager.getProblemsForProject(affectedProject);
     final Map<TestName, List<STestRun>> failingTests = currentProblems.getFailingTests();
     final Map<TestName, List<STestRun>> mutedTestFailures = currentProblems.getMutedTestFailures();
 
-    final TreeSet<STestRun> result = new TreeSet<>(comparator);
+    final Set<PartialTestRunWrapper> result = new LinkedHashSet<>();
     for (List<STestRun> testRuns : failingTests.values()) {
-      result.addAll(testRuns);
+      testRuns.forEach(tr -> result.add(new PartialTestRunWrapper(tr)));
     }
+
     for (List<STestRun> testRuns : mutedTestFailures.values()) {
-      result.addAll(testRuns);
+      testRuns.forEach(tr -> result.add(new PartialTestRunWrapper(tr)));
     }
+
     return result;
   }
 
@@ -330,8 +324,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   @Override
   @NotNull
-  public ComparatorDuplicateChecker<STestRun> createDuplicateChecker() {
-    return new ComparatorDuplicateChecker<>(DETECT_DUPLICATE_COMPARATOR);
+  public DuplicateChecker<STestRun> createDuplicateChecker() {
+    return new KeyDuplicateChecker<>(PartialTestRunWrapper::new);
   }
 
   /**
@@ -689,8 +683,8 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
       if (currentDimension != null) {
         // We do not really care if AFFECTED_PROJECT was already used, we still need id for getting current problems.
         if(locator.isAnyPresent(AFFECTED_PROJECT)) {
-          Set<STestRun> currentOccurrences = getCurrentOccurrencesComparingWith(getAffectedProject(locator), myCurrentProblemsManager, DETECT_DUPLICATE_COMPARATOR);
-          result.add(tr -> currentOccurrences.contains(tr));
+          Set<PartialTestRunWrapper> currentOccurrences = getCurrentOccurrencesComparingWith(getAffectedProject(locator), myCurrentProblemsManager);
+          result.add(tr -> currentOccurrences.contains(new PartialTestRunWrapper(tr)));
         } else {
           // This is frankly not the same as checking if test occurrence is present in current problems, but that is the best that we can do (?)
           result.add(item -> FilterUtil.isIncludedByBooleanFilter(currentDimension , !item.isFixed()));
@@ -948,6 +942,134 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
     @Override
     public DuplicateChecker<T> createDuplicateChecker() {
       return myDelegate.createDuplicateChecker();
+    }
+  }
+
+  /**
+   * Wrapper useful for putting {@link STestRun} implementations into set for deduplication.
+   * Provides {@link #equals(Object)} and {@link #hashCode()} implementations which satisfy those relaxed conditions:
+   * <pre>
+   * When both testRun1 and testRun2 are NOT instances of {@link MultiTestRun} then:
+   *   testRun1 == testRun2 iff (testRun1.buildId == testRun2.buildId) AND (testRun1.testRunId == testRun2.testRunId)
+   *
+   * Otherwise:
+   *
+   *
+   */
+  private static class PartialTestRunWrapper {
+    private final STestRun myTestRun;
+    private final Map<Long, int[]> myFailedInvocations;
+
+    public PartialTestRunWrapper(@NotNull STestRun testRun) {
+      myTestRun = testRun;
+      myFailedInvocations = computeFailedInvocations(myTestRun);
+    }
+
+    @NotNull
+    public STestRun getTestRun() {
+      return myTestRun;
+    }
+
+    @NotNull
+    public Map<Long, int[]> getFailedInvocations() {
+      return myFailedInvocations;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(myFailedInvocations.size(), myTestRun.getStatus().isFailed());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == null || !(obj instanceof PartialTestRunWrapper)) {
+        return false;
+      }
+
+      PartialTestRunWrapper other = ((PartialTestRunWrapper) obj);
+
+      boolean tr1IsMultiTestRun = myTestRun instanceof MultiTestRun;
+      boolean tr2IsMultiTestRun = other.getTestRun() instanceof MultiTestRun;
+
+      if (!tr1IsMultiTestRun && !tr2IsMultiTestRun) {
+        return dumbEquals(other.getTestRun());
+      }
+
+      Status status1 = myTestRun.getStatus();
+      Status status2 = other.getTestRun().getStatus();
+      if (status1.isSuccessful() != status2.isSuccessful()) {
+        return false;
+      }
+
+      if (status1.isSuccessful() && status2.isSuccessful()) {
+        return dumbEquals(other.getTestRun());
+      }
+
+
+      Map<Long, int[]> otherFailures = other.getFailedInvocations();
+
+      // Check if there is the same amount of builds where tests have failed.
+      if (otherFailures.size() != myFailedInvocations.size()) {
+        return false;
+      }
+
+      for (Long buildId : myFailedInvocations.keySet()) {
+        int[] otherFailedTestRunIds = otherFailures.get(buildId);
+
+        if(!Arrays.equals(myFailedInvocations.get(buildId), otherFailedTestRunIds)) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    private boolean dumbEquals(@NotNull STestRun other) {
+      return (myTestRun.getBuildId() == other.getBuildId() && myTestRun.getTestRunId() == other.getTestRunId());
+    }
+
+    // BuildId -> sorted list of failed testRunIds
+    @NotNull
+    private static Map<Long, int[]> computeFailedInvocations(@NotNull STestRun testRun) {
+      if(!testRun.getStatus().isFailed()) {
+        return Collections.emptyMap();
+      }
+
+      if(!(testRun instanceof MultiTestRun)) {
+        return Collections.singletonMap(testRun.getBuildId(), new int[] { testRun.getTestRunId() });
+      }
+
+      Map<Long, List<Integer>> result = new HashMap<>();
+      for(STestRun invocation : ((MultiTestRun) testRun).getTestRuns()) {
+        if(!invocation.getStatus().isFailed()) {
+          continue;
+        }
+
+        result.computeIfAbsent(invocation.getBuildId(), k -> new ArrayList<>())
+              .add(invocation.getTestRunId());
+
+      }
+
+      return result.entrySet().stream()
+                   .collect(Collectors.toMap(
+                     e -> e.getKey(),
+                     e -> {
+                       List<Integer> source = e.getValue();
+                       int[] r = new int[source.size()];
+
+                       for(int i = 0; i < source.size(); i++) {
+                         r[i] = source.get(i);
+                       }
+
+                       Arrays.sort(r);
+                       return r;
+                     }
+                   ));
+    }
+
+    @Override
+    public String toString() {
+      return String.format("Wraps '%s' with %d failures", myTestRun.toString(), myFailedInvocations.size());
     }
   }
 

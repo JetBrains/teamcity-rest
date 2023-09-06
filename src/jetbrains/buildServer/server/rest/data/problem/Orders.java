@@ -16,11 +16,12 @@
 
 package jetbrains.buildServer.server.rest.data.problem;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.EnumValue;
+import jetbrains.buildServer.server.rest.data.locator.SubDimensionSyntax;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import org.jetbrains.annotations.NotNull;
 
@@ -73,5 +74,22 @@ public class Orders<T> {
       throw new BadRequestException("No order is defined by the supplied ordering locator");
     }
     return comparator;
+  }
+
+  @NotNull
+  public SubDimensionSyntax getSyntax() {
+    return new SubDimensionSyntax() {
+      @Override
+      public Collection<Dimension> getSubDimensions() {
+        return myComparators.keySet().stream()
+                            .map(name -> Dimension.ofName(name).syntax(EnumValue.of("asc", "desc")).build())
+                            .collect(Collectors.toList());
+      }
+
+      @Override
+      public String getFormat() {
+        return "";
+      }
+    };
   }
 }

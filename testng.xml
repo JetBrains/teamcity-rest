@@ -31,6 +31,8 @@
       <class name="jetbrains.buildServer.server.rest.data.changelog.ChangeLogBeanCollectorTest"/>
       <class name="jetbrains.buildServer.server.rest.data.util.FilterConditionCheckerUtilTest"/>
 
+      <class name="jetbrains.buildServer.server.rest.data.pages.problems.TestFailuresProblemEntriesCollectorTest"/>
+
       <class name="jetbrains.buildServer.server.rest.request.BuildTypeRequestTest"/>
       <class name="jetbrains.buildServer.server.rest.request.BuildTypeRequestPermissionsTest"/>
       <class name="jetbrains.buildServer.server.rest.request.GroupRequestTest"/>

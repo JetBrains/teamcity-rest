@@ -17,8 +17,13 @@
 package jetbrains.buildServer.server.rest.data.finder;
 
 
+import java.util.List;
+import java.util.stream.Stream;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
+import jetbrains.buildServer.server.rest.data.locator.Dimension;
+import jetbrains.buildServer.server.rest.data.locator.definition.FinderLocatorDefinition;
+import jetbrains.buildServer.server.rest.data.locator.definition.LocatorDefinitionUtil;
 import jetbrains.buildServer.server.rest.data.util.DuplicateChecker;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.SetDuplicateChecker;
@@ -42,6 +47,17 @@ public abstract class AbstractFinder<ITEM> extends FinderImpl<ITEM> implements F
   public AbstractFinder(@NotNull final String... knownDimensions) {
     setDataBinding(this);
     myKnownDimensions = ArrayUtils.addAll(knownDimensions);
+  }
+
+  public AbstractFinder(@NotNull Stream<Dimension> knownDimensions) {
+    setDataBinding(this);
+    myKnownDimensions = knownDimensions.map(Dimension::getName).toArray(String[]::new);
+  }
+
+  public AbstractFinder(@NotNull Class<? extends FinderLocatorDefinition> defintion) {
+    setDataBinding(this);
+    myKnownDimensions = LocatorDefinitionUtil.getVisibleDimensions(defintion).map(Dimension::getName).toArray(String[]::new);
+    myHiddenDimensions = LocatorDefinitionUtil.getHiddenDimensions(defintion).map(Dimension::getName).toArray(String[]::new);
   }
 
   @Nullable

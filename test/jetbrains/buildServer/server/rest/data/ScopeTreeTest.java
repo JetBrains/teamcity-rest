@@ -18,7 +18,7 @@ package jetbrains.buildServer.server.rest.data;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.server.rest.data.problem.tree.*;
+import jetbrains.buildServer.server.rest.data.util.tree.*;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.testng.annotations.Test;

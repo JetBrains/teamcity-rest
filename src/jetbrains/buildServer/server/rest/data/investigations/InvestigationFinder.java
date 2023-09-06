@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildProject;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.responsibility.*;
@@ -30,6 +31,7 @@ import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.BuildTypeFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.UserFinder;
+import jetbrains.buildServer.server.rest.data.finder.syntax.InvestigationDimensions;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
@@ -40,58 +42,26 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.errors.NotFoundException;
 import jetbrains.buildServer.server.rest.errors.OperationException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
-import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
-import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
-import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
-import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.STest;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.CollectionsUtil;
-import jetbrains.buildServer.util.Converter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
+
+import static jetbrains.buildServer.server.rest.data.finder.syntax.InvestigationDimensions.*;
 
 /**
  * @author Yegor.Yarko
  *         Date: 09.11.13
  */
-@LocatorResource(value = LocatorName.INVESTIGATION,
-    extraDimensions = {AbstractFinder.DIMENSION_LOOKUP_LIMIT, PagerData.START, PagerData.COUNT, AbstractFinder.DIMENSION_ITEM},
-    baseEntity = "Investigation",
-    examples = {
-        "`assignee:John Smith` — find investigations assigned to `John Smith`.",
-        "`state:taken` — find investigations which are currently in work."
-    }
-)
 @JerseyContextSingleton
 @Component("restInvestigationFinder")
 public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
-  @LocatorDimension(value = "problem", format = LocatorName.PROBLEM, notes = "Problem locator.")
-  private static final String PROBLEM_DIMENSION = "problem";
-  @LocatorDimension(value = "test", format = LocatorName.TEST, notes = "Test locator.")
-  private static final String TEST_DIMENSION = "test";
-  @LocatorDimension(value = "assignmentProject", format = LocatorName.PROJECT, notes = "Project (direct parent) locator.")
-  private static final String ASSIGNMENT_PROJECT = "assignmentProject";
-  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
-  private static final String AFFECTED_PROJECT = "affectedProject";
-  @LocatorDimension("assignee") private static final String ASSIGNEE = "assignee";
-  @LocatorDimension(value = "sinceDate", dataType = LocatorDimensionDataType.TIMESTAMP, notes = "yyyyMMddTHHmmss+ZZZZ")
-  private static final String SINCE_DATE = "sinceDate";
-  @LocatorDimension(value = "state", allowableValues = "taken,fixed,given_up,none")
-  private static final String STATE = "state";
-  @LocatorDimension(value = "resolution", allowableValues = "manually,whenFixed,atTime")
-  private static final String RESOLUTION = "resolution";
-  @LocatorDimension(value = "type", allowableValues = "test,problem,anyProblem,unknown")
-  private static final String TYPE = "type";
-  @LocatorDimension("reporter") private static final String REPORTER = "reporter";
-  @LocatorDimension(value = "buildType", format = LocatorName.BUILD_TYPE, notes = "Build type locator.")
-  private static final String BUILD_TYPE = "buildType";
   //todo: add removeMethod
 
   private final ProjectFinder myProjectFinder;
@@ -112,7 +82,8 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
                              final BuildTypeResponsibilityFacade buildTypeResponsibilityFacade,
                              final TestNameResponsibilityFacade testNameResponsibilityFacade,
                              final BuildProblemResponsibilityFacade buildProblemResponsibilityFacade) {
-    super(ASSIGNEE, REPORTER, TYPE, STATE, RESOLUTION, SINCE_DATE, ASSIGNMENT_PROJECT, AFFECTED_PROJECT, BUILD_TYPE, TEST_DIMENSION, PROBLEM_DIMENSION);
+    super(InvestigationDimensions.class);
+
     myProjectFinder = projectFinder;
     myBuildTypeFinder = buildTypeFinder;
     myProblemFinder = problemFinder;
@@ -234,7 +205,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     }
 
     final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
-    if (assignmentProjectDimension != null){
+    if (assignmentProjectDimension != null) {
       @NotNull final SProject project = myProjectFinder.getItem(assignmentProjectDimension);
       result.add(item -> {
           final BuildProject assignmentProject = item.getAssignmentProject();
@@ -243,7 +214,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     }
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
-    if (affectedProjectDimension != null){
+    if (affectedProjectDimension != null) {
       final SProject project = myProjectFinder.getItem(affectedProjectDimension);
       result.add(item -> {
           final SProject assignmentProject = item.getAssignmentProject();
@@ -260,7 +231,6 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
       result.add(item -> date.before(item.getTimestamp()));
     }
 
-//todo: add assignmentBuildType
     return result.toItemFilter();
   }
 
@@ -268,53 +238,54 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
   @Override
   public ItemHolder<InvestigationWrapper> getPrefilteredItems(@NotNull final Locator locator) {
     final String problemDimension = locator.getSingleDimensionValue(PROBLEM_DIMENSION);
-    if (problemDimension != null){
+    if (problemDimension != null) {
       final ProblemWrapper problem = myProblemFinder.getItem(problemDimension);
       return ItemHolder.of(problem.getInvestigations());
     }
 
     final String testDimension = locator.getSingleDimensionValue(TEST_DIMENSION);
-    if (testDimension != null){
+    if (testDimension != null) {
       final STest test = myTestFinder.getItem(testDimension);
       return ItemHolder.of(getInvestigationWrappers(test));
     }
 
     final String buildTypeDimension = locator.getSingleDimensionValue(BUILD_TYPE);
-    if (buildTypeDimension != null){
+    if (buildTypeDimension != null) {
       final SBuildType buildType = myBuildTypeFinder.getBuildType(null, buildTypeDimension, false);
       return ItemHolder.of(getInvestigationWrappersForBuildType(buildType));
     }
 
-    @Nullable User user = null;
+    User user = null;
     final String investigatorDimension = locator.getSingleDimensionValue(ASSIGNEE);
     if (investigatorDimension != null) {
       user = myUserFinder.getItem(investigatorDimension);
     }
 
     final String assignmentProjectDimension = locator.getSingleDimensionValue(ASSIGNMENT_PROJECT);
-    if (assignmentProjectDimension != null){
-      @NotNull final SProject project = myProjectFinder.getItem(assignmentProjectDimension);
+    if (assignmentProjectDimension != null) {
+      SProject project = myProjectFinder.getItem(assignmentProjectDimension);
       return ItemHolder.of(getInvestigationWrappersForProject(project, user));
     }
 
     final String affectedProjectDimension = locator.getSingleDimensionValue(AFFECTED_PROJECT);
-    if (affectedProjectDimension != null){
-      @NotNull final SProject project = myProjectFinder.getItem(affectedProjectDimension);
+    if (affectedProjectDimension != null) {
+      SProject project = myProjectFinder.getItem(affectedProjectDimension);
       return ItemHolder.of(getInvestigationWrappersForProjectWithSubprojects(project, user));
     }
 
-    if (user != null){
+    if (user != null) {
       return ItemHolder.of(getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), user));
     }
     locator.markUnused(ASSIGNEE);
     return ItemHolder.of(getInvestigationWrappersForProjectWithSubprojects(myProjectFinder.getRootProject(), null));
   }
 
+  @NotNull
   public List<InvestigationWrapper> getInvestigationWrappersForBuildType(final SBuildType buildType) {
     final ResponsibilityEntry responsibilityInfo = buildType.getResponsibilityInfo();
     final ResponsibilityEntry.State state = responsibilityInfo.getState();
     if (state.equals(ResponsibilityEntry.State.NONE)) {
-      return Collections.<InvestigationWrapper>emptyList();
+      return Collections.emptyList();
     } else {
       return Collections.singletonList(new InvestigationWrapper(getBuildTypeRE(buildType)));
     }
@@ -322,12 +293,12 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
   @NotNull
   private List<InvestigationWrapper> getInvestigationWrappersForProjectWithSubprojects(@NotNull final SProject project, @Nullable User user) {
-    if (myProjectFinder.getRootProject().getExternalId().equals(project.getExternalId())){
+    if (myProjectFinder.getRootProject().getExternalId().equals(project.getExternalId())) {
       // this is a root project, use single call
       return getInvestigationWrappersInternal(null, user);
     }
 
-    final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>();
+    final ArrayList<InvestigationWrapper> result = new ArrayList<>();
     result.addAll(getInvestigationWrappersForProject(project, user));
 
     //todo: TeamCity API: is there a dedicated wahy to do this?
@@ -347,30 +318,18 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
    * @param project if null, all projects are processed, if not - only the project passed
    */
   private List<InvestigationWrapper> getInvestigationWrappersInternal(@Nullable final SProject project, @Nullable User user) {
-    final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>();
+    final ArrayList<InvestigationWrapper> result = new ArrayList<>();
 
     final String projectId = project == null ? null : project.getProjectId();
 
     final List<BuildTypeResponsibilityEntry> buildTypeResponsibilities = myBuildTypeResponsibilityFacade.getUserBuildTypeResponsibilities(user, projectId);
-    result.addAll(CollectionsUtil.convertCollection(buildTypeResponsibilities, new Converter<InvestigationWrapper, BuildTypeResponsibilityEntry>() {
-      public InvestigationWrapper createFrom(@NotNull final BuildTypeResponsibilityEntry source) {
-        return new InvestigationWrapper(source);
-      }
-    }));
+    result.addAll(CollectionsUtil.convertCollection(buildTypeResponsibilities, InvestigationWrapper::new));
 
     final List<TestNameResponsibilityEntry> testResponsibilities = myTestNameResponsibilityFacade.getUserTestNameResponsibilities(user, projectId);
-    result.addAll(CollectionsUtil.convertCollection(testResponsibilities, new Converter<InvestigationWrapper, TestNameResponsibilityEntry>() {
-      public InvestigationWrapper createFrom(@NotNull final TestNameResponsibilityEntry source) {
-        return new InvestigationWrapper(source);
-      }
-    }));
+    result.addAll(CollectionsUtil.convertCollection(testResponsibilities, InvestigationWrapper::new));
 
     final List<BuildProblemResponsibilityEntry> problemResponsibilities = myBuildProblemResponsibilityFacade.getUserBuildProblemResponsibilities(user, projectId);
-    result.addAll(CollectionsUtil.convertCollection(problemResponsibilities, new Converter<InvestigationWrapper, BuildProblemResponsibilityEntry>() {
-      public InvestigationWrapper createFrom(@NotNull final BuildProblemResponsibilityEntry source) {
-        return new InvestigationWrapper(source);
-      }
-    }));
+    result.addAll(CollectionsUtil.convertCollection(problemResponsibilities, InvestigationWrapper::new));
 
     //todo: sort!
     return result;
@@ -378,17 +337,14 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
 
   @NotNull
   public List<InvestigationWrapper> getInvestigationWrappers(@NotNull final STest item) {
-    final List<TestNameResponsibilityEntry> responsibilities = item.getAllResponsibilities();
-    final ArrayList<InvestigationWrapper> result = new ArrayList<InvestigationWrapper>(responsibilities.size());
-    for (TestNameResponsibilityEntry responsibility : responsibilities) {
-      result.add(new InvestigationWrapper(responsibility));
-    }
-    return result;
+    return item.getAllResponsibilities().stream()
+               .map(InvestigationWrapper::new)
+               .collect(Collectors.toList());
   }
 
 
   private boolean isInvestigationRelatedToProblem(@NotNull final InvestigationWrapper item, @NotNull final ProblemWrapper problem) {
-    if (!item.isProblem()){
+    if (!item.isProblem()) {
       return false;
     }
     @SuppressWarnings("ConstantConditions") @NotNull final BuildProblemResponsibilityEntry problemRE = item.getProblemRE();
@@ -399,7 +355,7 @@ public class InvestigationFinder extends AbstractFinder<InvestigationWrapper> {
     //todo: TeamCity API (MP): would be good to use buildType.getResponsibilityInfo() here
     final List<BuildTypeResponsibilityEntry> userBuildTypeResponsibilities = myBuildTypeResponsibilityFacade.getUserBuildTypeResponsibilities(null, null);
     for (BuildTypeResponsibilityEntry responsibility : userBuildTypeResponsibilities) {
-      if (responsibility.getBuildType().equals(buildType)){
+      if (responsibility.getBuildType().equals(buildType)) {
         return responsibility;
       }
     }

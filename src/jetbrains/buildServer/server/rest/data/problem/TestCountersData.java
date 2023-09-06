@@ -19,7 +19,7 @@ package jetbrains.buildServer.server.rest.data.problem;
 import java.util.Collection;
 import java.util.List;
 import jetbrains.buildServer.messages.Status;
-import jetbrains.buildServer.server.rest.data.problem.tree.TreeCounters;
+import jetbrains.buildServer.server.rest.data.util.tree.TreeCounters;
 import jetbrains.buildServer.serverSide.STestRun;
 import jetbrains.buildServer.serverSide.ShortStatistics;
 import org.jetbrains.annotations.NotNull;

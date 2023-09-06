@@ -16,7 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data.problem.scope;
 
-import jetbrains.buildServer.server.rest.data.problem.tree.Scope;
+import jetbrains.buildServer.server.rest.data.util.tree.Scope;
 import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 

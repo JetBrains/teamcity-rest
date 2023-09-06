@@ -22,7 +22,7 @@ import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeInfo;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeType;
-import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
+import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;

@@ -31,7 +31,7 @@ import jetbrains.buildServer.server.rest.data.PagedSearchResult;
 import jetbrains.buildServer.server.rest.data.problem.ProblemOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.scope.ProblemOccurrencesTreeCollector;
-import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
+import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrence;

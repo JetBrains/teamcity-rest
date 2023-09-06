@@ -20,7 +20,7 @@ import java.util.List;
 import javax.xml.bind.annotation.*;
 import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeInfo;
-import jetbrains.buildServer.server.rest.data.problem.tree.ScopeTree;
+import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.TestCounters;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;

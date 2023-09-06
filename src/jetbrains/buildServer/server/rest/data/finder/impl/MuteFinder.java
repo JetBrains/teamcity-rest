@@ -24,11 +24,8 @@ import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PermissionChecker;
 import jetbrains.buildServer.server.rest.data.TimeCondition;
-import jetbrains.buildServer.server.rest.data.finder.AbstractFinder;
 import jetbrains.buildServer.server.rest.data.finder.DelegatingFinder;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
-import jetbrains.buildServer.server.rest.data.locator.Dimension;
-import jetbrains.buildServer.server.rest.data.locator.StubDimension;
 import jetbrains.buildServer.server.rest.data.problem.ProblemFinder;
 import jetbrains.buildServer.server.rest.data.problem.ProblemWrapper;
 import jetbrains.buildServer.server.rest.data.problem.TestFinder;
@@ -43,10 +40,6 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.buildType.ProblemTarget;
 import jetbrains.buildServer.server.rest.model.problem.Resolution;
 import jetbrains.buildServer.server.rest.request.Constants;
-import jetbrains.buildServer.server.rest.swagger.annotations.LocatorDimension;
-import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
-import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
-import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -56,45 +49,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
+import static jetbrains.buildServer.server.rest.data.finder.syntax.MuteDimensions.*;
+
 /**
  * @author Yegor.Yarko
  *         Date: 09.08.17
  */
-@LocatorResource(value = LocatorName.MUTE,
-    extraDimensions = AbstractFinder.DIMENSION_ITEM,
-    baseEntity = "Mute",
-    examples = {
-        "`project:<projectLocator>` — find muted problem under project found by `projectLocator`.",
-        "`type:test` — find last 100 muted tests."
-    }
-)
 @JerseyContextSingleton
 @Component("restMuteFinder")
 public class MuteFinder extends DelegatingFinder<MuteInfo> {
-  @LocatorDimension(value = "id", dataType = LocatorDimensionDataType.INTEGER) 
-  private static final Dimension ID = new StubDimension("id");
-  @LocatorDimension(value = "affectedProject", format = LocatorName.PROJECT, notes = "Project (direct or indirect parent) locator.")
-  private static final Dimension AFFECTED_PROJECT = new StubDimension("affectedProject");
-  @LocatorDimension(value = "project", format = LocatorName.PROJECT, notes = "Project (direct parent) locator.")
-  private static final Dimension PROJECT = new StubDimension("project"); //differs from investigation: assignmentProject
-  @LocatorDimension(value = "creationDate", dataType = LocatorDimensionDataType.TIMESTAMP, notes = "yyyyMMddTHHmmss+ZZZZ")
-  private static final Dimension CREATION_DATE = new StubDimension("creationDate");  //differs from investigation: sinceDate
-  @LocatorDimension(value = "unmuteDate", dataType = LocatorDimensionDataType.TIMESTAMP, notes = "yyyyMMddTHHmmss+ZZZZ")
-  private static final Dimension UNMUTE_DATE = new StubDimension("unmuteDate");  //differs from investigation: sinceDate
-  @LocatorDimension(value = "reporter", notes = "User who muted this test.")
-  private static final Dimension REPORTER = new StubDimension("reporter"); //todo: review naming?
-  @LocatorDimension(value = "type", allowableValues = "test,problem,anyProblem,unknown")
-  private static final Dimension TYPE = new StubDimension("type"); // target
-  @LocatorDimension(value = "resolution", allowableValues = "manually,whenFixed,atTime")
-  private static final Dimension RESOLUTION = new StubDimension("resolution");
-  @LocatorDimension(value = "test", format = LocatorName.TEST, notes = "Test locator.")
-  private static final Dimension TEST = new StubDimension("test");
-  @LocatorDimension(value = "problem", format = LocatorName.PROBLEM, notes = "Problem locator.")
-  private static final Dimension PROBLEM = new StubDimension("problem");
-
-
-  //private static final String BUILD_TYPE = "buildType"; //todo: add assignmentBuildType
-
   private final ProjectFinder myProjectFinder;
 
   @NotNull private final TimeCondition myTimeCondition;
@@ -227,11 +190,10 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
         }
       });
 
-      dimensionLong(ID).description("internal mute id")
-                       .filter((value, item) -> value.equals(item.getId().longValue()))
+      dimensionLong(ID).filter((value, item) -> value.equals(item.getId().longValue()))
                        .toItems(dimension -> Collections.singletonList(findMuteById(dimension.intValue())));
 
-      dimensionTests(TEST, myServiceLocator).description("test for which mute is assigned").valueForDefaultFilter(muteInfo -> new HashSet<>(muteInfo.getTests()));
+      dimensionTests(TEST, myServiceLocator).valueForDefaultFilter(muteInfo -> new HashSet<>(muteInfo.getTests()));
                                             //.toItems(dimension -> dimension.stream().
                                             //  flatMap(sTest -> {
                                             //    HashMap<Integer, MuteInfoWrapper> result = new HashMap<>();
@@ -242,8 +204,8 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
                                             //    return result.values().stream();
                                             //  }).collect(Collectors.toList()));
 
-      dimensionProblems(PROBLEM, myServiceLocator).description("problem for which mute is assigned").
-        filter((problemWrappers, item) -> problemWrappers.stream().anyMatch(problemWrapper -> item.getBuildProblemIds().contains(problemWrapper.getId().intValue())));
+      dimensionProblems(PROBLEM, myServiceLocator)
+        .filter((problemWrappers, item) -> problemWrappers.stream().anyMatch(problemWrapper -> item.getBuildProblemIds().contains(problemWrapper.getId().intValue())));
                                                     //.toItems(dimension -> dimension.stream().
                                                     //  flatMap(problem -> {
                                                     //    HashMap<Integer, MuteInfoWrapper> result = new HashMap<>();
@@ -255,15 +217,13 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
       //    return result.values().stream();
       //  }).collect(Collectors.toList()));
 
-      dimensionProjects(AFFECTED_PROJECT, myServiceLocator).description("project affected by the mutes")
-                                                           .filter((projects, item) -> {
+      dimensionProjects(AFFECTED_PROJECT, myServiceLocator).filter((projects, item) -> {
                                                              final SProject assignmentProject = item.getProject();
                                                              return (assignmentProject != null && ProjectFinder.isSameOrParent(projects, assignmentProject));
                                                            })
                                                            .toItems(dimension -> dimension.stream().flatMap(MuteFinder.this::getMuteInfosForProject).collect(Collectors.toList()));
 
-      dimensionProjects(PROJECT, myServiceLocator).description("project in which mute is assigned")
-                                                  .valueForDefaultFilter(muteInfo -> {
+      dimensionProjects(PROJECT, myServiceLocator).valueForDefaultFilter(muteInfo -> {
                                                     if (canView(muteInfo)) {
                                                       return Collections.singleton(muteInfo.getProject());
                                                     } else {
@@ -271,16 +231,14 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
                                                     }
                                                   }); //todo: add toItems?
 
-      dimensionTimeCondition(CREATION_DATE, myTimeCondition).description("mute creation time")
-                                                            .filter((timeCondition, item) -> timeCondition.matches(item.getMutingTime()));
-      dimensionTimeCondition(UNMUTE_DATE, myTimeCondition).description("automatic unmute time")
-                                                          .filter((timeCondition, item) -> {
+      dimensionTimeCondition(CREATION_DATE, myTimeCondition).filter((timeCondition, item) -> timeCondition.matches(item.getMutingTime()));
+      dimensionTimeCondition(UNMUTE_DATE, myTimeCondition).filter((timeCondition, item) -> {
                                                             Date unmuteTime = item.getAutoUnmuteOptions().getUnmuteByTime();
                                                             return unmuteTime != null && timeCondition.matches(unmuteTime);
                                                           });
-      dimensionUsers(REPORTER, myServiceLocator).description("muting user")
-                                                .filter((users, item) -> users.stream().map(User::getId).collect(Collectors.toSet()).contains(item.getMutingUserId()));
-      dimensionFixedText(TYPE, ProblemTarget.getKnownTypesForMute()).description("what is muted").valueForDefaultFilter(ProblemTarget::getType)
+      dimensionUsers(REPORTER, myServiceLocator).filter((users, item) -> users.stream().map(User::getId).anyMatch(id -> item.getMutingUserId() == id));
+
+      dimensionFixedText(TYPE, ProblemTarget.getKnownTypesForMute()).valueForDefaultFilter(ProblemTarget::getType)
                                                                     .toItems(dimension -> {
                                                                       switch (dimension) {
                                                                         case ProblemTarget.TEST_TYPE:
@@ -290,8 +248,8 @@ public class MuteFinder extends DelegatingFinder<MuteInfo> {
                                                                       }
                                                                       throw new OperationException("Unexpected mute type '" + dimension + "'");
                                                                     });
-      dimensionFixedText(RESOLUTION, Resolution.getKnownTypesForMute()).description("unmute condition").
-        valueForDefaultFilter(muteInfo -> String.valueOf(Resolution.ResolutionType.getType(muteInfo.getAutoUnmuteOptions())));
+      dimensionFixedText(RESOLUTION, Resolution.getKnownTypesForMute())
+        .valueForDefaultFilter(muteInfo -> String.valueOf(Resolution.ResolutionType.getType(muteInfo.getAutoUnmuteOptions())));
 
       fallbackItemRetriever(dimensions -> ItemHolder.of(getMuteInfosForProject(myProjectFinder.getRootProject())));
 
