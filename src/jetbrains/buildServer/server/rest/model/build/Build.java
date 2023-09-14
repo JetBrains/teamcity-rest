@@ -811,7 +811,7 @@ public class Build {
       ApprovableBuildManager approvableBuildManager = myBeanContext.getSingletonService(ApprovableBuildManager.class);
       BuildPromotionEx buildPromotionEx = (BuildPromotionEx)myBuildPromotion;
 
-      if (approvableBuildManager.hasApprovalFeature(buildPromotionEx)) {
+      if (approvableBuildManager.shouldBeManuallyApproved(buildPromotionEx)) {
         return new ApprovalInfo(buildPromotionEx, myFields.getNestedField("approvalInfo"), myBeanContext);
       }
       return null;
