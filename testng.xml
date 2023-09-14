@@ -30,6 +30,7 @@
       <class name="jetbrains.buildServer.server.rest.data.ScopeTreeTest"/>
       <class name="jetbrains.buildServer.server.rest.data.changelog.ChangeLogBeanCollectorTest"/>
       <class name="jetbrains.buildServer.server.rest.data.util.FilterConditionCheckerUtilTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.util.ComparableBuildPromotionWrapperTest" />
 
       <class name="jetbrains.buildServer.server.rest.data.pages.problems.TestFailuresProblemEntriesCollectorTest"/>
 

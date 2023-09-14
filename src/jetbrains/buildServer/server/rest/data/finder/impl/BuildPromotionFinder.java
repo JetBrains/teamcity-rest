@@ -51,7 +51,6 @@ import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
 import jetbrains.buildServer.server.rest.swagger.constants.CommonLocatorDimensionsList;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorDimensionDataType;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
-import jetbrains.buildServer.server.rest.util.StreamUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.auth.Permission;
@@ -1150,10 +1149,7 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     final String equivalent = locator.getSingleDimensionValue(EQUIVALENT);
     if (equivalent != null) {
       final BuildPromotionEx build = (BuildPromotionEx)getItem(equivalent);
-      final List<BuildPromotionEx> result = build.getStartedEquivalentPromotions(-1);
-      final Set<BuildPromotion> convertedResult = new TreeSet<BuildPromotion>(BUILD_PROMOTIONS_COMPARATOR);
-      convertedResult.addAll(result);
-      return ItemHolder.of(convertedResult);
+      return ItemHolder.of(sortPromotions(build.getStartedEquivalentPromotions(-1).stream()));
     }
 
     final String metadata = locator.getSingleDimensionValue(METADATA);
@@ -1197,13 +1193,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
         final String buildTypeLocator = locator.getSingleDimensionValue(BUILD_TYPE);
 
         final List<SBuildType> buildTypes = myBuildTypeFinder.getBuildTypes(null, buildTypeLocator);
-        final Set<BuildPromotion> builds = new TreeSet<>(BUILD_PROMOTIONS_COMPARATOR);
-        for (SBuildType buildType : buildTypes) {
-          List<SBuild> buildByNumber = myBuildsManager.findBuildInstancesByBuildNumber(buildType.getBuildTypeId(), buildNumber);
-          builds.addAll(CollectionsUtil.convertCollection(buildByNumber, SBuild::getBuildPromotion)); //todo: ensure due builds sorting
-        }
+        Stream<BuildPromotion> promotions = buildTypes.stream()
+                                                      .flatMap(bt -> myBuildsManager.findBuildInstancesByBuildNumber(bt.getBuildTypeId(), buildNumber).stream())
+                                                      .map(SBuild::getBuildPromotion);
 
-        return ItemHolder.of(builds);
+        return ItemHolder.of(sortPromotions(promotions));
       }
     }
 
@@ -1306,8 +1300,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
         if (isStateIncluded(stateLocator, STATE_FINISHED)) {
           //todo: optimize for user and canceled
-          Stream<BuildPromotion> finishedBuilds = StreamUtil.merge(
-            agents.stream().map(a -> a.getBuildHistory(null, true).stream().map(b -> b.getBuildPromotion())), BUILD_PROMOTIONS_COMPARATOR);
+          Stream<BuildPromotion> finishedBuilds = sortPromotions(
+            agents.stream()
+                  .flatMap(a -> a.getBuildHistory(null, true).stream().map(b -> b.getBuildPromotion()))
+          );
+
+
           result = Stream.concat(result, finishedBuilds);
         }
         return ItemHolder.of(result);
@@ -1502,13 +1500,12 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
 
   @NotNull
   private ItemHolder<BuildPromotion> getBuildsByBuildTypesAndBuildNumber(@NotNull List<SBuildType> buildTypes, @NotNull String buildNumber) {
-    return ItemHolder.of(() -> buildTypes
-      .stream()
-      .flatMap(it -> myBuildsManager.findBuildInstancesByBuildNumber(it.getBuildTypeId(), buildNumber).stream())
-      .map(it -> it.getBuildPromotion())
-      .sorted(BUILD_PROMOTIONS_COMPARATOR)
-      .iterator()
-    );
+    return ItemHolder.of(sortPromotions(
+      buildTypes
+        .stream()
+        .flatMap(it -> myBuildsManager.findBuildInstancesByBuildNumber(it.getBuildTypeId(), buildNumber).stream())
+        .map(it -> it.getBuildPromotion())
+    ));
   }
 
   @Nullable
@@ -1809,32 +1806,32 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   private List<BuildPromotion> getSnapshotRelatedBuilds(@NotNull final String snapshotDepDimension) {
     final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, SNAPSHOT_DEPENDENCIES_TRAVERSER);
     final List<BuildPromotion> result = graphFinder.getItems(snapshotDepDimension).getEntries();
-    sortBuildPromotions(result);
-    return result; //todo: patch branch locator, personal, etc.???
+    //todo: patch branch locator, personal, etc.???
+    return sortBuildPromotions(result);
   }
 
   @NotNull
   private List<BuildPromotion> getArtifactRelatedBuilds(@NotNull final String depDimension, @NotNull final Locator locator) {
     final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, new ArtifactDepsTraverser(locator));
     final List<BuildPromotion> result = graphFinder.getItems(depDimension).getEntries();
-    sortBuildPromotions(result);
-    return result; //todo: patch branch locator, personal, etc.???
+    //todo: patch branch locator, personal, etc.???
+    return sortBuildPromotions(result);
   }
 
   @NotNull
   private List<BuildPromotion> getSnapshotDepProblemBuilds(@NotNull final String locator) {
     final GraphFinder<BuildPromotion> graphFinder = new GraphFinder<BuildPromotion>(this, mySnapshotDepProblemsTraverser);
     final List<BuildPromotion> result = graphFinder.getItems(locator).getEntries();
-    sortBuildPromotions(result);
-    return result;
+    return sortBuildPromotions(result);
   }
 
-  private void sortBuildPromotions(@NotNull final List<BuildPromotion> result) {
-    if (result.size() == 1) {
-      return;
+  @NotNull
+  private List<BuildPromotion> sortBuildPromotions(@NotNull final List<BuildPromotion> unsortedResult) {
+    if (unsortedResult.size() == 1) {
+      return unsortedResult;
     }
 
-    BuildPromotionComparator.sort(result, myBuildsManager);
+    return sortPromotions(unsortedResult.stream()).collect(Collectors.toList());
   }
 
   @NotNull
@@ -1870,7 +1867,16 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
     return buildPromotion.getAssociatedBuildId() != null && buildPromotion.getId() != buildPromotion.getAssociatedBuildId();
   }
 
-  private static class BuildPromotionComparator implements Comparator<BuildPromotion> {
+  @NotNull
+  public static Stream<BuildPromotion> sortPromotions(@NotNull Stream<? extends BuildPromotion> unsortedPromotions) {
+    return unsortedPromotions
+      .map(ComparableBuildPromotionWrapper::fromPromotion)
+      .sorted()
+      .map(ComparableBuildPromotionWrapper::getPromotion);
+  }
+
+  private static class BuildPromotionComparator {
+
     private final Map<Long, SBuild> myResolvedBuildsMap;
 
     public BuildPromotionComparator() {
@@ -1882,19 +1888,6 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
      */
     private BuildPromotionComparator(@NotNull Map<Long, SBuild> resolvedBuildsMap) {
       myResolvedBuildsMap = resolvedBuildsMap;
-    }
-
-    public static void sort(@NotNull final List<BuildPromotion> builds, @NotNull final BuildsManager buildsManager) {
-      Set<Long> buildIds = builds.stream().map(BuildPromotion::getAssociatedBuildId).filter(Objects::nonNull).collect(Collectors.toSet());
-
-      Map<Long, SBuild> resolvedBuildsMap = new HashMap<>();
-      if (!buildIds.isEmpty()) {
-        for (SBuild build: buildsManager.findBuildInstances(buildIds)) {
-          resolvedBuildsMap.put(build.getBuildPromotion().getId(), build);
-        }
-      }
-
-      Collections.sort(builds, new BuildPromotionComparator(resolvedBuildsMap));
     }
 
     public int compare(final BuildPromotion o1, final BuildPromotion o2) {

@@ -18,10 +18,6 @@ package jetbrains.buildServer.server.rest.util;
 
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.BaseStream;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,48 +29,6 @@ public class StreamUtil {
   public static <T> void forEachNullableFlattened(@Nullable List<List<T>> items, @NotNull final Consumer<? super T> action) {
     if (items != null) {
       items.stream().filter(Objects::nonNull).flatMap(Collection::stream).filter(Objects::nonNull).forEach(action);
-    }
-  }
-
-  /**
-   * Combines the elements of the passed streams (already ordered by comparator), into resulting stream ordered by comparator
-   */
-  public static <T> Stream<T> merge(@NotNull Stream<Stream<T>> streams, @NotNull Comparator<T> comparator) {
-    return StreamSupport.stream(new MergingSpliterator<>(streams, comparator), false);
-  }
-
-  private static class MergingSpliterator<T> extends Spliterators.AbstractSpliterator<T> {
-    @NotNull private final SortedMap<T, Iterator<T>> myElements;
-
-    MergingSpliterator(@NotNull final Stream<Stream<T>> streams, @NotNull final Comparator<T> comparator) {
-      super(Long.MAX_VALUE, 0);
-      Set<Iterator<T>> duplicating = new HashSet<>();
-      myElements = streams.map(BaseStream::iterator).filter(Iterator::hasNext)
-                          .collect(Collectors.toMap(Iterator::next, it -> it, (o, o2) -> {
-                            duplicating.add(o2);
-                            return o;
-                          }, () -> new TreeMap<>(comparator)));
-      duplicating.forEach(it -> add(myElements, it));
-    }
-
-    @Override
-    public boolean tryAdvance(final Consumer<? super T> action) {
-      if (myElements.isEmpty()) return false;
-      T result = myElements.firstKey();
-      action.accept(result);
-      Iterator<T> it = myElements.remove(result);
-      add(myElements, it);
-      return true;
-    }
-
-    private void add(@NotNull final SortedMap<T, Iterator<T>> map, @NotNull final Iterator<T> it) {
-      while (it.hasNext()) {
-        T next = it.next();
-        if (map.get(next) == null) {
-          myElements.put(next, it);
-          return;
-        }
-      }
     }
   }
 }

@@ -189,18 +189,18 @@ public class TagFinder extends AbstractFinder<TagData> {
       return null;
     }
 
+    Stream<BuildPromotion> unsortedResult;
     if (filterOptions.getTagOwner() != null) {
-      Stream<BuildPromotion> finishedBuilds = serviceLocator.getSingletonService(TagsManager.class)
+      unsortedResult = serviceLocator.getSingletonService(TagsManager.class)
                                                             .findAll(filterOptions.getTagName(), filterOptions.getTagOwner()).stream()
                                                             .map(build -> ((SBuild)build).getBuildPromotion());
-      finishedBuilds = finishedBuilds.sorted(BuildPromotionFinder.BUILD_PROMOTIONS_COMPARATOR); //workaround for TW-53934
-      return finishedBuilds;
+    } else {
+      unsortedResult = serviceLocator.getSingletonService(TagsManager.class)
+                                     .findAll(filterOptions.getTagName()).stream()
+                                     .map(build -> ((SBuild)build).getBuildPromotion());
     }
 
-    return serviceLocator.getSingletonService(TagsManager.class)
-                         .findAll(filterOptions.getTagName()).stream()
-                         .map(build -> ((SBuild)build).getBuildPromotion())
-                         .sorted(BuildPromotionFinder.BUILD_PROMOTIONS_COMPARATOR); //workaround for TW-53934
+    return BuildPromotionFinder.sortPromotions(unsortedResult); //workaround for TW-53934
   }
 
   /**
