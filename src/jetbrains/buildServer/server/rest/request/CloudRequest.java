@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.rest.request;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -60,6 +61,7 @@ public class CloudRequest {
   @Context @NotNull private BeanContext myBeanContext;
 
   public static final String API_CLOUD_URL = Constants.API_URL + "/cloud";
+  public static final String ACTION_TERMINATE = "terminate";
 
   public static String getHref() {
     return API_CLOUD_URL;
@@ -148,6 +150,34 @@ public class CloudRequest {
   @Path("/instances/{instanceLocator}")
   @ApiOperation(value="Stop cloud instance matching the locator.",nickname="stopInstance")
   public void stopInstance(@PathParam("instanceLocator") String instanceLocator) {
+    terminateInstance(instanceLocator, true);
+  }
+
+  /**
+   * Schedules instance for termination when it is free
+   */
+  @POST
+  @Path("/instances/{instanceLocator}/actions/stop")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value = "Schedules existing cloud instance for termination", nickname = "terminateInstance")
+  public void terminateInstance(@PathParam("instanceLocator") String instanceLocator) {
+    terminateInstance(instanceLocator, false);
+  }
+
+  /**
+   * Terminates instance immediately
+   */
+  @POST
+  @Path("/instances/{instanceLocator}/actions/forceStop")
+  @Consumes({"application/xml", "application/json"})
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value = "Terminates existing cloud instance immediately", nickname = "forseTerminateInstance")
+  public void forceTerminateInstance(@PathParam("instanceLocator") String instanceLocator) {
+    terminateInstance(instanceLocator, true);
+  }
+
+  private void terminateInstance(String instanceLocator, boolean force) {
     jetbrains.buildServer.clouds.CloudInstance instance = myCloudInstanceFinder.getItem(instanceLocator).getInstance();
     final SUser user = myServiceLocator.getSingletonService(UserFinder.class).getCurrentUser();
     CloudUtil cloudUtil = myBeanContext.getSingletonService(CloudUtil.class);
@@ -155,7 +185,7 @@ public class CloudRequest {
     if (profileId == null) {
       throw new InvalidStateException("Cannot find profile for the cloud image");
     }
-    myBeanContext.getSingletonService(CloudManager.class).terminateInstance(profileId, instance.getImageId(), instance.getInstanceId(), TerminateInstanceReason.userAction(user));
+    myBeanContext.getSingletonService(CloudManager.class).terminateInstance(profileId, instance.getImageId(), instance.getInstanceId(), TerminateInstanceReason.userAction(user, force));
   }
 
   /**
