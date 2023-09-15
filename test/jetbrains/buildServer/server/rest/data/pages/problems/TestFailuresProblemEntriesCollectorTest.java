@@ -45,11 +45,11 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
     super.setUp();
     myUser = createUser("test_user");
     myCollector = new TestFailuresProblemEntriesCollector(
-      myTestOccurrenceFinder,
       myProjectFinder,
       myUserFinder,
       myFixture.getResponsibilityFacadeEx(),
       myFixture.getSingletonService(ProblemMutingService.class),
+      myFixture.getCurrentProblemsManager(),
       myFixture.getTestManager()
     );
   }

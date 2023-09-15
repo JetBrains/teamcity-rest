@@ -28,10 +28,8 @@ import jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinder;
 import jetbrains.buildServer.server.rest.data.finder.impl.UserFinder;
 import jetbrains.buildServer.server.rest.data.investigations.InvestigationWrapper;
 import jetbrains.buildServer.server.rest.data.problem.Orders;
-import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyContextSingleton;
-import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectUtil;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
@@ -63,30 +61,26 @@ public class TestFailuresProblemEntriesCollector {
   TODO:
 
    - flaky (add this later)
-   - add pagination
-   - branch
-   - buildType
    - count of the sub requests (investigations, mutes, etc)
    */
-
-  private final TestOccurrenceFinder myTestOccurrenceFinder;
   private final STestManager myTestManager;
   private final ProjectFinder myProjectFinder;
   private final ProblemMutingService myMutingService;
   private final TestNameResponsibilityFacade myTestNameResponsibilityFacade;
   private final UserFinder myUserFinder;
+  private final CurrentProblemsManager myCurrentProblemsManager;
 
-  public TestFailuresProblemEntriesCollector(@NotNull TestOccurrenceFinder testOccurrenceFinder,
-                                             @NotNull ProjectFinder projectFinder,
+  public TestFailuresProblemEntriesCollector(@NotNull ProjectFinder projectFinder,
                                              @NotNull UserFinder userFinder,
                                              @NotNull TestNameResponsibilityFacade testNameResponsibilityFacade,
                                              @NotNull ProblemMutingService problemMutingService,
+                                             @NotNull CurrentProblemsManager currentProblemsManager,
                                              @NotNull STestManager testsManager) {
-    myTestOccurrenceFinder = testOccurrenceFinder;
     myProjectFinder = projectFinder;
     myUserFinder = userFinder;
     myTestManager = testsManager;
     myMutingService = problemMutingService;
+    myCurrentProblemsManager = currentProblemsManager;
     myTestNameResponsibilityFacade = testNameResponsibilityFacade;
   }
 
@@ -121,7 +115,7 @@ public class TestFailuresProblemEntriesCollector {
     mutes.putAll(getMutes(project));
 
     Map<Long, List<STestRun>> failingTests = new HashMap<>();
-    failingTests.putAll(getFailingTests(locator));
+    failingTests.putAll(getFailingTests(project));
 
     Set<Long> allTestNames = new HashSet<>();
     allTestNames.addAll(investigations.keySet());
@@ -199,17 +193,32 @@ public class TestFailuresProblemEntriesCollector {
   }
 
   @NotNull
-  private Map<Long, List<STestRun>> getFailingTests(@NotNull Locator locator) {
-    Locator testLocator = Locator.createEmptyLocator();
-    testLocator.setDimension("affectedProject", locator.getDimensionValue(AFFECTED_PROJECT));
-    testLocator.setDimension("currentlyFailing", "true");
-    testLocator.setDimension("currentlyInvestigated", locator.getDimensionValue(CURRENTLY_INVESTIGATED));
-    testLocator.setDimension("currentlyMuted", locator.getDimensionValue(CURRENTLY_MUTED));
-    testLocator.setDimension(PagerData.COUNT, "1000000"); // assume that this is enough
+  private Map<Long, List<STestRun>> getFailingTests(@NotNull SProject project) {
+    CurrentProblems currentProblems = myCurrentProblemsManager.getProblemsForProject(project);
 
-    return myTestOccurrenceFinder.getItems(testLocator.getStringRepresentation())
-                                 .getEntries().stream()
-                                 .collect(Collectors.groupingBy(tr -> tr.getTest().getTestNameId()));
+    boolean excludeArchived = !project.isArchived();
+    Map<Long, List<STestRun>> result = new HashMap<>();
+    for(List<STestRun> failingTests : currentProblems.getFailingTests().values()) {
+      List<STestRun> testRuns = failingTests;
+
+      if(excludeArchived) {
+        testRuns = testRuns.stream()
+                           .filter(tr -> {
+                             SProject p = ((TestEx)tr.getTest()).getProject();
+                             return p != null && !p.isArchived();
+                           })
+                           .collect(Collectors.toList());
+      }
+
+      if(testRuns.isEmpty()) {
+        continue;
+      }
+
+      long testNameId = testRuns.get(0).getTest().getTestNameId();
+      result.put(testNameId, testRuns);
+    }
+
+    return result;
   }
 
   @NotNull
