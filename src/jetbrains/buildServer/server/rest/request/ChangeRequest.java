@@ -52,7 +52,6 @@ import jetbrains.buildServer.server.rest.model.problem.scope.TestScopeTree;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtil;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -267,11 +266,7 @@ public class ChangeRequest {
     final SVcsModification change = myChangeFinder.getItem(changeLocator).getSVcsModification();
     ChangeStatusProvider myStatusProvider = myServiceLocator.getSingletonService(ChangeStatusProvider.class);
     ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
-    List<BuildTypeOrTemplate> buildTypes = BuildTypes.fromBuildTypes(
-      changeStatus.getRelatedConfigurations().stream()
-                  .filter(bt -> !SplitBuildsFeatureUtil.isVirtualConfiguration(bt))
-                  .collect(Collectors.toList())
-    );
+    List<BuildTypeOrTemplate> buildTypes = BuildTypes.fromBuildTypes(changeStatus.getRelatedConfigurations());
 
     return new BuildTypes(buildTypes, null, new Fields(fields), myBeanContext);
   }
@@ -289,9 +284,7 @@ public class ChangeRequest {
 
     ChangeStatusProvider myStatusProvider = myServiceLocator.getSingletonService(ChangeStatusProvider.class);
     ChangeStatus changeStatus = myStatusProvider.getMergedChangeStatus(change);
-    List<BuildPromotion> firstBuildsPromotions = changeStatus.getBuildTypesStatusMap().entrySet().stream()
-                                                             .filter(entry -> !SplitBuildsFeatureUtil.isVirtualConfiguration(entry.getKey()))
-                                                             .map(entry -> entry.getValue())
+    List<BuildPromotion> firstBuildsPromotions = changeStatus.getBuildTypesStatusMap().values().stream()
                                                              .filter(Objects::nonNull)
                                                              .collect(Collectors.toList());
 

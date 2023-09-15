@@ -211,10 +211,6 @@ public class ChangeStatus {
     final boolean includePersonalBuilds = self != null && StringUtil.isTrue(self.getPropertyValue(StandardProperties.SHOW_ALL_PERSONAL_BUILDS));
 
     for (BuildTypeChangeStatus status : myChangeStatus.getBuildTypesStatus().values()) {
-      if(SplitBuildsFeatureUtil.isVirtualConfiguration(status.getBuildType())) {
-        continue;
-      }
-
       final SBuild firstBuild = status.getFirstBuild();
       if (firstBuild == null) {
         SQueuedBuild queued = status.getQueuedBuild();
