@@ -54,6 +54,23 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
     );
   }
 
+  public void testDefaults_currentlyFailingIsTrue() {
+    startBuild(myBuildType);
+    testFailed("failed.not_investigated");
+    testFailed("failed.investigated");
+    finishBuild(true);
+
+    investigate("failed.investigated", myProject, ResponsibilityEntry.State.TAKEN);
+    investigate("failed.investigated_not_failing", myProject, ResponsibilityEntry.State.TAKEN);
+
+    Locator locator = Locator.createEmptyLocator();
+    locator.setDimension(AFFECTED_PROJECT, myProject.getExternalId());
+    List<TestFailuresProblemEntry> result = myCollector.getItems(locator).getEntries();
+
+
+    assertEquals("One test without investigation and one test with investigation must be included", 2, result.size());
+  }
+
   public void basicTest() {
     startBuild(myBuildType);
     testFailed("failed.basic");
@@ -65,6 +82,7 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
 
     Locator locator = Locator.createEmptyLocator();
     locator.setDimension(AFFECTED_PROJECT, myProject.getExternalId());
+    locator.setDimension(CURRENTLY_FAILING, "any");
     List<TestFailuresProblemEntry> result = myCollector.getItems(locator).getEntries();
 
     assertEquals("One test without investigation, one test with investigation and one investigation without test must be included", 3, result.size());
@@ -82,6 +100,7 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
     Locator locator = Locator.createEmptyLocator();
     locator.setDimension(AFFECTED_PROJECT, myProject.getExternalId());
     locator.setDimension(CURRENTLY_INVESTIGATED, "true");
+    locator.setDimension(CURRENTLY_FAILING, "any");
     List<TestFailuresProblemEntry> result = myCollector.getItems(locator).getEntries();
 
     assertEquals("One test with investigation and one investigation without test must be included", 2, result.size());
@@ -99,6 +118,7 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
     Locator locator = Locator.createEmptyLocator();
     locator.setDimension(AFFECTED_PROJECT, myProject.getExternalId());
     locator.setDimension(CURRENTLY_INVESTIGATED, "false");
+    locator.setDimension(CURRENTLY_FAILING, "any");
     List<TestFailuresProblemEntry> result = myCollector.getItems(locator).getEntries();
 
     assertEquals("One test without investigation must be included", 1, result.size());
@@ -125,6 +145,7 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
     Locator locator = Locator.createEmptyLocator();
     locator.setDimension(AFFECTED_PROJECT, myProject.getExternalId());
     locator.setDimension(CURRENTLY_INVESTIGATED, "false");
+    locator.setDimension(CURRENTLY_FAILING, "any");
     List<TestFailuresProblemEntry> result = myCollector.getItems(locator).getEntries();
 
     assertEquals("One test without investigation must be included", 1, result.size());
@@ -145,6 +166,7 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
     Locator locator = Locator.createEmptyLocator();
     locator.setDimension(AFFECTED_PROJECT, myProject.getExternalId());
     locator.setDimension(CURRENTLY_MUTED, "true");
+    locator.setDimension(CURRENTLY_FAILING, "any");
     List<TestFailuresProblemEntry> result = myCollector.getItems(locator).getEntries();
 
     assertEquals("One muted test must be included", 1, result.size());
@@ -165,6 +187,7 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
     Locator locator = Locator.createEmptyLocator();
     locator.setDimension(AFFECTED_PROJECT, myProject.getExternalId());
     locator.setDimension(CURRENTLY_MUTED, "false");
+    locator.setDimension(CURRENTLY_FAILING, "any");
     List<TestFailuresProblemEntry> result = myCollector.getItems(locator).getEntries();
 
     assertEquals("Two non-muted test must be included", 2, result.size());
@@ -185,6 +208,7 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
     Locator locator = Locator.createEmptyLocator();
     locator.setDimension(AFFECTED_PROJECT, myProject.getExternalId());
     locator.setDimension(CURRENTLY_MUTED, "false");
+    locator.setDimension(CURRENTLY_FAILING, "any");
     List<TestFailuresProblemEntry> result = myCollector.getItems(locator).getEntries();
 
     assertEquals("One test without investigation must be included", 1, result.size());
@@ -206,6 +230,7 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
     locator.setDimension(AFFECTED_PROJECT, myProject.getExternalId());
     locator.setDimension(CURRENTLY_MUTED, "false");
     locator.setDimension(CURRENTLY_INVESTIGATED, "false");
+    locator.setDimension(CURRENTLY_FAILING, "any");
     List<TestFailuresProblemEntry> result = myCollector.getItems(locator).getEntries();
 
     assertEquals("One test must be included", 1, result.size());
@@ -226,6 +251,7 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
     Locator locator = Locator.createEmptyLocator();
     locator.setDimension(AFFECTED_PROJECT, myProject.getExternalId());
     locator.setDimension(CURRENTLY_INVESTIGATED, "true");
+    locator.setDimension(CURRENTLY_FAILING, "any");
     List<TestFailuresProblemEntry> result = myCollector.getItems(locator).getEntries();
 
     assertEquals("One test with taken investigation must be included", 1, result.size());
@@ -251,6 +277,7 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
     Locator locator = Locator.createEmptyLocator();
     locator.setDimension(AFFECTED_PROJECT, middleProject.getExternalId());
     locator.setDimension(CURRENTLY_INVESTIGATED, "true");
+    locator.setDimension(CURRENTLY_FAILING, "any");
     List<TestFailuresProblemEntry> result = myCollector.getItems(locator).getEntries();
 
     assertEquals("One test is investigated", 1, result.size());
@@ -310,6 +337,7 @@ public class TestFailuresProblemEntriesCollectorTest extends BaseFinderTest {
     Locator locator = Locator.createEmptyLocator();
     locator.setDimension(AFFECTED_PROJECT, middleProject.getExternalId());
     locator.setDimension(CURRENTLY_MUTED, "true");
+    locator.setDimension(CURRENTLY_FAILING, "any");
     List<TestFailuresProblemEntry> result = myCollector.getItems(locator).getEntries();
 
     assertEquals("One test is muted", 1, result.size());

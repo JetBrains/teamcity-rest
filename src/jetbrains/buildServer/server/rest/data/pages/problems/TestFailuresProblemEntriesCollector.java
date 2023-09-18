@@ -53,7 +53,8 @@ public class TestFailuresProblemEntriesCollector {
         return 0;
       }
       return failingBuildTypes.size();
-    }));
+    }))
+    .add("name", Comparator.comparing(tr -> tr.getTest().getName().getShortName(), String.CASE_INSENSITIVE_ORDER));
 
   private static final long DEFAULT_PAGE_SIZE = 100;
 
@@ -98,6 +99,14 @@ public class TestFailuresProblemEntriesCollector {
     SUser investigator = null;
     if(locator.isUnused(ASSIGNEE)) {
       investigator = myUserFinder.getItem(locator.getSingleDimensionValue(ASSIGNEE));
+    }
+
+    // Set defaults
+    if(!locator.isAnyPresent(CURRENTLY_FAILING)) {
+      locator.setDimension(CURRENTLY_FAILING, "true");
+    }
+    if(!locator.isAnyPresent(ORDER_BY)) {
+      locator.setDimension(ORDER_BY, "newFailure");
     }
 
     boolean returnOnlyFailing    = Boolean.TRUE.equals(locator.lookupSingleDimensionValueAsBoolean(CURRENTLY_FAILING));
