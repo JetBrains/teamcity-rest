@@ -73,6 +73,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import static jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder.modification;
+import static jetbrains.buildServer.serverSide.parameters.ParameterFactoryImpl.OUR_PASSWORD_REPLACE;
 import static jetbrains.buildServer.util.Util.map;
 
 /**
@@ -417,7 +418,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
     assertEquals(buildType4.getId(), result.getBuildPromotion().getArtifactDependencies().get(0).getSourceBuildTypeId());
     assertEquals("1000" + ".tcbuildid", result.getBuildPromotion().getArtifactDependencies().get(0).getRevisionRule().getRevision());
     assertEquals("path3", result.getBuildPromotion().getArtifactDependencies().get(0).getSourcePaths());
-    assertEquals(true, result.getBuildPromotion().getArtifactDependencies().get(0).isCleanDestinationFolder());
+    assertTrue(result.getBuildPromotion().getArtifactDependencies().get(0).isCleanDestinationFolder());
 
     build.setBuildArtifactDependencies(builds2);
     result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
@@ -947,7 +948,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
     TimeInterval timeInterval = myServer.getQueue().getItems().get(1).getBuildEstimates().getTimeInterval();
     long diff = timeInterval.getStartPoint().getAbsoluteTime().getTime() - Date.from(Instant.now().plus(10, ChronoUnit.MINUTES)).getTime();
-    assertTrue(timeInterval.getStartPoint().getAbsoluteTime().toString() + " -- " + Dates.now().toString() + ", diff: " + diff, diff < 60000);
+    assertTrue(timeInterval.getStartPoint().getAbsoluteTime() + " -- " + Dates.now() + ", diff: " + diff, diff < 60000);
 
     Build build1 = new Build(myServer.getQueue().getItems().get(1).getBuildPromotion(), Fields.LONG, getBeanContext(myFixture));
     assertEquals(Util.formatTime(myServer.getQueue().getItems().get(1).getBuildEstimates().getTimeInterval().getStartPoint().getAbsoluteTime()), build1.getStartEstimate());
@@ -1760,6 +1761,29 @@ public class BuildTest extends BaseFinderTest<SBuild> {
   }
 
   @Test
+  public void testBuildTriggerWithCustomPasswordParameters() {
+    final Build build = new Build();
+    final BuildType buildType = new BuildType();
+    buildType.setId(myBuildType.getExternalId());
+    build.setBuildType(buildType);
+
+    final Property secretProp = new Property();
+    secretProp.type = new ParameterType();
+    secretProp.type.rawValue = "password";
+    secretProp.name = "my.secret.prop";
+    secretProp.value = "very_secret";
+    final Properties properties = new Properties();
+    properties.setProperties(Arrays.asList(secretProp));
+    build.setProperties(properties);
+
+    final SUser triggeringUser = getOrCreateUser("user");
+    final SQueuedBuild queuedBuild = build.triggerBuild(triggeringUser, myFixture, new HashMap<Long, Long>());
+    assertEquals(myBuildType, queuedBuild.getBuildPromotion().getBuildType());
+    String paramFromBuild = queuedBuild.getBuildPromotion().getParameterValue("my.secret.prop");
+    assertEquals(OUR_PASSWORD_REPLACE, paramFromBuild);
+  }
+
+  @Test
   @TestFor(issues = "TW-81244")
   public void testNoParametersForQueuedBuild() {
     SQueuedBuild queuedBuild = build().in(myBuildType).parameter("some_param", "value").addToQueue();
@@ -1866,7 +1890,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
   protected static final EqualsTest<SArtifactDependency, SArtifactDependency> EQUALS_TEST = (o1, o2) -> o1.isSimilarTo(o2);
 
   public interface EqualsTest<A, T> {
-    public boolean equals(@NotNull final A o1, @NotNull final T o2);
+    boolean equals(@NotNull final A o1, @NotNull final T o2);
   }
 
   private static class TestArtifactDep implements SArtifactDependency {

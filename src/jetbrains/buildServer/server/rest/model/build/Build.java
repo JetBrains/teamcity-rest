@@ -94,6 +94,7 @@ import jetbrains.buildServer.serverSide.impl.changeProviders.ArtifactDependencyC
 import jetbrains.buildServer.serverSide.impl.problems.BuildProblemImpl;
 import jetbrains.buildServer.serverSide.metadata.BuildMetadataEntry;
 import jetbrains.buildServer.serverSide.metadata.impl.MetadataStorageEx;
+import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.serverSide.vcs.VcsLabelManager;
@@ -618,9 +619,6 @@ public class Build {
     if (build == null || !(build instanceof SFinishedBuild)) return null;
     SFinishedBuild finishedBuild = (SFinishedBuild)build;  //TeamCity API: getPinComment() is only available for finished build, while isPinned is available for running
     final jetbrains.buildServer.serverSide.comments.Comment pinComment = finishedBuild.getPinComment();
-    if (pinComment == null) {
-      return null;
-    }
     return pinComment;
   }
 
@@ -1706,7 +1704,7 @@ public class Build {
   }
 
   public void setLastChanges(final Changes lastChanges) {
-    this.myLastChanges = lastChanges;
+    myLastChanges = lastChanges;
   }
 
   public void setRevisions(Revisions submittedRevisions) {
@@ -1730,11 +1728,11 @@ public class Build {
   }
 
   public void setAttributes(final Entries submittedAttributes) {
-    this.myAttributes = submittedAttributes;
+    myAttributes = submittedAttributes;
   }
 
   public void setTags(final Tags tags) {
-    this.myTags = tags;
+    myTags = tags;
   }
 
   public void setTriggered(final TriggeredBy triggeredBy) {
@@ -1804,7 +1802,15 @@ public class Build {
     }
 
     if (myProperties != null) {
-      customizer.setParameters(myProperties.getMap());
+      final ParameterFactory parameterFactory = serviceLocator.getSingletonService(ParameterFactory.class);
+      List<Parameter> parameters = myProperties.getProperties().stream().map(prop -> {
+        if (prop.type != null && prop.type.rawValue != null) {
+          return parameterFactory.createTypedParameter(prop.name, prop.value, prop.type.rawValue);
+        } else {
+          return parameterFactory.createSimpleParameter(prop.name, prop.value);
+        }
+      }).collect(Collectors.toList());
+      customizer.setParameters(parameters);
     }
 
     if (submittedBranchName != null) {
@@ -2213,66 +2219,95 @@ public class Build {
 
     if ("number".equals(field)) { //supporting number here in addition to BuildRequest as this method is used from other requests classes as well
       return build.getNumber();
-    } else if ("status".equals(field)) {
+    }
+    if ("status".equals(field)) {
       return build.getStatus();
-    } else if ("statusText".equals(field)) {
+    }
+    if ("statusText".equals(field)) {
       return build.getStatusText();
-    } else if ("id".equals(field)) {
+    }
+    if ("id".equals(field)) {
       return String.valueOf(build.getId());
-    } else if ("state".equals(field)) {
+    }
+    if ("state".equals(field)) {
       return build.getState().toString();
-    } else if ("failedToStart".equals(field)) {
+    }
+    if ("failedToStart".equals(field)) {
       return String.valueOf(build.isFailedToStart());
-    } else if ("startEstimateDate".equals(field)) {
+    }
+    if ("startEstimateDate".equals(field)) {
       return build.getStartEstimate();
-    } else if (FINISH_ESTIMATE.equals(field)) {
+    }
+    if (FINISH_ESTIMATE.equals(field)) {
       return build.getFinishEstimate();
-    } else if ("percentageComplete".equals(field)) {
+    }
+    if ("percentageComplete".equals(field)) {
       return String.valueOf(build.getPercentageComplete());
-    } else if ("personal".equals(field)) {
+    }
+    if ("personal".equals(field)) {
       return String.valueOf(build.isPersonal());
-    } else if ("usedByOtherBuilds".equals(field)) {
+    }
+    if ("usedByOtherBuilds".equals(field)) {
       return String.valueOf(build.isUsedByOtherBuilds());
-    } else if ("queuedDate".equals(field)) {
+    }
+    if ("queuedDate".equals(field)) {
       return build.getQueuedDate();
-    } else if ("startDate".equals(field)) {
+    }
+    if ("startDate".equals(field)) {
       return build.getStartDate();
-    } else if ("finishDate".equals(field)) {
+    }
+    if ("finishDate".equals(field)) {
       return build.getFinishDate();
-    } else if ("buildTypeId".equals(field)) {
+    }
+    if ("buildTypeId".equals(field)) {
       return build.getBuildTypeId();
-    } else if ("buildTypeInternalId".equals(field)) {
+    }
+    if ("buildTypeInternalId".equals(field)) {
       return buildPromotion.getBuildTypeId();
-    } else if ("branchName".equals(field)) {
+    }
+    if ("branchName".equals(field)) {
       return build.getBranchName();
-    } else if ("branch".equals(field)) {
+    }
+    if ("branch".equals(field)) {
       Branch branch = buildPromotion.getBranch();
       return branch == null ? "" : branch.getName();
-    } else if ("defaultBranch".equals(field)) {
+    }
+    if ("defaultBranch".equals(field)) {
       return String.valueOf(build.getDefaultBranch());
-    } else if ("unspecifiedBranch".equals(field)) {
+    }
+    if ("unspecifiedBranch".equals(field)) {
       return String.valueOf(build.getUnspecifiedBranch());
-    } else if (PROMOTION_ID.equals(field) || "promotionId".equals(field)) { //Experimental support only
+    }
+    if (PROMOTION_ID.equals(field) || "promotionId".equals(field)) { //Experimental support only
       return (String.valueOf(build.getPromotionId()));
-    } else if ("modificationId".equals(field)) { //Experimental support only
+    }
+    if ("modificationId".equals(field)) { //Experimental support only
       return String.valueOf(buildPromotion.getLastModificationId());
-    } else if ("chainModificationId".equals(field)) { //Experimental support only
+    }
+    if ("chainModificationId".equals(field)) { //Experimental support only
       return String.valueOf(((BuildPromotionEx)buildPromotion).getChainModificationId());
-    } else if ("commentText".equals(field)) { //Experimental support only
+    }
+    if ("commentText".equals(field)) { //Experimental support only
       final Comment comment = build.getComment();
       return comment == null ? null : comment.text;
-    } else if ("collectChangesError".equals(field)) { //Experimental support only
+    }
+    if ("collectChangesError".equals(field)) { //Experimental support only
       return ((BuildPromotionEx)buildPromotion).getCollectChangesError();
-    } else if ("changesCollectingInProgress".equals(field)) { //Experimental support only
+    }
+    if ("changesCollectingInProgress".equals(field)) { //Experimental support only
       return String.valueOf(((BuildPromotionEx)buildPromotion).isChangesCollectingInProgress());
-    } else if ("changeCollectingNeeded".equals(field)) { //Experimental support only
+    }
+    if ("changeCollectingNeeded".equals(field)) { //Experimental support only
       return String.valueOf(((BuildPromotionEx)buildPromotion).isChangeCollectingNeeded());
-    } else if ("revision".equals(field)) { //Experimental support only
+    }
+    if ("revision".equals(field)) { //Experimental support only
       final List<BuildRevision> revisions = buildPromotion.getRevisions();
       return revisions.size() != 1 ? String.valueOf(revisions.get(0).getRevision()) : null;
-    } else if ("settingsHash".equals(field)) { //Experimental support only to get settings digest
+    }
+    if ("settingsHash".equals(field)) { //Experimental support only to get settings digest
       return new String(Hex.encodeHex(((BuildPromotionEx)buildPromotion).getSettingsDigest(false)));
-    } else if ("currentSettingsHash".equals(field)) { //Experimental support only to get settings digest
+    }
+    if ("currentSettingsHash".equals(field)) { //Experimental support only to get settings digest
       return new String(Hex.encodeHex(((BuildPromotionEx)buildPromotion).getBuildSettings().getDigest()));
     }
 
@@ -2289,7 +2324,8 @@ public class Build {
         return user == null ? null : user.getUsername();
       }
       return null;
-    } else if ("triggeredBy.raw".equals(field)) { //Experimental support only
+    }
+    if ("triggeredBy.raw".equals(field)) { //Experimental support only
       if (associatedBuild != null) {
         return associatedBuild.getTriggeredBy().getRawTriggeredBy();
       }
@@ -2349,7 +2385,7 @@ public class Build {
                                           .filter(Objects::nonNull).collect(Collectors.toList());
       }
     } catch (Exception e) {
-      throw new OperationException("Unexpected state while getting artifact dependency details: " + e.toString(), e);
+      throw new OperationException("Unexpected state while getting artifact dependency details: " + e, e);
     }
   }
 
