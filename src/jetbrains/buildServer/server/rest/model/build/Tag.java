@@ -28,6 +28,9 @@ import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.TagData;
+import jetbrains.buildServer.serverSide.auth.AuthorityHolder;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.impl.auth.ServerAuthUtil;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -56,17 +59,31 @@ public class Tag {
   public Tag() {
   }
 
-  public Tag(final @NotNull String tagName, final @Nullable jetbrains.buildServer.users.User owner,
+  public Tag(final @NotNull String tagName,
+             final @Nullable jetbrains.buildServer.users.User owner,
              final @NotNull Fields fields,
              final @NotNull BeanContext beanContext) {
     this.name = ValueWithDefault.decideDefault(fields.isIncluded("name"), tagName);
     this.privateTag = ValueWithDefault.decideDefault(fields.isIncluded("private"), owner != null);
-    this.owner = owner == null ? null : ValueWithDefault.decideDefault(fields.isIncluded("owner", false, true), new ValueWithDefault.Value<User>() {
-      @Nullable
-      public User get() {
-        return new User(owner, fields.getNestedField("owner"), beanContext);
-      }
-    });
+    this.owner = ValueWithDefault.decideDefault(
+      fields.isIncluded("owner", false, true),
+      () -> resolveUser((SUser) owner, fields.getNestedField("owner"), beanContext)
+    );
+  }
+
+  @Nullable
+  private static User resolveUser(@Nullable SUser owner, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    if(owner == null) {
+      return null;
+    }
+
+    AuthorityHolder requestor = beanContext.getSingletonService(SecurityContext.class).getAuthorityHolder();
+    // We don't want to reveal owners of private tags to everybody, see TW-50197.
+    if(!ServerAuthUtil.canEditUser(requestor, owner)) {
+      return null;
+    }
+
+    return new User(owner, fields, beanContext);
   }
 
   public TagData getFromPosted(final UserFinder userFinder) {
