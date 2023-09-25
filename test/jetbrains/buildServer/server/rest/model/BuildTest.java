@@ -660,7 +660,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
 
       SQueuedBuild result = build.triggerBuild(user, myFixture, new HashMap<Long, Long>());
       assertEquals(0, result.getBuildPromotion().getArtifactDependencies().size());
-      assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getVcsRootEntries().size());
+      assertEquals(1, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getVcsRootEntries().size()); //these cannot be overriden so far, should actually throw exception on triggering
       assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildRunners().size());
       assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getBuildFeatures().size());
       assertEquals(0, ((BuildPromotionEx)result.getBuildPromotion()).getBuildSettings().getParameters().size());
