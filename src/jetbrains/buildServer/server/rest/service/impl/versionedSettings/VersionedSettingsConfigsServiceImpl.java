@@ -97,7 +97,6 @@ public class VersionedSettingsConfigsServiceImpl implements VersionedSettingsCon
       formatParam,
       useRelativeIdsParam,
       useTwoWaySync,
-      false,
       buildSettingsModeParam
     );
     switch (updateConfigResult.getStatus()) {
