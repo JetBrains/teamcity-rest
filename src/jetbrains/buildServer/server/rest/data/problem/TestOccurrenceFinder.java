@@ -192,7 +192,7 @@ public class TestOccurrenceFinder extends AbstractFinder<STestRun> {
 
   public static String getTestRunLocator(@NotNull final STestRun testRun) {
     return Locator.createEmptyLocator().setDimension(DIMENSION_ID, String.valueOf(testRun.getTestRunId())).
-      setDimension(BUILD, BuildRequest.getBuildLocator(testRun.getBuild())).getStringRepresentation();
+      setDimension(BUILD, BuildPromotionFinder.getLocator(testRun.getBuildId())).getStringRepresentation();
   }
 
   public PagingItemFilter<STestRun> getPagingInvocationsFilter(@NotNull final Fields invocationField) {

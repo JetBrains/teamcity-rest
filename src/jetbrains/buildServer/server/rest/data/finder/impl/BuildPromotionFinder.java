@@ -231,6 +231,11 @@ public class BuildPromotionFinder extends AbstractFinder<BuildPromotion> {
   }
 
   @NotNull
+  public static String getLocator(final long buildId) {
+    return Locator.getStringLocator(DIMENSION_ID, String.valueOf(buildId));
+  }
+
+  @NotNull
   @Override
   public String getItemLocator(@NotNull final BuildPromotion buildPromotion) {
     return BuildPromotionFinder.getLocator(buildPromotion);
