@@ -157,7 +157,7 @@ public class Properties  implements DefaultValueAware {
     return myCount;
   }
 
-  public void setCount(@NotNull Integer count) {
+  public void setCount(@Nullable Integer count) {
     myCount = count;
   }
 
@@ -166,7 +166,7 @@ public class Properties  implements DefaultValueAware {
     return myHref;
   }
 
-  public void setHref(@NotNull String href) {
+  public void setHref(@Nullable String href) {
     myHref = href;
   }
 
@@ -175,7 +175,7 @@ public class Properties  implements DefaultValueAware {
     return myProperties;
   }
 
-  public void setProperties(@NotNull List<Property> properties) {
+  public void setProperties(@Nullable List<Property> properties) {
     myProperties = properties;
   }
 
