@@ -2680,6 +2680,26 @@ public class BuildPromotionFinderTest extends BaseFinderTest<BuildPromotion> {
     assertEquals(build.getBuildPromotion(), result);
   }
 
+  @Test
+  @TestFor(issues = "TW-83663")
+  public void queuedBuildCanBeFoundByParameter() {
+    // Prevent build from starting by including a non-existing runner
+    SBuildType bt = registerBuildType("some_bt", "some_project", "non_exsisting_runner");
+    build().in(bt).parameter("test", "value").addToQueue();
+
+    List<BuildPromotion> result = myBuildPromotionFinder.getItems("property:(name:test),state:queued").getEntries();
+    assertEquals(1, result.size());
+  }
+
+  @Test
+  @TestFor(issues = "TW-83663")
+  public void failedToStartBuildCanBeFoundByParameter() {
+    build().in(myBuildType).parameter("test", "value").failedToStart().finish();
+
+    List<BuildPromotion> result = myBuildPromotionFinder.getItems("property:(name:test),failedToStart:true").getEntries();
+    assertEquals(1, result.size());
+  }
+
   @NotNull
   @DataProvider(name = "all-build-states-locator-dim")
   public String[][] getAllBuildStates() {

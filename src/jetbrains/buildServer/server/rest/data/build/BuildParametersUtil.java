@@ -17,10 +17,10 @@
 package jetbrains.buildServer.server.rest.data.build;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.parameters.impl.MapParametersProviderImpl;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BaseBuild;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,7 +29,7 @@ public class BuildParametersUtil {
   public static ParametersProvider getResultingParameters(@NotNull BuildPromotion buildPromotion) {
     SBuild build = buildPromotion.getAssociatedBuild();
     if(build == null || !(build instanceof BaseBuild)) {
-      return new MapParametersProviderImpl();
+      return getParametersKnownToServer(buildPromotion);
     }
 
     Map<String, String> parameters = ((BaseBuild)build).getBuildFinishParameters();
@@ -41,14 +41,14 @@ public class BuildParametersUtil {
       return new MapParametersProviderImpl(parameters);
     }
 
-    return new MapParametersProviderImpl();
+    return getParametersKnownToServer(buildPromotion);
   }
 
   @NotNull
   public static ParametersProvider getStartParameters(@NotNull BuildPromotion buildPromotion) {
     SBuild build = buildPromotion.getAssociatedBuild();
     if (build == null || !(build instanceof BaseBuild)) {
-      return new MapParametersProviderImpl();
+      return getParametersKnownToServer(buildPromotion);
     }
 
     Map<String, String> parameters = ((BaseBuild)build).getBuildStartParameters();
@@ -56,6 +56,19 @@ public class BuildParametersUtil {
       return new MapParametersProviderImpl(parameters);
     }
 
-    return new MapParametersProviderImpl();
+    return getParametersKnownToServer(buildPromotion);
+  }
+
+  /**
+   * Retrieves parameters map which should be safe to return to the end user. Does not include
+   * any parameters from plugins, nor parameters resolved on the agent. All secret parameters are masked.
+   * This is useful for various non-finished builds, such as queued, failed to start before, etc.
+   */
+  @NotNull
+  private static ParametersProvider getParametersKnownToServer(@NotNull BuildPromotion promotion) {
+    return new MapParametersProviderImpl(
+      ((BuildPromotionEx) promotion).getParametersCollection().stream()
+                                    .collect(Collectors.toMap(Parameter::getName, Parameter::getValue))
+    );
   }
 }
