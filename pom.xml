@@ -15,7 +15,7 @@
 
   <properties>
     <jackson.rest.version>2.10.5</jackson.rest.version>
-    <jackson-databind.rest.version>2.10.5.1</jackson-databind.rest.version>
+    <jackson-databind.rest.version>2.12.7.1</jackson-databind.rest.version>
     <jersey.version>1.19</jersey.version>
     <swagger.version>1.6.1</swagger.version>
   </properties>
