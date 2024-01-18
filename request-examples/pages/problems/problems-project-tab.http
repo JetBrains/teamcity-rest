@@ -1,0 +1,38 @@
+## Issue links: https://youtrack.jetbrains.com/issue/TW-81882
+
+### Project problems tab, failing tests
+GET http://localhost:8111/bs/app/rest/pages/problems?
+    locator=affectedProject:{{problems-project-tab-project-id}},currentlyInvestigated:any,currentlyMuted:any,currentlyFailing:any,orderBy:(newFailure:desc,failureCount:desc)&
+    fields=count,href,nextHref,prevHref,entry(test(name,id),investigations(investigation($long)),mutes($short),newFailure,failingBuildTypes(count,buildType(id,name)))
+Authorization: Bearer {{token}}
+Accept: application/xml
+
+### Get test runs for problem entries page for specific test
+GET http://localhost:8111/bs/app/rest/testOccurrences?
+    locator=test:(id:{{problems-project-tab-test-id}}),affectedProject:{{problems-project-tab-project-id}},currentlyFailing:true&
+    fields=count,testOccurrence(build(id,buildTypeId),firstFailed(id),test(id))
+Authorization: Bearer {{token}}
+Accept: application/json
+
+
+### Project problems tab, build problems by project
+GET http://localhost:8111/bs/app/rest/pages/problems/buildProblems?
+    locator=affectedProject:{{problems-project-tab-project-id}},currentlyInvestigated:true&
+    fields=count,href,nextHref,prevHref,entry(problemOccurrence,build,investigations,mutes)
+Authorization: Bearer {{token}}
+Accept: application/json
+
+
+### Project problems tab, build problems by a build type
+GET http://localhost:8111/bs/app/rest/pages/problems/buildProblems?
+    locator=buildType:{{problems-project-tab-bt-id}},currentlyInvestigated:true&
+    fields=count,href,nextHref,prevHref,entry(problemOccurrence,build,investigations,mutes)
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Project problems tab, build problems by project, grouped by buildTypeId
+GET http://localhost:8111/bs/app/rest/pages/problems/buildProblems/groups?
+    locator=affectedProject:{{problems-project-tab-project-id}},currentlyInvestigated:true&
+    fields=count,group(buildTypeId,count,entry(problemOccurrence,build,investigations,mutes))
+Authorization: Bearer {{token}}
+Accept: application/json

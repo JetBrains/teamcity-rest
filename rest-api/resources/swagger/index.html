@@ -1,0 +1,96 @@
+<!--
+  ~ Copyright 2000-2024 JetBrains s.r.o.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!-- HTML for static distribution bundle build -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Swagger UI</title>
+    <link rel="stylesheet" type="text/css" href="swaggerui/swagger-ui.css" >
+    <link rel="icon" type="image/png" href="swaggerui/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="swaggerui/favicon-16x16.png" sizes="16x16" />
+    <style>
+      html
+      {
+        box-sizing: border-box;
+        overflow: -moz-scrollbars-vertical;
+        overflow-y: scroll;
+      }
+
+      *,
+      *:before,
+      *:after
+      {
+        box-sizing: inherit;
+      }
+
+      body
+      {
+        margin:0;
+        background: #fafafa;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="swagger-ui"></div>
+
+    <script src="swaggerui/swagger-ui-bundle.js" charset="UTF-8"> </script>
+    <script src="swaggerui/swagger-ui-standalone-preset.js" charset="UTF-8"> </script>
+    <script>
+      function httpGet(theUrl)
+      {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+        xmlHttp.send( null );
+        return xmlHttp.responseText;
+      }
+    </script>
+    <script>
+      window.addEventListener("DOMContentLoaded", async () => {
+        const specResponse = await fetch("./swagger.json");
+        console.log("Response: ", specResponse);
+
+        const spec = await specResponse.json();
+        console.log("JSON: ", spec);
+
+        const tokenResponse = await fetch("/authenticationTest.html?csrf");
+        const token = await tokenResponse.text();
+        console.log("Token: ", token);
+
+        const ui = SwaggerUIBundle({
+          url: window.location.origin + "/app/rest/swagger.json",
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          spec: spec,
+          presets: [
+            SwaggerUIBundle.presets.apis,
+            SwaggerUIStandalonePreset
+          ],
+          plugins: [
+            SwaggerUIBundle.plugins.DownloadUrl
+          ],
+          layout: "StandaloneLayout",
+          requestInterceptor: (req) => {
+            req.headers["X-TC-CSRF-Token"] = token
+            return req;
+          }
+        });
+      });
+  </script>
+  </body>
+</html>

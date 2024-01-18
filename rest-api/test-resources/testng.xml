@@ -1,0 +1,95 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="REST API Suite" preserve-order="false" configfailurepolicy="continue">
+  <test name="REST API Test" preserve-order="false">
+    <classes>
+      <class name="jetbrains.buildServer.server.rest.data.LocatorTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.ParameterConditionTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.VcsRootFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.VcsRootInstanceFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.InvestigationFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.TestOccurrenceFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.ProblemOccurrenceFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.BuildTypeFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.ProjectFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.BuildArtifactsFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.AgentFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.BuildFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.BuildFinderByPromotionTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.BuildFinderFixedBuildSequenceTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.BuildFinderFixedBuildSequenceByPromotionTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.BuildPromotionFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.BuildCompatibleAgentsTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.ChangeFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.BranchFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.UserFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.impl.PermissionAssignmentFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.FinderImplTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.finder.TypedFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.TestScopesCollectorTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.TestScopeTreeCollectorTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.ScopeTreeTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.changelog.ChangeLogBeanCollectorTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.util.FilterConditionCheckerUtilTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.util.ComparableBuildPromotionWrapperTest" />
+
+      <class name="jetbrains.buildServer.server.rest.request.BuildTypeRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.BuildTypeRequestPermissionsTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.GroupRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.InvestigationRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.MuteRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.ProjectRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.TestOccurrenceRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.UserRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.HealthRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.ServerRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.ServerGlobalSettingsRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.ServerAuthRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.TwoFactorRequestTest" />
+      <class name="jetbrains.buildServer.server.rest.request.ChangeRequestTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.NodesRequestTest" />
+      <class name="jetbrains.buildServer.server.rest.request.RoleRequestTest" />
+
+      <class name="jetbrains.buildServer.server.rest.request.versionedSettings.VersionedSettingsRequestStatusTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.versionedSettings.VersionedSettingsRequestActionsTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.versionedSettings.VersionedSettingsRequestConfigTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.versionedSettings.VersionedSettingsRequestContextParamsTest"/>
+      <class name="jetbrains.buildServer.server.rest.request.versionedSettings.VersionedSettingsRequestTokensTest"/>
+
+      <class name="jetbrains.buildServer.server.rest.util.BuildQueuePositionDescriptorTest" />
+      <class name="jetbrains.buildServer.server.rest.util.BuildQueuePositionModifierTest" />
+      <class name="jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtilTest"/>
+    </classes>
+  </test>
+  <test name="Rest API UI-only Test" preserve-order="false">
+    <classes>
+      <class name="jetbrains.buildServer.server.rest.data.pages.problems.TestFailuresProblemEntriesCollectorTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.pages.matrix.MatrixBuildFeatureServiceTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.pages.problems.BuildProblemEntriesFinderTest"/>
+    </classes>
+  </test>
+  <test name="Rest API Model Test" preserve-order="false">
+    <classes>
+      <class name="jetbrains.buildServer.server.rest.model.fields.FieldInclusionCheckerTest" />
+      <class name="jetbrains.buildServer.server.rest.model.fields.TestOccurrenceFieldsTest" />
+      <class name="jetbrains.buildServer.server.rest.model.ChangeStatusTest" />
+      <class name="jetbrains.buildServer.server.rest.model.ProjectTest" />
+      <class name="jetbrains.buildServer.server.rest.model.BuildTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.BuildsTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.BuildTypeTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.AgentTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.PagerDataImplTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.PropertiesTest"/>
+      <class name="jetbrains.buildServer.server.rest.model.ModelsStaticAnalysisTest"/>
+    </classes>
+  </test>
+  <test name="GraphQL API Test" preserve-order="false">
+    <classes>
+      <class name="jetbrains.buildServer.server.graphql.resolver.ProjectResolverTest" />
+      <class name="jetbrains.buildServer.server.graphql.model.connections.PaginatingConnectionTest" />
+      <class name="jetbrains.buildServer.server.graphql.resolver.AgentPoolMutationTest" />
+      <class name="jetbrains.buildServer.server.graphql.resolver.AbstractAgentPoolResolverTest" />
+      <class name="jetbrains.buildServer.server.graphql.resolver.QueryTest" />
+      <class name="jetbrains.buildServer.server.graphql.resolver.agentPool.AgentPoolAccessCheckerImplTest" />
+    </classes>
+  </test>
+</suite>

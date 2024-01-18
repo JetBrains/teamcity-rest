@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.jetbrains.teamcity.plugins</groupId>
+    <artifactId>rest-api-plugin</artifactId>
+    <version>${revision}</version>
+    <relativePath>../</relativePath>
+  </parent>
+  <artifactId>rest-api-contrib</artifactId>
+  <name>REST API Contrib</name>
+  <description>Additionals for TeamCity API REST-like protocol</description>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>org.jetbrains.teamcity.plugins</groupId>
+      <artifactId>rest-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jetbrains.teamcity</groupId>
+        <artifactId>teamcity-maven-plugin</artifactId>
+        <configuration>
+          <server>
+            <intellijProjectPath>../../</intellijProjectPath>
+            <descriptor>
+              <nodeResponsibilitiesAware>true</nodeResponsibilitiesAware>
+              <useSeparateClassloader>true</useSeparateClassloader>
+              <pluginDependencies>rest-api</pluginDependencies>
+            </descriptor>
+          </server>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

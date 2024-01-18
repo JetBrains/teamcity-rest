@@ -1,0 +1,118 @@
+## Issue link: https://youtrack.jetbrains.com/issue/TW-83287
+
+### Get default value sets
+GET http://localhost:8111/bs/app/rest/projects/{{matrix-builds-project-id}}/defaultValueSets
+Authorization: Bearer {{token}}
+Accept: application/json
+
+
+### Get matrix configuration
+GET http://localhost:8111/bs/app/rest/buildTypes/{{matrix-builds-bt-id}}/matrix/{{matrix-builds-feature-id}}
+Authorization: Bearer {{token}}
+Accept: application/json
+
+
+### Create matrix configuration
+POST http://localhost:8111/bs/app/rest/buildTypes/{{matrix-builds-bt-id}}/matrix
+Authorization: Bearer {{token}}
+Accept: application/json
+Content-Type: application/json
+
+{
+  "parameter": [
+    {
+      "name": "Java",
+      "value": [
+        {
+          "value": "1.8"
+        },
+        {
+          "value": "17"
+        },
+        {
+          "value": "21"
+        }
+      ]
+    },
+    {
+      "name": "Vars",
+      "value": [
+        {
+          "value": "%env.TEAMCITY_BUILDCONF_NAME%"
+        },
+        {
+          "value": "%env.BUILD_URL%", "label": "Build URL"
+        }
+      ]
+    }
+  ]
+}
+
+
+### Update matrix configuration
+PUT http://localhost:8111/bs/app/rest/buildTypes/{{matrix-builds-bt-id}}/matrix/{{matrix-builds-feature-id}}
+Authorization: Bearer {{token}}
+Accept: application/xml
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<matrixParametersFeatureDescriptor>
+  <parameter name="Java">
+    <value value="1.8"/>
+    <value value="1.9"/>
+    <value value="17"/>
+    <value value="18"/>
+    <value label="FUTURE_is_NOW" value="5555"/>
+  </parameter>
+  <parameter name="Vars">
+    <value value="%env.TEAMCITY_BUILDCONF_NAME%"/>
+    <value value="%env.BUILD_URL%"/>
+    <value label="Hello" value="%world%"/>
+  </parameter>
+</matrixParametersFeatureDescriptor>
+
+
+### Update matrix configuration with error
+PUT http://localhost:8111/bs/app/rest/buildTypes/{{matrix-builds-bt-id}}/matrix/{{matrix-builds-feature-id}}
+Authorization: Bearer {{token}}
+Accept: application/json
+Content-Type: application/json
+
+{
+  "parameter": [
+    {
+      "name": "valid_param0_name",
+      "value": [
+        { "value": "" },
+        { "value": "another_one", "label": "Non empty" }
+      ]
+    },
+    {
+      "name": "invalid_param1_name",
+      "value": [
+        { "value": "" },
+        { "value": "" }
+      ]
+    },
+    {
+      "name": "invalid_param2_name",
+      "value": [
+        { "label": "Only label" },
+        { "label": "Label and value", "value": "some_value" }
+      ]
+    },
+    {
+      "name": "invalid_param3_name",
+      "value": [
+        { "label": "", "value": "some_value" },
+        { "label": "Label and value", "value": "another_value" }
+      ]
+    }
+  ]
+}
+
+
+### Remove matrix configuration
+DELETE http://localhost:8111/bs/app/rest/buildTypes/{{matrix-builds-bt-id}}/matrix/{{matrix-builds-feature-id}}
+Authorization: Bearer {{token}}
+Accept: application/json

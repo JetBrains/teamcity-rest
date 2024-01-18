@@ -1,0 +1,426 @@
+/*
+ * Copyright 2000-2024 JetBrains s.r.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package jetbrains.buildServer.server.rest.model.agent;
+
+import com.intellij.openapi.diagnostic.Logger;
+import java.util.Date;
+import java.util.List;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import jetbrains.buildServer.AgentRestrictorType;
+import jetbrains.buildServer.ServiceLocator;
+import jetbrains.buildServer.controllers.agent.OSKind;
+import jetbrains.buildServer.log.LogUtil;
+import jetbrains.buildServer.server.rest.data.Locator;
+import jetbrains.buildServer.server.rest.data.PermissionChecker;
+import jetbrains.buildServer.server.rest.data.finder.impl.*;
+import jetbrains.buildServer.server.rest.data.util.LocatorUtil;
+import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
+import jetbrains.buildServer.server.rest.errors.BadRequestException;
+import jetbrains.buildServer.server.rest.errors.NotFoundException;
+import jetbrains.buildServer.server.rest.model.*;
+import jetbrains.buildServer.server.rest.model.build.Build;
+import jetbrains.buildServer.server.rest.model.build.Builds;
+import jetbrains.buildServer.server.rest.model.buildType.BuildTypes;
+import jetbrains.buildServer.server.rest.model.cloud.CloudImage;
+import jetbrains.buildServer.server.rest.model.cloud.CloudInstance;
+import jetbrains.buildServer.server.rest.request.BuildRequest;
+import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
+import jetbrains.buildServer.server.rest.util.BeanContext;
+import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
+import jetbrains.buildServer.server.rest.util.ValueWithDefault;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.agentTypes.AgentTypeFinder;
+import jetbrains.buildServer.serverSide.agentTypes.SAgentType;
+import jetbrains.buildServer.serverSide.auth.AccessChecker;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.Permission;
+import jetbrains.buildServer.serverSide.impl.AgentUpgradeUtil;
+import jetbrains.buildServer.serverSide.impl.agent.DeadAgent;
+import jetbrains.buildServer.serverSide.impl.agent.DummyAgentType;
+import jetbrains.buildServer.serverSide.impl.agent.PollingRemoteAgentConnection;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.Dates;
+import jetbrains.buildServer.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * @author Yegor.Yarko
+ * Date: 01.08.2009
+ */
+@XmlRootElement(name = "agent")
+@ModelDescription(
+    value = "Represents a known agent instance.",
+    externalArticleLink = "https://www.jetbrains.com/help/teamcity/build-agent.html",
+    externalArticleName = "Build Agent"
+)
+@SuppressWarnings({"PublicField", "WeakerAccess"})
+public class Agent {
+  @NotNull
+  private static final Logger LOGGER = Logger.getInstance(Agent.class);
+
+  public static final int UNKNOWN_AGENT_ID = -1;
+  public static final String COMPATIBILITY_POLICY = "compatibilityPolicy";
+  public static final String COMPATIBLE_BUILD_TYPES = "compatibleBuildTypes";
+  public static final String INCOMPATIBLE_BUILD_TYPES = "incompatibleBuildTypes";
+  @XmlAttribute public Integer id;
+  @XmlAttribute public String name;
+  @XmlAttribute public Integer typeId;
+  @XmlAttribute public Boolean connected;
+  @XmlAttribute public Boolean enabled;
+  @XmlAttribute public Boolean authorized;
+  @XmlAttribute public Boolean uptodate;
+  @XmlAttribute public Boolean outdated;
+  @XmlAttribute public Boolean pluginsOutdated;
+  @XmlAttribute public Boolean javaOutdated;
+  @XmlAttribute public String ip;
+  @XmlAttribute public AgentProtocol protocol;
+  @XmlAttribute public String version; //experimental
+  @XmlAttribute public String currentAgentVersion; //experimental
+  @XmlAttribute public String lastActivityTime; //experimental
+  @XmlAttribute public String idleSinceTime; //experimental
+  @XmlAttribute public String disconnectionComment;  //experimental
+  @XmlAttribute public String registrationTimestamp; //experimental
+  @XmlAttribute public String host;
+  @XmlAttribute public Integer cpuRank;
+  @XmlAttribute public Integer port;
+  @XmlAttribute public String href;
+  @XmlAttribute public String webUrl;
+  @XmlElement public Build build;
+  @XmlElement public Links links;
+  @XmlElement public AgentEnabledInfo enabledInfo;
+  @XmlElement public AgentAuthorizedInfo authorizedInfo;
+  @XmlElement public Properties properties;
+  @XmlElement public CloudInstance cloudInstance;
+  @XmlElement public CloudImage cloudImage;
+  /**
+   * Experimental support only
+   */
+  @XmlElement public Environment environment;
+  @XmlElement public AgentPool pool;
+  @XmlElement public CompatibilityPolicy compatibilityPolicy;
+  @XmlElement public BuildTypes compatibleBuildTypes;
+  @XmlElement public Compatibilities incompatibleBuildTypes;
+  @XmlElement public Builds builds;
+  /**
+   * This is used only when posting a link to an agent.
+   */
+  @XmlAttribute public String locator;
+
+  public Agent() {
+  }
+
+  /**
+   * Used only for build triggering
+   */
+  public Agent(@NotNull final jetbrains.buildServer.serverSide.agentPools.AgentPool agentPool, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", true), () -> new AgentPool(agentPool, fields.getNestedField("pool", Fields.SHORT, Fields.SHORT), beanContext));
+  }
+
+  /**
+   * Used only for build triggering
+   */
+  @SuppressWarnings("unused")
+  public Agent(@NotNull final SAgentType agentType, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    typeId = ValueWithDefault.decideDefault(fields.isIncluded("typeId", true), agentType.getAgentTypeId());
+  }
+
+  public Agent(@NotNull final SBuildAgent agent, final @NotNull Fields fields, @NotNull final BeanContext beanContext) {
+    final int agentId = agent.getId();
+    final boolean unknownAgent = agentId == UNKNOWN_AGENT_ID;
+    name = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("name"), agent.getName());
+    typeId = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("typeId"), agent.getAgentTypeId());
+    if (!unknownAgent) {
+      id = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("id"), agentId);
+      href = ValueWithDefault.decideDefault(fields.isIncluded("href"), beanContext.getApiUrlBuilder().getHref(agent));
+      connected = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("connected", false), agent.isRegistered());
+      enabled = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabled", false), agent.isEnabled());
+      authorized = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorized", false), agent.isAuthorized());
+
+
+      build = ValueWithDefault.decideDefault(fields.isIncluded("build", false), () -> {
+        SRunningBuild runningBuild = agent.getRunningBuild();
+        if (runningBuild == null) return null;
+        try {
+          beanContext.getSingletonService(PermissionChecker.class).checkPermission(Permission.VIEW_PROJECT, runningBuild.getBuildPromotion());
+          return new Build(runningBuild, fields.getNestedField("build"), beanContext);
+        } catch (AuthorizationFailedException e) {
+          return Build.getNoPermissionsBuild(runningBuild, fields.getNestedField("build"),
+                                             beanContext); //should probably include "empty" build node instead so that it's clear some build is running
+        }
+      });
+    }
+
+    boolean hasMeaningfulData = !unknownAgent ||
+                                !(((BuildAgentEx)agent).getAgentType() instanceof DummyAgentType); //agent type is still in the system
+    //check permission to match UI
+    if (hasMeaningfulData) {
+      if (AuthUtil.canViewAgentDetails(beanContext.getSingletonService(PermissionChecker.class).getCurrent(), agent)) {
+        WebLinks webLinks = beanContext.getSingletonService(WebLinks.class);
+        webUrl = ValueWithDefault.decideDefault(fields.isIncluded("webUrl", true), () -> webLinks.getAgentUrl(agent, agent.getAgentTypeId()));
+        links = ValueWithDefault.decideDefault(fields.isIncluded("links", false, false), () -> {
+          Links.LinksBuilder builder = new Links.LinksBuilder();
+          String absoluteUrl = webLinks.getAgentUrl(agent, agent.getAgentTypeId());
+          String relativeUrl = new RelativeWebLinks().getAgentUrl(agent, agent.getAgentTypeId());
+          if (absoluteUrl != null && relativeUrl != null) {
+            builder.add(Link.WEB_VIEW_TYPE, absoluteUrl, relativeUrl);
+          }
+          return builder.build(fields.getNestedField("links"));
+        });
+        environment = ValueWithDefault.decideDefaultIgnoringAccessDenied(
+          fields.isIncluded("environment", false, false),
+          () -> new Environment(agent, fields.getNestedField("environment", Fields.NONE, Fields.LONG))
+        );
+
+        if (!unknownAgent) {
+          uptodate = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("uptodate", false), !agent.isOutdated() && !agent.isPluginsOutdated());
+          outdated = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("outdated", false, false), agent::isOutdated);
+          pluginsOutdated = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("pluginsOutdated", false, false), agent::isPluginsOutdated);
+          javaOutdated = ValueWithDefault
+            .decideIncludeByDefault(fields.isIncluded("javaOutdated", false, false), () -> AgentUpgradeUtil.isAgentUsesOldJava(((BuildAgentEx)agent).getAgentType()));
+          host = ValueWithDefault.decideDefault(fields.isIncluded("host", false), agent::getHostName);
+          cpuRank = ValueWithDefault.decideDefault(fields.isIncluded("cpuRank", false), agent::getCpuBenchmarkIndex);
+          port = ValueWithDefault.decideDefault(fields.isIncluded("port", false), agent::getPort);
+          ip = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("ip", false), () -> {
+            final String hostAddress = agent.getHostAddress();
+            return DeadAgent.NA.equals(hostAddress) ? null : hostAddress;
+          });
+          protocol = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("protocol", false, false), () -> getAgentProtocol(agent));
+
+          version = ValueWithDefault.decideDefault(fields.isIncluded("version", false, false), agent::getVersion);
+
+          currentAgentVersion = ValueWithDefault.decideDefault(fields.isIncluded("currentAgentVersion", false, false), ((BuildAgentEx)agent)::getCurrentAgentVersion);
+
+          lastActivityTime = ValueWithDefault.decideDefault(fields.isIncluded("lastActivityTime", false, false),
+                                                            () -> Util.formatTime(agent.getLastCommunicationTimestamp()));
+
+          idleSinceTime = ValueWithDefault.decideDefault(fields.isIncluded("idleSinceTime", false, false),
+                                                         () -> {
+                                                           long idleTime = agent.getIdleTime();
+                                                           return idleTime <= 0 ? null : Util.formatTime(new Date(Dates.now().getTime() - idleTime));
+                                                         });
+
+          disconnectionComment = ValueWithDefault.decideDefault(fields.isIncluded("disconnectionComment", false, false),
+                                                                agent::getUnregistrationComment);
+
+          registrationTimestamp = ValueWithDefault.decideDefault(fields.isIncluded("registrationTimestamp", false, false),
+                                                                 () -> Util.formatTime(agent.getRegistrationTimestamp()));
+
+          enabledInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("enabledInfo", false),
+                                                                () -> new AgentEnabledInfo(agent, fields.getNestedField("enabledInfo", Fields.NONE, Fields.LONG), beanContext));
+
+          authorizedInfo = ValueWithDefault.decideIncludeByDefault(fields.isIncluded("authorizedInfo", false),
+                                                                   () -> new AgentAuthorizedInfo(agent, fields.getNestedField("authorizedInfo", Fields.NONE, Fields.LONG),
+                                                                                                 beanContext));
+
+          //TODO: review, if it should return all parameters on agent, use #getDefinedParameters()
+          properties = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("properties", false), () -> new Properties(agent.getAvailableParameters(), null, fields
+            .getNestedField("properties", Fields.NONE, Fields.LONG), beanContext));
+
+          cloudInstance = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("cloudInstance", false, false),
+                                                                             () -> {
+                                                                               try {
+                                                                                 return new CloudInstance(
+                                                                                   beanContext.getSingletonService(CloudInstanceFinder.class)
+                                                                                              .getItem(CloudInstanceFinder.getLocator(agent)),
+                                                                                   fields.getNestedField("cloudInstance"), beanContext);
+                                                                               } catch (NotFoundException e) {
+                                                                                 return null;
+                                                                               }
+                                                                             });
+
+          cloudImage = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded("cloudImage", false, false), () -> {
+            try {
+              if (!agent.isCloudAgent()) {
+                return null;
+              } else {
+                return new CloudImage(beanContext.getSingletonService(CloudImageFinder.class).getItem(CloudImageFinder.getLocator(agent)), fields.getNestedField("cloudImage"), beanContext);
+              }
+            } catch (Exception e) {
+              LOGGER.warnAndDebugDetails("Unable to get the cloud image for agent " + LogUtil.describe(agent), e);
+              return null;
+            }
+          });
+
+          compatibilityPolicy = ValueWithDefault.decideDefaultIgnoringAccessDenied(fields.isIncluded(COMPATIBILITY_POLICY, false, false),
+                                                                                   () -> CompatibilityPolicy
+                                                                                     .getCompatibilityPolicy(agent, fields.getNestedField(COMPATIBILITY_POLICY), beanContext));
+
+          compatibleBuildTypes = ValueWithDefault.decideDefault(
+            fields.isIncluded(COMPATIBLE_BUILD_TYPES, false, false),
+            () -> resolveCompatibleBuildTypes(agent, fields.getNestedField(COMPATIBLE_BUILD_TYPES), beanContext)
+          );
+          incompatibleBuildTypes = ValueWithDefault.decideDefault(fields.isIncluded(INCOMPATIBLE_BUILD_TYPES, false, false),
+                                                                  () -> new Compatibilities(AgentFinder.getIncompatible(agent, null, beanContext.getServiceLocator()), agent, null,
+                                                                                            fields.getNestedField(INCOMPATIBLE_BUILD_TYPES), beanContext));
+        }
+      }
+
+      builds = ValueWithDefault.decideDefault(fields.isIncluded("builds", false, false),
+                                              () -> {
+                                                Fields nestedFields = fields.getNestedField("builds", Fields.NONE, Fields.SHORT);
+                                                String locator = Locator.merge(nestedFields.getLocator(),
+                                                                               LocatorUtil.setDimension(BuildPromotionFinder.getLocator(agent), PagerData.COUNT, "1"));
+                                                return Builds.createFromPrefilteredBuildPromotions(
+                                                  beanContext.getServiceLocator().getSingletonService(BuildPromotionFinder.class).getItems(locator).getEntries(),
+                                                  new SinglePagePagerData(BuildRequest.getHref(locator)), fields, beanContext);
+                                              });
+
+      if (!unknownAgent) {
+        pool = ValueWithDefault.decideDefault(fields.isIncluded("pool", false),
+                                              () -> new AgentPool(beanContext.getSingletonService(AgentPoolFinder.class).getAgentPool(agent), fields.getNestedField("pool"),
+                                                                  beanContext));
+      }
+    }
+  }
+
+  @NotNull
+  private static BuildTypes resolveCompatibleBuildTypes(@NotNull SBuildAgent agent, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    BuildTypeFinder buildTypeFinder = beanContext.getSingletonService(BuildTypeFinder.class);
+    String locator = Locator.merge(fields.getLocator(), BuildTypeFinder.getLocatorCompatible(agent));
+    List<BuildTypeOrTemplate> result = buildTypeFinder.getItems(locator).getEntries();
+    return new BuildTypes(result, null, fields, beanContext);
+  }
+
+  public enum AgentProtocol {
+    unidirectional, bidirectional
+  }
+
+  @NotNull
+  private static AgentProtocol getAgentProtocol(final @NotNull SBuildAgent agent) {
+    final String protocolType = agent.getCommunicationProtocolType();
+    if (PollingRemoteAgentConnection.TYPE.equals(protocolType)) return AgentProtocol.unidirectional;
+    // would be better to check, but that is in another module: if (XmlRpcRemoteAgentConnection.DESCRIPTION.equals(communicationProtocolDescription)) return "bidirectional";
+    return AgentProtocol.bidirectional;
+  }
+
+  public static String getFieldValue(@NotNull final SBuildAgent agent, @Nullable final String name, @NotNull final ServiceLocator serviceLocator) {
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Field name cannot be empty");
+    }
+    if ("id".equals(name)) {
+      return String.valueOf(agent.getId());
+    } else if ("typeId".equals(name)) {
+      return String.valueOf(agent.getAgentTypeId());
+    } else if ("name".equals(name)) {
+      return agent.getName();
+    } else if ("connected".equals(name)) {
+      return String.valueOf(agent.isRegistered());
+    } else if ("enabled".equals(name)) {
+      return String.valueOf(agent.isEnabled());
+    } else if ("authorized".equals(name)) {
+      return String.valueOf(agent.isAuthorized());
+    } else if ("authToken".equals(name)) {
+      serviceLocator.getSingletonService(AccessChecker.class).checkHasPermissionForPool(agent.getAgentPool(), Permission.AUTHORIZE_AGENT, Permission.AUTHORIZE_AGENT_FOR_PROJECT);
+      return agent.getAuthorizationToken();
+    }
+
+    if ("enabledInfoCommentText".equals(name)) {
+      return String.valueOf(agent.getStatusComment().getComment());
+    } else if ("authorizedInfoCommentText".equals(name)) {
+      return String.valueOf(agent.getAuthorizeComment().getComment());
+    } else if ("ip".equals(name)) {
+      return agent.getHostAddress();
+    } else if ("protocol".equals(name)) {
+      return getAgentProtocol(agent).toString();
+    }
+    throw new BadRequestException("Unknown field '" + name + "'. Supported fields are: id, name, connected, enabled, authorized, ip, authToken");
+  }
+
+  public static void setFieldValue(@NotNull final SBuildAgent agent,
+                                   @Nullable final String name,
+                                   @NotNull final String value,
+                                   @NotNull final ServiceLocator serviceLocator) {
+    if (StringUtil.isEmpty(name)) {
+      throw new BadRequestException("Field name cannot be empty");
+    }
+    SUser currentUser = serviceLocator.getSingletonService(UserFinder.class).getCurrentUser();
+    if ("enabled".equals(name)) {
+      agent.setEnabled(Boolean.parseBoolean(value), currentUser, getActualActionComment(null));
+      //todo (TeamCity) why not use current user by default?
+      return;
+    } else if ("authorized".equals(name)) {
+      agent.setAuthorized(Boolean.parseBoolean(value), currentUser, getActualActionComment(null));
+      //todo (TeamCity) why not use current user by default?
+      return;
+    } else if ("enabledInfoCommentText".equals(name)) {
+      agent.setEnabled(agent.isEnabled(), currentUser, value);
+      return;
+    } else if ("authorizedInfoCommentText".equals(name)) {
+      agent.setAuthorized(agent.isAuthorized(), currentUser, value);
+      return;
+    }
+    throw new BadRequestException("Changing field '" + name + "' is not supported. Supported fields are: enabled, authorized");
+  }
+
+  @NotNull
+  public static String getActualActionComment(final @Nullable String submittedComment) {
+    return StringUtil.isEmpty(submittedComment) ? TeamCityProperties.getProperty("rest.defaultActionComment") : submittedComment;
+  }
+
+  @NotNull
+  public SBuildAgent getAgentFromPosted(@NotNull final AgentFinder agentFinder) {
+    String locatorText = "";
+    if (id != null) locatorText += (!locatorText.isEmpty() ? "," : "") + AgentFinder.DIMENSION_ID + ":" + id;
+    if (locatorText.isEmpty()) {
+      locatorText = locator;
+    } else {
+      if (locator != null) {
+        throw new BadRequestException("Both 'locator' and 'id' attributes are specified. Only one should be present.");
+      }
+    }
+    if (StringUtil.isEmpty(locatorText)) {
+      throw new BadRequestException("No agent specified. Either 'id' or 'locator' attribute should be present.");
+    }
+    return agentFinder.getItem(locatorText);
+  }
+
+  @Nullable
+  public SAgentRestrictor getAgentRestrictor(@NotNull final ServiceLocator serviceLocator) {
+    final AgentRestrictorFactory agentRestrictorFactory = serviceLocator.getSingletonService(AgentRestrictorFactory.class);
+    final AgentFinder agentFinder = serviceLocator.getSingletonService(AgentFinder.class);
+    try {
+      int agentIdFromPosted = getAgentFromPosted(agentFinder).getId();
+      return agentRestrictorFactory.createFor(AgentRestrictorType.SINGLE_AGENT, agentIdFromPosted);
+    } catch (BadRequestException | NotFoundException e) {
+      //agent not found
+      if (locator != null || id != null) throw e; // agent should be found
+      if (pool != null) {
+        final AgentPoolFinder agentPoolFinder = serviceLocator.getSingletonService(AgentPoolFinder.class);
+        return agentRestrictorFactory.createFor(AgentRestrictorType.AGENT_POOL, pool.getAgentPoolFromPosted(agentPoolFinder).getAgentPoolId());
+      }
+      if (typeId != null) {
+        return agentRestrictorFactory.createFor(AgentRestrictorType.CLOUD_IMAGE,
+                                                AgentFinder.getAgentType(String.valueOf(typeId), serviceLocator.getSingletonService(AgentTypeFinder.class)).getAgentTypeId());
+      }
+      throw e;
+    }
+  }
+
+  public int getAgentTypeIdFromPosted(@NotNull final ServiceLocator serviceLocator) {
+    try {
+      return getAgentFromPosted(serviceLocator.getSingletonService(AgentFinder.class)).getAgentTypeId();
+    } catch (BadRequestException | NotFoundException e) {
+      //agent not found
+      if (locator != null || id != null) throw e; // agent should be found
+      if (typeId != null) return AgentFinder.getAgentType(String.valueOf(typeId), serviceLocator.getSingletonService(AgentTypeFinder.class)).getAgentTypeId();
+      throw e;
+    }
+  }
+}

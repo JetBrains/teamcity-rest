@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.jetbrains.teamcity.plugins</groupId>
+    <artifactId>rest-api-plugin</artifactId>
+    <version>${revision}</version>
+    <relativePath>../</relativePath>
+  </parent>
+  <artifactId>rest-api-distrib</artifactId>
+  <name>REST API</name>
+  <description>Exposes TeamCity API via REST-like protocol. The plugin is essential for TeamCity Web UI.</description>
+
+  <properties>
+    <version.jaxb.impl>2.3.3</version.jaxb.impl>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.jetbrains.teamcity.plugins</groupId>
+      <artifactId>rest-api</artifactId>
+      <exclusions>
+
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.sun.xml.bind</groupId>
+          <artifactId>jaxb-impl</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-core-asl</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-mapper-asl</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-jaxrs</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-xc</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>joda-time</groupId>
+          <artifactId>joda-time</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.yaml</groupId>
+          <artifactId>snakeyaml</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>jakarta.activation</groupId>
+          <artifactId>jakarta.activation-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>jakarta.xml.bind</groupId>
+          <artifactId>jakarta.xml.bind-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+
+<!--    <dependency>-->
+<!--      <groupId>jakarta.xml.bind</groupId>-->
+<!--      <artifactId>jakarta.xml.bind-api</artifactId>-->
+<!--      <version>${version.jaxb.impl}</version>-->
+<!--    </dependency>-->
+
+<!--    &lt;!&ndash; 14-Mar-2019, tatu: Looks like this is needed for JDK11 and later-->
+<!--      &ndash;&gt;-->
+<!--    <dependency>-->
+<!--      <groupId>jakarta.activation</groupId>-->
+<!--      <artifactId>jakarta.activation-api</artifactId>-->
+<!--      <version>1.2.2</version>-->
+<!--    </dependency>-->
+
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jetbrains.teamcity</groupId>
+        <artifactId>teamcity-maven-plugin</artifactId>
+        <configuration>
+          <server>
+            <pluginName>rest-api</pluginName>
+            <intellijProjectPath>../../</intellijProjectPath>
+            <descriptor>
+              <nodeResponsibilitiesAware>true</nodeResponsibilitiesAware>
+              <useSeparateClassloader>true</useSeparateClassloader>
+              <parameters>
+                <api.path>/app/rest/2018.1,/app/rest,/app/rest/latest,/app/rest/ui,/api,/app/graphql</api.path>
+                <api.version>2018.1</api.version>
+              </parameters>
+            </descriptor>
+          </server>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
