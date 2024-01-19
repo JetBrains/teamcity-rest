@@ -31,7 +31,7 @@ import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder;
 import jetbrains.buildServer.server.rest.data.finder.syntax.UserDimensions;
 import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.data.util.SetDuplicateChecker;
-import jetbrains.buildServer.server.rest.data.util.finderBuilder.DimensionValueMapper;
+import jetbrains.buildServer.server.rest.data.finder.builder.DimensionValueMapper;
 import jetbrains.buildServer.server.rest.data.util.itemholder.ItemHolder;
 import jetbrains.buildServer.server.rest.errors.AuthorizationFailedException;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;

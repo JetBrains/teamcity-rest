@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.data.util.finderBuilder;
+package jetbrains.buildServer.server.rest.data.finder.builder;
 
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.Filter;
 import jetbrains.buildServer.server.rest.data.finder.TypedFinderBuilder.ItemsFromDimension;
