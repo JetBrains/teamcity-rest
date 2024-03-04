@@ -100,8 +100,8 @@ public class PagerDataImplTest extends BaseServerTestCase {
     final PagerData pagerData = new PagerDataImpl(uriBuilder, "/teamcity", pagedResult, "start:5,count:3,a:(eight-[{~!@#$%^&*_+`=\\|'\";:/?,<.>]})", "locator");
 
     assertEquals("href is different", "/smth?locator=start:5,count:3,a:%25", pagerData.getHref());
-    assertEquals("nextHref is different", (Object)"/smth?locator=a:(eight-%5B%7B%7E%21%40%23$%25%5E%26*_%2B%60%3D%5C%7C%27%22%3B:%2F%3F,%3C.%3E%5D%7D),count:3,lookupLimit:20,start:5", pagerData.getNextHref());
-    assertEquals("prevHref is different", (Object)"/smth?locator=a:(eight-%5B%7B%7E%21%40%23$%25%5E%26*_%2B%60%3D%5C%7C%27%22%3B:%2F%3F,%3C.%3E%5D%7D),count:3,start:2", pagerData.getPrevHref());
+    assertEquals("nextHref is different", (Object)"/smth?locator=a:(eight-%5B%7B%7E%21%40%23$%25%5E%26%2A_%2B%60%3D%5C%7C%27%22%3B:%2F%3F,%3C.%3E%5D%7D),count:3,lookupLimit:20,start:5", pagerData.getNextHref());
+    assertEquals("prevHref is different", (Object)"/smth?locator=a:(eight-%5B%7B%7E%21%40%23$%25%5E%26%2A_%2B%60%3D%5C%7C%27%22%3B:%2F%3F,%3C.%3E%5D%7D),count:3,start:2", pagerData.getPrevHref());
   }
 
   @Test

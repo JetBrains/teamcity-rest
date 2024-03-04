@@ -578,6 +578,11 @@ public class DebugRequest {
              .append(LogUtil.describe(orig)).append('\n');
         }
       }
+
+      @Override
+      public void optimizationSkipped(@NotNull String reason) {
+        log.append("optimization skipped, reason: ").append(reason).append('\n');
+      }
     });
     return log.toString();
   }

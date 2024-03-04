@@ -25,7 +25,7 @@ import org.junit.Assert;
 import org.testng.annotations.Test;
 
 @Test
-public class SplitBuildsFeatureUtilTest extends BaseServerTestCase {
+public class VirtualBuildsUtilTest extends BaseServerTestCase {
   public void testParallelBuildDetection() {
     myBuildType.addBuildFeature(new FakeFeatureDescriptor("parallelTests"));
 
@@ -36,7 +36,7 @@ public class SplitBuildsFeatureUtilTest extends BaseServerTestCase {
       "If this failed, this may mean two things:\n" +
       " - there was a breaking change in parallel builds plugin, which breaks the assumptions in rest and those need to be adjusted;\n" +
       " - or, rest itself was broken and needs to be fixed.",
-      SplitBuildsFeatureUtil.isParallelizedBuild(parallelBuild)
+      VirtualBuildsUtil.isParallelizedBuild(parallelBuild)
     );
   }
 

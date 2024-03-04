@@ -24,9 +24,9 @@ import java.lang.annotation.Target;
 /**
  * Marks Spring component to be also part of Jersey context.
  * <br/>
- * This annotation enables Jersey endpoints (@Path) to inject the beans from Spring's context via @Context annotation.
+ * This annotation enables Jersey endpoints (@Path) to inject the beans from Spring's context via @Context/@Inject annotation.
  * <br/>
- * Use this annotation alon with Spring's @Component instead of writing Jersey @Provider.
+ * Use this annotation along with Spring's @Component.
  * <p/>
  * This annotation should be applied only to components with SINGLETON scope.
  * If applied to REQUEST/PROTOTYPE/etc. then undefined behaviour.

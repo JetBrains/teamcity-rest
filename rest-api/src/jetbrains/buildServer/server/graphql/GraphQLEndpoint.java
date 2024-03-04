@@ -18,6 +18,7 @@ package jetbrains.buildServer.server.graphql;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.*;
+import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -27,21 +28,15 @@ import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.util.NamedThreadFactory;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.stereotype.Component;
 
 
 @Path(Constants.GRAPHQL_API_URL)
-@Component
 public class GraphQLEndpoint {
-
   @NotNull
-  private final GraphQL myGraphQL;
+  @Inject
+  private GraphQL myGraphQL;
   @NotNull
   private final ObjectMapper myObjectMapper = new ObjectMapper();
-
-  public GraphQLEndpoint(@NotNull GraphQL graphQL) {
-    myGraphQL = graphQL;
-  }
 
   @GET
   @Produces({MediaType.APPLICATION_JSON})

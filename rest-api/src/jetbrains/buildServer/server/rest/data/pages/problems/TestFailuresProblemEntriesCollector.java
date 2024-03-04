@@ -34,6 +34,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectUtil;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
+import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -57,6 +58,7 @@ public class TestFailuresProblemEntriesCollector {
     .add("name", Comparator.comparing(tr -> tr.getTest().getName().getShortName(), String.CASE_INSENSITIVE_ORDER));
 
   private static final long DEFAULT_PAGE_SIZE = 100;
+  private static final String FEATURE_FLAG_OPTIMIZATION_USE_FAILING_TESTS_DIRECTLY = "teamcity.currentProblems.useFailingTestsDirectly.enabled";
 
   /*
   TODO:
@@ -203,11 +205,13 @@ public class TestFailuresProblemEntriesCollector {
 
   @NotNull
   private Map<Long, List<STestRun>> getFailingTests(@NotNull SProject project) {
-    CurrentProblems currentProblems = myCurrentProblemsManager.getProblemsForProject(project);
+    Map<TestName, List<STestRun>> failingTestsMap = TeamCityProperties.getBooleanOrTrue(FEATURE_FLAG_OPTIMIZATION_USE_FAILING_TESTS_DIRECTLY)
+                                                    ? myCurrentProblemsManager.getFailingTests(project)
+                                                    : myCurrentProblemsManager.getProblemsForProject(project).getFailingTests();
 
     boolean excludeArchived = !project.isArchived();
     Map<Long, List<STestRun>> result = new HashMap<>();
-    for(List<STestRun> failingTests : currentProblems.getFailingTests().values()) {
+    for(List<STestRun> failingTests : failingTestsMap.values()) {
       List<STestRun> testRuns = failingTests;
 
       if(excludeArchived) {

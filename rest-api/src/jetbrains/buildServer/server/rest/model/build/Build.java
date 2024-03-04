@@ -1572,7 +1572,7 @@ public class Build {
   public Boolean isParallelized() {
     return ValueWithDefault.decideDefault(
       myFields.isIncluded("parallelized", false, false),
-      () -> SplitBuildsFeatureUtil.isParallelizedBuild(myBuildPromotion)
+      () -> VirtualBuildsUtil.isParallelizedBuild(myBuildPromotion)
     );
   }
 

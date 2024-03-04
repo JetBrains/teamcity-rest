@@ -17,22 +17,19 @@
 package jetbrains.buildServer.server.rest.request.pages.problems;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.PagedSearchResult;
-import jetbrains.buildServer.server.rest.data.pages.problems.BuildProblemEntriesFinder;
-import jetbrains.buildServer.server.rest.data.pages.problems.BuildProblemEntry;
-import jetbrains.buildServer.server.rest.data.pages.problems.TestFailuresProblemEntriesCollector;
-import jetbrains.buildServer.server.rest.data.pages.problems.TestFailuresProblemEntry;
+import jetbrains.buildServer.server.rest.data.pages.problems.*;
+import jetbrains.buildServer.server.rest.data.util.tree.Node;
+import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.PagerDataImpl;
 import jetbrains.buildServer.server.rest.model.pages.problems.BuildProblemEntries;
-import jetbrains.buildServer.server.rest.model.pages.problems.BuildProblemEntryGroups;
+import jetbrains.buildServer.server.rest.model.pages.problems.BuildProblemEntriesTree;
 import jetbrains.buildServer.server.rest.model.pages.problems.TestFailuresProblemEntries;
 import jetbrains.buildServer.server.rest.request.Constants;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -43,6 +40,7 @@ public class ProblemEntriesRequest {
   @Context @NotNull private BeanContext myBeanContext;
   @Context @NotNull private TestFailuresProblemEntriesCollector myProblemEntriesCollector;
   @Context @NotNull private BuildProblemEntriesFinder myBuildProblemEntriesFinder;
+  @Context @NotNull private BuildProblemEntriesTreeCollector myBuildProblemEntriesTreeCollector;
 
   public static final String API_SUB_URL = Constants.API_URL + "/pages/problems";
 
@@ -79,18 +77,16 @@ public class ProblemEntriesRequest {
   }
 
   @GET
-  @Path("/buildProblems/groups")
+  @Path("/buildProblems/tree")
   @Produces({"application/xml", "application/json"})
-  public BuildProblemEntryGroups getBuildEntryGroups(@QueryParam("locator") String locatorText,
-                                                     @QueryParam("fields") String fieldsText,
-                                                     @Context UriInfo uriInfo,
-                                                     @Context HttpServletRequest request) {
-    PagedSearchResult<BuildProblemEntry> result = myBuildProblemEntriesFinder.getItems(locatorText);
-    Map<String, List<BuildProblemEntry>> grouped = result.getEntries().stream()
-                                                         .collect(Collectors.groupingBy(bpe -> bpe.getBuildPromotion().getBuildTypeExternalId()));
+  public BuildProblemEntriesTree getBuildEntriesTree(@QueryParam("locator") String locatorText,
+                                                     @QueryParam("fields") String fieldsText) {
+
+    List<Node<BuildProblemEntry, BuildProblemEntriesTreeCollector.Counters>> nodes =
+      myBuildProblemEntriesTreeCollector.getTree(new Locator(locatorText));
 
     Fields fields = new Fields(fieldsText);
 
-    return new BuildProblemEntryGroups(grouped, fields, myBeanContext);
+    return new BuildProblemEntriesTree(nodes, fields, myBeanContext);
   }
 }

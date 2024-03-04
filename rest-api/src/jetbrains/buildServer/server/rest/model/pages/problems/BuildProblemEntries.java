@@ -66,6 +66,19 @@ public class BuildProblemEntries {
     );
   }
 
+  public BuildProblemEntries(@NotNull List<jetbrains.buildServer.server.rest.data.pages.problems.BuildProblemEntry> problemEntries,
+                             @NotNull Fields fields,
+                             @NotNull BeanContext beanContext) {
+    myEntries = ValueWithDefault.decideDefault(
+      fields.isIncluded("entry", false),
+      () -> resolveEntries(problemEntries, fields.getNestedField("entry"), beanContext)
+    );
+    myCount = ValueWithDefault.decideDefault(
+      fields.isIncluded("count", true),
+      problemEntries.size()
+    );
+  }
+
   @NotNull
   private static List<BuildProblemEntry> resolveEntries(@NotNull List<jetbrains.buildServer.server.rest.data.pages.problems.BuildProblemEntry> problemEntries,
                                                         @NotNull Fields fields,

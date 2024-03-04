@@ -23,13 +23,14 @@ import io.swagger.models.Swagger;
 import java.net.MalformedURLException;
 import java.net.URL;
 import jetbrains.buildServer.server.rest.data.DataProvider;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyInjectableBeanProvider;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 @Component("swaggerConfig")
-public class SwaggerConfigImpl implements SwaggerConfig {
+public class SwaggerConfigImpl implements SwaggerConfig, JerseyInjectableBeanProvider {
   private final DataProvider myDataProvider;
   private static final Logger LOG = Logger.getInstance(SwaggerConfigImpl.class.getName());
 
@@ -78,5 +79,10 @@ public class SwaggerConfigImpl implements SwaggerConfig {
       builder.append(':').append(port);
     }
     return builder.toString();
+  }
+
+  @Override
+  public Class<?> getBeanClass() {
+    return SwaggerConfig.class;
   }
 }

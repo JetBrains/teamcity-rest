@@ -17,6 +17,7 @@
 package jetbrains.buildServer.server.rest.data.problem;
 
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.server.rest.data.Locator;
 import jetbrains.buildServer.server.rest.data.locator.Dimension;
@@ -26,17 +27,23 @@ import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import org.jetbrains.annotations.NotNull;
 
 public class Orders<T> {
-  private final Map<String, Comparator<T>> myComparators = new LinkedHashMap<>();
+  private final Map<String, Supplier<Comparator<T>>> myComparators = new LinkedHashMap<>();
 
   @NotNull
   public Orders<T> add(@NotNull String orderName, @NotNull Comparator<T> comparator) {
-    myComparators.put(orderName, comparator);
+    myComparators.put(orderName, () -> comparator);
+    return this;
+  }
+
+  @NotNull
+  public Orders<T> add(@NotNull String orderName, @NotNull Supplier<Comparator<T>> comparatorFactory) {
+    myComparators.put(orderName, comparatorFactory);
     return this;
   }
 
   @NotNull
   private Comparator<T> get(@NotNull String orderName) {
-    Comparator<T> result = myComparators.get(orderName);
+    Comparator<T> result = myComparators.get(orderName).get();
     if (result == null) throw new BadRequestException("Order \"" + orderName + "\" is not supported. Supported orders are: " + Arrays.toString(getNames()));
     return result;
   }
@@ -56,16 +63,16 @@ public class Orders<T> {
     }
     Comparator<T> ALL_EQUAL = (o1, o2) -> 0;
     Comparator<T> comparator = ALL_EQUAL;
-    for (Map.Entry<String, Comparator<T>> compPair : myComparators.entrySet()) {
+    for (Map.Entry<String, Supplier<Comparator<T>>> compPair : myComparators.entrySet()) {
       String name = compPair.getKey();
-      String dimension = locator.getSingleDimensionValue(name);
-      if (dimension != null) {
-        if ("asc".equals(dimension) || "".equals(dimension)) {
-          comparator = comparator.thenComparing(compPair.getValue());
-        } else if ("desc".equals(dimension)) {
-          comparator = comparator.thenComparing(compPair.getValue().reversed());
+      String dimensionValue = locator.getSingleDimensionValue(name);
+      if (dimensionValue != null) {
+        if ("asc".equals(dimensionValue) || dimensionValue.isEmpty()) {
+          comparator = comparator.thenComparing(compPair.getValue().get());
+        } else if ("desc".equals(dimensionValue)) {
+          comparator = comparator.thenComparing(compPair.getValue().get().reversed());
         } else {
-          throw new BadRequestException("Dimension \"" + name + "\" has invalid value \"" + dimension + "\". Should be \"asc\" or \"desc\"");
+          throw new BadRequestException("Dimension \"" + name + "\" has invalid value \"" + dimensionValue + "\". Should be \"asc\" or \"desc\"");
         }
       }
     }

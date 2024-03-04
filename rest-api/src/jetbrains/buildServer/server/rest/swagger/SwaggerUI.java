@@ -29,7 +29,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
-import jetbrains.buildServer.server.rest.SwaggerUIUtil;
 import jetbrains.buildServer.server.rest.request.Constants;
 
 @Path(Constants.API_URL + "/swaggerui")
@@ -42,7 +41,7 @@ public class SwaggerUI {
   @GET
   @Produces({MediaType.TEXT_HTML})
   public String serveSwaggerUI() {
-    try (InputStream input = SwaggerUIUtil.getFileFromResources(SwaggerUIUtil.INDEX)) {
+    try (InputStream input = SwaggerUtil.getFileFromResources(SwaggerUtil.INDEX)) {
       return StreamUtil.readText(input, "UTF-8");
     } catch (IOException e) {
       throw new UncheckedIOException("Error while retrieving Swagger UI", e);
@@ -52,14 +51,15 @@ public class SwaggerUI {
   @GET
   @Path("/{path:.*}")
   public Object serveSwaggerResource(@PathParam("path") String path) {
-    if (path.equals(SwaggerUIUtil.INDEX)) {
+    if (path.equals(SwaggerUtil.INDEX)) {
       return serveSwaggerUI();
     }
 
-    try (InputStream input = SwaggerUIUtil.getFileFromResources(path)) {
+    try (InputStream input = SwaggerUtil.getFileFromResources(path)) {
       if (path.endsWith(".js") || path.endsWith(".css")) {
         return StreamUtil.readText(input, "UTF-8");
-      } else if (path.endsWith(".png")) {
+      }
+      if (path.endsWith(".png")) {
         return ImageIO.read(input);
       }
       return input;
@@ -67,5 +67,4 @@ public class SwaggerUI {
       throw new UncheckedIOException(String.format("Error while retrieving Swagger UI element %s", path), e);
     }
   }
-
 }

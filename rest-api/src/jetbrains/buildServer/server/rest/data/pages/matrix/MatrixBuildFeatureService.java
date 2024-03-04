@@ -18,7 +18,7 @@ import jetbrains.buildServer.server.rest.model.pages.matrix.MatrixBuildFeatureDe
 import jetbrains.buildServer.server.rest.model.project.LabeledValue;
 import jetbrains.buildServer.server.rest.request.pages.matrix.MatrixBuildFeatureSubResource;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
-import jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtil;
+import jetbrains.buildServer.server.rest.util.VirtualBuildsUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.serverSide.impl.BuildFeatureDescriptorImpl;
@@ -145,9 +145,9 @@ public class MatrixBuildFeatureService {
 
   @NotNull
   public GenerateDslResult generateDSL(@NotNull BuildTypeOrTemplate btt,
-                                                         @NotNull MatrixBuildFeatureSubResource.ViewAsCodePayload payload) {
+                                       @NotNull MatrixBuildFeatureSubResource.ViewAsCodePayload payload) {
 
-    ProjectSettingsGenerator generator = myGeneratorRegistry.getCustomGenerator();
+    ProjectSettingsGenerator generator = myGeneratorRegistry.findGenerator(ProjectSettingsGeneratorRegistry.KOTLIN_FORMAT);
     if(generator == null) {
       return new GenerateDslResult(new ErrorDescriptor("Internal error: can't generate DSL, generator not found.", ""));
     }
@@ -287,12 +287,12 @@ public class MatrixBuildFeatureService {
       return false;
     }
 
-    String linkParam = dep.getParameterValue(SplitBuildsFeatureUtil.LINK_TO_PARENT_PARAM_NAME);
-    if (linkParam == null || !linkParam.startsWith(SplitBuildsFeatureUtil.LINK_TO_PARENT_BT_PREFIX)) {
+    String linkParam = dep.getParameterValue(VirtualBuildsUtil.LINK_TO_ORIGINAL_PROMOTION_PARAM_NAME);
+    if (linkParam == null || !linkParam.startsWith(VirtualBuildsUtil.LINK_TO_PARENT_BT_PREFIX)) {
       return false;
     }
 
-    return headBuildType.getExternalId().equals(linkParam.substring(SplitBuildsFeatureUtil.LINK_TO_PARENT_BT_PREFIX.length()));
+    return headBuildType.getExternalId().equals(linkParam.substring(VirtualBuildsUtil.LINK_TO_PARENT_BT_PREFIX.length()));
   }
 
   /**

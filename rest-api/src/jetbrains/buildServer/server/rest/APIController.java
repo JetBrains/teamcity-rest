@@ -18,11 +18,6 @@ package jetbrains.buildServer.server.rest;
 
 import com.google.common.base.Stopwatch;
 import com.intellij.openapi.diagnostic.Logger;
-import com.sun.jersey.api.core.ResourceConfig;
-import com.sun.jersey.api.json.JSONConfiguration;
-import com.sun.jersey.core.util.FeaturesAndProperties;
-import com.sun.jersey.spi.container.WebApplication;
-import com.sun.jersey.spi.container.servlet.WebComponent;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -31,29 +26,23 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.ext.ExceptionMapper;
-import jetbrains.buildServer.controllers.AuthorizationInterceptor;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.interceptors.PathSet;
 import jetbrains.buildServer.controllers.interceptors.auth.HttpAuthenticationManager;
 import jetbrains.buildServer.controllers.interceptors.auth.HttpAuthenticationResult;
 import jetbrains.buildServer.controllers.interceptors.auth.util.UnauthorizedResponseHelper;
-import jetbrains.buildServer.plugins.PluginManager;
-import jetbrains.buildServer.plugins.bean.PluginInfo;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.data.RestContext;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
-import jetbrains.buildServer.server.rest.jersey.ExtensionsAwareResourceConfig;
 import jetbrains.buildServer.server.rest.jersey.JerseyWebComponent;
+import jetbrains.buildServer.server.rest.jersey.JerseyWebComponentInitializer;
 import jetbrains.buildServer.server.rest.request.*;
-import jetbrains.buildServer.serverSide.BuildServerAdapter;
+import jetbrains.buildServer.server.rest.util.PluginUtil;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SecurityContextEx;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
@@ -61,39 +50,31 @@ import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.web.CorsOrigins;
 import jetbrains.buildServer.web.impl.RestApiFacade;
 import jetbrains.buildServer.web.jsp.RestApiInternalRequestTag;
-import jetbrains.buildServer.web.openapi.PluginDescriptor;
-import jetbrains.buildServer.web.openapi.WebControllerManager;
 import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.UserAgentUtil;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.log4j.Level;
+import org.glassfish.jersey.internal.inject.InjectionManager;
+import org.glassfish.jersey.spi.ExceptionMappers;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.ServletContextAware;
-import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.ModelAndView;
 
 import static jetbrains.buildServer.util.Util.doUnderContextClassLoader;
 
 /**
- * @author Yegor.Yarko
- * Date: 23.03.2009
+ * This class is repsponsible for routing requests between several rest plugin versions, if any.
+ * Also triggers Jersey initialization if it's not initialized yet.
  */
 @Component
 public class APIController extends BaseController implements ServletContextAware {
   public static final String REST_COMPATIBILITY_ALLOW_EXTERNAL_ID_AS_INTERNAL = "rest.compatibility.allowExternalIdAsInternal";
   public static final String INCLUDE_INTERNAL_ID_PROPERTY_NAME = "rest.beans.includeInternalId";
-  public static final String LATEST_REST_API_PLUGIN_NAME = "rest-api";
   public static final String REST_RESPONSE_PRETTYFORMAT = "rest.response.prettyformat";
-  public static final String REST_PREFER_OWN_BIND_PATHS = "rest.allow.bind.paths.override.for.plugins";
   private static final String CONTEXT_REQUEST_ARGUMENTS_PREFIX = RestApiInternalRequestTag.REQUEST_ARGUMENTS_PREFIX;
-  private static String OUR_FIRST_BIND_PATH = null;
-  private final Logger LOG;
-  private final boolean myInternalAuthProcessing = TeamCityProperties.getBoolean("rest.cors.optionsRequest.allowUnauthorized");
-  private final String[] myPathsWithoutAuth = new String[]{
+  public static final String[] PATHS_WITHOUT_AUTH = new String[] {
     BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/*/" + "statusIcon" + "*",
     BuildRequest.BUILDS_ROOT_REQUEST_PATH + "/aggregated" + "/*/" + "statusIcon" + "*",
     ServerRequest.SERVER_REQUEST_PATH + "/" + ServerRequest.SERVER_VERSION_RQUEST_PATH,
@@ -102,15 +83,13 @@ public class APIController extends BaseController implements ServletContextAware
     "/swagger**",
     NodesRequest.NODES_PATH
   };
+
+  private final Logger LOG;
+  private final boolean myInternalAuthProcessing = TeamCityProperties.getBoolean("rest.cors.optionsRequest.allowUnauthorized");
   private final JerseyWebComponent myWebComponent;
-  private final AtomicBoolean myWebComponentInitialized = new AtomicBoolean(false);
-  private final ConfigurableApplicationContext myConfigurableApplicationContext;
+  private final JerseyWebComponentInitializer myWebComponentInitializer;
   private final SecurityContextEx mySecurityContext;
-  private final WebControllerManager myWebControllerManager;
-  private final ServerPluginInfo myPluginDescriptor;
-  private final AuthorizationInterceptor myAuthorizationInterceptor;
-  @NotNull private final HttpAuthenticationManager myAuthManager;
-  @NotNull private final PluginManager myPluginManager;
+  private final HttpAuthenticationManager myAuthManager;
   private final ClassLoader myClassloader;
   private final RequestPathTransformInfo myRequestPathTransformInfo;
   private final PathSet myUnauthenticatedPathSet = new PathSet();
@@ -121,56 +100,35 @@ public class APIController extends BaseController implements ServletContextAware
 
   public APIController(
     final SBuildServer server,
-    WebControllerManager webControllerManager,
-    final ConfigurableApplicationContext configurableApplicationContext,
     final SecurityContextEx securityContext,
     final RequestPathTransformInfo requestPathTransformInfo,
     final ServerPluginInfo pluginDescriptor,
-    @NotNull final JerseyWebComponent jerseyWebComponent,
-    final AuthorizationInterceptor authorizationInterceptor,
-    @NotNull final HttpAuthenticationManager authManager,
-    @NotNull final PluginManager pluginManager
+    final JerseyWebComponent jerseyWebComponent,
+    final JerseyWebComponentInitializer jerseyWebComponentInitializer,
+    final HttpAuthenticationManager authManager
   ) {
     super(server);
-    LOG = Logger.getInstance(APIController.class.getName() + "/" + pluginDescriptor.getPluginName());
     myClassloader = getClass().getClassLoader();
-    myWebControllerManager = webControllerManager;
-    myPluginDescriptor = pluginDescriptor;
     myWebComponent = jerseyWebComponent;
-    myAuthorizationInterceptor = authorizationInterceptor;
-    myPluginManager = pluginManager;
+    myWebComponentInitializer = jerseyWebComponentInitializer;
     myAuthManager = authManager;
-    setSupportedMethods(HttpMethod.GET, HttpMethod.HEAD, HttpMethod.POST, HttpMethod.PUT, HttpMethod.OPTIONS, HttpMethod.DELETE);
-
-    myConfigurableApplicationContext = configurableApplicationContext;
     mySecurityContext = securityContext;
     myRequestPathTransformInfo = requestPathTransformInfo;
+    LOG = PluginUtil.getLoggerWithPluginName(APIController.class, pluginDescriptor);
 
-    server.addListener(new BuildServerAdapter() {
-      @Override
-      public void pluginsLoaded() {
-        initializeController();
-        //todo: check if REST plugin is actually loaded and throw dedicated error otherwise
-      }
-    });
+    setSupportedMethods(HttpMethod.GET, HttpMethod.HEAD, HttpMethod.POST, HttpMethod.PUT, HttpMethod.OPTIONS, HttpMethod.DELETE);
 
     {
       String myAuthTokenCandidate = null;
       if (TeamCityProperties.getBoolean("rest.use.authToken")) {
         try {
           myAuthTokenCandidate = URLEncoder.encode(UUID.randomUUID().toString() + (new Date()).toString().hashCode(), "UTF-8");
-          LOG.info("Authentication token for Super user generated: '" + myAuthTokenCandidate + "' (" + getPluginIdentifyingText() + ")");
+          LOG.info("Authentication token for Super user generated: '" + myAuthTokenCandidate + "' in " + PluginUtil.getIdentifyingText(pluginDescriptor) + "");
         } catch (UnsupportedEncodingException e) {
           LOG.warn(e);
         }
       }
       myAuthToken = myAuthTokenCandidate;
-    }
-  }
-
-  private static void addEntries(final Map<String, String> map, final List<String> keys, final String value) {
-    for (String key : keys) {
-      map.put(key, value);
     }
   }
 
@@ -209,231 +167,8 @@ public class APIController extends BaseController implements ServletContextAware
     return UserAgentUtil.isBrowser(request) && !WebUtil.isWebSocketUpgradeRequest(request);
   }
 
-  @Nullable
-  public static String getFirstBindPath() {
-    return OUR_FIRST_BIND_PATH;
-  }
-
-  public void initializeController() {
-    final List<String> unfilteredOriginalBindPaths = getBindPaths(myPluginDescriptor);
-    if (unfilteredOriginalBindPaths.isEmpty()) {
-      final String message = "Error while initializing REST API " + getPluginIdentifyingText() + ": No bind paths found. Corrupted plugin?";
-      LOG.error(message + " Reporting plugin load error.");
-      throw new RuntimeException(message);
-    }
-    OUR_FIRST_BIND_PATH = unfilteredOriginalBindPaths.get(0);
-
-    final List<String> originalBindPaths = filterOtherPlugins(unfilteredOriginalBindPaths);
-    if (originalBindPaths.isEmpty()) {
-      final String message = "Error while initializing REST API " + getPluginIdentifyingText() + ": No unique bind paths found. Conflicting plugins set is installed.";
-      LOG.error(message + " Reporting plugin load error.");
-      throw new RuntimeException(message);
-    }
-
-    LOG.info("Listening for paths " + originalBindPaths + " in " + getPluginIdentifyingText());
-
-    // For GraphQL API we don't want path-related features that we have for REST paths.
-    List<String> graphqlPaths = originalBindPaths.stream().filter(path -> path.startsWith(Constants.GRAPHQL_API_URL)).collect(Collectors.toList());
-    originalBindPaths.removeAll(graphqlPaths);
-
-    List<String> bindPaths = new ArrayList<>(originalBindPaths);
-    bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.HTTP_AUTH_PREFIX)));
-    bindPaths.addAll(addPrefix(originalBindPaths, StringUtil.removeTailingSlash(WebUtil.GUEST_AUTH_PREFIX)));
-
-    Map<String, String> transformBindPaths = new HashMap<>();
-    addEntries(transformBindPaths, bindPaths, Constants.API_URL);
-
-    myRequestPathTransformInfo.setPathMapping(transformBindPaths);
-    LOG.debug("Will use request mapping: " + myRequestPathTransformInfo);
-
-    originalBindPaths.addAll(graphqlPaths);
-    registerController(originalBindPaths);
-
-    if (LATEST_REST_API_PLUGIN_NAME.equals(myPluginDescriptor.getPluginName())) {
-      //initialize on start only the latest plugin; others will be initialized on first request
-      initJerseyWebComponentAsync();
-    }
-  }
-
-  private void initJerseyWebComponentAsync() {
-    new NamedDaemonThreadFactory("REST API initializer for " + getPluginIdentifyingText()).newThread(() -> {
-      initJerseyWebComponent(() -> "via background initial initialization");
-    }).start();
-  }
-
-  private void initJerseyWebComponent(@NotNull final Supplier<String> contextDetails) {
-    if (!myWebComponentInitialized.get()) {
-      NamedThreadFactory.executeWithNewThreadName("Initializing Jersey for " + getPluginIdentifyingText() + " " + contextDetails.get(), () -> {
-        synchronized (myWebComponentInitialized) {
-          if (myWebComponentInitialized.get()) return;
-
-          try {
-            // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-            doUnderContextClassLoader(myClassloader, (FuncThrow<Void, Throwable>)() -> {
-                final Set<ConfigurableApplicationContext> contexts = new HashSet<>();
-                contexts.add(myConfigurableApplicationContext);
-                for (RESTControllerExtension extension : getExtensions()) {
-                  contexts.add(extension.getContext());
-                }
-                myWebComponent.setContexts(contexts);
-                // ExtensionsAwareResourceConfig not initialized yet. We should wait for all extensions to load first.
-                // Now it's time to initialize and scan for extensions.
-                final ExtensionsAwareResourceConfig config = getApplicationContext().getBean(ExtensionsAwareResourceConfig.class);
-                config.onReload();
-                myWebComponent.init(createJerseyConfig());
-                return null;
-            });
-
-            myWebComponentInitialized.set(true);
-          } catch (Throwable e) {
-            LOG.error("Error initializing REST API " + contextDetails.get() + ": " + e + ExceptionMapperBase.addKnownExceptionsData(e, ""), e);
-            ExceptionUtil.rethrowAsRuntimeException(e);
-          }
-        }
-      });
-    }
-  }
-
-  private List<String> filterOtherPlugins(final List<String> bindPaths) {
-    final String pluginNames =
-      TeamCityProperties.getProperty(REST_PREFER_OWN_BIND_PATHS, LATEST_REST_API_PLUGIN_NAME); //by default allow only the latest/main plugin paths to be overriden
-    final String[] pluginNamesList = pluginNames.split(",");
-
-    final String ownPluginName = myPluginDescriptor.getPluginName();
-    boolean overridesAllowed = false;
-    for (String pluginName : pluginNamesList) {
-      if (ownPluginName.equals(pluginName.trim())) {
-        overridesAllowed = true;
-        break;
-      }
-    }
-    if (!overridesAllowed) {
-      return bindPaths;
-    }
-    final ArrayList<String> result = new ArrayList<>(bindPaths);
-
-    final Collection<PluginInfo> allPlugins = myPluginManager.getDetectedPlugins();
-    //is the plugin actually loaded? Might need to check only the successfully loaded plugins
-    for (PluginInfo plugin : allPlugins) {
-      if (ownPluginName.equals(plugin.getPluginName())) {
-        continue;
-      }
-      if (plugin instanceof ServerPluginInfo) {
-        final PluginDescriptor pluginDescriptor = (ServerPluginInfo)plugin; //TeamCity API issue: cast
-        String bindPath = pluginDescriptor.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
-        if (!StringUtil.isEmpty(bindPath)) {
-          final List<String> pathToExclude = getBindPaths(pluginDescriptor);
-          if (result.removeAll(pathToExclude)) {
-            LOG.info("Excluding paths from handling by plugin '" + ownPluginName + "' as they are handled by plugin '" + plugin.getPluginName() + "': " +
-                     pathToExclude + ". Set " + REST_PREFER_OWN_BIND_PATHS + " internal property to empty value to prohibit overriding." +
-                     " (The property sets comma-separated list of plugin names which bind paths can be overriden.)");
-          }
-        }
-      } else {
-        LOG.warn("Cannot get plugin info for plugin '" + plugin.getPluginName() + "', ignoring it while filtering out REST bind paths. " +
-                 "This is a bug in the REST plugin, please report it to JetBrains.");
-      }
-    }
-    return result;
-  }
-
-  public String getPluginIdentifyingText() {
-    return "plugin '" + myPluginDescriptor.getPluginName() + "'";
-  }
-
-  private static List<String> addPrefix(final List<String> paths, final String prefix) {
-    List<String> result = new ArrayList<>(paths.size());
-    for (String path : paths) {
-      result.add(prefix + path);
-    }
-    return result;
-  }
-
-  private void registerController(final List<String> bindPaths) {
-    try {
-      for (String controllerBindPath : bindPaths) {
-        LOG.debug("Binding REST API " + getPluginIdentifyingText() + " to path '" + controllerBindPath + "'");
-        myWebControllerManager.registerController(controllerBindPath + "/**", this);
-        if (myInternalAuthProcessing &&
-            !controllerBindPath.equals(
-              Constants.API_URL)) {// this is a special case as it contains paths of other plugins under it. Thus, it cannot be registered as not requiring auth
-          myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + "/**");
-          for (String path : myPathsWithoutAuth) {
-            myUnauthenticatedPathSet.addPath(controllerBindPath + path);
-          }
-        } else {
-          for (String path : myPathsWithoutAuth) {
-            myAuthorizationInterceptor.addPathNotRequiringAuth(controllerBindPath + path);
-            myUnauthenticatedPathSet.addPath(controllerBindPath + path);
-          }
-        }
-      }
-    } catch (Exception e) {
-      LOG.error("Error registering controller in " + getPluginIdentifyingText(), e);
-    }
-  }
-
   private boolean requestForMyPathNotRequiringAuth(final HttpServletRequest request) {
     return myUnauthenticatedPathSet.matches(WebUtil.getOriginalPathWithoutAuthenticationType(request));
-  }
-
-  private List<String> getBindPaths(@NotNull final PluginDescriptor pluginDescriptor) {
-    String bindPath = pluginDescriptor.getParameterValue(Constants.BIND_PATH_PROPERTY_NAME);
-    if (bindPath == null) {
-      LOG.error("No property '" + Constants.BIND_PATH_PROPERTY_NAME + "' found in plugin descriptor file in " + getPluginIdentifyingText() + ". Corrupted plugin?");
-      return Collections.emptyList();
-    }
-
-    final String[] bindPaths = bindPath.split(",");
-
-    if (bindPath.length() == 0) {
-      LOG.error("Invalid REST API bind path in plugin descriptor: '" + bindPath + "'in " + getPluginIdentifyingText() + ". Corrupted plugin?");
-      return Collections.emptyList();
-    }
-
-    return Arrays.asList(bindPaths);
-  }
-
-  private FilterConfig createJerseyConfig() {
-    return new FilterConfig() {
-      private final Map<String, String> initParameters = new HashMap<>();
-
-      {
-        initParameters.put(ResourceConfig.FEATURE_DISABLE_WADL, "true");
-        initParameters.put(JSONConfiguration.FEATURE_POJO_MAPPING, "true");
-        initParameters.put(WebComponent.RESOURCE_CONFIG_CLASS, ExtensionsAwareResourceConfig.class.getCanonicalName());
-        if (TeamCityProperties.getBoolean(APIController.REST_RESPONSE_PRETTYFORMAT)) {
-          initParameters.put(FeaturesAndProperties.FEATURE_FORMATTED, "true");
-        }
-      }
-
-      @Override
-      public String getFilterName() {
-        return "jerseyFilter";
-      }
-
-      @Override
-      public ServletContext getServletContext() {
-        //return APIController.this.getServletContext();
-        // workaround for http://jetbrains.net/tracker/issue2/TW-7656
-        for (ApplicationContext ctx = getApplicationContext(); ctx != null; ctx = ctx.getParent()) {
-          if (ctx instanceof WebApplicationContext) {
-            return ((WebApplicationContext)ctx).getServletContext();
-          }
-        }
-        throw new RuntimeException("WebApplication context was not found.");
-      }
-
-      @Override
-      public String getInitParameter(final String s) {
-        return initParameters.get(s);
-      }
-
-      @Override
-      public Enumeration<String> getInitParameterNames() {
-        return new Vector<>(initParameters.keySet()).elements();
-      }
-    };
   }
 
   @Override
@@ -463,7 +198,7 @@ public class APIController extends BaseController implements ServletContextAware
     }
 
     try {
-      initJerseyWebComponent(() -> "during request " + WebUtil.getRequestDump(request));
+      myWebComponentInitializer.initJerseyWebComponent(() -> "during request " + WebUtil.getRequestDump(request));
     } catch (Throwable throwable) {
       reportRestErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, throwable, "Error initializing REST API", Level.ERROR, request);
       return null;
@@ -560,10 +295,10 @@ public class APIController extends BaseController implements ServletContextAware
     // also exceptions during serialization seem to not pass through the mappers (too late already?) - see TW-56461
     // forcing plain text error reporting
 
-    // see ContainerResponse.mapException
-    WebApplication wa = myWebComponent.getWebApplication();
-    if (wa != null) {
-      @SuppressWarnings("rawtypes") ExceptionMapper em = wa.getExceptionMapperContext().find(throwable.getClass());
+    InjectionManager im = myWebComponent.getApplicationHandler().getInjectionManager();
+    if (im != null) {
+      @SuppressWarnings("rawtypes")
+      ExceptionMapper em = im.getInstance(ExceptionMappers.class).find(throwable.getClass());
       if (em instanceof ExceptionMapperBase) {
         @SuppressWarnings("rawtypes") ExceptionMapperBase mapper = (ExceptionMapperBase)em;
         ExceptionMapperBase.ResponseData responseData;
@@ -624,19 +359,16 @@ public class APIController extends BaseController implements ServletContextAware
 
   @NotNull
   public static String[] getBasePackages() {
-    return new String[]{
-      "org.fasterxml.jackson.jaxrs",
+    return new String[] {
+      //"org.fasterxml.jackson.jaxrs",
+      "jetbrains.buildServer.server.graphql",
+      "jetbrains.buildServer.server.rest.jersey",
+      "jetbrains.buildServer.server.rest.errors",
       "jetbrains.buildServer.server.rest.request",
       "jetbrains.buildServer.server.rest.data",
       "jetbrains.buildServer.server.rest.swagger",
     };
   }
-
-  @NotNull
-  public Collection<RESTControllerExtension> getExtensions() {
-    return myServer.getExtensions(RESTControllerExtension.class);
-  }
-
 
   //todo: move to RequestWrapper
 
@@ -694,6 +426,11 @@ public class APIController extends BaseController implements ServletContextAware
 
   private String getAuthToken() {
     return myAuthToken;
+  }
+
+  void setUnathenticatedPaths(@NotNull Set<String> unauthenticatedPathSet) {
+    myUnauthenticatedPathSet.clear();
+    myUnauthenticatedPathSet.addAll(unauthenticatedPathSet);
   }
 
   static class CachingValues {

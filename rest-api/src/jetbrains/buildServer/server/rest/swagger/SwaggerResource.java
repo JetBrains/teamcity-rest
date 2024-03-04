@@ -19,7 +19,6 @@ package jetbrains.buildServer.server.rest.swagger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import com.intellij.openapi.util.text.StringUtil;
-import com.sun.jersey.spi.resource.Singleton;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.config.FilterFactory;
@@ -52,7 +51,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Path(Constants.API_URL + "/swagger.{type:json|yaml}")
-@Singleton
 @Api(hidden = true)
 public class SwaggerResource {
 

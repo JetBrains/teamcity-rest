@@ -17,175 +17,179 @@
 package jetbrains.buildServer.server.rest.jersey;
 
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.Pair;
-import com.sun.jersey.api.core.DefaultResourceConfig;
-import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
-import com.sun.jersey.spi.container.ReloadListener;
-import com.sun.jersey.spi.scanning.AnnotationScannerListener;
-import com.sun.jersey.spi.scanning.PathProviderScannerListener;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.util.*;
 import javax.ws.rs.Path;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.plugins.bean.ServerPluginInfo;
 import jetbrains.buildServer.server.rest.APIController;
 import jetbrains.buildServer.server.rest.RESTControllerExtension;
-import jetbrains.buildServer.server.rest.swagger.LocatorResourceListener;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.Spring2JerseyBridge;
 import jetbrains.buildServer.server.rest.swagger.annotations.LocatorResource;
+import jetbrains.buildServer.server.rest.util.PluginUtil;
+import jetbrains.buildServer.serverSide.SBuildServer;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import org.glassfish.jersey.media.multipart.MultiPartFeature;
+import org.glassfish.jersey.message.MessageProperties;
+import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.ServerProperties;
+import org.glassfish.jersey.server.internal.scanning.AnnotationAcceptingListener;
+import org.glassfish.jersey.server.internal.scanning.PackageNamesScanner;
+import org.glassfish.jersey.server.spi.Container;
+import org.glassfish.jersey.server.spi.ContainerLifecycleListener;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.BeanFactoryUtils;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ClassUtils;
 
 /**
- * Based on {@link com.sun.jersey.api.core.ScanningResourceConfig}
- * But uses classloaders from extensions.
- *
- * @since 9.0
+ * This class is responsible for initializing all the necessary resources and manually binding some services which can't be bind via auto discovery.
+ * Looks through plugin extentions and binds all necessary classes as well.
  */
 @Component
-public class ExtensionsAwareResourceConfig extends DefaultResourceConfig implements ReloadListener {
+public class ExtensionsAwareResourceConfig extends ResourceConfig implements ContainerLifecycleListener {
   private static Logger LOG = Logger.getInstance(ExtensionsAwareResourceConfig.class.getName());
+  private final SBuildServer myServer;
 
-  @NotNull private final APIController myController;
-  private final Set<Class<?>> myCachedClasses = new HashSet<>();
+  public ExtensionsAwareResourceConfig(@NotNull SBuildServer server,
+                                       @NotNull ServerPluginInfo pluginDescriptor,
+                                       @NotNull Spring2JerseyBridge spring2JerseyBridge) {
+    myServer = server;
+    LOG = PluginUtil.getLoggerWithPluginName(ExtensionsAwareResourceConfig.class, pluginDescriptor);
 
-  @Autowired
-  public ExtensionsAwareResourceConfig(@NotNull final APIController controller, @SuppressWarnings("SpringJavaAutowiringInspection") final ServerPluginInfo pluginDescriptor) {
-    myController = controller;
-    LOG = Logger.getInstance(ExtensionsAwareResourceConfig.class.getName() + "/" + pluginDescriptor.getPluginName());
-  }
+    register(MultiPartFeature.class);
 
-  @NotNull
-  public Collection<Pair<String[], ClassLoader>> getScanningInfo() {
-    final ArrayList<Pair<String[], ClassLoader>> scanners = new ArrayList<Pair<String[], ClassLoader>>();
-    {
-      final ClassLoader cl = getClass().getClassLoader();
-      scanners.add(new Pair<String[], ClassLoader>(myController.getBasePackages(), cl));
-    }
-    final Set<String> packagesFromExtensions = new TreeSet<String>();
-    for (RESTControllerExtension extension : myController.getExtensions()) {
-      final ClassLoader cl = extension.getClass().getClassLoader();
-      final String pkg = extension.getPackage();
-      scanners.add(new Pair<String[], ClassLoader>(new String[]{pkg}, cl));
-      packagesFromExtensions.add(pkg);
-    }
-    if (!packagesFromExtensions.isEmpty()) {
-      LOG.info("Packages registered by rest extensions: " + packagesFromExtensions);
-    }
-    return scanners;
-  }
+    register(spring2JerseyBridge);
 
-  @Override
-  public Object getProperty(String propertyName) {
-    // We may want to add some proper lookup logic here if needed (e.g. have a special annotation with a property name),
-    // but for now let's just add our filter and don't really bother.
-
-    Object result = super.getProperty(propertyName);
-    if(result != null) {
-      return result;
-    }
-
-    if(propertyName.equals("com.sun.jersey.spi.container.ContainerResponseFilters")) {
-      return Collections.singletonList(ThreadNamingContainerResponseFilter.class);
-    }
-
-    return null;
-  }
-
-  @Override
-  public Map<String, Object> getProperties() {
-    HashMap<String, Object> wrapper = new HashMap<>(super.getProperties());
-    wrapper.put("com.sun.jersey.spi.container.ContainerResponseFilters", Collections.singletonList(ThreadNamingContainerResponseFilter.class));
-
-    return wrapper;
+    property(ServerProperties.WADL_FEATURE_DISABLE, true);
+    property(MessageProperties.XML_FORMAT_OUTPUT, TeamCityProperties.getBoolean(APIController.REST_RESPONSE_PRETTYFORMAT));
   }
 
   /**
-   * Initialize and scan for root resource and provider classes in rest-core and extensions.
+   * Initialize and scan for root resource and provider classes in this plugin and it's extensions.
    */
   public void init() {
-    final Set<Class<?>> classes = getClasses();
-    for (Pair<String[], ClassLoader> pair : getScanningInfo()) {
-      final AnnotationScannerListener asl = new PathProviderScannerListener(pair.second);
-      final LocatorResourceListener lrl = new LocatorResourceListener(pair.second);
-      final PackageNamesScanner scanner = new PackageNamesScanner(pair.second, pair.first);
-      try {
-        scanner.scan(asl);
-        scanner.scan(lrl);
-      } catch (Throwable e) {
-        String message = "Error initializing REST component while scanning for resources for " + myController.getPluginIdentifyingText() +
-                         " for packages " + Arrays.toString(pair.first) + " via classloader '" + pair.second.toString() + "'.";
-        if (Arrays.stream(pair.first).anyMatch(s -> s.startsWith("jetbrains.buildServer.server.rest."))) {
-          // treat this as core plugin initialization error, so do not let anything to initialize and report errors on following requests instead of ignoring the extensions
-          // (replying with 500 response and erorr detials instead of 404)
-          throw new RuntimeException(message, e);
-        }
-        message += " Jersey resources located in the packages are ignored. Error: " + e.toString() + ExceptionMapperBase.addKnownExceptionsData(e, "");
-        LOG.error(message, e);
-        Loggers.SERVER.error(message);
-      }
-      classes.addAll(asl.getAnnotatedClasses());
-      classes.addAll(lrl.getAnnotatedClasses());
+    // Scan and register provider classes for this plugin
+    packagesWithLocatorResources(getClass().getClassLoader(), APIController.getBasePackages());
+
+    Set<Class<?>> loggedClasses = new HashSet<>(getClasses());
+    LOG.info("Registered following providers in the rest plugin itself");
+    logRegisteredResources(loggedClasses);
+
+    for (RESTControllerExtension extension : PluginUtil.getRestExtensions(myServer)) {
+      final ClassLoader cl = extension.getClass().getClassLoader();
+      final String pkg = extension.getPackage();
+
+      packagesWithLocatorResources(cl, pkg);
+      registerSpringBeans(extension.getContext());
+
+      LOG.info("Registered following providers from extention at " + pkg);
+
+      Set<Class<?>> pluginClasses = new HashSet<>(getClasses());
+      pluginClasses.removeAll(loggedClasses);
+      logRegisteredResources(pluginClasses);
+
+      loggedClasses = new HashSet<>(getClasses());
     }
-
-    if (!classes.isEmpty()) {
-      final Set<Class> rootResourceClasses = get(Path.class);
-      if (rootResourceClasses.isEmpty()) {
-        LOG.warn("No root resource classes found.");
-      } else {
-        logClasses("Root resource classes found:", rootResourceClasses);
-      }
-
-      final Set<Class> providerClasses = get(Provider.class);
-      if (providerClasses.isEmpty()) {
-        LOG.info("No provider classes found.");
-      } else {
-        logClasses("Provider classes found:", providerClasses);
-      }
-
-      final Set<Class> locatorClasses = get(LocatorResource.class);
-      if (locatorClasses.isEmpty()) {
-        LOG.info("No locator classes found.");
-      } else {
-        logClasses("Locator classes found:", locatorClasses);
-      }
-
-    }
-
-    myCachedClasses.clear();
-    myCachedClasses.addAll(classes);
   }
 
-  public void onReload() {
-    final Set<Class<?>> add = new HashSet<Class<?>>();
-    final Set<Class<?>> remove = new HashSet<Class<?>>();
-    final Set<Class<?>> classes = getClasses();
+  private void logRegisteredResources(@NotNull Set<Class<?>> classes) {
+    final Set<Class<?>> rootResourceClasses = get(Path.class, classes);
+    if (rootResourceClasses.isEmpty()) {
+      LOG.warn("No @Path resource classes found.");
+    } else {
+      logClasses("@Path resource classes found:", rootResourceClasses);
+    }
 
-    for (Class c : classes) {
-      if (!myCachedClasses.contains(c)) {
-        add.add(c);
+    final Set<Class<?>> providerClasses = get(Provider.class, classes);
+    if (providerClasses.isEmpty()) {
+      LOG.info("No @Provider classes found.");
+    } else {
+      logClasses("@Provider classes found:", providerClasses);
+    }
+
+    final Set<Class<?>> locatorClasses = get(LocatorResource.class, classes);
+    if (locatorClasses.isEmpty()) {
+      LOG.info("No @LocatorResource classes found.");
+    } else {
+      logClasses("@LocatorResource classes found:", locatorClasses);
+    }
+  }
+
+  /**
+   *  This is implemented looking at Jersey org.glassfish.jersey.server.ResourceConfig#scanClasses.
+   */
+  private void packagesWithLocatorResources(@NotNull ClassLoader classLoader, @NotNull String... packages) {
+    packages(true, classLoader, packages);
+
+    AnnotationAcceptingListener annotationListener = new AnnotationAcceptingListener(classLoader, LocatorResource.class);
+
+    try(PackageNamesScanner scanner = new PackageNamesScanner(classLoader, packages, true)) {
+      while (scanner.hasNext()) {
+        final String next = scanner.next();
+        if (annotationListener.accept(next)) {
+          final InputStream in = scanner.open();
+          try {
+            annotationListener.process(next, in);
+          } catch (final IOException e) {
+            LOG.infoAndDebugDetails(String.format("Unable to process resource '%s' when looking for classes annotated with '%s'", next, LocatorResource.class.getSimpleName()), e);
+          } finally {
+            try {
+              in.close();
+            } catch (final IOException ex) {
+              LOG.debug(String.format("Unable to close InputStream while processing resource '%s' due to:\n %s", next, ex));
+            }
+          }
+        }
       }
     }
 
-    for (Class c : myCachedClasses) {
-      if (!classes.contains(c)) {
-        remove.add(c);
-      }
-    }
+    registerClasses(annotationListener.getAnnotatedClasses());
+  }
 
-    classes.clear();
+  @Override
+  public void onStartup(Container container) { }
+
+
+  @Override
+  public void onShutdown(Container container) { }
+
+  @Override
+  public void onReload(Container container) {
+    // TODO: This is a container reload, not a plugin reload, so we may want to avoid rescaning everything and use cached classes instead.
 
     init();
+  }
 
-    classes.addAll(add);
-    classes.removeAll(remove);
+  private void registerSpringBeans(ConfigurableApplicationContext extentionContext) {
+    //TODO: restrict search to current spring context without parent for speedup
+    for (String name : BeanFactoryUtils.beanNamesIncludingAncestors(extentionContext)) {
+      Class<?> beanClass = extentionContext.getType(name);
+      if (beanClass == null) {
+        // Should not happen
+        continue;
+      }
+      Class<?> type = ClassUtils.getUserClass(beanClass);
+      if (isProviderClass(type)) {
+        LOG.debug("Registering Spring bean, " + name + ", of type " + type.getName() + " as a provider class");
+        register(type);
+      } else if (isRootResourceClass(type)) {
+        LOG.debug("Registering Spring bean, " + name + ", of type " + type.getName() + " as a root resource class");
+        register(type);
+      } else if (isLocatorResourceClass(type)) {
+        LOG.debug("Registering Spring bean, " + name + ", of type " + type.getName() + " as a locator resource class");
+        register(type);
+      }
+    }
   }
 
   @NotNull
-  private Set<Class> get(@NotNull final Class<? extends Annotation> ac) {
-    Set<Class> s = new HashSet<Class>();
-    for (Class c : getClasses()) {
+  private static Set<Class<?>> get(@NotNull final Class<? extends Annotation> ac, @NotNull Set<Class<?>> classes) {
+    Set<Class<?>> s = new HashSet<>();
+    for (Class<?> c : classes) {
       if (c.isAnnotationPresent(ac)) {
         s.add(c);
       }
@@ -193,13 +197,54 @@ public class ExtensionsAwareResourceConfig extends DefaultResourceConfig impleme
     return s;
   }
 
-  private void logClasses(@NotNull final String s, @NotNull final Set<Class> classes) {
+  private static void logClasses(@NotNull final String s, @NotNull final Set<Class<?>> classes) {
     final StringBuilder b = new StringBuilder();
     b.append(s);
-    for (Class c : classes) {
+    for (Class<?> c : classes) {
       b.append('\n').append("  ").append(c);
     }
 
     LOG.info(b.toString());
+  }
+
+  /**
+   * Determine if a class is a root resource class.
+   *
+   * @param c the class.
+   * @return true if the class is a root resource class, otherwise false
+   *         (including if the class is null).
+   */
+  private static boolean isRootResourceClass(Class<?> c) {
+    if (c == null)
+      return false;
+
+    if (c.isAnnotationPresent(Path.class)) return true;
+
+    for (Class<?> i : c.getInterfaces())
+      if (i.isAnnotationPresent(Path.class)) return true;
+
+    return false;
+  }
+
+  /**
+   * Determine if a class is a provider class.
+   *
+   * @param c the class.
+   * @return true if the class is a provider class, otherwise false
+   *         (including if the class is null)
+   */
+  private static boolean isProviderClass(Class<?> c) {
+    return c != null && c.isAnnotationPresent(Provider.class);
+  }
+
+  /**
+   * Determine if a class is a locator resource class.
+   *
+   * @param c the class.
+   * @return true if the class is a locator resource class, otherwise false
+   *         (including if the class is null)
+   */
+  private static boolean isLocatorResourceClass(Class<?> c) {
+    return c != null && c.isAnnotationPresent(LocatorResource.class);
   }
 }

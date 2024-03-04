@@ -27,12 +27,12 @@ import jetbrains.buildServer.server.rest.data.problem.Orders;
 import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree;
-import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree.Node;
+import jetbrains.buildServer.server.rest.data.util.tree.Node;
 import jetbrains.buildServer.server.rest.data.util.tree.TreeSlicingOptions;
 import jetbrains.buildServer.server.rest.errors.LocatorProcessException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyInjectable;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtil;
+import jetbrains.buildServer.server.rest.util.VirtualBuildsUtil;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.STestRun;
@@ -130,8 +130,8 @@ public class TestScopeTreeCollector {
       .filter(promotion -> promotion.getAssociatedBuildId() != null)
       .filter(promotion -> {
         SBuildType bt = promotion.getParentBuildType();
-        return bt != null && !SplitBuildsFeatureUtil.isVirtualConfiguration(bt) &&
-               (!promotion.isCompositeBuild() || promotion.isCompositeBuild() && SplitBuildsFeatureUtil.isParallelizedBuild(promotion));
+        return bt != null && !VirtualBuildsUtil.isVirtualConfiguration(bt) &&
+               (!promotion.isCompositeBuild() || promotion.isCompositeBuild() && VirtualBuildsUtil.isParallelizedBuild(promotion));
       })
       .flatMap(promotion -> {
         Stream<STestRun> testRunStream = myTestOccurrenceFinder.getItems(String.format(testRunsLocator, promotion.getAssociatedBuildId())).getEntries().stream();

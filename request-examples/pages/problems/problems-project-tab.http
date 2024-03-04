@@ -31,8 +31,8 @@ Authorization: Bearer {{token}}
 Accept: application/json
 
 ### Project problems tab, build problems by project, grouped by buildTypeId
-GET http://localhost:8111/bs/app/rest/pages/problems/buildProblems/groups?
-    locator=affectedProject:{{problems-project-tab-project-id}},currentlyInvestigated:true&
-    fields=count,group(buildTypeId,count,entry(problemOccurrence,build,investigations,mutes))
+GET http://localhost:8111/bs/app/rest/pages/problems/buildProblems/tree?
+    locator=affectedProject:{{problems-project-tab-project-id}},currentlyInvestigated:any&
+    fields=node(**),leaf(problemEntries($long,entry($long)))
 Authorization: Bearer {{token}}
 Accept: application/json

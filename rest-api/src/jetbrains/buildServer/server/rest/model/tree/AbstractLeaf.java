@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.model.problem.scope;
+package jetbrains.buildServer.server.rest.model.tree;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree;
+import jetbrains.buildServer.server.rest.data.util.tree.Node;
 import jetbrains.buildServer.server.rest.data.util.tree.TreeCounters;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -28,12 +28,12 @@ import org.jetbrains.annotations.NotNull;
 public abstract class AbstractLeaf<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
   protected BeanContext myContext;
   protected Fields myFields;
-  protected ScopeTree.Node<DATA, COUNTERS> myNode;
+  protected Node<DATA, COUNTERS> myNode;
 
   public AbstractLeaf() {
   }
 
-  public AbstractLeaf(@NotNull ScopeTree.Node<DATA, COUNTERS> node, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+  public AbstractLeaf(@NotNull Node<DATA, COUNTERS> node, @NotNull Fields fields, @NotNull BeanContext beanContext) {
     myNode = node;
     myFields = fields;
     myContext = beanContext;

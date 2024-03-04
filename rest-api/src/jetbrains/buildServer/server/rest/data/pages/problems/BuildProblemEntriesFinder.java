@@ -16,9 +16,7 @@
 
 package jetbrains.buildServer.server.rest.data.pages.problems;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.responsibility.BuildProblemResponsibilityEntry;
@@ -29,6 +27,8 @@ import jetbrains.buildServer.server.rest.data.finder.syntax.CommonLocatorDimensi
 import jetbrains.buildServer.server.rest.data.locator.BooleanValue;
 import jetbrains.buildServer.server.rest.data.locator.Dimension;
 import jetbrains.buildServer.server.rest.data.locator.Syntax;
+import jetbrains.buildServer.server.rest.data.locator.definition.LocatorDefinition;
+import jetbrains.buildServer.server.rest.data.util.ItemFilter;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyInjectable;
 import jetbrains.buildServer.server.rest.swagger.constants.LocatorName;
 import jetbrains.buildServer.server.rest.util.BuildTypeOrTemplate;
@@ -36,13 +36,15 @@ import jetbrains.buildServer.serverSide.CurrentProblemsManager;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.mute.CurrentMuteInfo;
+import jetbrains.buildServer.serverSide.mute.MuteInfo;
 import jetbrains.buildServer.serverSide.mute.ProblemMutingService;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.web.problems.BuildProblemsBean;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
-import static jetbrains.buildServer.server.rest.data.pages.problems.BuildProblemEntriesFinder.LocatorDefinition.*;
+import static jetbrains.buildServer.server.rest.data.pages.problems.BuildProblemEntriesFinder.Definition.*;
 
 @JerseyInjectable
 @Component
@@ -51,7 +53,7 @@ public class BuildProblemEntriesFinder extends DelegatingFinder<BuildProblemEntr
   private final ServiceLocator myServiceLocator;
   private final ProblemMutingService myProblemMutingService;
 
-  public static class LocatorDefinition {
+  public static class Definition implements LocatorDefinition {
     public static final Dimension AFFECTED_PROJECT = Dimension.ofName("affectedProject")
                                                               .description("Problems with builds in all nested build types of the project.")
                                                               .syntax(Syntax.forLocator(LocatorName.PROJECT)).build();
@@ -103,11 +105,28 @@ public class BuildProblemEntriesFinder extends DelegatingFinder<BuildProblemEntr
         new NameValuePairs().add(CommonLocatorDimensions.PAGER_COUNT.getName(), "-1")
       );
 
+      filter(DimensionCondition.ALWAYS, dims -> new IrrelevantProblemFilter());
+
       name(BuildProblemEntriesFinder.class.getSimpleName());
     }
 
     private boolean countIsNotSet(@NotNull Locator locator) {
       return !locator.isAnyPresent(CommonLocatorDimensions.PAGER_COUNT);
+    }
+  }
+
+  /**
+   * Filters out problems which shouldn't be shown in the UI.
+   */
+  private static class IrrelevantProblemFilter implements ItemFilter<BuildProblemEntry> {
+    @Override
+    public boolean isIncluded(@NotNull BuildProblemEntry item) {
+      return !BuildProblemsBean.shouldHide(item.getProblem());
+    }
+
+    @Override
+    public boolean shouldStop(@NotNull BuildProblemEntry item) {
+      return false;
     }
   }
 
@@ -144,14 +163,21 @@ public class BuildProblemEntriesFinder extends DelegatingFinder<BuildProblemEntr
 
     Map<Integer, CurrentMuteInfo> mutes = myProblemMutingService.getBuildProblemsCurrentMuteInfo(project);
     return problems.stream()
-                   .map(p -> {
-                     CurrentMuteInfo currentMuteInfo = mutes.get(p.getId());
-                     if (currentMuteInfo == null) {
-                       return new BuildProblemEntry(p, null);
-                     }
-                     return new BuildProblemEntry(p, currentMuteInfo.getProjectsMuteInfo().values());
-                   })
+                   .map(problem -> convertToEntryForProject(problem, mutes))
                    .collect(Collectors.toList());
+  }
+
+  @NotNull
+  private static BuildProblemEntry convertToEntryForProject(@NotNull BuildProblem problem, @NotNull Map<Integer, CurrentMuteInfo> projectMutes) {
+    CurrentMuteInfo currentMuteInfo = projectMutes.get(problem.getId());
+    if (currentMuteInfo == null) {
+      return new BuildProblemEntry(problem, null);
+    }
+
+    ArrayList<MuteInfo> aggregateMuteInfos = new ArrayList<>(currentMuteInfo.getProjectsMuteInfo().values());
+    aggregateMuteInfos.addAll(currentMuteInfo.getBuildTypeMuteInfo().values());
+
+    return new BuildProblemEntry(problem, aggregateMuteInfos);
   }
 
   @NotNull
@@ -168,13 +194,17 @@ public class BuildProblemEntriesFinder extends DelegatingFinder<BuildProblemEntr
 
     Map<Integer, CurrentMuteInfo> mutes = myProblemMutingService.getBuildProblemsCurrentMuteInfo(buildType.getProject());
     return problems.stream()
-                   .map(p -> {
-                     CurrentMuteInfo currentMuteInfo = mutes.get(p.getId());
-                     if (currentMuteInfo == null) {
-                       return new BuildProblemEntry(p, null);
-                     }
-                     return new BuildProblemEntry(p, currentMuteInfo.getProjectsMuteInfo().values());
-                   })
+                   .map(problem -> convertToEntryForBuildType(problem, buildType, mutes))
                    .collect(Collectors.toList());
+  }
+
+  @NotNull
+  private BuildProblemEntry convertToEntryForBuildType(@NotNull BuildProblem problem, @NotNull SBuildType buildType, @NotNull Map<Integer, CurrentMuteInfo> projectMutes) {
+    CurrentMuteInfo currentMuteInfo = projectMutes.get(problem.getId());
+    if (currentMuteInfo == null) {
+      return new BuildProblemEntry(problem, null);
+    }
+
+    return new BuildProblemEntry(problem, Collections.singleton(currentMuteInfo.getBuildTypeMuteInfo().get(buildType)));
   }
 }

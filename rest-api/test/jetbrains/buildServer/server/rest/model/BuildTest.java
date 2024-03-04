@@ -1956,6 +1956,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       throw new UnsupportedOperationException();
     }
 
+    @NotNull
     @Override
     public String getSourcePaths() {
       return sourcePaths;
@@ -1966,6 +1967,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       return cleanDestination;
     }
 
+    @NotNull
     @Override
     public RevisionRule getRevisionRule() {
       return revisionRule;
@@ -1996,6 +1998,7 @@ public class BuildTest extends BaseFinderTest<SBuild> {
       throw new UnsupportedOperationException();
     }
 
+    @NotNull
     @Override
     public String getId() {
       throw new UnsupportedOperationException();

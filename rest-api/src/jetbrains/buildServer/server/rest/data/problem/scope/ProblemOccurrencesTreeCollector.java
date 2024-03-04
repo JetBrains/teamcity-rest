@@ -50,7 +50,7 @@ public class ProblemOccurrencesTreeCollector {
   private static final int DEFAULT_MAX_CHILDREN = 5;
   private static final String DEFAULT_NODE_ORDER_BY_NEW_FAILED_COUNT = "newFailedCount:desc";
 
-  private static final Orders<ScopeTree.Node<BuildProblem, ProblemCounters>> SUPPORTED_ORDERS = new Orders<ScopeTree.Node<BuildProblem, ProblemCounters>>()
+  private static final Orders<Node<BuildProblem, ProblemCounters>> SUPPORTED_ORDERS = new Orders<Node<BuildProblem, ProblemCounters>>()
     .add("name", Comparator.comparing(node -> node.getScope().getName()))
     .add("count", Comparator.comparing(node -> node.getCounters().getCount()))
     .add("childrenCount", Comparator.comparing(node -> node.getChildren().size()))
@@ -80,7 +80,7 @@ public class ProblemOccurrencesTreeCollector {
     myProblemOccurrenceFinder = problemOccurrenceFinder;
   }
 
-  public List<ScopeTree.Node<BuildProblem, ProblemCounters>> getTree(@NotNull Locator locator) {
+  public List<Node<BuildProblem, ProblemCounters>> getTree(@NotNull Locator locator) {
     locator.addSupportedDimensions(
       ORDER_BY, SUB_TREE_ROOT_ID,
       ProblemOccurrenceFinder.BUILD, ProblemOccurrenceFinder.AFFECTED_PROJECT, // TODO: if build overview than build dimension will be present
@@ -90,7 +90,7 @@ public class ProblemOccurrencesTreeCollector {
     locator.addHiddenDimensions(ProblemOccurrenceFinder.SNAPSHOT_DEPENDENCY_PROBLEM);
 
     ScopeTree<BuildProblem, ProblemCounters> tree = getTreeByLocator(locator);
-    Comparator<ScopeTree.Node<BuildProblem, ProblemCounters>> nodeOrder = getNodeOrder(locator);
+    Comparator<Node<BuildProblem, ProblemCounters>> nodeOrder = getNodeOrder(locator);
 
     TreeSlicingOptions<BuildProblem, ProblemCounters> slicingOptions = new TreeSlicingOptions<>(getMaxChildrenFunction(locator), NEW_FAILED_FIRST_THEN_BY_ID, nodeOrder);
 
@@ -106,7 +106,7 @@ public class ProblemOccurrencesTreeCollector {
     return tree.getSlicedOrderedTree(slicingOptions);
   }
 
-  public List<ScopeTree.Node<BuildProblem, ProblemCounters>> getTreeFromBuildPromotions(@NotNull Stream<BuildPromotion> promotionStream, @NotNull Locator treeLocator) {
+  public List<Node<BuildProblem, ProblemCounters>> getTreeFromBuildPromotions(@NotNull Stream<BuildPromotion> promotionStream, @NotNull Locator treeLocator) {
     treeLocator.addSupportedDimensions(SUB_TREE_ROOT_ID);
     final String problemsLocator = "build:%d,type:(snapshotDependencyProblem:false)";
     Stream<BuildProblem> problemStream = promotionStream
@@ -168,7 +168,7 @@ public class ProblemOccurrencesTreeCollector {
                                  .collect(Collectors.toList());
   }
 
-  private Comparator<ScopeTree.Node<BuildProblem, ProblemCounters>> getNodeOrder(@NotNull Locator locator) {
+  private Comparator<Node<BuildProblem, ProblemCounters>> getNodeOrder(@NotNull Locator locator) {
     if(locator.isAnyPresent(ORDER_BY)) {
       String orderDimension = locator.getSingleDimensionValue(ORDER_BY);
       //noinspection ConstantConditions
@@ -342,7 +342,7 @@ public class ProblemOccurrencesTreeCollector {
   }
 
   @NotNull
-  private static Function<ScopeTree.Node<BuildProblem, ProblemCounters>, Integer> getMaxChildrenFunction(@NotNull Locator locator) {
+  private static Function<Node<BuildProblem, ProblemCounters>, Integer> getMaxChildrenFunction(@NotNull Locator locator) {
     Locator maxChildrenDimension = locator.get(MAX_CHILDREN);
     if (maxChildrenDimension == null) {
       return __ -> DEFAULT_MAX_CHILDREN;

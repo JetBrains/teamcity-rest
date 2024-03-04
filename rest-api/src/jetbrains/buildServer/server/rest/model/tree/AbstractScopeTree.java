@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.server.rest.model.problem.scope;
+package jetbrains.buildServer.server.rest.model.tree;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree;
+import jetbrains.buildServer.server.rest.data.util.tree.Node;
 import jetbrains.buildServer.server.rest.data.util.tree.TreeCounters;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.util.BeanContext;
@@ -27,20 +27,20 @@ import org.jetbrains.annotations.NotNull;
 
 
 public abstract class AbstractScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>, N extends AbstractNode<DATA, COUNTERS>, L extends AbstractLeaf<DATA, COUNTERS>> {
-  private List<ScopeTree.Node<DATA, COUNTERS>> myNodes;
+  private List<Node<DATA, COUNTERS>> myNodes;
   private Fields myFields;
   private BeanContext myContext;
 
   public AbstractScopeTree() { }
 
-  public AbstractScopeTree(@NotNull List<ScopeTree.Node<DATA, COUNTERS>> sourceNodes, @NotNull Fields fields, @NotNull BeanContext context) {
+  public AbstractScopeTree(@NotNull List<Node<DATA, COUNTERS>> sourceNodes, @NotNull Fields fields, @NotNull BeanContext context) {
     myNodes = sourceNodes;
     myFields = fields;
     myContext = context;
   }
 
-  protected abstract N buildNode(@NotNull ScopeTree.Node<DATA, COUNTERS> source, @NotNull Fields fields);
-  protected abstract L buildLeaf(@NotNull ScopeTree.Node<DATA, COUNTERS> source, @NotNull Fields fields, @NotNull BeanContext context);
+  protected abstract N buildNode(@NotNull Node<DATA, COUNTERS> source, @NotNull Fields fields);
+  protected abstract L buildLeaf(@NotNull Node<DATA, COUNTERS> source, @NotNull Fields fields, @NotNull BeanContext context);
 
   public List<N> getNodes() {
     if(BooleanUtils.isNotTrue(myFields.isIncluded("node"))) {

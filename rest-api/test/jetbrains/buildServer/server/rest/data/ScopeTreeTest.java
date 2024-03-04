@@ -37,9 +37,9 @@ public class ScopeTreeTest {
       MyLeaf.at("ROOT", "C1", "L2").withData(4, 5, 6),
       MyLeaf.at("ROOT", "C2", "L3").withData(7, 8, 9)
     );
-    Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
+    Map<String, Node<Integer, Counters>> nodes = new HashMap<>();
 
-    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree(Comparator.comparing(ScopeTree.Node::getId))) {
+    for(Node<Integer, Counters> node : tree.getFullTree(Comparator.comparing(Node::getId))) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(6, nodes.size());
@@ -73,7 +73,7 @@ public class ScopeTreeTest {
       MyLeaf.at("ROOT", "C3", "L5").withData(13, 14, 15),
       MyLeaf.at("ROOT", "C3", "L6").withData(16, 17, 18)
     );
-    Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
+    Map<String, Node<Integer, Counters>> nodes = new HashMap<>();
 
     /* We cut up to 2 children for each node (sorted alphabetically), exepected result:
              ROOT
@@ -84,9 +84,9 @@ public class ScopeTreeTest {
        2   2        2
      */
     TreeSlicingOptions<Integer, Counters> options = new TreeSlicingOptions<Integer, Counters>(
-      2, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId)
+      2, Integer::compareTo, Comparator.comparing(Node::getId)
     );
-    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(options)) {
+    for(Node<Integer, Counters> node : tree.getSlicedOrderedTree(options)) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(6, nodes.size());
@@ -123,9 +123,9 @@ public class ScopeTreeTest {
       MyLeaf.at("ROOT", "C3", "L5").withData(13, 14, 15),
       MyLeaf.at("ROOT", "C3", "L6").withData(16, 17, 18)
     );
-    Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
+    Map<String, Node<Integer, Counters>> nodes = new HashMap<>();
     List<String> order = new ArrayList<>();
-    for(ScopeTree.Node<Integer, Counters> node : tree.getFullTree(Comparator.comparing(ScopeTree.Node::getId))) {
+    for(Node<Integer, Counters> node : tree.getFullTree(Comparator.comparing(Node::getId))) {
       nodes.put(node.getId(), node);
       order.add(node.getId());
     }
@@ -174,7 +174,7 @@ public class ScopeTreeTest {
       MyLeaf.at("ROOT", "C3", "L5").withData(13, 14, 15),
       MyLeaf.at("ROOT", "C3", "L6").withData(16, 17, 18)
     );
-    Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
+    Map<String, Node<Integer, Counters>> nodes = new HashMap<>();
 
     /* We take the whole ROOT and cut up to 2 children for each node (sorted alphabetically), exepected result:
                   ROOT
@@ -185,9 +185,9 @@ public class ScopeTreeTest {
        2   2      2     2   2
      */
     TreeSlicingOptions<Integer, Counters> options = new TreeSlicingOptions<Integer, Counters>(
-      2, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId)
+      2, Integer::compareTo, Comparator.comparing(Node::getId)
     );
-    for(ScopeTree.Node<Integer, Counters> node : tree.getFullNodeAndSlicedOrderedSubtree("ROOT", options)) {
+    for(Node<Integer, Counters> node : tree.getFullNodeAndSlicedOrderedSubtree("ROOT", options)) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals(9, nodes.size());
@@ -237,7 +237,7 @@ public class ScopeTreeTest {
        L6  L5      L4
        2   2        2
      */
-    Comparator<ScopeTree.Node<Integer, Counters>> backwardsComparator = (n1, n2) -> n2.getId().compareTo(n1.getId());
+    Comparator<Node<Integer, Counters>> backwardsComparator = (n1, n2) -> n2.getId().compareTo(n1.getId());
 
     TreeSlicingOptions<Integer, Counters> options = new TreeSlicingOptions<Integer, Counters>(
       2, Integer::compareTo, backwardsComparator
@@ -245,7 +245,7 @@ public class ScopeTreeTest {
 
     Map<String, Integer> nodeOrder = new HashMap<>();
     int idx = 0;
-    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(options)) {
+    for(Node<Integer, Counters> node : tree.getSlicedOrderedTree(options)) {
       nodeOrder.put(node.getId(), idx);
       idx++;
     }
@@ -275,11 +275,11 @@ public class ScopeTreeTest {
     ScopeTree<Integer, Counters> tree = buildTree(leafs);
 
     TreeSlicingOptions<Integer, Counters> options1 = new TreeSlicingOptions<Integer, Counters>(
-      100, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId)
+      100, Integer::compareTo, Comparator.comparing(Node::getId)
     ).withMaxNodes(50);
 
     Set<String> nodeOrder = new HashSet<>();
-    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(options1)) {
+    for(Node<Integer, Counters> node : tree.getSlicedOrderedTree(options1)) {
       nodeOrder.add(node.getId());
     }
     Assert.assertEquals("Tree must be cut correctly", 50, nodeOrder.size());
@@ -310,11 +310,11 @@ public class ScopeTreeTest {
     ScopeTree<Integer, Counters> tree = buildTree(leafs);
 
     TreeSlicingOptions<Integer, Counters> options1 = new TreeSlicingOptions<Integer, Counters>(
-      100, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId)
+      100, Integer::compareTo, Comparator.comparing(Node::getId)
     ).withMaxNodes(50);
 
     Set<String> nodeOrder = new HashSet<>();
-    for(ScopeTree.Node<Integer, Counters> node : tree.getFullNodeAndSlicedOrderedSubtree("C1", options1)) {
+    for(Node<Integer, Counters> node : tree.getFullNodeAndSlicedOrderedSubtree("C1", options1)) {
       nodeOrder.add(node.getId());
     }
     Assert.assertEquals("Tree must be cut correctly", 50, nodeOrder.size());
@@ -344,11 +344,11 @@ public class ScopeTreeTest {
 
     // Now we check the same but children of C1 node were not enough to max out the threshold.
     TreeSlicingOptions<Integer, Counters> options2 = new TreeSlicingOptions<Integer, Counters>(
-      100, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId)
+      100, Integer::compareTo, Comparator.comparing(Node::getId)
     ).withMaxNodes(104);
 
     Set<String> seenNodes = new HashSet<>();
-    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(options2)) {
+    for(Node<Integer, Counters> node : tree.getSlicedOrderedTree(options2)) {
       seenNodes.add(node.getId());
     }
     Assert.assertEquals("Tree must be cut correctly", 104, seenNodes.size());
@@ -376,10 +376,10 @@ public class ScopeTreeTest {
     );
 
     TreeSlicingOptions<Integer, Counters> options1 = new TreeSlicingOptions<Integer, Counters>(
-      1, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId)
+      1, Integer::compareTo, Comparator.comparing(Node::getId)
     ).withMaxNodes(0);
 
-    List<ScopeTree.Node<Integer, Counters>> slice = tree.getSlicedOrderedTree(options1);
+    List<Node<Integer, Counters>> slice = tree.getSlicedOrderedTree(options1);
     Assert.assertTrue("0 max total nodes == empty slice", slice.isEmpty());
   }
 
@@ -389,10 +389,10 @@ public class ScopeTreeTest {
     );
 
     TreeSlicingOptions<Integer, Counters> options = new TreeSlicingOptions<Integer, Counters>(
-      2, Integer::compareTo, Comparator.comparing(ScopeTree.Node::getId)
+      2, Integer::compareTo, Comparator.comparing(Node::getId)
     );
-    Map<String, ScopeTree.Node<Integer, Counters>> nodes = new HashMap<>();
-    for(ScopeTree.Node<Integer, Counters> node : tree.getSlicedOrderedTree(options)) {
+    Map<String, Node<Integer, Counters>> nodes = new HashMap<>();
+    for(Node<Integer, Counters> node : tree.getSlicedOrderedTree(options)) {
       nodes.put(node.getId(), node);
     }
     Assert.assertEquals("Tree must be cut correctly", 2, nodes.size());

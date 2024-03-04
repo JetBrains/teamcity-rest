@@ -18,7 +18,7 @@ package jetbrains.buildServer.server.rest.data.util.tree;
 
 import java.util.Comparator;
 import java.util.function.Function;
-import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree.Node;
+import jetbrains.buildServer.server.rest.data.util.tree.Node;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

@@ -22,7 +22,7 @@ import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeInfo;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeTreeCollector;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeType;
-import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree;
+import jetbrains.buildServer.server.rest.data.util.tree.Node;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
@@ -111,7 +111,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   @Test
   public void testFullTree() {
     buildTree();
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
+    List<Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
 
     assertEquals("29 nodes in a tree + _Root", 31, result.size()); // 26 nodes + 3 builds
     assertEquals("Root must always be first", "_Root", result.get(0).getScope().getName());
@@ -122,7 +122,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   @Test
   public void testSliceUpToBuildType() {
     buildTree();
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getTopSlicedTree(Locator.locator("build:(affectedProject:project)"));
+    List<Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getTopSlicedTree(Locator.locator("build:(affectedProject:project)"));
 
     assertEquals("5 projects + 3 buildTypes in a tree + _Root", 9, result.size());
     checkAncestorsBeforeChildren(result);
@@ -132,7 +132,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testCountersAreCorrect1() {
     buildTree();
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
+    List<Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
 
     assertEquals(new Integer(14), result.get(0).getCounters().getCount());
     checkAncestorsBeforeChildren(result);
@@ -142,7 +142,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testCountersAreCorrect2() {
     buildTree();
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:subproject21),maxChildren:100"));
+    List<Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:subproject21),maxChildren:100"));
     checkAncestorsBeforeChildren(result);
 
     List<Integer> expectedCounters = asList(
@@ -160,7 +160,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testCountersAreCorrectWithMaxChildren() {
     buildTree();
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:1,orderBy:count:desc"));
+    List<Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:1,orderBy:count:desc"));
 
     assertEquals("Root (and all other nodes) must contain counters which were correct **before** tree cutting.", new Integer(14), result.get(0).getCounters().getCount());
     checkAncestorsBeforeChildren(result);
@@ -170,12 +170,12 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testDataSorting() {
     buildTree();
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:3"));
+    List<Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:3"));
     checkAncestorsBeforeChildren(result);
 
-    ScopeTree.Node<STestRun, TestCountersData> nodeOfInterest1 = null;
-    ScopeTree.Node<STestRun, TestCountersData> nodeOfInterest2 = null;
-    for(ScopeTree.Node<STestRun, TestCountersData> node : result) {
+    Node<STestRun, TestCountersData> nodeOfInterest1 = null;
+    Node<STestRun, TestCountersData> nodeOfInterest2 = null;
+    for(Node<STestRun, TestCountersData> node : result) {
       if(node.getScope().isLeaf() && node.getData().size() == 3 && node.getScope().getName().equals("class1")) {
         nodeOfInterest1 = node;
       }
@@ -202,7 +202,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testSubtreeHasCorrectNodes() {
     buildTree();
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
+    List<Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
     checkAncestorsBeforeChildren(fullTree);
 
     // Let's find node:  _Root -> project -> project2 -> subproject21
@@ -215,10 +215,10 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     }
     assertTrue(subTreeRootIdx != -1);
 
-    ScopeTree.Node<STestRun, TestCountersData> subTreeRoot = fullTree.get(subTreeRootIdx);
+    Node<STestRun, TestCountersData> subTreeRoot = fullTree.get(subTreeRootIdx);
 
     String subTreeLocator = String.format("build:(affectedProject:project),subTreeRootId:%s,maxChildren:100", subTreeRoot.getId());
-    List<ScopeTree.Node<STestRun, TestCountersData>> subTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator(subTreeLocator));
+    List<Node<STestRun, TestCountersData>> subTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator(subTreeLocator));
     checkAncestorsBeforeChildren(subTree, subTreeRoot.getParent().getId());
     assertSameElements(
       getNodeNames(subTree),
@@ -227,7 +227,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
     List<String> fullTreeNodeIds = fullTree.stream().map(node -> node.getId()).collect(Collectors.toList());
     int lastIdx = subTreeRootIdx - 1;
-    for (ScopeTree.Node<STestRun, TestCountersData> subTreeNode : subTree) {
+    for (Node<STestRun, TestCountersData> subTreeNode : subTree) {
       int idx = fullTreeNodeIds.indexOf(subTreeNode.getId());
 
       assertTrue("Subtree nodes must be in the same order as in a full tree", idx > lastIdx);
@@ -249,7 +249,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
     runBuildWithFailedTestInVirtualDeps(project, preemptiveBuildsStartFailureEnabled);
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
+    List<Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
     checkAncestorsBeforeChildren(fullTree);
 
     // there should be 7 nodes
@@ -268,7 +268,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
 
     runBuildWithFailedTestInVirtualDeps(project, preemptiveBuildsStartFailureEnabled);
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100,groupParallelTests:false"));
+    List<Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100,groupParallelTests:false"));
     checkAncestorsBeforeChildren(fullTree);
 
     assertEquals(
@@ -291,7 +291,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
     runBuildWithFailedTestInVirtualDeps(project, preemptiveBuildsStartFailureEnabled);
     build().in(side).withFailedTests("package.classA.a").run().finish();
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
+    List<Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
     checkAncestorsBeforeChildren(fullTree);
 
     // there should be 12 nodes
@@ -305,14 +305,14 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   public void testSubtreeLeafNode() {
     buildTree();
 
-    List<ScopeTree.Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
+    List<Node<STestRun, TestCountersData>> fullTree = myTestScopeTreeCollector.getSlicedTree(Locator.locator("build:(affectedProject:project),maxChildren:100"));
     final String leafNodeId = fullTree.stream()
                                       .filter(node -> node.getScope().getName().equals("classZ"))
                                       .map(node -> node.getId())
                                       .findFirst().get();
 
     final Locator leafNodeLocator = Locator.locator(String.format("build:(affectedProject:project),subTreeRootId:%s,maxChildren:100", leafNodeId));
-    List<ScopeTree.Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(leafNodeLocator);
+    List<Node<STestRun, TestCountersData>> result = myTestScopeTreeCollector.getSlicedTree(leafNodeLocator);
 
     assertEquals(1, result.size());
     assertEquals(1, result.get(0).getData().size());
@@ -363,7 +363,7 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
   }
 
   @NotNull
-  private List<String> getNodeNames(@NotNull List<ScopeTree.Node<STestRun, TestCountersData>> tree) {
+  private List<String> getNodeNames(@NotNull List<Node<STestRun, TestCountersData>> tree) {
     return tree.stream()
                .map(node -> {
                   TestScopeType scopeType = ((TestScopeInfo) node.getScope()).getType();
@@ -373,17 +373,17 @@ public class TestScopeTreeCollectorTest extends BaseTestScopesCollectorTest {
                .collect(Collectors.toList());
   }
 
-  private void checkAncestorsBeforeChildren(@NotNull List<ScopeTree.Node<STestRun, TestCountersData>> result) {
+  private void checkAncestorsBeforeChildren(@NotNull List<Node<STestRun, TestCountersData>> result) {
     checkAncestorsBeforeChildren(result, null);
   }
 
-  private void checkAncestorsBeforeChildren(@NotNull List<ScopeTree.Node<STestRun, TestCountersData>> result, @Nullable String seenParent) {
+  private void checkAncestorsBeforeChildren(@NotNull List<Node<STestRun, TestCountersData>> result, @Nullable String seenParent) {
     Set<String> seenNodes = new HashSet<>();
     if(seenParent != null) {
       seenNodes.add(seenParent);
     }
 
-    for(ScopeTree.Node<STestRun, TestCountersData> node : result) {
+    for(Node<STestRun, TestCountersData> node : result) {
       if(node.getParent() != null) {
         assertTrue(
           String.format("Parent must always come before children. %s was returned before it's parent.", node),

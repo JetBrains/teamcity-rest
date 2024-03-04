@@ -57,7 +57,7 @@
 
       <class name="jetbrains.buildServer.server.rest.util.BuildQueuePositionDescriptorTest" />
       <class name="jetbrains.buildServer.server.rest.util.BuildQueuePositionModifierTest" />
-      <class name="jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtilTest"/>
+      <class name="jetbrains.buildServer.server.rest.util.VirtualBuildsUtilTest"/>
     </classes>
   </test>
   <test name="Rest API UI-only Test" preserve-order="false">
@@ -65,6 +65,7 @@
       <class name="jetbrains.buildServer.server.rest.data.pages.problems.TestFailuresProblemEntriesCollectorTest"/>
       <class name="jetbrains.buildServer.server.rest.data.pages.matrix.MatrixBuildFeatureServiceTest"/>
       <class name="jetbrains.buildServer.server.rest.data.pages.problems.BuildProblemEntriesFinderTest"/>
+      <class name="jetbrains.buildServer.server.rest.data.pages.problems.BuildProblemEntryTreeNodeComparatorTest"/>
     </classes>
   </test>
   <test name="Rest API Model Test" preserve-order="false">

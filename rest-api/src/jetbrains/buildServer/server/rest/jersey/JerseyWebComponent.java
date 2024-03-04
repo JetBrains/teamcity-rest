@@ -16,85 +16,77 @@
 
 package jetbrains.buildServer.server.rest.jersey;
 
-import com.intellij.openapi.diagnostic.Logger;
-import com.sun.jersey.api.core.ResourceConfig;
-import com.sun.jersey.spi.container.WebApplication;
-import com.sun.jersey.spi.spring.container.servlet.SpringServlet;
-import java.util.Collection;
-import jetbrains.buildServer.ExtensionHolder;
+import java.util.*;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
 import jetbrains.buildServer.plugins.bean.PluginInfo;
+import org.glassfish.jersey.servlet.ServletContainer;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.springframework.beans.factory.BeanFactoryUtils;
-import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
-import org.springframework.util.ClassUtils;
+import org.springframework.web.context.WebApplicationContext;
 
 /**
- * This is the point if Jersey+Spring integration.
- *
- * @author Yegor.Yarko
- *         Date: 24.03.2009
+ * This is the entry point into Jersey, which itself routes requests to proper *Request class.
+ * We route all requests here from APIController.
  */
 @Component("jerseyWebComponent")
-public class JerseyWebComponent extends SpringServlet {
+public class JerseyWebComponent extends ServletContainer {
   private static final long serialVersionUID = 5686455305749079671L;
-  private final String myPluginName;
+  private final Map<String, String> initParameters = new HashMap<>();
+  private final ApplicationContext myApplicationContext;
 
-  private Logger LOG = Logger.getInstance(JerseyWebComponent.class.getName());
-  private final ExtensionHolder myExtensionHolder;
-  /**
-   * Spring context of REST-API and contexts for all REST-API extensions (e.g. contrib, compare-builds)
-   */
-  private Collection<ConfigurableApplicationContext> myContexts;
-  private WebApplication myWebApplication;
+  public JerseyWebComponent(@NotNull ExtensionsAwareResourceConfig resourceConfig,
+                            @NotNull ApplicationContext applicationContext) {
+    super(resourceConfig);
 
-  public JerseyWebComponent(final PluginInfo descriptor, final ExtensionHolder extensionHolder) {
-    myPluginName = descriptor.getPluginName();
-    LOG = Logger.getInstance(JerseyWebComponent.class.getName() + "/" + myPluginName);
-    myExtensionHolder = extensionHolder;
+    myApplicationContext = applicationContext;
   }
 
   @Override
-  protected void initiate(ResourceConfig rc, WebApplication wa) {
-    myWebApplication = wa;
-    try {
-      for (ConfigurableApplicationContext context : myContexts) {
-        registerResourceProviders(rc, context);
+  public ServletConfig getServletConfig() {
+    return new ServletConfig() {
+      @Override
+      public String getServletName() {
+        return "jerseyServlet";
       }
-      wa.initiate(rc, new ExtensionHolderProviderFactory(myExtensionHolder, myPluginName));
-    } catch (RuntimeException e) {
-      LOG.error("Exception occurred during REST API initialization: " + ExceptionMapperBase.getMessageWithCauses(e), e);
-      throw e;
-    }
+
+      @Override
+      public ServletContext getServletContext() {
+        return JerseyWebComponent.this.getServletContext();
+      }
+
+      @Override
+      public String getInitParameter(String name) {
+        return JerseyWebComponent.this.getInitParameter(name);
+      }
+
+      @Override
+      public Enumeration<String> getInitParameterNames() {
+        return JerseyWebComponent.this.getInitParameterNames();
+      }
+    };
   }
 
-  @Nullable
-  public WebApplication getWebApplication() {
-    return myWebApplication;
+  @Override
+  public String getInitParameter(final String s) {
+    return initParameters.get(s);
   }
 
-  /**
-   * Checks for all beans that have @Provider annotation and
-   * registers them into Jersey ResourceConfig
-   * @param rc config
-   * @param springContext spring context
-   */
-  private void registerResourceProviders(ResourceConfig rc, ConfigurableApplicationContext springContext) {
-    //TODO: restrict search to current spring context without parent for speedup
-    for (String name : BeanFactoryUtils.beanNamesIncludingAncestors(springContext)) {
-      final Class<?> type = ClassUtils.getUserClass(springContext.getType(name));
-      if (ResourceConfig.isProviderClass(type)) {
-        LOG.debug("Registering Spring bean, " + name + ", of type " + type.getName() + " as a provider class");
-        rc.getClasses().add(type);
-      } else if (ResourceConfig.isRootResourceClass(type)) {
-        LOG.debug("Registering Spring bean, " + name + ", of type " + type.getName() + " as a root resource class");
-        rc.getClasses().add(type);
+  @Override
+  public Enumeration<String> getInitParameterNames() {
+    return new Vector<>(initParameters.keySet()).elements();
+  }
+
+  @Override
+  public ServletContext getServletContext() {
+    //return APIController.this.getServletContext();
+    // workaround for https://youtrack.jetbrains.com/issue/TW-7656
+    for (ApplicationContext ctx = myApplicationContext; ctx != null; ctx = ctx.getParent()) {
+      if (ctx instanceof WebApplicationContext) {
+        return ((WebApplicationContext)ctx).getServletContext();
       }
     }
-  }
-
-  public void setContexts(@NotNull Collection<ConfigurableApplicationContext> contexts) {
-    myContexts = contexts;
+    throw new RuntimeException("WebApplication context was not found.");
   }
 }

@@ -19,16 +19,40 @@ package jetbrains.buildServer.server.rest.util;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class SplitBuildsFeatureUtil {
+public class VirtualBuildsUtil {
   public static final String PARALLEL_TESTS_FEATURE_TYPE = "parallelTests";
-  public static final String LINK_TO_PARENT_PARAM_NAME = "teamcity.internal.original.link.id";
+  public static final String LINK_TO_ORIGINAL_PROMOTION_PARAM_NAME = "teamcity.internal.original.link.id";
   public static final String LINK_TO_PARENT_BT_PREFIX = "bt:";
 
   public static boolean isVirtualBuild(@NotNull BuildPromotion build) {
     SBuildType bt = build.getBuildType();
     return bt != null && bt.getProject().isVirtual();
+  }
+
+  /**
+   * If given promotion is a part of a build with virtual parts returns "original" promotion, null otherwise.
+   */
+  @Nullable
+  public static BuildPromotion getVirtualHead(@NotNull BuildPromotion buildPromotion) {
+    String linkParam = buildPromotion.getParameterValue(LINK_TO_ORIGINAL_PROMOTION_PARAM_NAME);
+    if(linkParam == null) {
+      return null;
+    }
+
+    String originalBtId = linkParam.substring(VirtualBuildsUtil.LINK_TO_PARENT_BT_PREFIX.length());
+
+    for(BuildDependency dependency : buildPromotion.getDependedOnMe()) {
+      BuildPromotion dependent = dependency.getDependent();
+      if(dependent.getParentBuildType() != null && originalBtId.equals(dependent.getParentBuildType().getExternalId())) {
+        return dependent;
+      }
+    }
+
+    return null;
   }
 
   public static boolean isVirtualConfiguration(@NotNull SBuildType bt) {

@@ -24,7 +24,9 @@ import io.swagger.models.properties.ArrayProperty;
 import io.swagger.models.properties.MapProperty;
 import io.swagger.models.properties.Property;
 import io.swagger.models.properties.RefProperty;
+import java.io.InputStream;
 import java.util.*;
+import org.jetbrains.annotations.NotNull;
 
 public class SwaggerUtil {
   private static final Logger LOG = Logger.getInstance(SwaggerUtil.class.getName());
@@ -126,5 +128,23 @@ public class SwaggerUtil {
       return getPropertySimpleRef(items);
     }
     return null;
+  }
+
+  public static final String INDEX = "index.html";
+  private static final String RESOURCE_PATH = "swagger/";
+
+  @NotNull
+  public static InputStream getFileFromResources(@NotNull String path) {
+    String fullPath = RESOURCE_PATH + path;
+
+    if(!isValidResourcePath(fullPath)) {
+      throw new IllegalArgumentException(String.format("File %s was not found", fullPath));
+    }
+
+    return Objects.requireNonNull(SwaggerUtil.class.getClassLoader().getResourceAsStream(fullPath));
+  }
+
+  private static boolean isValidResourcePath(@NotNull String path) {
+    return !path.contains("..") && SwaggerUtil.class.getClassLoader().getResource(path) != null;
   }
 }

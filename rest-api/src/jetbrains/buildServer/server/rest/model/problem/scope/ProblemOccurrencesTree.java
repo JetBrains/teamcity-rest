@@ -19,9 +19,12 @@ package jetbrains.buildServer.server.rest.model.problem.scope;
 import java.util.List;
 import javax.xml.bind.annotation.*;
 import jetbrains.buildServer.server.rest.data.problem.scope.ProblemOccurrencesTreeCollector;
-import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree;
+import jetbrains.buildServer.server.rest.data.util.tree.Node;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.ProblemOccurrences;
+import jetbrains.buildServer.server.rest.model.tree.AbstractLeaf;
+import jetbrains.buildServer.server.rest.model.tree.AbstractNode;
+import jetbrains.buildServer.server.rest.model.tree.AbstractScopeTree;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.problems.BuildProblem;
@@ -30,20 +33,20 @@ import org.jetbrains.annotations.NotNull;
 
 @XmlRootElement(name = "problemOccurrencesTree")
 @XmlType(name = "problemOccurrencesTree")
-@XmlSeeAlso({ProblemOccurrencesTree.Node.class, ProblemOccurrencesTree.BuildProblemTypeNode.class, ProblemOccurrencesTree.Leaf.class})
-public class ProblemOccurrencesTree extends AbstractScopeTree<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters, ProblemOccurrencesTree.Node, ProblemOccurrencesTree.Leaf> {
+@XmlSeeAlso({ProblemOccurrencesTree.NodeImpl.class, ProblemOccurrencesTree.BuildProblemTypeNode.class, ProblemOccurrencesTree.Leaf.class})
+public class ProblemOccurrencesTree extends AbstractScopeTree<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters, ProblemOccurrencesTree.NodeImpl, ProblemOccurrencesTree.Leaf> {
   public ProblemOccurrencesTree() {
     super();
   }
 
-  public ProblemOccurrencesTree(@NotNull List<ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters>> sourceNodes,
+  public ProblemOccurrencesTree(@NotNull List<Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters>> sourceNodes,
                                 @NotNull Fields fields, @NotNull BeanContext context) {
     super(sourceNodes, fields, context);
   }
 
   @XmlElement(name = "node")
   @Override
-  public List<Node> getNodes() {
+  public List<NodeImpl> getNodes() {
     return super.getNodes();
   }
 
@@ -54,25 +57,25 @@ public class ProblemOccurrencesTree extends AbstractScopeTree<BuildProblem, Prob
   }
 
   @Override
-  protected Node buildNode(@NotNull ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> source, @NotNull Fields fields) {
+  protected NodeImpl buildNode(@NotNull Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> source, @NotNull Fields fields) {
     if(source.getScope().isLeaf()) {
       return new BuildProblemTypeNode(source, fields);
     }
-    return new Node(source, fields);
+    return new NodeImpl(source, fields);
   }
 
   @Override
-  protected Leaf buildLeaf(@NotNull ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> source, @NotNull Fields fields, @NotNull BeanContext context) {
+  protected Leaf buildLeaf(@NotNull Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> source, @NotNull Fields fields, @NotNull BeanContext context) {
     return new Leaf(source, fields, context);
   }
 
   @XmlType(name = "problemTreeNode")
-  public static class Node extends AbstractNode<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> {
-    public Node() {
+  public static class NodeImpl extends AbstractNode<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> {
+    public NodeImpl() {
       super();
     }
 
-    public Node(@NotNull ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> node, @NotNull Fields fields) {
+    public NodeImpl(@NotNull Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> node, @NotNull Fields fields) {
       super(node, fields);
     }
 
@@ -93,12 +96,12 @@ public class ProblemOccurrencesTree extends AbstractScopeTree<BuildProblem, Prob
   }
 
   @XmlType(name = "buildProblemNode")
-  public static class BuildProblemTypeNode extends Node {
+  public static class BuildProblemTypeNode extends NodeImpl {
     public BuildProblemTypeNode() {
       super();
     }
 
-    public BuildProblemTypeNode(@NotNull ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> node, @NotNull Fields fields) {
+    public BuildProblemTypeNode(@NotNull Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> node, @NotNull Fields fields) {
       super(node, fields);
     }
 
@@ -120,7 +123,7 @@ public class ProblemOccurrencesTree extends AbstractScopeTree<BuildProblem, Prob
       super();
     }
 
-    public Leaf(@NotNull ScopeTree.Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> node,
+    public Leaf(@NotNull Node<BuildProblem, ProblemOccurrencesTreeCollector.ProblemCounters> node,
                 @NotNull Fields fields,
                 @NotNull BeanContext beanContext) {
       super(node, fields, beanContext);

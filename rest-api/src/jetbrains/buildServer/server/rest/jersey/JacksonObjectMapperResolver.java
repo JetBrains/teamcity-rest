@@ -50,13 +50,13 @@ public class JacksonObjectMapperResolver implements ContextResolver<ObjectMapper
     myMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     myMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(myMapper.getTypeFactory()));
     myMapper.setDateFormat(new SimpleDateFormat(Constants.TIME_FORMAT, Locale.ENGLISH));
-    myMapper.configure(SerializationFeature.WRITE_EMPTY_JSON_ARRAYS, true);
     myMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, TeamCityProperties.getBoolean("rest.response.json.deserialize.ignoreUnknownProperties"));
     if (TeamCityProperties.getBoolean(APIController.REST_RESPONSE_PRETTYFORMAT)) {
       myMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
     }
   }
 
+  @Override
   public ObjectMapper getContext(Class<?> type) {
     LOG.debug("Using own customized ObjectMapper for class '" + type.getCanonicalName() + "'");
 

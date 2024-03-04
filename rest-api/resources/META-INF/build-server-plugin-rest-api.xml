@@ -18,10 +18,6 @@
 
   <!-- <aop:aspectj-autoproxy/> -->
 
-  <bean id="userAvatarsManagerResolver" class="jetbrains.buildServer.server.rest.jersey.UserAvatarsManagerResolver">
-    <constructor-arg ref="userAvatarsManager"/>
-  </bean>
-
   <bean id="swaggerReaderConfig" class="io.swagger.jaxrs.config.DefaultReaderConfig">
     <property name="scanAllResources" value="false"/>
   </bean>

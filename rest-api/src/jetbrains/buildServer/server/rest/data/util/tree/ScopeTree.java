@@ -31,7 +31,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
   public ScopeTree(@NotNull Scope rootScope,
                    @NotNull COUNTERS rootCounters,
                    @NotNull Iterable<? extends LeafInfo<DATA, COUNTERS>> leafs) {
-    myRoot = new Node<>(rootScope.getId(), rootScope, rootCounters, null);
+    myRoot = new NodeImpl<>(rootScope.getId(), rootScope, rootCounters, null);
     myIdToNodesMap.put(myRoot.getId(), myRoot);
 
     buildTree(leafs);
@@ -48,7 +48,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
           continue;
         }
         if (scope.isLeaf()) {
-          Node<DATA, COUNTERS> leaf = new Node<>(scope.getId(), scope, leafInfo.getData(), leafInfo.getCounters(), parent);
+          Node<DATA, COUNTERS> leaf = new NodeImpl<>(scope.getId(), scope, leafInfo.getData(), leafInfo.getCounters(), parent);
           myIdToNodesMap.put(leaf.getId(), leaf);
           parent.putChild(leaf);
           break;
@@ -66,7 +66,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
       return child;
     }
 
-    child = new Node<>(scope.getId(), scope, counters, parent);
+    child = new NodeImpl<>(scope.getId(), scope, counters, parent);
     myIdToNodesMap.put(child.getId(), child);
     parent.putChild(child);
 
@@ -226,7 +226,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
                                 .limit(slicingOptions.getMaxChildren(node))
                                 .collect(Collectors.toList());
 
-    Node<DATA, COUNTERS> slicedLeaf = new Node<>(node.getId(), node.getScope(), slicedData, node.getCounters(), node.getParent());
+    Node<DATA, COUNTERS> slicedLeaf = new NodeImpl<>(node.getId(), node.getScope(), slicedData, node.getCounters(), node.getParent());
 
     node.getParent().putChild(slicedLeaf);
 
@@ -259,7 +259,7 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     return slicedNodes;
   }
 
-  public static class Node<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
+  public static class NodeImpl<DATA, COUNTERS extends TreeCounters<COUNTERS>> implements Node<DATA, COUNTERS> {
     @Nullable
     private final Node<DATA, COUNTERS> myParent;
     @NotNull
@@ -276,10 +276,10 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     /**
      * Construct a non-leaf node. It has zero values and may contain children.
      **/
-    Node(@NotNull String id,
-         @NotNull Scope scope,
-         @NotNull COUNTERS counters,
-         @Nullable Node<DATA, COUNTERS> parent) {
+    NodeImpl(@NotNull String id,
+             @NotNull Scope scope,
+             @NotNull COUNTERS counters,
+             @Nullable Node<DATA, COUNTERS> parent) {
       myId = id;
       myParent = parent;
       myScope = scope;
@@ -291,11 +291,11 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
     /**
      * Construct a leaf node. It is always a node of type CLASS and has zero children.
      * */
-    Node(@NotNull String id,
-          @NotNull Scope scope,
-          @NotNull Collection<DATA> values,
-          @NotNull COUNTERS counters,
-          @Nullable Node<DATA, COUNTERS> parent) {
+    NodeImpl(@NotNull String id,
+             @NotNull Scope scope,
+             @NotNull Collection<DATA> values,
+             @NotNull COUNTERS counters,
+             @Nullable Node<DATA, COUNTERS> parent) {
       myId = id;
       myParent = parent;
       myScope = scope;
@@ -304,45 +304,54 @@ public class ScopeTree<DATA, COUNTERS extends TreeCounters<COUNTERS>> {
       myChildren = Collections.emptyMap();
     }
 
+    @Override
     @NotNull
     public String getId() {
       return myId;
     }
 
+    @Override
     @NotNull
     public Scope getScope() {
       return myScope;
     }
 
+    @Override
     @NotNull
     public COUNTERS getCounters() {
       return myCountersData;
     }
 
+    @Override
     @NotNull
     public List<DATA> getData() {
       return values;
     }
 
+    @Override
     @NotNull
     public Collection<Node<DATA, COUNTERS>> getChildren() {
       return myChildren.values();
     }
 
+    @Override
     @Nullable
     public Node<DATA, COUNTERS> getChild(@NotNull String childScopeName) {
       return myChildren.get(childScopeName);
     }
 
+    @Override
     @Nullable
     public Node<DATA, COUNTERS> getParent() {
       return myParent;
     }
 
+    @Override
     public void mergeCounters(@NotNull COUNTERS counters) {
       myCountersData = myCountersData.combinedWith(counters);
     }
 
+    @Override
     public void putChild(@NotNull Node<DATA, COUNTERS> child) {
       myChildren.put(child.getId(), child);
     }

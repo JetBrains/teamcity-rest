@@ -22,6 +22,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -68,6 +69,9 @@ import jetbrains.buildServer.serverSide.deploymentDashboards.entities.Deployment
 import jetbrains.buildServer.serverSide.identifiers.DuplicateExternalIdException;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsLoader;
+import jetbrains.buildServer.serverSide.impl.untrustedBuilds.UntrustedBuildTypeReport;
+import jetbrains.buildServer.serverSide.impl.untrustedBuilds.UntrustedBuildsConstants;
+import jetbrains.buildServer.serverSide.impl.untrustedBuilds.UntrustedBuildsManager;
 import jetbrains.buildServer.serverSide.impl.xml.XmlConstants;
 import jetbrains.buildServer.serverSide.parameters.TypedValueSetsProvider;
 import jetbrains.buildServer.util.StringUtil;
@@ -759,7 +763,13 @@ public class ProjectRequest {
                                   String secureValue) {
     SProject project = myProjectFinder.getItem(projectLocator);
     myPermissionChecker.checkProjectPermission(Permission.EDIT_PROJECT, project.getProjectId());
-    return ((ProjectEx)project).getOrCreateToken(secureValue, "Requested via REST");
+    final String token = ((ProjectEx)project).getOrCreateToken(secureValue, "Requested via REST");
+    CredentialsStorageEx credentialsStorage = (CredentialsStorageEx)((ProjectEx)project).getCredentialsStorage();
+    if (credentialsStorage != null) {
+      credentialsStorage.schedulePersistingCredentials(project);
+    }
+
+    return token;
   }
 
   /* TeamCity API note:
@@ -1087,6 +1097,35 @@ public class ProjectRequest {
       throw new NotFoundException("");
     }
     return myProjectSshKeyRestService.getSshKeys(projectLocator);
+  }
+
+  /**
+   * List all untrusted build configuration in the project.
+   *
+   * @since 2024.03
+   */
+  @GET
+  @Path("/{projectLocator}/untrustedConfigurationsReport")
+  @Produces({"application/xml", "application/json"})
+  @ApiOperation(value = "Find all untrusted configurations in the project", hidden = true)
+  public List<UntrustedReport> getUntrustedConfigurationsReport(
+    @ApiParam(format = LocatorName.PROJECT) @PathParam("projectLocator")
+    String projectLocator,
+    @Context
+    HttpServletRequest request
+  ) {
+    if(!UntrustedBuildsConstants.isEnabled()) {
+      throw new NotFoundException("");
+    }
+    UntrustedBuildsManager untrustedBuildsManager = myServiceLocator.getSingletonService(UntrustedBuildsManager.class);
+    SProject project = myProjectFinder.getItem(projectLocator, true);
+    return project.getBuildTypes().stream().map(bt -> {
+      UntrustedBuildTypeReport report = untrustedBuildsManager.getUntrustedBuildTypeReport(bt);
+
+      return report == null ? null : new UntrustedReport(bt, report.getUntrustedBuildTypeReasons().stream().map(
+        reason -> new UntrustedReportReason(reason.getType(), reason.getDescription())).collect(Collectors.toList()), report.getUntrustedBuildsDefaultAction()
+      );
+    }).filter(Objects::nonNull).collect(Collectors.toList());
   }
 
   /**

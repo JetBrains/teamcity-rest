@@ -19,6 +19,7 @@ package jetbrains.buildServer.server.rest;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyInjectable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Component;
  * Date: 15.11.2009
  */
 @Component
+@JerseyInjectable
 public class RequestPathTransformInfo implements PathTransformator {
   @NotNull
   private Map<String, String> myPathMapping;

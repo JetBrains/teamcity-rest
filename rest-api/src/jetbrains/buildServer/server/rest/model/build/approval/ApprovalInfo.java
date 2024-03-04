@@ -47,7 +47,7 @@ public class ApprovalInfo {
   @NotNull private Fields myFields;
   @NotNull private BeanContext myBeanContext;
   @NotNull private ApprovableBuildManager myApprovableBuildManager;
-  @NotNull private Boolean myHasApprovalRules;
+  @NotNull private Boolean myShouldBeApproved;
   @Nullable private ApprovalBuildFeatureConfiguration myConfiguration;
 
   public ApprovalInfo(@NotNull final BuildPromotionEx buildPromotionEx,
@@ -57,8 +57,8 @@ public class ApprovalInfo {
     myFields = fields;
     myBeanContext = beanContext;
     myApprovableBuildManager = beanContext.getSingletonService(ApprovableBuildManager.class);
-    myHasApprovalRules = myApprovableBuildManager.hasApprovalRules(buildPromotionEx);
-    if (myHasApprovalRules) {
+    myShouldBeApproved = myApprovableBuildManager.shouldBeApproved(buildPromotionEx).requiresApproval();
+    if (myShouldBeApproved) {
       myConfiguration = myApprovableBuildManager.getApprovalConfiguration(myBuildPromotionEx);
     }
   }
@@ -144,7 +144,7 @@ public class ApprovalInfo {
   @XmlElement(name = "userApprovals")
   public UserApprovalRuleStatuses getUserApprovalRuleStatuses() {
     if (myFields.isIncluded("userApprovals", true, true)) {
-      if (!myHasApprovalRules) {
+      if (!myShouldBeApproved) {
         return null;
       }
       try { // return empty list of rule statuses if user is not entitled to see build configuration settings
@@ -177,7 +177,7 @@ public class ApprovalInfo {
   @XmlElement(name = "groupApprovals")
   public GroupApprovalRuleStatuses getGroupApprovalRuleStatuses() {
     if (myFields.isIncluded("groupApprovals", true, true)) {
-      if (!myHasApprovalRules) {
+      if (!myShouldBeApproved) {
         return null;
       }
 

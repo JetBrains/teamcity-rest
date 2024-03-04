@@ -16,7 +16,7 @@
 
 package jetbrains.buildServer.server.restcontrib.cctray.request;
 
-import com.sun.jersey.spi.resource.Singleton;
+import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;

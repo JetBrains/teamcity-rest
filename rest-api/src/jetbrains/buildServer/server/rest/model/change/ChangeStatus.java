@@ -34,7 +34,7 @@ import jetbrains.buildServer.server.rest.model.PagerData;
 import jetbrains.buildServer.server.rest.model.build.Builds;
 import jetbrains.buildServer.server.rest.swagger.annotations.ModelDescription;
 import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtil;
+import jetbrains.buildServer.server.rest.util.VirtualBuildsUtil;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
@@ -187,8 +187,8 @@ public class ChangeStatus {
 
     List<STestRun> testRuns = myChangeStatus.getFirstBuilds().values().stream()
                                             .filter(Objects::nonNull)
-                                            .filter(b -> !SplitBuildsFeatureUtil.isVirtualBuild(b.getBuildPromotion()))
-                                            .filter(b -> !b.isCompositeBuild() || SplitBuildsFeatureUtil.isParallelizedBuild(b.getBuildPromotion()))
+                                            .filter(b -> !VirtualBuildsUtil.isVirtualBuild(b.getBuildPromotion()))
+                                            .filter(b -> !b.isCompositeBuild() || VirtualBuildsUtil.isParallelizedBuild(b.getBuildPromotion()))
                                             .flatMap(b -> b.getShortStatistics().getFailedTests().stream())
                                             .collect(Collectors.toList());
 

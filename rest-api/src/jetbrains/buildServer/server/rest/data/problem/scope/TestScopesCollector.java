@@ -26,7 +26,7 @@ import jetbrains.buildServer.server.rest.data.problem.TestOccurrenceFinder;
 import jetbrains.buildServer.server.rest.errors.BadRequestException;
 import jetbrains.buildServer.server.rest.jersey.provider.annotated.JerseyInjectable;
 import jetbrains.buildServer.server.rest.model.PagerData;
-import jetbrains.buildServer.server.rest.util.SplitBuildsFeatureUtil;
+import jetbrains.buildServer.server.rest.util.VirtualBuildsUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.BuildDependency;
 import jetbrains.buildServer.util.StringUtil;
@@ -186,7 +186,7 @@ public class TestScopesCollector {
       }
 
       // Let's check if we need any additional actions.
-      if(!myGroupParallelTests || !SplitBuildsFeatureUtil.isVirtualConfiguration(bt)) {
+      if(!myGroupParallelTests || !VirtualBuildsUtil.isVirtualConfiguration(bt)) {
         // simple case, no remapping
         return promo;
       }

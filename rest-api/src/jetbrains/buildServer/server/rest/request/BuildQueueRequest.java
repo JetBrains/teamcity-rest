@@ -560,7 +560,7 @@ public class  BuildQueueRequest {
     ApprovableBuildManager approvableBuildManager = myBeanContext.getSingletonService(ApprovableBuildManager.class);
     BuildPromotionEx buildPromotionEx = (BuildPromotionEx)myBuildPromotionFinder.getBuildPromotion(null, buildLocator);
 
-    if (approvableBuildManager.hasApprovalRules(buildPromotionEx)) {
+    if (approvableBuildManager.shouldBeApproved(buildPromotionEx).requiresApproval()) {
       return new ApprovalInfo(buildPromotionEx, new Fields(fields), myBeanContext);
     } else {
       throw new BadRequestException(

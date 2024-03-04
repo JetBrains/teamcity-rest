@@ -16,7 +16,8 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.sun.jersey.api.NotFoundException;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
 import org.jetbrains.annotations.NotNull;
@@ -32,7 +33,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class JerseyNotFoundExceptionMapper extends ExceptionMapperBase<NotFoundException> {
   @Override
-  public ResponseData getResponseData(@NotNull final com.sun.jersey.api.NotFoundException e) {
-    return new ResponseData(e.getResponse().getStatus(), "Please check URL is correct.");
+  public ResponseData getResponseData(@NotNull final NotFoundException e) {
+    return new ResponseData(Response.Status.NOT_FOUND, "Please check URL is correct.");
   }
 }

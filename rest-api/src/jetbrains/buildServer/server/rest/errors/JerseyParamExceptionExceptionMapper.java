@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2024 JetBrains s.r.o.
+ * Copyright 2000-2022 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package jetbrains.buildServer.server.rest.errors;
 
-import com.sun.jersey.api.ParamException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 import jetbrains.buildServer.server.rest.jersey.ExceptionMapperBase;
+import org.glassfish.jersey.server.ParamException;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +27,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class JerseyParamExceptionExceptionMapper extends ExceptionMapperBase<ParamException> {
   @Override
-  public ResponseData getResponseData(@NotNull final com.sun.jersey.api.ParamException e) {
+  public ResponseData getResponseData(@NotNull final ParamException e) {
     return new ResponseData(Response.Status.BAD_REQUEST, "Error processing request parameter '" + e.getParameterName() + "'. Check supported formats.");
   }
 }

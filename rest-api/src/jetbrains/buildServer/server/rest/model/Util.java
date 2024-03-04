@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
  * @since 17.11.2009
  */
 public class Util {
-  @Nullable
+  @Contract("null -> null; !null -> !null")
   public static String formatTime(@Nullable final Date time) {
     if (time == null) {
       return null;
@@ -41,7 +41,7 @@ public class Util {
     return (new SimpleDateFormat(TeamCityProperties.getProperty("rest.defaultDateFormat", Constants.TIME_FORMAT), Locale.ENGLISH)).format(time);
   }
 
-  @NotNull
+  @Contract("null -> null; !null -> !null")
   public static Date resolveTime(@Nullable final String timestamp) throws ParseException {
     if (timestamp == null || timestamp.isEmpty()) {
       return null;
@@ -105,16 +105,29 @@ public class Util {
     return value == null ? resultForNull : mapper.apply(value);
   }
 
-  @Nullable
+  @Contract("null -> null; !null -> !null")
   public static String encodeUrlParamValue(@Nullable final String value) {
-    if (value == null) return null;
-    String result = WebUtil.encode(value);
-    //make it more readable by not encoding common characters which regularly work in the clients and on the server
-    result = result.replace("%24", "$")
-                   .replace("%28", "(")
-                   .replace("%29", ")")
-                   .replace("%3A", ":")
-                   .replace("%2C", ",");
-    return result;
+    if (value == null) {
+      return null;
+    }
+
+    return humanReadableUrlParamValue(WebUtil.encode(value));
+  }
+
+  /**
+   * Makes the url more readable by not encoding common characters, which regularly work in the clients and on the server.
+   */
+  @NotNull
+  public static String humanReadableUrlParamValue(@NotNull String sourceUrl) {
+    if(TeamCityProperties.getBooleanOrTrue("rest.model.readableHrefsEnabled")) {
+      return sourceUrl.replace("%24", "$")
+                      .replace("%28", "(")
+                      .replace("%29", ")")
+                      .replace("%3A", ":")
+                      .replace("%2C", ",");
+    } else {
+      return sourceUrl;
+    }
+
   }
 }

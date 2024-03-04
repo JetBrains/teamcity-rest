@@ -206,10 +206,10 @@ public class PagerDataImpl implements PagerData {
     }
     sb.append(path);
     if (uri.getQuery() != null) {
-      sb.append('?').append(uri.getRawQuery());
+      sb.append('?').append(Util.humanReadableUrlParamValue(uri.getRawQuery()));
     }
     if (uri.getFragment() != null) {
-      sb.append('#').append(uri.getRawFragment());
+      sb.append('#').append(Util.humanReadableUrlParamValue(uri.getRawFragment()));
     }
     return sb.toString();
   }

@@ -17,47 +17,53 @@
 package jetbrains.buildServer.server.rest.jersey;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Feature;
 import javax.ws.rs.core.FeatureContext;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.ext.Provider;
-import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.server.rest.ApiUrlBuilder;
-import jetbrains.buildServer.server.rest.util.BeanContext;
-import jetbrains.buildServer.server.rest.util.BeanFactory;
+import jetbrains.buildServer.server.rest.RequestPathTransformInfo;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
 
 @Provider
-public class BeanContextProvider implements Feature {
+public class ApiUrlBuilderProvider implements Feature {
   @Override
   public boolean configure(FeatureContext context) {
     context.register(new AbstractBinder() {
       @Override
       protected void configure() {
-        bindFactory(Resolver.class).to(BeanContext.class)
-                                   .in(RequestScoped.class);
+        bindFactory(ApiUrlBuilderFactory.class)
+          .to(ApiUrlBuilder.class)
+          .in(RequestScoped.class);
       }
     });
 
     return true;
   }
 
-  public static class Resolver implements Factory<BeanContext> {
+  /**
+   * Factory is bound per-lookup, so fields 'headers' and 'request' are being injected
+   * here per request, which is exactly what we want.
+   */
+  public static class ApiUrlBuilderFactory implements Factory<ApiUrlBuilder> {
     @Inject
-    private BeanFactory myBeanFactory;
-    @Inject
-    private ServiceLocator myServiceLocator;
+    private HttpHeaders headers;
 
     @Inject
-    private ApiUrlBuilder myApiUrlBuilder;
+    private HttpServletRequest request;
+
+    @Inject
+    private RequestPathTransformInfo requestPathTransformInfo;
 
     @Override
-    public BeanContext provide() {
-      return new BeanContext(myBeanFactory, myServiceLocator, myApiUrlBuilder);
+    public ApiUrlBuilder provide() {
+      return new ApiUrlBuilder(new SimplePathTransformer(request, headers, requestPathTransformInfo));
     }
 
     @Override
-    public void dispose(BeanContext instance) { }
+    public void dispose(ApiUrlBuilder instance) { }
   }
 }

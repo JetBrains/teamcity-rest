@@ -20,10 +20,13 @@ import java.util.List;
 import javax.xml.bind.annotation.*;
 import jetbrains.buildServer.server.rest.data.problem.TestCountersData;
 import jetbrains.buildServer.server.rest.data.problem.scope.TestScopeInfo;
-import jetbrains.buildServer.server.rest.data.util.tree.ScopeTree;
+import jetbrains.buildServer.server.rest.data.util.tree.Node;
 import jetbrains.buildServer.server.rest.model.Fields;
 import jetbrains.buildServer.server.rest.model.problem.TestCounters;
 import jetbrains.buildServer.server.rest.model.problem.TestOccurrences;
+import jetbrains.buildServer.server.rest.model.tree.AbstractLeaf;
+import jetbrains.buildServer.server.rest.model.tree.AbstractNode;
+import jetbrains.buildServer.server.rest.model.tree.AbstractScopeTree;
 import jetbrains.buildServer.server.rest.util.BeanContext;
 import jetbrains.buildServer.server.rest.util.ValueWithDefault;
 import jetbrains.buildServer.serverSide.STestRun;
@@ -33,13 +36,13 @@ import org.jetbrains.annotations.NotNull;
 
 @XmlRootElement(name = "testScopeTree")
 @XmlType(name = "testScopeTree")
-@XmlSeeAlso({TestScopeTree.Node.class, TestScopeTree.Leaf.class})
-public class TestScopeTree extends AbstractScopeTree<STestRun, TestCountersData, TestScopeTree.Node, TestScopeTree.Leaf> {
+@XmlSeeAlso({TestScopeTree.NodeImpl.class, TestScopeTree.Leaf.class})
+public class TestScopeTree extends AbstractScopeTree<STestRun, TestCountersData, TestScopeTree.NodeImpl, TestScopeTree.Leaf> {
   public TestScopeTree() {
     super();
   }
 
-  public TestScopeTree(@NotNull List<ScopeTree.Node<STestRun, TestCountersData>> sourceNodes,
+  public TestScopeTree(@NotNull List<Node<STestRun, TestCountersData>> sourceNodes,
                        @NotNull Fields fields,
                        @NotNull BeanContext context) {
     super(sourceNodes, fields, context);
@@ -47,7 +50,7 @@ public class TestScopeTree extends AbstractScopeTree<STestRun, TestCountersData,
 
   @XmlElement(name = "node")
   @Override
-  public List<Node> getNodes() {
+  public List<NodeImpl> getNodes() {
     return super.getNodes();
   }
 
@@ -58,22 +61,22 @@ public class TestScopeTree extends AbstractScopeTree<STestRun, TestCountersData,
   }
 
   @Override
-  protected Node buildNode(@NotNull ScopeTree.Node<STestRun, TestCountersData> source, @NotNull Fields fields) {
-    return new Node(source, fields);
+  protected NodeImpl buildNode(@NotNull Node<STestRun, TestCountersData> source, @NotNull Fields fields) {
+    return new NodeImpl(source, fields);
   }
 
   @Override
-  protected Leaf buildLeaf(@NotNull ScopeTree.Node<STestRun, TestCountersData> source, @NotNull Fields fields, @NotNull BeanContext context) {
+  protected Leaf buildLeaf(@NotNull Node<STestRun, TestCountersData> source, @NotNull Fields fields, @NotNull BeanContext context) {
     return new Leaf(source, fields, context);
   }
 
   @XmlType(name = "testTreeNode")
-  public static class Node extends AbstractNode<STestRun, TestCountersData> {
-    public Node() {
+  public static class NodeImpl extends AbstractNode<STestRun, TestCountersData> {
+    public NodeImpl() {
       super();
     }
 
-    public Node(@NotNull ScopeTree.Node<STestRun, TestCountersData> node, @NotNull Fields fields) {
+    public NodeImpl(@NotNull Node<STestRun, TestCountersData> node, @NotNull Fields fields) {
       super(node, fields);
     }
 
@@ -99,7 +102,7 @@ public class TestScopeTree extends AbstractScopeTree<STestRun, TestCountersData,
       super();
     }
 
-    public Leaf(@NotNull ScopeTree.Node<STestRun, TestCountersData> node, @NotNull Fields fields, @NotNull BeanContext beanContext) {
+    public Leaf(@NotNull Node<STestRun, TestCountersData> node, @NotNull Fields fields, @NotNull BeanContext beanContext) {
       super(node, fields, beanContext);
     }
 
